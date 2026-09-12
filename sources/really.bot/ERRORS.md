@@ -1,4 +1,5 @@
 # really.bot fetch errors
 
-Fetch in progress. This file is rewritten when the snapshot finishes.
+Generated: 2026-09-12T09:03:17Z
 
+No failures. Every index entry has both `run.json` and `run.md`.

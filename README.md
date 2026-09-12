@@ -52,6 +52,8 @@ scripts/fetch_really_bot.py       # polite re-fetch from the public API
 
 [`catalog.json`](catalog.json) is a compact array of runs that downloaded successfully (both `run.json` and `run.md`). Each object includes `source`, serial, title, original URLs, and local paths.
 
+Current really.bot snapshot: **1214 / 1214** index entries fully archived (index `updated_at` 2026-09-12T09:00:54.993Z). See [sources/really.bot/INDEX.md](sources/really.bot/INDEX.md) and [sources/really.bot/ERRORS.md](sources/really.bot/ERRORS.md).
+
 ## Fetch notes
 
 Files were retrieved from the public really.bot API with a named User-Agent (`bot-repository-archive`, linking this repository), polite concurrency, and retries. See `scripts/fetch_really_bot.py` to refresh the snapshot.
