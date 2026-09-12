@@ -1,12 +1,12 @@
 # skills.sh errors
 
-Updated: 2026-09-12T13:58:02Z
+Updated: 2026-09-12T14:08:30Z
 
 ## Rate limit
 
 Live `GET /api/download/{owner}/{repo}/{slug}` returns HTTP 429 `{"error":"rate_limit_exceeded","message":"Rate limit exceeded. Maximum 60 requests per hour."}` with `Retry-After: 60`.
 
-Target is all 19998 sitemap ids. 840 have full `files/` + hash. 19147 remain.
+Target is all 19998 sitemap ids. 844 have full `files/` + hash. 19143 remain.
 At 50 successful downloads/hour this is a multi-day resume job. The downloader is resume-friendly and stays under the cap.
 
 ## Permanent misses
@@ -15,6 +15,6 @@ At 50 successful downloads/hour this is a multi-day resume job. The downloader i
 
 Recent failures / fallbacks:
 
-- `addyosmani/agent-skills/shipping-and-launch` rate_limited: HTTP 429 rate_limit_exceeded (60/hour)
+- `addyosmani/agent-skills/deprecation-and-migration` rate_limited: HTTP 429 rate_limit_exceeded (60/hour)
 
 Resume: `python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`
