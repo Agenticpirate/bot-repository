@@ -1,20 +1,21 @@
 # skills.sh errors
 
-Updated: 2026-09-12T16:35:23Z
+Updated: 2026-09-12T16:37:38Z
 
 ## Rate limit
 
 Live `GET /api/download/{owner}/{repo}/{slug}` returns HTTP 429 `{"error":"rate_limit_exceeded","message":"Rate limit exceeded. Maximum 60 requests per hour."}` with `Retry-After: 60`.
 
-Target is all 19998 sitemap ids. 2077 have full `files/` + hash. 17887 remain.
+Target is all 19998 sitemap ids. 2094 have full `files/` + hash. 17869 remain.
 At 50 successful downloads/hour this is a multi-day resume job. The downloader is resume-friendly and stays under the cap.
 
 ## Permanent misses
 
-34 ids returned HTTP 404 from the download API; page HTML was saved once.
+35 ids returned HTTP 404 from the download API; page HTML was saved once.
 
 Recent failures / fallbacks:
 
-- `coleam00/excalidraw-diagram-skill/excalidraw-diagram` rate_limited: HTTP 429 rate_limit_exceeded (60/hour)
+- `flutter/agent-plugins/flutter-setting-up-on-windows` html_fallback: HTTP 404
+- `skills-101/superpowers/happyhorse` rate_limited: HTTP 429 rate_limit_exceeded (60/hour)
 
 Resume: `python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`
