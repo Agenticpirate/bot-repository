@@ -1,0 +1,98 @@
+# Skills Board
+> Skills Board is the agent-native skills registry for teams, the web app where a team keeps and shares its AI skills. Teammates can open the source, copy a compatible install command, or download the latest files as a ZIP. MCP-compatible agents can search the same library.
+
+Last reviewed: 2026-08-19
+
+Skills Board is free hosted SaaS with open-source code. A saved skill is a team's own choice, not a formal security review or compatibility certification. The product points to the latest version from the saved source and does not pin historical versions.
+
+Key facts:
+- Product category: agent-native skills registry for teams
+- Primary audience: small and mid-sized teams using a mix of Claude, Codex, Cursor, and other agents
+- Usage paths per skill: original source, compatible install command, or ZIP download of the latest source files
+- MCP read capabilities: list and search team skills and collections; retrieve install commands; discover public and repository skills
+- MCP write capabilities: with `skills:write`, save new skills; create collections; add or remove saved skills from collections
+- MCP limits: cannot edit or delete saved team skills, install skills in an agent, or execute skills
+- Hosted product: free forever, no trial, credit card, or paid tier
+
+Markdown versions: the home page, the resources, comparisons, and alternatives hubs, and every guide, skill format explainer, comparison, and alternatives page listed below is also served as Markdown at the same URL with a `.md` suffix (for example https://www.skillsboard.sh/codex-skills.md; the home page is https://www.skillsboard.sh/index.md), and the page URL returns the same Markdown when the request sends `Accept: text/markdown`. Those responses carry `Content-Type: text/markdown` and an `x-markdown-tokens` estimate.
+
+## Core pages
+- [Sitemap](https://www.skillsboard.sh/sitemap.xml): Indexable public URLs
+- [Home](https://www.skillsboard.sh/): Product overview, pricing, and common questions
+- [Resources](https://www.skillsboard.sh/resources): Practical guides for teams sharing, reviewing, and operating AI skills
+- [Developer docs](https://www.skillsboard.sh/developers): How an agent connects to the MCP server and its tools, the public SKILL.md format check at /api/check, and the versioning, error, and rate-limit conventions of the HTTP surface
+- [About Skills Board](https://www.skillsboard.sh/about): Why the shared team library exists, how teams use it, and where to find the open-source project
+- [Pricing](https://www.skillsboard.sh/pricing.md): Machine-readable pricing details
+- [Create account](https://www.skillsboard.sh/sign-up): Start a free team library
+- [Product homepage with FAQ](https://www.skillsboard.sh/#faq): Extractable answers about compatibility, MCP, catalogs, and free pricing
+
+## Machine-readable discovery
+- [ARD capability manifest](https://www.skillsboard.sh/.well-known/ai-catalog.json): Every resource on this origin an agent can fetch, with representative queries
+- [MCP Server Card](https://www.skillsboard.sh/.well-known/mcp/server-card.json): Server identity, transport endpoint, capabilities, and the full tool list with the scope each needs
+- [MCP Server Card, bare path](https://www.skillsboard.sh/.well-known/mcp): The same card for a client that probes the parent path
+- [MCP registry manifest](https://www.skillsboard.sh/server.json): The manifest the MCP registry publishes this server from, with the streamable HTTP endpoint
+- [Agent Skills index](https://www.skillsboard.sh/.well-known/agent-skills/index.json): The skills Skills Board publishes, each with a sha256 digest
+- [API catalog](https://www.skillsboard.sh/.well-known/api-catalog): RFC 9727 linkset for the MCP API, with its description, documentation, and status links
+- [OpenAPI description](https://www.skillsboard.sh/openapi.json): The public HTTP surface, OpenAPI 3.1
+- [Agent authentication](https://www.skillsboard.sh/auth.md): How an agent registers, gets a user-delegated token, and handles revocation
+- [Protected resource metadata](https://www.skillsboard.sh/.well-known/oauth-protected-resource): RFC 9728 resource identifier, authorization servers, and scopes
+- [Deployment liveness](https://www.skillsboard.sh/api/health): HTTP liveness only; backing services are not probed, and the response carries the caller's remaining request budget
+
+## API conventions
+
+- Version: every response carries `Skills-Board-Api-Version: 1`; a request may send the same header to pin the version it was written against, and an unsupported one is refused with 400 rather than answered with a different version.
+- Errors: RFC 9457 `application/problem+json` on every endpoint except the MCP one, which reports failures as JSON-RPC error objects, including the pinned-version (400) and spent-budget (429) refusals it makes before dispatch. Branch on the `code` member, which is `error.data.code` on the MCP endpoint; the `type` member is a URL that resolves to the section of https://www.skillsboard.sh/developers describing that failure.
+- Rate limits: budgeted endpoints send `RateLimit` and `RateLimit-Policy` and refuse with 429 and `Retry-After`. The published budget is 120 requests per 60 seconds per client per endpoint, and 600 per 60 seconds on /api/mcp, counted per serving instance. A request with no client address is not counted and its response states the policy only.
+- Deprecation policy: a withdrawal is announced on the affected responses with `Deprecation` (RFC 9745) and `Sunset` (RFC 8594) headers at least 90 days before the sunset date, stated at https://www.skillsboard.sh/developers#deprecation-policy and in the OpenAPI description under `info.x-deprecation-policy`.
+
+## Skill format explainers
+- [Agent Skills support: which clients read SKILL.md](https://www.skillsboard.sh/agent-skills-support): Eleven clients whose own documentation states they read SKILL.md with the directories each names, the thirty-six further entries on the agentskills.io client showcase, which directory reaches which client, and the behavior no vendor documents
+- [Best Claude skills: a curated register](https://www.skillsboard.sh/best-claude-skills): Twenty-seven register entries covering thirty-five Claude skills that cleared seven stated criteria, grouped by job, each read from its own SKILL.md with publisher, license, and where it runs, plus the nine popular candidates that were dropped and why
+- [Anthropic skills: the first-party catalog](https://www.skillsboard.sh/anthropic-skills): Every skill Anthropic publishes itself, in three sets: the four pre-built document skills, the nineteen folders in anthropics/skills, and the fifteen bundled with Claude Code, with what each does, where it loads, and how it is licensed
+- [Agent Skills: the open standard](https://www.skillsboard.sh/agent-skills): What the Agent Skills specification defines, which agents implement it and where each one looks on disk, what travels between them, and where to read real examples
+- [Agent skills by the numbers](https://www.skillsboard.sh/agent-skills-by-the-numbers): A monthly snapshot of three public figures for the agent skills ecosystem, 20,783 repositories tagged agent-skills, about 37,248 public README files printing npx skills, and 38,365,913 npm downloads of the same CLI in a month, with the endpoint and the precision beside each one
+- [Skill examples: real SKILL.md files](https://www.skillsboard.sh/skill-examples): Eight example skills from anthropics/skills read file by file, the pattern each one demonstrates, verbatim excerpts with their source, what all nineteen examples declare in frontmatter, and the six places the examples diverge from the specification
+- [Claude skills](https://www.skillsboard.sh/claude-skills): What a Claude Skill is, the SKILL.md format, where skills run, and how to install, write, and share one
+- [Codex skills](https://www.skillsboard.sh/codex-skills): What a Codex skill is, the .agents/skills locations Codex scans, what transfers from a Claude skill, and how to add one
+- [Claude Cowork skills](https://www.skillsboard.sh/cowork-skills): What a skill is inside Claude Cowork, how a session loads and invokes one, the four channels that deliver a skill, what changes between desktop, web, and mobile, and how to write one
+- [OpenCode skills](https://www.skillsboard.sh/opencode-skills): What an OpenCode skill is, the six directories it scans, the built-in skill tool that loads one, the five frontmatter fields it recognizes, and the allow, ask, or deny permission it puts in front of every skill
+- [Vercel skills](https://www.skillsboard.sh/vercel-skills): What Vercel skills means, the nine skills in vercel-labs/agent-skills with their licenses and install counts, the four whose folder name is not their skill name, what the README gets wrong about its own contents, and the separate vercel skills CLI command
+- [GitHub Copilot skills](https://www.skillsboard.sh/copilot-skills): Whether GitHub Copilot supports Agent Skills, the five directories it reads a SKILL.md from, the surfaces where skills work and the two where they do not, the frontmatter fields VS Code adds on top of the specification, how gh skill installs and pins one, and how skills differ from custom instructions
+- [Cursor skills](https://www.skillsboard.sh/cursor-skills): What a Cursor skill is, every directory Cursor scans including the Claude and Codex ones, the frontmatter fields it documents, and how to add one
+- [AGENTS.md vs SKILL.md](https://www.skillsboard.sh/agents-md-vs-skill-md): What each format describes, which of Claude Code, Codex, and Cursor reads which, minimal examples of both, and how the two work together
+- [Where to find Claude skills](https://www.skillsboard.sh/where-to-find-claude-skills): Where Claude skills actually come from today: the official plugin marketplace, the claude.com catalog, skills.sh, anthropics/skills, and the awesome lists, with what each one screens
+
+## Write and validate
+- [How to write a SKILL.md file](https://www.skillsboard.sh/guides/how-to-write-a-skill-md): The six specification frontmatter fields and the Claude Code additions, the description rules that decide whether a skill triggers, the body and reference-file budgets, and how to validate a skill before sharing it
+- [Skill creator: build a valid SKILL.md](https://www.skillsboard.sh/skill-creator): A free browser tool that writes SKILL.md from the six specification frontmatter fields, checks the name, description, and compatibility limits while you type, and downloads the skill folder as `<name>/SKILL.md`; open it as `/skill-creator?from=<github url>` to load an existing SKILL.md into the fields; it calls no model and has no Markdown twin
+- [Skill checker: check a SKILL.md against the specification](https://www.skillsboard.sh/check): A free tool that reads every SKILL.md in a public GitHub repository and reports where the format departs from the Agent Skills specification, keeping specification errors apart from convention warnings; it is a format check, not a review or a security audit, and it needs no account
+- [Format check endpoint](https://www.skillsboard.sh/api/check?url=https://github.com/owner/repo): The same report as JSON, or as Markdown with `&format=md` or an `Accept: text/markdown` header; the page at /check and this endpoint take the same `url` parameter
+
+## Install and verify
+- [How to install Claude skills in Claude Code](https://www.skillsboard.sh/guides/install-claude-skills-in-claude-code): The documented skill locations on disk, the personal, project, plugin, managed, and claude.ai sync install paths, and how to confirm a skill loaded
+
+## Comparisons
+- [Comparisons](https://www.skillsboard.sh/compare): Sourced comparisons of the AI agent primitives that look interchangeable, with the date each was last checked
+- [Claude skills vs subagents](https://www.skillsboard.sh/compare/claude-skills-vs-subagents): What each primitive is, where each lives, what triggers each, when each is the right choice, and the two documented ways they combine
+- [Claude skills vs MCP](https://www.skillsboard.sh/compare/claude-skills-vs-mcp): What a skill is for and what the Model Context Protocol is for, why they are not alternatives, and what a repository that commits both looks like
+- [Claude skills vs plugins](https://www.skillsboard.sh/compare/claude-skills-vs-plugins): A skill as content and a Claude Code plugin as packaging, what each can carry, how each is distributed and versioned, and how a plugin ships a skill
+- [Claude skills vs slash commands](https://www.skillsboard.sh/compare/claude-skills-vs-slash-commands): Why Claude Code documents custom commands as merged into skills, what still differs between a command file and a SKILL.md, and which file wins the same command name
+- [Alternatives](https://www.skillsboard.sh/alternatives): Skills Board next to a shared GitHub repository, skills.sh, Smithery, and Superpowers, with the case for each one
+- [Skills Board vs Superpowers](https://www.skillsboard.sh/alternatives/superpowers): What the MIT-licensed Superpowers plugin installs, the fourteen skill folders and per-harness install steps, and where a team registry sits next to it
+
+## Team skill workflows
+- [Claude Code for teams](https://www.skillsboard.sh/claude-code-for-teams): What a Claude Code rollout configures, which admin features exist only on Team and Enterprise plans, the five settings layers and their precedence, where a team CLAUDE.md and a team skill go, how a plugin marketplace reaches everyone, which MCP scope is shared, and what a cloned repository withholds until the folder is trusted
+- [Manage AI skills across your organization](https://www.skillsboard.sh/manage-ai-skills): What each vendor's organization-level distribution mechanism covers and where it stops, across Claude Code managed settings and plugins, claude.ai owner provisioning and sharing, the Claude API, Codex admin locations and plugins, and Cursor, plus the selection layer none of them records
+- [AI agent skill use cases for teams](https://www.skillsboard.sh/guides/ai-skill-use-cases-for-teams): Eight repeatable workflows with triggers, inputs, outputs, human checks, and stop boundaries
+- [AI skills onboarding checklist](https://www.skillsboard.sh/guides/onboard-new-teammate-ai-skills-checklist): Help a new teammate find, choose, and verify one of the team's skills
+- [Choose the first AI agent skill for your team](https://www.skillsboard.sh/guides/choose-first-ai-agent-skill-for-your-team): Evaluate candidates with a scorecard, source review, disqualifiers, and a teammate test
+- [Share AI agent skills with your team](https://www.skillsboard.sh/guides/share-agent-skills-with-your-team): Set ownership, compare distribution models, and keep one team library
+- [Manage skills across Claude Code, Codex, and Cursor](https://www.skillsboard.sh/guides/manage-skills-across-claude-codex-cursor): Use one source of truth without assuming automatic synchronization
+
+## MCP and engineering workflows
+- [Use a shared AI skill library through MCP](https://www.skillsboard.sh/guides/shared-mcp-skill-library-for-teams): Connect, authorize, search the team library, and verify an MCP handoff
+- [AI coding guidelines template](https://www.skillsboard.sh/guides/ai-coding-guidelines-template): Define allowed work, trusted context, verification, handoffs, and ownership
+- [Onboard an engineering team to AI coding tools](https://www.skillsboard.sh/guides/ai-coding-team-onboarding): Start with one workflow, trusted context, review gates, and measured adoption
+
+## Source
+- [GitHub repository](https://github.com/TommyBez/skillsboard): Open-source code

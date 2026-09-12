@@ -1,0 +1,790 @@
+# Marketing Agent Architecture
+
+## Overview
+
+The Marketing Agent is a modular orchestration system that manages the full marketing lifecycle: audience segmentation, campaign execution, budget allocation, multi-touch attribution, content generation, analytics tracking, and SEO analysis. The design follows a plugin-based architecture where each subsystem operates independently yet shares data through well-defined interfaces.
+
+The system is designed for both small-team marketing operations and enterprise-scale campaigns requiring complex cross-channel orchestration. Each module can be used standalone or composed through the MarketingAgent facade for end-to-end workflows.
+
+---
+
+## System Context
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          External Systems                                │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐ │
+│  │   CRM    │  │   ESP    │  │   DMP    │  │ Ads API  │  │ Analytics│ │
+│  │ (Sales-  │  │ (Mail-   │  │ (Data    │  │ (Google, │  │ (GA4,    │ │
+│  │  force)  │  │  chimp)  │  │  Mgmt)   │  │  Meta)   │  │  Mix)    │ │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘ │
+│       │             │             │             │             │         │
+│  ┌────▼─────────────▼─────────────▼─────────────▼─────────────▼────┐   │
+│  │                    Integration Layer                              │   │
+│  │  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐   │   │
+│  │  │ REST API   │ │  Webhooks  │ │ Event Bus  │ │ Data Sync  │   │   │
+│  │  │ Gateway    │ │  Receiver  │ │ (Pub/Sub)  │ │ Pipeline   │   │   │
+│  │  └────────────┘ └────────────┘ └────────────┘ └────────────┘   │   │
+│  └─────────────────────────┬──────────────────────────────────────┘   │
+│                            │                                           │
+│  ┌─────────────────────────▼──────────────────────────────────────┐   │
+│  │                   Marketing Agent Core                          │   │
+│  │                                                                 │   │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │   │
+│  │  │   Audience   │  │   Campaign   │  │    Budget    │         │   │
+│  │  │   Manager    │  │   Manager    │  │  Allocator   │         │   │
+│  │  │              │  │              │  │              │         │   │
+│  │  │  Segments    │  │  Lifecycle   │  │  Strategies  │         │   │
+│  │  │  Combine     │  │  Hooks       │  │  ROI Track   │         │   │
+│  │  │  Score       │  │  Metrics     │  │  Recommend   │         │   │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘         │   │
+│  │                                                                 │   │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │   │
+│  │  │ Attribution  │  │   Content    │  │  Analytics   │         │   │
+│  │  │   Engine     │  │  Generator   │  │  Dashboard   │         │   │
+│  │  │              │  │              │  │              │         │   │
+│  │  │  Models      │  │  Templates   │  │  Events      │         │   │
+│  │  │  Scoring     │  │  Brand Voice │  │  Goals       │         │   │
+│  │  │  Aggregation │  │  Platform    │  │  Reports     │         │   │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘         │   │
+│  │                                                                 │   │
+│  │  ┌──────────────┐                                             │   │
+│  │  │     SEO      │                                             │   │
+│  │  │   Analyzer   │                                             │   │
+│  │  │              │                                             │   │
+│  │  │  Keywords    │                                             │   │
+│  │  │  SERP Preview│                                             │   │
+│  │  │  Content Score│                                            │   │
+│  │  └──────────────┘                                             │   │
+│  └────────────────────────────────────────────────────────────────┘   │
+│                            │                                           │
+│  ┌─────────────────────────▼──────────────────────────────────────┐   │
+│  │                        Data Layer                                │   │
+│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐               │   │
+│  │  │ Events DB  │  │  Segment   │  │  Campaign  │               │   │
+│  │  │            │  │   Store    │  │   Store    │               │   │
+│  │  │  Per-user  │  │  Criteria  │  │  Lifecycle │               │   │
+│  │  │  journey   │  │  metadata  │  │  metrics   │               │   │
+│  │  └────────────┘  └────────────┘  └────────────┘               │   │
+│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐               │   │
+│  │  │ Attribution│  │  Content   │  │  SEO       │               │   │
+│  │  │   Store    │  │   Store    │  │   Store    │               │   │
+│  │  └────────────┘  └────────────┘  └────────────┘               │   │
+│  └────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Component Architecture
+
+### 1. Audience Manager
+
+**Purpose**: Define, combine, score, and manage customer audience segments for targeted marketing campaigns.
+
+```
+┌───────────────────────────────────────────────────────────────────┐
+│                       Audience Manager                             │
+├───────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  Public API:                                                      │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │ create_segment(name, type, criteria, size, tags)            │  │
+│  │ get_segment(segment_id) → AudienceSegment                   │  │
+│  │ update_segment(segment_id, **kwargs) → AudienceSegment      │  │
+│  │ delete_segment(segment_id) → bool                           │  │
+│  │ combine_segments(name, ids, operation) → AudienceSegment     │  │
+│  │ score_segment(segment_id) → Dict[str, float]                │  │
+│  │ list_segments(type, tags) → List[AudienceSegment]           │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+│                                                                   │
+│  Internal State:                                                  │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │ _segments: Dict[str, AudienceSegment]                       │  │
+│  │ _combinations: Dict[str, List[str]]  (parent references)    │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+│                                                                   │
+│  Segment Types:                                                   │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │ BEHAVIORAL    → purchase patterns, browsing behavior        │  │
+│  │ DEMOGRAPHIC   → age, gender, income, education              │  │
+│  │ GEOGRAPHIC    → location, climate, urban/rural               │  │
+│  │ PSYCHOGRAPHIC → interests, values, lifestyle                │  │
+│  │ TECHNOGRAPHIC → device, platform, tech stack                │  │
+│  │ PREDICTIVE    → ML-based future behavior scores             │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+**Data Flow**:
+```
+┌──────────────┐    ┌────────────────┐    ┌──────────────────┐    ┌───────┐
+│  User Input  │───→│Criteria Validat│───→│ Segment Creation │───→│ Store │
+│  (name,      │    │  - type check  │    │  - assign UUID   │    │       │
+│   type,      │    │  - criteria    │    │  - estimate size │    │       │
+│   criteria)  │    │    validation  │    │  - set metadata  │    │       │
+└──────────────┘    └────────────────┘    └──────────────────┘    └───────┘
+
+┌──────────────┐    ┌────────────────┐    ┌──────────────────┐    ┌───────┐
+│  Combine     │───→│ Resolve Source │───→│ Apply Operation  │───→│ New   │
+│  Request     │    │  Segments      │    │  intersect: AND  │    │Segment│
+│  (ids, op)   │    │  - validate    │    │  union: OR       │    │       │
+│              │    │  - check exists│    │  exclude: NOT    │    │       │
+└──────────────┘    └────────────────┘    └──────────────────┘    └───────┘
+
+┌──────────────┐    ┌────────────────┐    ┌──────────────────┐
+│ Score        │───→│ Calculate      │───→│ Return Score     │
+│ Request      │    │  size_score    │    │  Dict with       │
+│ (segment_id) │    │  growth_score  │    │  individual +    │
+│              │    │  criteria_depth│    │  overall scores  │
+└──────────────┘    └────────────────┘    └──────────────────┘
+```
+
+**Design Patterns**:
+- **Value Object**: `AudienceSegment` is immutable after creation except via explicit update method
+- **Specification Pattern**: Criteria evaluate membership rules against candidate audience members
+- **Composite Pattern**: Segments combine via intersect/union/exclude operations to create derived segments
+- **Factory Method**: Segment creation delegates type-specific validation to type handlers
+
+**Scoring Algorithm**:
+```python
+def score_segment(segment):
+    size_score = min(1.0, segment.estimated_size / 100_000)
+    growth_score = max(0, min(1.0, (segment.growth_rate + 50) / 100))
+    criteria_depth = len(segment.criteria) / 5.0
+    criteria_score = min(1.0, criteria_depth)
+    overall = (size_score + growth_score + criteria_score) / 3.0
+    return {
+        "size_score": round(size_score, 3),
+        "growth_score": round(growth_score, 3),
+        "criteria_score": round(criteria_score, 3),
+        "overall": round(overall, 3)
+    }
+```
+
+---
+
+### 2. Campaign Manager
+
+**Purpose**: Full campaign lifecycle from draft through completion with event hooks and metric tracking.
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                        Campaign Manager                               │
+├──────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  State Machine:                                                      │
+│                                                                      │
+│  ┌────────┐    ┌───────────┐    ┌────────┐    ┌───────────┐        │
+│  │ DRAFT  │───→│ SCHEDULED │───→│ ACTIVE │───→│ COMPLETED │        │
+│  └────────┘    └───────────┘    └───┬────┘    └───────────┘        │
+│                         │           │                               │
+│                         │        ┌──▼──┐                            │
+│                         │        │PAUSE│──────→ ACTIVE              │
+│                         │        └─────┘                            │
+│                         │                                            │
+│                         └────→ ARCHIVED ←───────────────────────    │
+│                                                                      │
+│  Valid Transitions:                                                  │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │ launch:    DRAFT / SCHEDULED  →  ACTIVE                      │   │
+│  │ schedule:  DRAFT              →  SCHEDULED                    │   │
+│  │ pause:     ACTIVE             →  PAUSED                       │   │
+│  │ resume:    PAUSED             →  ACTIVE                       │   │
+│  │ complete:  ACTIVE             →  COMPLETED                    │   │
+│  │ archive:   COMPLETED / DRAFT  →  ARCHIVED                     │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                      │
+│  Hooks:                                                              │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │ on_launch(campaign)   → pre-launch validation                │   │
+│  │ on_pause(campaign)    → pause notifications                  │   │
+│  │ on_complete(campaign) → post-campaign analytics              │   │
+│  │ on_archive(campaign)  → cleanup and archival                 │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                      │
+│  Public API:                                                         │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │ create_campaign(name, channel, segments, content, budget)    │   │
+│  │ launch_campaign(campaign_id)                                  │   │
+│  │ pause_campaign(campaign_id)                                   │   │
+│  │ resume_campaign(campaign_id)                                  │   │
+│  │ complete_campaign(campaign_id)                                │   │
+│  │ archive_campaign(campaign_id)                                 │   │
+│  │ get_campaign(campaign_id) → Campaign                          │   │
+│  │ list_campaigns(status, channel) → List[Campaign]             │   │
+│  │ get_campaign_metrics(campaign_id) → Dict                     │   │
+│  │ record_conversion(event) → ConversionEvent                    │   │
+│  │ add_hook(event_type, callback)                                │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+**Design Patterns**:
+- **State Machine**: Campaign lifecycle with validated transitions prevents invalid state changes
+- **Observer Pattern**: Hook system for launch/pause/complete/archive events enables extensibility
+- **Repository Pattern**: In-memory store with query capabilities for campaign data access
+- **Command Pattern**: Each state transition encapsulated as a command with validation
+
+---
+
+### 3. Budget Allocator
+
+**Purpose**: Distribute marketing spend across channels based on strategy and performance data.
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                        Budget Allocator                               │
+├──────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  Strategies:                                                         │
+│  ┌────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────┐ │
+│  │   Equal    │  │ Performance  │  │   Seasonal   │  │  Custom  │ │
+│  │   Split    │  │    Based     │  │   Adjust     │  │  Rules   │ │
+│  │            │  │              │  │              │  │          │ │
+│  │ total / n  │  │ weight by    │  │ base *       │  │ user-    │ │
+│  │ per channel│  │ ROI history  │  │ seasonal_idx │  │ defined  │ │
+│  └────────────┘  └──────────────┘  └──────────────┘  └──────────┘ │
+│                                                                      │
+│  Data Flow:                                                          │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐          │
+│  │ Channel ROI  │───→│   Strategy   │───→│   Weight     │          │
+│  │ History      │    │   Selection  │    │ Calculation  │          │
+│  │ (revenue,    │    │              │    │              │          │
+│  │  cost, roi)  │    │              │    │              │          │
+│  └──────────────┘    └──────────────┘    └──────┬───────┘          │
+│                                                  │                  │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────▼───────┐          │
+│  │Reallocation  │←───│    Output    │←───│ Allocation   │          │
+│  │Recommendation│    │   per channel│    │   Result     │          │
+│  └──────────────┘    └──────────────┘    └──────────────┘          │
+│                                                                      │
+│  Allocation Algorithms:                                              │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │ Equal Split:                                                 │   │
+│  │   per_channel = total_budget / num_channels                  │   │
+│  │                                                              │   │
+│  │ Performance Based:                                           │   │
+│  │   weight_ch = max(0, roi_ch) / sum(max(0, roi_all))        │   │
+│  │   alloc_ch = total_budget * weight_ch                       │   │
+│  │                                                              │   │
+│  │ Seasonal Adjust:                                             │   │
+│  │   base_alloc = total_budget / num_channels                  │   │
+│  │   adjusted = base_alloc * seasonal_index[current_month]     │   │
+│  │                                                              │   │
+│  │ Reallocation Threshold:                                      │   │
+│  │   if roi_ch > avg_roi * 1.5 → recommend increase            │   │
+│  │   if roi_ch < avg_roi * 0.5 → recommend decrease            │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                      │
+│  Public API:                                                         │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │ create_allocation(total, channel_budgets, strategy)          │   │
+│  │ equal_split(budget, channels) → Dict[str, float]            │   │
+│  │ performance_based_split(budget, roi_data) → Dict             │   │
+│  │ seasonal_adjust(base_alloc, seasonal_index) → Dict           │   │
+│  │ record_performance(channel, ROIMetric)                       │   │
+│  │ get_performance_history(channel) → List[ROIMetric]           │   │
+│  │ recommend_reallocation() → Dict                              │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+**Design Patterns**:
+- **Strategy Pattern**: Pluggable allocation algorithms (equal, performance, seasonal, custom)
+- **Repository Pattern**: Historical ROI data storage with query capabilities
+- **Value Object**: ROIMetric immutable data transfer between components
+
+---
+
+### 4. Attribution Engine
+
+**Purpose**: Calculate channel contribution using industry-standard attribution models across customer journeys.
+
+```
+Touchpoint Timeline (single user journey):
+┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+│  Email   │───→│  Search  │───→│  Social  │───→│  Email   │ → Conversion
+│ Jan 1    │    │ Jan 5    │    │ Jan 10   │    │ Jan 15   │    $149.99
+└──────────┘    └──────────┘    └──────────┘    └──────────┘
+
+Model Calculations:
+┌────────────────────────────────────────────────────────────────┐
+│ Model          │ Email  │ Search │ Social │ Notes              │
+├────────────────────────────────────────────────────────────────┤
+│ First Touch    │ 100%   │   0%   │   0%   │ First = all credit│
+│ Last Touch     │ 100%   │   0%   │   0%   │ Last = all credit │
+│ Linear         │  50%   │  25%   │  25%   │ Equal distribution│
+│ Time Decay     │  60%   │  25%   │  15%   │ Recent = more     │
+│ Position-Based │  40%   │  20%   │  40%   │ First+Last = 80%  │
+└────────────────────────────────────────────────────────────────┘
+
+Confidence Calculation:
+  confidence = min(1.0, unique_channels / total_touchpoints)
+  (Higher diversity = higher confidence in attribution)
+```
+
+**Data Flow**:
+```
+┌──────────────┐    ┌────────────────┐    ┌──────────────────┐    ┌───────────┐
+│ User Journey │───→│  Touchpoint    │───→│  Model Selection │───→│  Weight   │
+│ (events)     │    │  Collection    │    │  (configurable)  │    │ Calculation│
+└──────────────┘    └────────────────┘    └──────────────────┘    └─────┬─────┘
+                                                                       │
+┌──────────────┐    ┌────────────────┐    ┌──────────────────┐         │
+│ Aggregated   │←───│  Channel Score │←───│  Per-User        │←────────┘
+│ Attribution  │    │  Aggregation   │    │  Attribution     │
+│ (all users)  │    │                │    │  (per user)      │
+└──────────────┘    └────────────────┘    └──────────────────┘
+```
+
+**Time Decay Algorithm**:
+```python
+def time_decay_weights(touchpoints, conversion_time, half_life_days=7):
+    weights = []
+    for tp in touchpoints:
+        days_ago = (conversion_time - tp.timestamp).days
+        weight = 2 ** (-days_ago / half_life_days)
+        weights.append(weight)
+    total = sum(weights)
+    return [w / total for w in weights]
+```
+
+**Design Patterns**:
+- **Strategy Pattern**: Pluggable attribution models (first, last, linear, time-decay, position)
+- **Value Object**: AttributionResult immutable data transfer
+- **Composite**: Aggregated attribution combines per-user results
+
+---
+
+### 5. Content Generator
+
+**Purpose**: Create marketing content using templates and brand voice configuration with platform awareness.
+
+```
+┌───────────────────────────────────────────────────────────────────┐
+│                      Content Generator                             │
+├───────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  Brand Voice:                                                     │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │ tone: "professional" | "casual" | "urgent" | "friendly"    │  │
+│  │ keywords: ["innovation", "growth", "efficiency"]            │  │
+│  │ excluded_words: ["cheap", "basic"]                          │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+│                                                                   │
+│  Render Pipeline:                                                 │
+│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐   │
+│  │ Template │───→│ Variable │───→│ Platform │───→│  Final   │   │
+│  │ Lookup   │    │Substitutn│    │Adaptation│    │  Output  │   │
+│  └──────────┘    └──────────┘    └──────────┘    └──────────┘   │
+│                                                                   │
+│  Platform Limits:                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │ Twitter:    280 chars                                       │  │
+│  │ LinkedIn:  3000 chars                                       │  │
+│  │ Instagram: 2200 chars                                       │  │
+│  │ Facebook:  63206 chars                                      │  │
+│  │ Email:     unlimited (subject: 60 chars recommended)        │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+│                                                                   │
+│  Content Types:                                                   │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │ EMAIL       → subject + body with personalization           │  │
+│  │ SOCIAL_POST → platform-specific with hashtag suggestions    │  │
+│  │ AD_COPY     → headline + description + CTA                  │  │
+│  │ LANDING     → title + hero + features + CTA                 │  │
+│  │ NEWSLETTER  → sections with headers and body                │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+│                                                                   │
+│  A/B Testing:                                                     │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │ ab_variants(content, variations=3)                          │  │
+│  │   → generates N variations with tone/keyword permutations   │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+**Design Patterns**:
+- **Template Method**: Reusable content creation pipeline with customizable steps
+- **Strategy Pattern**: Platform-specific adaptation strategies
+- **Builder Pattern**: Step-by-step content assembly
+
+---
+
+### 6. Analytics Dashboard
+
+**Purpose**: Track events, manage goals, and generate performance reports with funnel analysis.
+
+```
+┌───────────────────────────────────────────────────────────────────┐
+│                    Analytics Dashboard                             │
+├───────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  Event Stream:                                                    │
+│  ┌──────────┐    ┌──────────────┐    ┌──────────────────┐        │
+│  │ Incoming │───→│ Aggregation  │───→│ Report Generation│        │
+│  │ Events   │    │ (by type,    │    │ (daily, weekly,  │        │
+│  │          │    │  by time)    │    │  monthly)        │        │
+│  └──────────┘    └──────────────┘    └──────────────────┘        │
+│       │                                                        │   │
+│       │            ┌──────────────┐    ┌──────────────────┐      │   │
+│       └───────────→│Goal Tracking │───→│ Progress Calc    │      │   │
+│                    │ (target vs   │    │ Status Dashboard │      │   │
+│                    │  actual)     │    │                  │      │   │
+│                    └──────────────┘    └──────────────────┘      │   │
+│                                                                   │
+│  Funnel Analysis:                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │                                                             │  │
+│  │  Awareness ──────────────────────────────── 100%           │  │
+│  │    └── Consideration ──────────────────────  45%           │  │
+│  │          └── Conversion ────────────────────  12%           │  │
+│  │                └── Retention ───────────────   8%           │  │
+│  │                      └── Advocacy ───────────  3%           │  │
+│  │                                                             │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+│                                                                   │
+│  Report Types:                                                    │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │ EXECUTIVE   → high-level KPIs, trends, YoY comparison      │  │
+│  │ CAMPAIGN    → per-campaign metrics, conversions, ROI        │  │
+│  │ CHANNEL     → cross-channel comparison, attribution         │  │
+│  │ AUDIENCE    → segment performance, engagement               │  │
+│  │ CONTENT     → content performance, A/B test results         │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 7. SEO Analyzer
+
+**Purpose**: Evaluate content for search engine optimization quality with actionable recommendations.
+
+```
+┌───────────────────────────────────────────────────────────────────┐
+│                       SEO Analyzer                                 │
+├───────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  Analysis Pipeline:                                               │
+│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐   │
+│  │ Content  │───→│ Keyword  │───→│ SERP     │───→│ Content  │   │
+│  │ Input    │    │ Analysis │    │ Preview  │    │  Score   │   │
+│  └──────────┘    └──────────┘    └──────────┘    └──────────┘   │
+│                                                                   │
+│  Keyword Analysis:                                                │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │ occurrences: count of keyword in content                    │  │
+│  │ density: (occurrences / total_words) * 100                  │  │
+│  │ optimal_density: 1.0% - 3.0%                                │  │
+│  │ suggestions: list of improvement recommendations            │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+│                                                                   │
+│  SERP Preview:                                                    │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │ ┌─────────────────────────────────────────────────────┐    │  │
+│  │ │ Page Title (60 chars max, blue link)                 │    │  │
+│  │ │ https://domain.com/page-slug (green URL)             │    │  │
+│  │ │ Meta description snippet (160 chars max, gray text)  │    │  │
+│  │ └─────────────────────────────────────────────────────┘    │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+│                                                                   │
+│  Content Score Components:                                        │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │ title_length_ok:     title ≤ 60 chars                      │  │
+│  │ title_has_keyword:   keyword in title                      │  │
+│  │ desc_length_ok:      description ≤ 160 chars               │  │
+│  │ desc_has_keyword:    keyword in description                │  │
+│  │ keyword_density_ok:  density between 1-3%                  │  │
+│  │ content_length_ok:   body > 300 words                      │  │
+│  │                                                               │  │
+│  │ overall_score: weighted average of all checks              │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Data Flow: Campaign Lifecycle
+
+```
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│    Define    │───→│   Allocate   │───→│    Launch    │───→│   Monitor    │
+│   Audience   │    │    Budget    │    │   Campaign   │    │   Metrics    │
+│              │    │              │    │              │    │              │
+│ - create seg │    │ - strategy   │    │ - hooks      │    │ - events     │
+│ - combine    │    │ - per-channel│    │ - tracking   │    │ - conversion │
+│ - score      │    │ - reserve 10%│    │ - A/B split  │    │ - engagement │
+└──────────────┘    └──────────────┘    └──────────────┘    └──────┬───────┘
+                                                                   │
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐          │
+│   Optimize   │←───│   Report     │←───│  Attribute   │←─────────┘
+│   Future     │    │   Results    │    │   Credit     │
+│              │    │              │    │              │
+│ - reallocate │    │ - executive  │    │ - per-user   │
+│ - refine seg │    │ - campaign   │    │ - aggregate  │
+│ - update str │    │ - channel    │    │ - confidence │
+└──────────────┘    └──────────────┘    └──────────────┘
+```
+
+**Full Lifecycle Execution Flow**:
+```
+MarketingAgent.full_campaign_lifecycle()
+  │
+  ├── 1. AudienceManager.create_segment()
+  │      └── Returns segment_id
+  │
+  ├── 2. BudgetAllocator.equal_split() or performance_based_split()
+  │      └── Returns channel_budgets dict
+  │
+  ├── 3. CampaignManager.create_campaign()
+  │      └── Returns campaign with status=DRAFT
+  │
+  ├── 4. CampaignManager.launch_campaign()
+  │      └── Fires on_launch hooks, status=ACTIVE
+  │
+  ├── 5. AttributionEngine (ongoing)
+  │      └── Records touchpoints per user journey
+  │
+  ├── 6. AnalyticsDashboard (ongoing)
+  │      └── Tracks events and conversions
+  │
+  ├── 7. CampaignManager.complete_campaign()
+  │      └── Fires on_complete hooks, status=COMPLETED
+  │
+  ├── 8. AttributionEngine.calculate_attribution()
+  │      └── Returns channel_scores for the campaign
+  │
+  ├── 9. AnalyticsDashboard.generate_report()
+  │      └── Returns comprehensive report
+  │
+  └── 10. BudgetAllocator.recommend_reallocation()
+         └── Returns optimization recommendations
+```
+
+---
+
+## Design Patterns Used
+
+| Pattern | Where | Purpose |
+|---------|-------|---------|
+| State Machine | Campaign Manager | Lifecycle transitions with validation |
+| Observer | Campaign hooks | Event notification on state changes |
+| Strategy | Budget Allocator | Pluggable allocation algorithms |
+| Repository | Audience/Campaign stores | Data access abstraction |
+| Value Object | Data classes | Immutable data transfer objects |
+| Facade | MarketingAgent | Unified interface to all subsystems |
+| Template Method | Content Generator | Reusable content creation pipeline |
+| Builder | Content assembly | Step-by-step content construction |
+| Factory Method | Segment creation | Type-specific segment validation |
+| Composite | Segment combination | Combine segments via set operations |
+
+---
+
+## Tech Stack
+
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| Language | Python 3.10+ | Core runtime |
+| Data Classes | dataclasses, typing | Structured data models |
+| Enums | enum.Enum | Type-safe constants |
+| Logging | logging module | Audit trail and debugging |
+| ID Generation | uuid4 | Unique identifiers |
+| Date/Time | datetime, timedelta | Time-based operations |
+| Math | statistics | ROI calculations, scoring |
+| Regex | re | Content pattern matching |
+| JSON | json | Serialization and storage |
+
+---
+
+## Security Considerations
+
+| Concern | Mitigation | Implementation |
+|---------|-----------|----------------|
+| API Key Storage | Environment variables, never hardcoded | os.environ.get() |
+| PII Handling | Segmentation criteria use anonymized IDs | No PII in segment criteria |
+| Budget Data | Access-controlled, audit-logged | Permission checks on budget endpoints |
+| Campaign Content | Input validation on templates | Sanitize template variables |
+| Attribution Data | User IDs not exposed in reports | Aggregate-only reporting |
+| Hook Callbacks | Exception isolation in hook execution | try/except in hook dispatcher |
+| Data Export | PII redaction in exports | Automated redaction pipeline |
+| Integration Keys | Rotated quarterly | Key rotation policy |
+
+---
+
+## Scalability
+
+| Dimension | Approach | Threshold |
+|-----------|---------|-----------|
+| Campaign Volume | In-memory stores with configurable TTL | 10K campaigns |
+| Touchpoint Volume | Batch processing for attribution | 1M touchpoints/hour |
+| Segment Computation | Lazy evaluation, cached scores | 100K segments |
+| Report Generation | Incremental aggregation | 1K reports/day |
+| Content Rendering | Template caching | 10K renders/hour |
+| Event Ingestion | Async buffering with backpressure | 100K events/minute |
+| Concurrent Users | Read-write lock separation | 500 concurrent |
+
+**Performance Optimization Strategies**:
+1. **Lazy Scoring**: Segment scores computed on-demand, not on every update
+2. **Batch Attribution**: Touchpoints processed in batches for efficiency
+3. **Template Cache**: Compiled templates cached to avoid recompilation
+4. **Incremental Reports**: Reports built from pre-aggregated data
+5. **Connection Pooling**: Database connections pooled and reused
+
+---
+
+## Error Handling
+
+```
+MarketingError (base)
+├── CampaignNotFoundError
+│   └── Raised when campaign_id not found in store
+├── InvalidBudgetError
+│   └── Raised when budget allocation exceeds total
+├── SegmentNotFoundError
+│   └── Raised when segment_id not found
+├── InvalidStateTransitionError
+│   └── Raised when campaign state transition is invalid
+├── TemplateNotFoundError
+│   └── Raised when content template_id not found
+├── AttributionModelError
+│   └── Raised when invalid attribution model specified
+└── HookExecutionError
+    └── Raised when hook callback fails (logged, not propagated)
+```
+
+**Error Handling Strategy**:
+- All public methods validate inputs before state mutation
+- Hooks are wrapped in try/except to prevent callback failures from affecting the main flow
+- State transitions are validated before execution
+- Descriptive error messages aid debugging
+- Errors are logged with context for audit trail
+
+---
+
+## Testing Strategy
+
+| Component | Approach | Coverage Target |
+|-----------|---------|-----------------|
+| Audience Manager | Unit tests for combine operations | 95% |
+| Campaign Manager | State transition matrix coverage | 100% transitions |
+| Budget Allocator | Strategy correctness verification | 90% |
+| Attribution Engine | Known-journey test cases | 95% |
+| Content Generator | Template rendering edge cases | 90% |
+| Analytics Dashboard | Event aggregation accuracy | 95% |
+| SEO Analyzer | Density calculation validation | 90% |
+
+**Test Categories**:
+1. **Unit Tests**: Individual method correctness
+2. **Integration Tests**: Component interaction verification
+3. **State Tests**: Campaign lifecycle transition validation
+4. **Edge Case Tests**: Boundary conditions and error paths
+5. **Performance Tests**: Load testing for high-volume scenarios
+
+---
+
+## Extension Points
+
+The Marketing Agent is designed for extensibility through several mechanisms:
+
+### Custom Allocation Strategies
+```python
+class CustomStrategy(BudgetStrategy):
+    def allocate(self, total_budget, channels, context):
+        # Custom business logic
+        return {channel: amount for channel, amount in allocations}
+```
+
+### Custom Attribution Models
+```python
+class CustomAttribution(AttributionModel):
+    def calculate_weights(self, touchpoints, conversion):
+        # Custom weighting logic
+        return weights
+```
+
+### Custom Content Templates
+```python
+generator.add_template(
+    template_id="custom_banner",
+    template="<div class='banner'>{{ headline }} - {{ cta }}</div>",
+    content_type="LANDING"
+)
+```
+
+### Custom Hook Functions
+```python
+def my_hook(campaign):
+    # Custom pre-launch logic
+    validate_compliance(campaign)
+    notify_stakeholders(campaign)
+
+agent.campaigns.add_hook("on_launch", my_hook)
+```
+
+---
+
+## Deployment Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Deployment Topology                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐        │
+│  │  Web Layer  │     │  App Layer  │     │  Data Layer │        │
+│  │             │     │             │     │             │        │
+│  │  Nginx /   │────→│  Marketing  │────→│  PostgreSQL │        │
+│  │  HAProxy   │     │  Agent App  │     │  (primary)  │        │
+│  │             │     │             │     │             │        │
+│  │  Rate Limit│     │  3 replicas │     │  Redis      │        │
+│  │  SSL Term  │     │  (load bal) │     │  (cache)    │        │
+│  └─────────────┘     └─────────────┘     └─────────────┘        │
+│                                                                   │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                    Async Workers                         │    │
+│  │  ┌───────────┐  ┌───────────┐  ┌───────────┐           │    │
+│  │  │ Attribution│  │  Content  │  │  Report   │           │    │
+│  │  │ Processor │  │ Generator │  │ Generator │           │    │
+│  │  └───────────┘  └───────────┘  └───────────┘           │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                   │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                  Monitoring & Logging                    │    │
+│  │  Prometheus  │  Grafana  │  ELK Stack  │  PagerDuty    │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## API Surface Summary
+
+| Module | Methods | Key Operations |
+|--------|---------|----------------|
+| AudienceManager | 7 | create, get, update, delete, combine, score, list |
+| CampaignManager | 10 | create, launch, pause, resume, complete, archive, get, list, metrics, record |
+| BudgetAllocator | 7 | create, equal_split, performance, seasonal, record, history, recommend |
+| AttributionEngine | 5 | add_touchpoint, calculate, aggregated, list_models, set_model |
+| ContentGenerator | 6 | set_voice, add_template, render, email, social, ab_variants |
+| AnalyticsDashboard | 5 | track, set_goal, report, funnel, summary |
+| SEOAnalyzer | 4 | keyword, serp_preview, content_score, suggestions |
+| **MarketingAgent** | **4** | **full_lifecycle, attribution, optimize, dashboard** |
+
+**Total Public Methods**: 48
+
+---
+
+## Configuration Reference
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `DEFAULT_ATTRIBUTION_MODEL` | `linear` | Default attribution model for calculations |
+| `BUDGET_RESERVE_PERCENT` | `10` | Percentage of budget reserved for testing |
+| `REALLOCATION_THRESHOLD` | `1.5` | ROI multiplier to trigger reallocation |
+| `SEGMENT_SIZE_CAP` | `100000` | Maximum segment size for scoring |
+| `CONTENT_CACHE_TTL` | `3600` | Template cache time-to-live in seconds |
+| `ATTRIBUTION_HALF_LIFE` | `7` | Half-life in days for time-decay model |
+| `REPORT_RETENTION_DAYS` | `90` | Days to retain generated reports |
+| `HOOK_TIMEOUT_SECONDS` | `30` | Maximum time for hook execution |

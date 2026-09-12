@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install Node dependencies
+      run: npm ci
+    
+    - name: Validate JSON components
+      run: python scripts/validate_components.py
+    
+    - name: Lint JavaScript
+      run: npm run lint || true
+    
+    - name: Test CLI
+      run: node cli-tool/index.js --version
+
+  update-components:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Check for updates
+      run: |
+        echo "Checking for component updates..."
+        # Add logic to check and update components
+

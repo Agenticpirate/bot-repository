@@ -1,0 +1,821 @@
+# Big Data Agent Architecture
+
+## Table of Contents
+
+- [Overview](#overview)
+- [System Architecture](#system-architecture)
+- [Component Deep Dives](#component-deep-dives)
+- [Data Flow](#data-flow)
+- [Design Patterns](#design-patterns)
+- [Technology Stack](#technology-stack)
+- [Security Architecture](#security-architecture)
+- [Scalability](#scalability)
+- [Performance Optimization](#performance-optimization)
+- [Deployment](#deployment)
+- [Monitoring](#monitoring)
+
+---
+
+## Overview
+
+The Big Data Agent is a distributed computing platform designed for large-scale data processing, analytics, and management. It orchestrates cluster resources, manages data pipelines, processes streaming and batch workloads, and maintains data lake integrity.
+
+### Core Capabilities
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      Big Data Agent                              │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐  │
+│  │  Cluster   │  │ Pipeline  │  │  Stream   │  │  Batch    │  │
+│  │  Manager   │  │ Manager   │  │ Processor │  │ Processor │  │
+│  └───────────┘  └───────────┘  └───────────┘  └───────────┘  │
+│  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐  │
+│  │  Data Lake │  │  Quality  │  │  Schema   │  │  Spark    │  │
+│  │  Manager   │  │  Manager  │  │  Registry │  │  Optimizer│  │
+│  └───────────┘  └───────────┘  └───────────┘  └───────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Design Principles
+
+1. **Elasticity**: Auto-scale resources based on workload demands
+2. **Fault Tolerance**: Recover from node failures without data loss
+3. **Data Locality**: Process data where it resides to minimize network transfer
+4. **Schema Evolution**: Support forward and backward compatible schema changes
+5. **Cost Optimization**: Right-size resources and leverage spot instances
+
+---
+
+## System Architecture
+
+### High-Level Architecture
+
+```
+                           ┌──────────────────────┐
+                           │     API Gateway       │
+                           │    (Load Balancer)    │
+                           └──────────┬───────────┘
+                                      │
+         ┌────────────────────────────┼────────────────────────────┐
+         │                            │                            │
+   ┌─────▼─────┐              ┌───────▼───────┐            ┌──────▼──────┐
+   │  Cluster   │              │   Pipeline    │            │   Stream    │
+   │  Service   │              │   Service     │            │   Service   │
+   └─────┬─────┘              └───────┬───────┘            └──────┬──────┘
+         │                            │                            │
+         └────────────────────────────┼────────────────────────────┘
+                                      │
+                           ┌──────────▼───────────┐
+                           │   Orchestration Layer │
+                           │   (Kubernetes/YARN)   │
+                           └──────────┬───────────┘
+                                      │
+         ┌────────────────────────────┼────────────────────────────┐
+         │                            │                            │
+   ┌─────▼─────┐              ┌───────▼───────┐            ┌──────▼──────┐
+   │   Batch   │              │  Data Lake    │            │   Quality   │
+   │  Service  │              │  Service      │            │   Service   │
+   └─────┬─────┘              └───────┬───────┘            └──────┬──────┘
+         │                            │                            │
+         └────────────────────────────┼────────────────────────────┘
+                                      │
+         ┌────────────────────────────┼────────────────────────────┐
+         │                            │                            │
+   ┌─────▼─────┐              ┌───────▼───────┐            ┌──────▼──────┐
+   │  Object   │              │   Metadata    │            │  Compute   │
+   │  Storage  │              │   Store       │            │  Cluster   │
+   │  (S3/GCS) │              │  (Postgres)   │            │  (Spark)   │
+   └───────────┘              └───────────────┘            └─────────────┘
+```
+
+### Component Interaction Matrix
+
+```
+                    Cluster  Pipeline  Stream  Batch  DataLake  Quality
+                    ───────  ────────  ──────  ─────  ────────  ───────
+Cluster Manager       ●         ●        ●      ●       ○         ○
+Pipeline Manager      ●         ●        ○      ●       ●         ●
+Stream Processor      ●         ○        ●      ○       ●         ○
+Batch Processor       ●         ●        ○      ●       ●         ●
+Data Lake Manager     ○         ●        ●      ●       ●         ●
+Quality Manager       ○         ●        ○      ●       ●         ●
+
+● = Direct dependency    ○ = No dependency
+```
+
+---
+
+## Component Deep Dives
+
+### 1. Cluster Manager
+
+Manages distributed computing cluster lifecycle, scaling, and resource allocation.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      Cluster Manager                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  Resource Management                     │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────┐ │   │
+│  │  │  Node    │  │  Memory  │  │   CPU    │  │  GPU   │ │   │
+│  │  │  Pool    │  │  Manager │  │ Scheduler│  │  Alloc │ │   │
+│  │  └──────────┘  └──────────┘  └──────────┘  └────────┘ │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  Auto-Scaling Engine                      │   │
+│  │                                                          │   │
+│  │  Metrics ──▶ Rules ──▶ Decision ──▶ Scale Action        │   │
+│  │                                                          │   │
+│  │  • CPU utilization > 70% ──▶ Scale up                    │   │
+│  │  • CPU utilization < 30% ──▶ Scale down                  │   │
+│  │  • Queue depth > 100 ──▶ Scale up                        │   │
+│  │  • Cost budget exceeded ──▶ Scale down                   │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  Cluster Providers                        │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────┐ │   │
+│  │  │ Standalone│  │   YARN   │  │  K8s     │  │  EMR   │ │   │
+│  │  └──────────┘  └──────────┘  └──────────┘  └────────┘ │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Cluster Scaling Rules:**
+
+| Metric | Threshold | Action | Cooldown |
+|--------|-----------|--------|----------|
+| CPU Utilization | > 70% | Scale up 2 workers | 5 min |
+| CPU Utilization | < 30% | Scale down 1 worker | 15 min |
+| Queue Depth | > 100 jobs | Scale up 4 workers | 3 min |
+| Memory Usage | > 85% | Scale up 2 workers | 5 min |
+| Cost Budget | > 90% | Scale down to minimum | 30 min |
+
+### 2. Pipeline Manager
+
+Orchestrates data ingestion, transformation, and loading workflows.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      Pipeline Manager                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  Pipeline Definition                     │   │
+│  │                                                          │   │
+│  │  Source ──▶ Extract ──▶ Transform ──▶ Load ──▶ Target   │   │
+│  │                                                          │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  Pipeline Components                     │   │
+│  │                                                          │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────┐ │   │
+│  │  │  Source   │  │  Transform│  │  Validate│  │  Load  │ │   │
+│  │  │  Connectors│ │  Functions│  │  Rules   │  │  Writers│ │   │
+│  │  └──────────┘  └──────────┘  └──────────┘  └────────┘ │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  Scheduler                               │   │
+│  │                                                          │   │
+│  │  Cron ──▶ Trigger ──▶ Execute ──▶ Monitor ──▶ Alert     │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Supported Source Connectors:**
+
+| Source | Type | Throughput |
+|--------|------|------------|
+| PostgreSQL | JDBC | 10K rows/s |
+| MySQL | JDBC | 15K rows/s |
+| Kafka | Streaming | 100K msg/s |
+| S3/GCS | File | 500 MB/s |
+| REST API | HTTP | 1K req/s |
+| MongoDB | NoSQL | 20K docs/s |
+
+### 3. Stream Processor
+
+Handles real-time data processing with exactly-once semantics.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      Stream Processor                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  Input Sources                           │   │
+│  │                                                          │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────┐ │   │
+│  │  │  Kafka   │  │  Kinesis │  │ Pub/Sub  │  │  MQTT  │ │   │
+│  │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └───┬────┘ │   │
+│  └───────┼──────────────┼──────────────┼────────────┼──────┘   │
+│          │              │              │            │           │
+│          └──────────────┼──────────────┼────────────┘           │
+│                         │              │                        │
+│                         ▼              ▼                        │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  Processing Engine                       │   │
+│  │                                                          │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────┐ │   │
+│  │  │  Window  │  │  State   │  │  Join    │  │  Agg   │ │   │
+│  │  │  Manager │  │  Store   │  │  Engine  │  │  Engine│ │   │
+│  │  └──────────┘  └──────────┘  └──────────┘  └────────┘ │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                         │                                      │
+│                         ▼                                      │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  Output Sinks                            │   │
+│  │                                                          │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────┐ │   │
+│  │  │  Kafka   │  │  Data    │  │  Cache   │  │  Alert │ │   │
+│  │  │  Topic   │  │  Lake    │  │  (Redis) │  │  System│ │   │
+│  │  └──────────┘  └──────────┘  └──────────┘  └────────┘ │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Window Types:**
+
+| Window Type | Description | Use Case |
+|-------------|-------------|----------|
+| Tumbling | Fixed non-overlapping | Hourly aggregations |
+| Sliding | Fixed overlapping | Moving averages |
+| Session | Activity-based | User sessions |
+| Global | All events | Running totals |
+
+### 4. Batch Processor
+
+Manages large-scale batch data processing jobs.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      Batch Processor                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  Job Lifecycle                           │   │
+│  │                                                          │   │
+│  │  Submit ──▶ Validate ──▶ Optimize ──▶ Execute ──▶ Store │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  Execution Strategies                    │   │
+│  │                                                          │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────┐ │   │
+│  │  │  Map     │  │  Shuffle │  │  Sort    │  │  Join  │ │   │
+│  │  │  Reduce  │  │  Stage   │  │  Stage   │  │  Stage │ │   │
+│  │  └──────────┘  └──────────┘  └──────────┘  └────────┘ │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  Optimization Engine                     │   │
+│  │                                                          │   │
+│  │  • Adaptive Query Execution (AQE)                        │   │
+│  │  • Broadcast Join Detection                              │   │
+│  │  • Predicate Pushdown                                    │   │
+│  │  • Column Pruning                                        │   │
+│  │  • Partition Pruning                                     │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 5. Data Lake Manager
+
+Manages petabyte-scale data lake storage with ACID transactions.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      Data Lake Manager                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  Storage Layers                          │   │
+│  │                                                          │   │
+│  │  ┌──────────────────────────────────────────────────┐   │   │
+│  │  │  Bronze (Raw)        │ Ingested as-is            │   │   │
+│  │  ├──────────────────────────────────────────────────┤   │   │
+│  │  │  Silver (Curated)    │ Cleaned, validated        │   │   │
+│  │  ├──────────────────────────────────────────────────┤   │   │
+│  │  │  Gold (Aggregated)   │ Business-ready metrics    │   │   │
+│  │  └──────────────────────────────────────────────────┘   │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  Table Formats                            │   │
+│  │                                                          │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────┐ │   │
+│  │  │  Delta   │  │ Iceberg  │  │  Hudi    │  │  Hive  │ │   │
+│  │  │  Lake    │  │          │  │          │  │  (ORC) │ │   │
+│  │  └──────────┘  └──────────┘  └──────────┘  └────────┘ │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  Operations                              │   │
+│  │                                                          │   │
+│  │  • Compaction  • Partitioning  • Schema Evolution        │   │
+│  │  • VACUUM      • Time Travel   • Data Lineage           │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Storage Format Comparison:**
+
+| Format | ACID | Time Travel | Schema Evolution | Performance |
+|--------|------|-------------|------------------|-------------|
+| Delta Lake | Yes | Yes | Yes | Excellent |
+| Iceberg | Yes | Yes | Yes | Excellent |
+| Hudi | Yes | Yes | Yes | Very Good |
+| Parquet | No | No | Limited | Very Good |
+| ORC | No | No | Limited | Good |
+
+---
+
+## Data Flow
+
+### End-to-End Data Flow
+
+```
+┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
+│  Data   │    │  Ingest │    │Process  │    │  Store  │    │  Serve  │
+│ Sources │───▶│  Layer  │───▶│  Layer  │───▶│  Layer  │───▶│  Layer  │
+└─────────┘    └─────────┘    └─────────┘    └─────────┘    └─────────┘
+     │              │              │              │              │
+     ▼              ▼              ▼              ▼              ▼
+  ┌──────┐     ┌──────┐      ┌──────┐      ┌──────┐      ┌──────┐
+  │ APIs │     │ Kafka│      │Spark │      │ Data │      │Query │
+  │ DBs  │     │Kinesis│     │Flink │      │ Lake │      │Engine│
+  │ Files│     │ CDC  │      │Dask  │      │ Cache│      │ API  │
+  └──────┘     └──────┘      └──────┘      └──────┘      └──────┘
+```
+
+### Batch Processing Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Batch Processing Flow                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Source Data                                                    │
+│       │                                                         │
+│       ▼                                                         │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Step 1: Extract                                         │   │
+│  │  • Read from source (S3, DB, API)                       │   │
+│  │  • Apply source filters                                  │   │
+│  │  • Infer schema                                          │   │
+│  └───────────────────────────┬─────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Step 2: Transform                                      │   │
+│  │  • Clean nulls and duplicates                           │   │
+│  │  • Apply business rules                                 │   │
+│  │  • Enrich with reference data                           │   │
+│  │  • Aggregate metrics                                    │   │
+│  └───────────────────────────┬─────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Step 3: Load                                           │   │
+│  │  • Write to target (Data Lake, Warehouse)               │   │
+│  │  • Partition by date/entity                             │   │
+│  │  • Optimize file sizes                                  │   │
+│  │  • Update metadata catalog                              │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Stream Processing Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Stream Processing Flow                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Events ──▶ ┌─────────────┐                                    │
+│             │   Ingest    │                                    │
+│             │  (Kafka)    │                                    │
+│             └──────┬──────┘                                    │
+│                    │                                            │
+│                    ▼                                            │
+│             ┌─────────────┐                                    │
+│             │   Parse &   │                                    │
+│             │   Validate  │                                    │
+│             └──────┬──────┘                                    │
+│                    │                                            │
+│         ┌──────────┼──────────┐                                │
+│         │          │          │                                │
+│         ▼          ▼          ▼                                │
+│  ┌───────────┐ ┌───────────┐ ┌───────────┐                   │
+│  │  Window   │ │   State   │ │   Join    │                   │
+│  │  Agg      │ │   Update  │ │   Enrich  │                   │
+│  └─────┬─────┘ └─────┬─────┘ └─────┬─────┘                   │
+│        │             │             │                            │
+│        └─────────────┼─────────────┘                            │
+│                      │                                          │
+│                      ▼                                          │
+│               ┌─────────────┐                                  │
+│               │   Output    │──▶ Data Lake / Cache / Alerts    │
+│               │   Sink      │                                  │
+│               └─────────────┘                                  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Design Patterns
+
+### 1. Lambda Architecture
+
+Combines batch and stream processing for comprehensive analytics.
+
+```
+                    ┌─────────────────────────────────┐
+                    │          Data Sources            │
+                    └───────────────┬─────────────────┘
+                                    │
+                    ┌───────────────┼───────────────┐
+                    │               │               │
+                    ▼               ▼               ▼
+             ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+             │   Batch     │ │   Stream    │ │   Serving   │
+             │   Layer     │ │   Layer     │ │   Layer     │
+             │  (Hadoop)   │ │  (Flink)    │ │  (Redis)    │
+             └──────┬──────┘ └──────┬──────┘ └──────┬──────┘
+                    │               │               │
+                    └───────────────┼───────────────┘
+                                    │
+                                    ▼
+                             ┌─────────────┐
+                             │   Batch     │
+                             │   Views     │
+                             └─────────────┘
+```
+
+### 2. Data Lakehouse Pattern
+
+Unifies data lake and data warehouse capabilities.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      Data Lakehouse Pattern                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  Application Layer                       │   │
+│  │  BI Tools │ ML Pipelines │ SQL Analytics │ Data Science │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  Storage Abstraction                      │   │
+│  │         Delta Lake / Apache Iceberg / Apache Hudi        │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  Object Storage                          │   │
+│  │              S3 / GCS / Azure Blob / HDFS                │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 3. Idempotent Pipeline Pattern
+
+Ensures exactly-once processing semantics.
+
+```python
+class IdempotentPipeline:
+    def process(self, batch_id: str, data: List[Dict]) -> Dict:
+        # Check if already processed
+        if self.is_processed(batch_id):
+            return {"status": "skipped", "reason": "already processed"}
+        
+        # Process with transaction
+        with self.transaction():
+            result = self._transform(data)
+            self._write(result)
+            self._mark_processed(batch_id)
+        
+        return {"status": "completed", "batch_id": batch_id}
+```
+
+### 4. Schema Evolution Pattern
+
+Supports forward and backward compatible schema changes.
+
+```python
+class SchemaEvolution:
+    def evolve_schema(self, current_schema: Dict, changes: List[Dict]) -> Dict:
+        new_schema = current_schema.copy()
+        
+        for change in changes:
+            if change["type"] == "add_field":
+                new_schema["fields"].append(change["field"])
+            elif change["type"] == "remove_field":
+                # Only allowed in certain compatibility modes
+                if self.compatibility in ["FORWARD", "FULL"]:
+                    new_schema["fields"] = [
+                        f for f in new_schema["fields"] 
+                        if f["name"] != change["field_name"]
+                    ]
+            elif change["type"] == "rename_field":
+                # Supported in all modes with alias
+                pass
+        
+        return new_schema
+```
+
+---
+
+## Technology Stack
+
+### Core Components
+
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| Compute | Apache Spark | Batch processing |
+| Streaming | Apache Flink | Stream processing |
+| Storage | S3 / GCS / HDFS | Object/file storage |
+| Table Format | Delta Lake / Iceberg | ACID transactions |
+| Metadata | Apache Hive Metastore | Schema management |
+| Orchestration | Apache Airflow | Pipeline scheduling |
+| Queue | Apache Kafka | Event streaming |
+
+### Supporting Technologies
+
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| Cluster Mgmt | Kubernetes | Container orchestration |
+| Resource Mgmt | YARN | Resource allocation |
+| Monitoring | Prometheus + Grafana | Metrics & dashboards |
+| Logging | ELK Stack | Log aggregation |
+| Catalog | Apache Atlas | Data governance |
+| Lineage | OpenLineage | Data lineage tracking |
+
+---
+
+## Security Architecture
+
+### Data Security Layers
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Security Architecture                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Layer 1: Network Security                               │   │
+│  │  • VPC isolation                                         │   │
+│  │  • Security groups                                       │   │
+│  │  • Private subnets for clusters                          │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Layer 2: Authentication & Authorization                 │   │
+│  │  • Kerberos for cluster auth                            │   │
+│  │  • RBAC for data access                                 │   │
+│  │  • Service accounts for jobs                            │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Layer 3: Data Protection                                │   │
+│  │  • Encryption at rest (AES-256)                         │   │
+│  │  • Encryption in transit (TLS 1.3)                      │   │
+│  │  • Column-level encryption                              │   │
+│  │  • Data masking for PII                                  │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Layer 4: Audit & Compliance                             │   │
+│  │  • Access logging                                       │   │
+│  │  • Data lineage                                         │   │
+│  │  • Compliance reporting                                 │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Access Control Matrix
+
+| Resource | Admin | Data Engineer | Analyst | Viewer |
+|----------|-------|---------------|---------|--------|
+| Cluster Management | Full | Limited | None | None |
+| Pipeline CRUD | Full | Full | Read | None |
+| Data Lake Write | Full | Full | None | None |
+| Data Lake Read | Full | Full | Full | Full |
+| Job Execution | Full | Full | None | None |
+| Schema Changes | Full | None | None | None |
+
+---
+
+## Scalability
+
+### Horizontal Scaling Architecture
+
+```
+                    ┌─────────────────┐
+                    │   Load Balancer  │
+                    └────────┬────────┘
+                             │
+            ┌────────────────┼────────────────┐
+            │                │                │
+      ┌─────▼─────┐   ┌─────▼─────┐   ┌─────▼─────┐
+      │  Worker 1  │   │  Worker 2  │   │  Worker N  │
+      └─────┬─────┘   └─────┬─────┘   └─────┬─────┘
+            │                │                │
+            └────────────────┼────────────────┘
+                             │
+              ┌──────────────┼──────────────┐
+              │              │              │
+        ┌─────▼─────┐ ┌─────▼─────┐ ┌─────▼─────┐
+        │  Object   │ │  Metadata │ │  Compute  │
+        │  Storage  │ │  Store    │ │  (Spark)  │
+        └───────────┘ └───────────┘ └───────────┘
+```
+
+### Performance Targets
+
+| Metric | Target | Strategy |
+|--------|--------|----------|
+| Batch Job Latency | < 30 min | Partitioning, caching |
+| Stream Latency | < 100 ms | State management, windowing |
+| Query Response | < 5 sec | Pre-aggregation, indexing |
+| Data Freshness | < 1 hour | CDC, micro-batching |
+| Cluster Utilization | > 70% | Auto-scaling, spot instances |
+
+### Partitioning Strategies
+
+| Strategy | Best For | Example |
+|----------|----------|---------|
+| Hash | Even distribution | user_id |
+| Range | Time-series data | event_date |
+| List | Known categories | region |
+| Compound | Multi-dimensional | (date, region) |
+
+---
+
+## Performance Optimization
+
+### Spark Optimization Checklist
+
+```yaml
+Configuration:
+  - Enable Adaptive Query Execution (AQE)
+  - Set appropriate shuffle partitions
+  - Use broadcast joins for small tables
+  - Enable dynamic partition pruning
+  
+Data Layout:
+  - Partition by high-cardinality columns
+  - Bucket by join keys
+  - Use appropriate file format (Parquet/ORC)
+  - Maintain optimal file sizes (128MB-256MB)
+  
+Memory Management:
+  - Size executors appropriately (4-8 cores)
+  - Enable off-heap storage
+  - Use columnar caching
+  - Configure GC settings
+```
+
+### Cost Optimization
+
+| Strategy | Savings | Implementation |
+|----------|---------|----------------|
+| Spot Instances | 60-70% | Use for batch workloads |
+| Auto-scaling | 30-40% | Scale based on demand |
+| Compression | 20-30% | Use Snappy/ZSTD |
+| Partitioning | 40-60% | Prune unnecessary data |
+| Caching | 50-70% | Cache hot datasets |
+
+---
+
+## Deployment
+
+### Kubernetes Deployment
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bigdata-agent
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: bigdata-agent
+  template:
+    spec:
+      containers:
+        - name: bigdata-agent
+          image: bigdata-agent:latest
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1000m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+          env:
+            - name: SPARK_MASTER
+              value: "k8s://https://kubernetes.default.svc"
+            - name: S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: bigdata-secrets
+                  key: s3-bucket
+```
+
+### Docker Compose (Development)
+
+```yaml
+version: '3.8'
+services:
+  bigdata-agent:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - SPARK_MASTER=local[*]
+      - KAFKA_BROKERS=kafka:9092
+      - S3_ENDPOINT=http://minio:9000
+  
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    ports:
+      - "9092:9092"
+  
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+    command: server /data
+```
+
+---
+
+## Monitoring
+
+### Key Metrics
+
+```yaml
+Cluster Metrics:
+  - cluster_nodes_active
+  - cluster_cpu_utilization
+  - cluster_memory_utilization
+  - cluster_disk_usage
+
+Pipeline Metrics:
+  - pipeline_records_processed
+  - pipeline_execution_time
+  - pipeline_error_rate
+  - pipeline_last_run_success
+
+Stream Metrics:
+  - stream_throughput_mps
+  - stream_consumer_lag
+  - stream_processing_latency
+  - stream_error_rate
+
+Data Lake Metrics:
+  - datalake_total_size_gb
+  - datalake_file_count
+  - datalake_query_latency
+  - datalake_compaction_time
+```
+
+### Alert Rules
+
+| Alert | Condition | Severity | Action |
+|-------|-----------|----------|--------|
+| Cluster Down | nodes_active < 2 | Critical | Page on-call |
+| High CPU | cpu > 90% for 5m | Warning | Auto-scale |
+| Pipeline Failed | error_rate > 5% | Critical | Alert team |
+| Stream Lag | lag > 10000 | Warning | Check consumers |
+| Storage Full | usage > 85% | Warning | Archive data |

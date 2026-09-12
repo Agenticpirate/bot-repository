@@ -1,0 +1,3 @@
+# aitmpl.com errors
+
+None.

@@ -1,0 +1,3 @@
+# skillsboard.sh errors
+
+None.

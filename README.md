@@ -39,6 +39,7 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [agent-packs/registry](https://github.com/agent-packs/registry)
 - [anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official)
 - [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community)
+- [anthropics/skills](https://github.com/anthropics/skills) — official Agent Skills
 - [anthropics/knowledge-work-plugins](https://github.com/anthropics/knowledge-work-plugins) — official Cowork + Code role plugins
 - [anthropics/claude-for-legal](https://github.com/anthropics/claude-for-legal)
 - [alexclowe/awesome-claude-cowork-plugins](https://github.com/alexclowe/awesome-claude-cowork-plugins)
@@ -76,6 +77,7 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [clawhub.ai](https://clawhub.ai/) — OpenAPI + skills/packages API
 - [agensi.io](https://www.agensi.io/grok-bot-marketplace) — grok marketplace HTML + skill sitemap URLs
 - [claude.com / code.claude.com docs](https://code.claude.com/docs/en/plugins-reference) — official plugin + marketplace docs (HTML/MD)
+- [claude.com/plugins](https://claude.com/plugins) — public plugin directory (105 titles from headings)
 - [claude.com/product/cowork](https://claude.com/product/cowork) — Cowork product, plugin guide, blog, /plugins directory
 - Muse — **no public store**; Meta Muse Spark cookbooks + edheltzel/Muse + third-party listings. See [docs/muse-research.md](docs/muse-research.md)
 - [cursor.directory](https://cursor.directory/) — **429** this host
@@ -187,6 +189,8 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | agensi.io | 4001 |
 | github/anthropics-claude-plugins-official | 309 |
 | github/anthropics-claude-plugins-community | 90 |
+| github/anthropics-skills | 117 |
+| claude.com-plugins | 106 |
 | github/anthropics-knowledge-work-plugins | 1084 |
 | github/anthropics-claude-for-legal | 294 |
 | github/alexclowe-awesome-claude-cowork-plugins | 409 |
