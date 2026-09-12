@@ -167,6 +167,13 @@ def download_skillsmp(limit: int = 2500) -> dict:
         dest = dest_root / owner / repo / route / "SKILL.md"
         if dest.exists() and dest.stat().st_size > 40:
             continue
+        # Previously blocked by GitHub push protection (example secret in file).
+        if (owner, repo, route) == (
+            "fstln-dev",
+            "fl-workspace",
+            "skills-feishu-connect",
+        ):
+            continue
         jobs.append((owner, repo, route, dest, loc))
         if len(jobs) >= limit:
             break
