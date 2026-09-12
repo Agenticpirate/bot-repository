@@ -1,3 +1,3 @@
 # souls.directory
 
-None.
+This-pass SOUL.md failures: 3908.

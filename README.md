@@ -4,6 +4,20 @@ Public archive of bot jobs, team recipes, prompt packs, and agent marketplaces, 
 
 This repository is a mirror for research and citation. **Canonical pages live on the source sites.** Serials, titles, prompts, installers, and evidence are copied as published. Do not invent serials. Do not strip attribution.
 
+## Completeness (2026-09-12)
+
+| Item | Status |
+| --- | ---: |
+| **catalog.json rows** | **219,578** |
+| **skills.sh downloaded** (files + hash) | **844** / 19,998 |
+| **skills.sh remaining** | **19,143** |
+| skills.sh API cap | 60/hour (client budget 50/batch) |
+| SkillsMP SKILL.md (search GitHub raw + sitemap raw) | 1,957 + 1,695 |
+| souls.directory SOUL.md | 910 on disk (789 cataloged) |
+| claude-skills-latest metadata / with files | 60,442 / 11,049 |
+
+Resume skills.sh: `python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`
+
 ## Sources
 
 ### Verified jobs / official marketplace
@@ -309,7 +323,8 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | skillsclaude.org | 3 |
 | tonsofskills.com | 2 |
 | openclawskills.io | 8 |
-| souls.directory | 4001 |
+| souls.directory | 789 |
+| github/openclaw-skills | 1 (upstream 404) |
 | openclawcheatsheet.com | 358 |
 | mcp.directory | 4001 |
 | botteams.ai | 1 |
@@ -348,13 +363,15 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 
 ## Fetch notes
 
-Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`, `scripts/download_skills_sh.py`, `scripts/ingest_priority_a.py`, `scripts/ingest_priority_b.py`, `scripts/ingest_priority_cd.py`, `scripts/ingest_claude_ecosystem.py`, `scripts/ingest_batch3.py`, `scripts/download_n8n_official.py`, `scripts/archive_claude_skills_latest.py`, `scripts/finish_claude_skills_latest.py`, `scripts/ingest_batch4.py`, `scripts/deepen_batch4.py`.
+Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`, `scripts/download_skills_sh.py`, `scripts/ingest_priority_a.py`, `scripts/ingest_priority_b.py`, `scripts/ingest_priority_cd.py`, `scripts/ingest_claude_ecosystem.py`, `scripts/ingest_batch3.py`, `scripts/download_n8n_official.py`, `scripts/archive_claude_skills_latest.py`, `scripts/finish_claude_skills_latest.py`, `scripts/ingest_batch4.py`, `scripts/deepen_batch4.py`, `scripts/fast_secondary.py`.
 
 ## Caps / failures
 
-- **skills.sh** — full skill files via the download API (`files/` + hash). The API allows 60 requests/hour; **838** downloaded in `sources/skills.sh`, **19,149** remaining. Resume via `scripts/download_skills_sh.py`.
+- **skills.sh** — full skill files via the download API (`files/` + hash). The API allows 60 requests/hour; **844** downloaded, **19,143** remaining. Resume via `scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`.
+- **souls.directory** — public `GET /api/souls/{handle}/{slug}.md`; **910** SOUL.md on disk. Many remaining API URLs 404/empty.
+- **openclawskills.io** — Next.js gallery; sitemap has no per-skill URLs. `github.com/openclaw/skills` is not a public repo.
 - **claude-skills-latest** — Skillselion `updatedAt` is a reindex stamp, so createdAt **or** updatedAt ≥ 2026-07-14 matches all **60,442** live skills. True `createdAt` in-window: **2,378** (**1,466** with files). Catalog: **62,817** rows, **11,049** `has_content`. skills.sh download API still 60/hour.
-- **skillsmp.com** — search requires `q`; anonymous REST 50/day. Popular sitemap 11,213 URLs. GitHub raw SKILL.md: 1,978 ok / 22 fail. No official content-download endpoint.
+- **skillsmp.com** — search requires `q`; anonymous REST 50/day. Popular sitemap 11,213 URLs. GitHub raw: **1,957** from search hits + **1,695** from sitemap path guesses. No official content-download endpoint.
 - **agent37.com** — `api.agent37.com/v1/skills` and `/v1/catalog` HTTP 401 without API key.
 - **skillkit.io** — homepage HTTP 403 from this host.
 - **nodesphereai** — NXDOMAIN / no public host resolved.

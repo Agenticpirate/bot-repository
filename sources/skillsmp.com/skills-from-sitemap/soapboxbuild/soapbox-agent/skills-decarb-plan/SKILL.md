@@ -1,0 +1,1581 @@
+---
+name: decarb-plan
+description: >
+  Conduct a full client decarbonization engagement for a single asset — kickoff scoping,
+  evidence sweep, human-adjudicated baseline reconciliation, target trajectory, Audette-modeled
+  measure plan, two user gates, Audette write-back, verification-gated report render, and
+  PDF/PPTX export. Durable phase state at projects/<asset-key>/decarb-plan.json lets any
+  session resume mid-engagement. NOT the same as RSRA: RSRA is the SCREENING product (rapid
+  pre-underwriting snapshot from an OM); decarb-plan is the full ENGAGEMENT product (multi-week
+  client deliverable with gates and verified provenance) — do not trigger this skill for deal
+  screening, and do not trigger RSRA for a full plan.
+  Triggers on: "decarbonization report", "decarb plan", "decarbonization roadmap",
+  "full decarb report", "net zero plan for [asset]", "BPS compliance plan".
+version: 1.8.6
+---
+
+# Decarb-Plan Engagement
+
+You are conducting a **full decarbonization engagement** for one asset. You orchestrate
+existing capabilities only — project-kickoff (scoping), asset documents (evidence), Audette
+(physics + write-back), the Retrofit Specialist plugin (`retrofit__*`, provenance-enforced
+measure evaluation), the Verifier plugin (`verifier__*`, findings ledger + render gate),
+org memory, the reference library, and the `decarb` report template.
+
+**Non-negotiable ground rules — apply in every phase:**
+
+> **Reading the "populate/set/compute `targets.*` / `economics.*` / `cashflow.*`" language below.**
+> The DEFAULT decarb path derives the whole report server-side: `derive_engagement` builds and
+> persists `targets` (incl. `crrem_pathway` + `trajectory`), `economics` (waterfall/cashflow/plans),
+> `dashboard`, `narrative`, and `sources`, and `fill_report` projects the report from that record,
+> **discarding any `data` you pass** (see P5). So **you never author a report_data object.** Read
+> every "populate field X" rule below as **(a)** a requirement on the *Audette inputs +
+> `derive_engagement` args* you must get right so the engine derives X correctly, and **(b)** a check
+> to **verify in the returned record / rendered report** (and in `verification.findings`) — never a
+> field for you to hand-write. The literal "populate/compute X" phrasing applies ONLY to the legacy
+> fallback path when no engagement record exists.
+
+1. **No LLM arithmetic.** Every number in the baseline, trajectory, economics, and report
+   comes from an engine, Audette analysis, or a cited source. CRREM pathway points come from
+   crrem tooling; BPS milestones and fine exposure come from engines/Audette compliance
+   analysis (`run_compliance_analysis`); simple percent-reduction math may use the
+   cashflow/DCF engines. You never compute a reported number yourself. ⛔ **NEVER reimplement,
+   "replicate," or port `compute_plan_economics` (or any MCP engine) into Python/bash and run the
+   plan through your own code — even validated to the penny against a live call.** A local replica
+   is a hand-rolled, non-provenanced figure that silently drifts when an input differs and fails
+   the `evaluate_measure` provenance gate. Call the real tool; if its result is long, read the
+   fields you need directly — long output is a display artifact, not a reason to route around it.
+2. **The hierarchy is suggestion-only.** The reconciliation precedence — **measured
+   utility/ESPM actuals > audit-reported 12-mo > Audette modeled > estimates** — produces the
+   *suggested* resolution for each conflict. The human adjudicates ALL conflicts at Gate 1.
+   Nothing is auto-resolved.
+3. **The render gate is HARD and fails closed.** No report render without asset-scoped
+   verification passing, or a documented override `{finding_id, override_reason, approved_by}`
+   in state for every open high-severity finding **on THIS asset**.
+   **⚠️ Check verification ASSET-SCOPED — always pass `asset_id`.** The render gate itself is
+   asset-scoped (`verifier__list_findings({asset_id})`). But `verifier__verification_status` with
+   NO `asset_id` is **portfolio-wide** and will surface high-severity findings from *other* assets
+   (e.g. a different building's ESPM id) that do NOT block your render — do not chase or resolve
+   them, and do not let them make you think you're blocked. Call `verifier__list_findings` /
+   `verification_status` **with `asset_id` = this asset**; only open-high findings on THIS asset gate
+   your render. (Chasing another asset's findings wastes the render's time budget and can cause the
+   run to be cut off before it renders.)
+4. **NEVER game or bypass the render gate.** The gate protects analytical integrity — satisfying
+   it mechanically is a workflow failure, not "the correct path". Specifically:
+   - **No self-certification.** Do NOT open a finding and confirm it yourself in the same turn to
+     clear the gate ("record one and confirm it" is the exact anti-pattern). Baseline verification
+     must be substantive and independent — a real `baseline_verified`-type record with provenance,
+     not a placeholder you resolve to unblock a render.
+   - **No `save_file` bypass.** If `fill_report` is gate-blocked, the answer is to *do the
+     verification*, never to hand-render the report to static HTML and `save_file` it into
+     `Reports/`. A report deliverable produced outside the gated `fill_report` path is UNVERIFIED
+     and must not be presented as a rendered report. (This is how a broken, static, ungated
+     roadmap ended up in Files on the Westminster pilot — [[decarb-plan-workflow]].)
+   - **Headline-metric reconciliation.** Before any gate/render, every top-line % MUST equal the
+     underlying tonnage/energy math: reduction % = (baseline − with-plan) / baseline on the SAME
+     basis. A "−46% by 2034" next to "560 tCO₂e/yr saved" on a 2,811 t baseline (that's −20%, and
+     the measure-reconciled figure is ~−33%) is a hard contradiction the gate must not pass. If a
+     grid-inclusive vs measure-only figure differ, label each; never mix bases in one headline.
+   - **CRREM provenance.** Pull the pathway from the `crrem` MCP `get_pathway` for the asset's
+     actual region (US NA regional pathways are live — [[crrem-plugin]]). Put those points ONLY in
+     `targets.crrem_pathway` (+ set `targets.crrem_meta` = country/property_type/region/scenario so
+     the server can re-fetch and verify). There is NO inline per-year CRREM field — the legacy
+     `trajectory[].crrem_target` was REMOVED and the render gate now BLOCKS any payload that uses it
+     or ships a `crrem_pathway` that doesn't match `get_pathway` within tolerance. Never hand-type,
+     interpolate, or eyeball CRREM values — if you can't reach the tool, STOP and say so rather than
+     fabricating a curve. A directional/reference curve (e.g. LBNL/ULI Appendix G) may only appear if
+     explicitly labeled "directional — pending asset-specific CRREM tool run"; never present a
+     directional stranding year as a firm result.
+     **On a RE-RENDER you MUST re-call get_pathway and repopulate targets.crrem_pathway — never
+     rebuild the CRREM curve from saved state.** Stored state may predate the curve fix; the render
+     gate now BLOCKS a decarb report whose crrem_meta is set but crrem_pathway is empty (it would
+     otherwise silently drop the curve), so a from-state rebuild without a fresh fetch will fail.
+   - **Grid emission factor — the CRREM carbon basis (HARD).** The building's carbon intensity in
+     `targets.trajectory[]` (both BAU and with-plan) MUST be computed on a **forward, DECLINING** grid
+     emission factor sourced from the **cambium MCP** — `get_emission_factors(gea_region=<asset US state
+     abbrev, e.g. 'WA'>, scenario=<org default, else mid_case>, year)` — call `list_scenarios` if unsure
+     which scenario applies. Use the returned **AER** (average rate) for **each year** of the intensity
+     and BAU trajectory, and **LRMER** (long-run marginal) for per-measure carbon savings.
+     **Never** compute the building's CRREM intensity from a **static, current-year eGRID subregion
+     *average* held flat across all years** — that is the #1 cause of a false "already stranded"
+     verdict. Two failure modes the gate/verifier must reject:
+     - **Wrong / stale factor.** An all-electric building on a low-carbon grid (e.g. **Seattle City
+       Light** ≈ all-hydro, ~0.03 kgCO₂e/kWh) is far cleaner than a static eGRID subregion average
+       (NWPPc ≈ 0.29). Cambium's forward WECCNW curve (`mid_case` AER ≈ 0.16 kg/kWh in 2026 declining
+       to ~0.01 by 2050) is the correct, region-consistent basis — it captures grid decarbonization
+       that a single static eGRID mean does not. Do not use the regional eGRID mean as the headline.
+     - **Flat BAU.** Cambium AER declines year over year, so the BAU carbon curve MUST slope **down**
+       as the grid greens even with zero measures — a flat BAU against a declining CRREM pathway mixes
+       bases and is a hard data error (compounds the "non-increasing trajectory" rule below).
+     The eGRID/ESPM **location-based** GHG number (what ESPM reports, what a GRESB/lender sees) may be
+     shown as a clearly-labeled **secondary disclosure**, but it is NOT the CRREM stranding verdict and
+     must never be the headline carbon intensity plotted against the CRREM curve. If the two bases give
+     opposite stranding conclusions, show both, labeled — never let the regional-average number stand
+     alone as "stranded."
+   - **Compliance overlays (CRREM + BPS).** Determine the asset's jurisdiction, then
+     **auto-include** every standard that applies there **plus** CRREM (e.g. an asset in Seattle
+     auto-gets Seattle BEPS + WSCBA + CRREM) — the user may override with an explicit instruction
+     ("show only WSCBA", "drop CRREM"). The two overlay families populate different fields and
+     must not be conflated:
+     - **Carbon standards** (Seattle BEPS, Boston BERDO, NYC LL97) are stepped GHGI targets: populate
+       per-year `targets.trajectory[].bps_target`, plus `targets.bps_label` (legend text, e.g.
+       "Seattle BEPS (GHGI target)") and `targets.bps_source` (citation for those values). CRREM is
+       unaffected by this and continues to flow through `targets.crrem_pathway` exactly as described
+       above — never merge a carbon BPS target into the CRREM series or vice versa.
+     - **Energy standards** (e.g. WA Clean Buildings Act / WSCBA, Energize Denver) are EUI-based,
+       not GHGI-based: populate one entry per applicable standard in `targets.eui_compliance[]`
+       (`standard`, `unit`, `building_eui`, `target_eui`, optional `compliance_year`, `status`,
+       `source`). Never route an energy standard's target through `bps_target` — WSCBA has no
+       stepped carbon trajectory value.
+     - **When a fine regime applies, show the AFTER and the annual fine — not just current vs
+       target.** On any `eui_compliance[]` entry with `status: "non-compliant"`, ALSO populate:
+       (a) `projected_eui` — the building's post-plan EUI (the "after", in `unit`), so the panel
+       shows current → target → after; and (b) `annual_fine_avoided` — the stabilized owner-borne
+       fine ($/yr) the plan eliminates; and (c) `fine_schedule[]` = `{year, bau_fine, plan_fine}`
+       per year across the compliance horizon, which renders the fine-avoidance **area chart**
+       (BAU fine vs with-plan fine trending to $0 once the plan's `projected_eui` drops under the
+       then-current target — step `bau_fine` up at each phased milestone, e.g. Energize Denver
+       interim/final). Every dollar figure traces to the jurisdiction's fine formula cited in
+       `source` — never fabricate. Fines are owner-borne (never rebilled to tenants), so the
+       avoided fine flows 100% to the landlord in the value bridge (`pv_bps_fine_avoidance`).
+     - **Every value is sourced, never fabricated.** Pull BPS target numbers from the
+       `bps-compliance` skill's reference tables (BERDO/DC BEPS/WSCBA/LL97) and verify against the
+       official jurisdiction portal before use. Every `targets.eui_compliance[]` entry carries a
+       `source` citation; any trajectory year that sets `bps_target` requires `targets.bps_source`.
+       If a value can't be sourced, do not guess it — say so and stop.
+     - **⚠️ BPS FINE INTEGRITY — five checks the render gate now enforces (or that reach the client if you skip them). Learned from 245 First (Cambridge BEUDO), 2026-07-18:**
+       1. **Anchor the baseline to the ACTUAL disclosure, never derive it.** Reduction-from-baseline
+          standards (BEUDO −20%/−60% from 2018-19; LL97; BERDO) compute the limit from the building's
+          *reported* baseline. Pull that baseline emissions figure + the reported GFA/vintage from the
+          jurisdiction's public benchmarking dataset (e.g. Cambridge Open Data BEUDO) — do NOT back-
+          calculate it from current emissions or assume it. Reconcile GFA and year-built to that record
+          (a wrong GFA silently shifts every kgCO₂e/m² and every limit). The whole limit/fine stack rides
+          on this one number.
+       2. **Get the compliance-period YEARS exactly right.** Cite the real period boundaries (BEUDO large
+          non-res: **CP1 = 2026–2029 −20%, CP2 = 2030–2034 −60%, net-zero 2035** — not 2027). An off-by-one
+          start year drops a whole fine year.
+       3. **Compliance emissions use the JURISDICTION'S prescribed emission factor, not the economics
+          grid.** BPS compliance is assessed on the city's factor (BEUDO = grid **residual-mix + RPS**),
+          which differs from — and usually exceeds — a Cambium/marginal grid factor used for OpEx. Compute
+          the `bps_target` trajectory (BAU + each plan) on the prescribed factor; keep BAU and the plans on
+          the SAME factor basis (a flat BAU beside a declining economics grid is a red flag). Using the
+          wrong factor mis-states electrification compliance (Plan B looked CP1-compliant on Cambium; re-check
+          on the residual factor).
+       4. **Every fine dollar derives from the trajectory — populate `economics.bps_penalty_per_tco2e`.**
+          Set the structured penalty rate ($/tCO₂e, e.g. 234) and compute each `cashflow[].bps_fine_avoidance`
+          year as `penalty × gfa_m2/1000 × [max(0,BAU−limit) − max(0,plan−limit)]` from `targets.trajectory`.
+          The render gate (`validateFineTotals`) recomputes this and BLOCKS on divergence — a hand-entered or
+          carried-over fine (245 First Plan B booked $220K where the trajectory implied $241K) will not render.
+       5. **Disclose BPS obligations BEYOND the exit horizon.** For a hold that exits before a net-zero
+          cliff (BEUDO 2035), the buyer still inherits it. Model/annotate the post-exit obligation as an exit
+          risk — a CP2-only view understates the true buyer liability.
+     - **Exempt is still shown.** A standard the asset is exempt from (e.g. below a size/age
+       threshold) still gets an `eui_compliance[]` entry with `status: "exempt"` rather than being
+       omitted — the exemption itself is the useful signal to the reader.
+   - **RE-RENDER = REGENERATE, never re-render a stored data object verbatim.** A stored/previously-
+     rendered `data` object (e.g. embedded in a prior report HTML or a saved "vN" state) may PREDATE
+     template/schema/content changes. On any revision or re-render you MUST rebuild the full `data`
+     object and re-apply EVERY pre-render rule below — do not assume the saved object "already has all
+     changes." Concretely, re-running an old object silently drops: new fields (`annual_owner_savings`
+     → blank RoC%/Landlord Savings columns), the null-vs-0 fine-avoidance rule (renders a misleading
+     `$0` instead of `—`), and prose fixes (a stale editorial `dashboard.title`). If you only need a
+     small presentation tweak use `patch_report`; otherwise regenerate from `state`, not from the old
+     rendered payload. This is the general form of the CRREM-from-state rule above.
+     **Do NOT `read_file` the prior rendered report HTML to "get the structure."** That file is a large
+     (~50KB) HTML view; pulling it into context bloats the model's working set and, stacked on the
+     Audette plan data, has stalled the final synthesis turn (the render hangs before it can emit
+     `fill_report`). You already have the authoritative structure from the template **schema**
+     (`get_report_resources` / `gather_report_data`); rebuild the `data` object from the `state` files
+     (measures, findings, helper) + the live tool outputs (Audette plans, `crrem get_pathway`) only.
+5. **Pre-render sanity checks (the gate/verifier MUST reject these — they are self-evidently wrong):**
+   - **Emissions trajectory must be non-increasing.** A with-plan (or BAU) carbon curve that *rises*
+     over time is a sign/axis bug — decarb emissions decline. Reject and fix the payload.
+   - **At-RUL / bundled-capital-event incremental cost is POSITIVE.** The like-for-like replacement
+     that must happen anyway is the baseline; only the *upgrade spec above it* is incremental. A
+     re-roof is the baseline — only the **added insulation** is incremental (positive). A negative
+     incremental ("insulation saves money vs the mandatory re-roof") is the cost model backwards.
+   - **Tenant vs landlord savings are SEPARATE explicit columns** in the cashflow — never merged.
+     Only landlord/owner-share savings capitalize into the value-creation bridge; tenant-side
+     savings do not accrue to the owner (see owner-share discipline in recipe 8 + analytics standards).
+   - **RUBS pass-through: net owner utility savings ≈ (landlord-capture %) × gross savings — often ≈$0
+     (HARD — the verifier MUST check this).** Under a Ratio Utility Billing System (RUBS) the owner is
+     a pass-through: it pays the master/utility bill and rebills ~(1 − capture%) to tenants, so it only
+     BEARS `capture%` of the cost. A measure that cuts the bill by $X therefore returns only
+     `capture% × $X` to the owner — the rest was tenant money that also disappears from the rebill.
+     **Carbon ≠ cash on RUBS:** RUBS shifts who bears the COST, never who owns the EMISSIONS.
+     Master-metered / RUBS-rebilled energy stays the owner's **Scope 1/2** (the owner holds the meter
+     → operational control); only energy on a tenant's OWN direct utility account is Scope 3. So a
+     measure on RUBS-billed common energy can cut the owner's reported carbon ~fully while returning
+     only ~`capture%` of the cash. Keep the two boundaries separate — never reduce owner Scope 1/2
+     just because energy is RUBS-rebilled, and never let carbon ownership follow the cost split.
+     **Scope allocation follows system architecture (centralized → owner S1/S2; unitized/in-unit on
+     tenant meters → tenant S3), derived from DOCUMENTS first (OM/PCA/as-builts/equipment schedule),
+     then the Audette system schedule, then archetype — docs win; Audette often mis-categorizes.**
+     At a 10% landlord capture, owner utility savings are ~10% of gross ≈ **$0/yr at plan scale**, NOT
+     the gross figure. **Never credit the owner the gross (or 100%) utility savings, and never model the
+     owner-favorable fuel-switch asymmetry** "owner keeps 100% of the gas cut while tenant meters absorb
+     the new heat-pump electricity" — apply the locked `capture%` to the fuel BEING SAVED and net any
+     owner-side load INCREASE from the switch. If, after applying capture, `capitalized_utility_savings`
+     still dominates the bridge on a low-capture (RUBS/tenant-metered) asset, the split was not applied —
+     reject and recompute. On such assets the value bridge is driven by **fine avoidance (100% owner —
+     the owner pays fines, not tenants) + the capitalized exit uplift**, not operating savings.
+   - **Headline value = capitalized exit uplift at the exit cap, and the waterfall must bridge to IT.**
+     Report ONE value number, not two. Do not headline a PV-of-cashflows `net_value_creation` (e.g.
+     $1.9M) while a separate `asset_value_impact` (annual NOI ÷ exit cap, e.g. $13M) sits in the
+     per-year rows — that is two valuation methods in one report. The bridge terminates at the
+     capitalized exit-value uplift = (stabilized annual NOI improvement ÷ exit cap), where the NOI
+     improvement = net-owner utility savings (post-capture, per above) + owner-share ancillary +
+     annual avoided fine. Fine avoidance may ALSO be shown as a cumulative/undiscounted figure for
+     context (e.g. "$3.7M cumulative, ~$1.7M PV"), but the exit-value line is the headline outcome.
+   - **Lead with the OPERATING return; label exit- and fine-dependence explicitly.** Report
+     `irr_excl_exit` (operating IRR) alongside the exit-inclusive `irr_incremental`, and lead with
+     operating. If a plan's operating IRR is BELOW the hurdle and it only clears on the capitalized
+     exit uplift, say so in the headline ("clears the hurdle only on exit-value realization") — never
+     present the exit-inclusive IRR as if it were the operating return (Cortland on Blake headlined
+     ~40% while operating IRR was 5.7%). Never headline a plan that FAILS its BPS compliance as the
+     recommendation without a compliance caveat up front.
+   - **When fine avoidance dominates value, prove the fine is real and stress it.** A single avoided
+     regulatory penalty must not silently drive most of net value: Congress Park capitalized a
+     $583K/yr Energize Denver fine to ~$11.1M (99% of exit value) while the same plan told the owner
+     to file the extension that eliminates the near-term fine. Before capitalizing any avoided fine,
+     complete the BPS research (deadline, extension option, penalty rate — a **Gate-1** item, not a
+     P5 afterthought) and confirm the fine is genuinely unavoidable/persistent. If fine avoidance is
+     >50% of net value, present a **without-fine sensitivity** and a regulatory-persistence caveat;
+     never headline value that rests almost entirely on a penalty the plan itself tells the owner how
+     to avoid.
+   - **Landlord-capture is per end-use, keyed to WHERE THE LOAD SITS and who BEARS the cost — not
+     who pays the meter, and never one building-wide split stamped on every measure.** Distinguish:
+     - **In-unit tenant-metered** (tenant pays the utility directly) → owner capture ~0–5%.
+     - **Common-area / house-metered / amenity** (elevators, garage/common ventilation, corridor &
+       common lighting, spa/pool/laundry): **genuinely landlord loads → owner capture ~90–100%**.
+       Do NOT price these at the in-unit *blended* split (the elevator-regen −6%→+12% error), and do
+       NOT drop them into the ~10% RUBS bucket — RUBS does not rebill common-area loads to residents.
+     - **Master-metered load that is in-unit RESIDENTIAL consumption** (central heating/DHW plant
+       delivering to units): the owner pays the master bill but that is NOT the same as bearing the
+       cost. **If the jurisdiction ALLOWS RUBS, assume the owner recovers up to ~90% from tenants →
+       net owner capture ≈ 10%**, unless documents show the owner absorbs it (a true gross lease with
+       no RUBS, or an explicit statement). Only assume ~100% owner when the owner genuinely absorbs
+       the utility. **Never read "master-metered" as "100% owner"** for residential-served plant.
+     - **BPS fine avoidance is 100% owner** regardless of lease/metering.
+     - **Solar under Virtual Net Metering (VNM): assume 80% of solar savings flows to the landlord**
+       (unless docs state otherwise).
+     - **VERIFY the RUBS and VNM legislation for the asset's jurisdiction — never assume it.** The
+       ~10% RUBS capture and the 80% VNM solar credit are CONDITIONAL: check (reference library →
+       web/`brave-search` + `web_fetch` → **cite statute/PUC rule + URL**) whether RUBS/submetering
+       pass-through is permitted (**if BARRED → owner-borne ~100% on master-metered, not ~10%**) and
+       whether Virtual Net Metering / aggregated NEM is available (**if only behind-the-meter NEM
+       exists, solar = BTM self-consumption offset only, NOT the 80% VNM credit**). Record the
+       RUBS + VNM determination + source as a Gate-1 finding.
+     Reject any measure whose owner-capture equals the account default (commonly 15%) without this
+     reasoning; record the correction as a `verifier__record_finding` (kind `data-quality`, verdict
+     `conflict`) tying the measure to its true end-use capture from the 2C capture map.
+   - **Measure equipment type matches the documented system.** Reject a measure whose equipment
+     contradicts the PCA/as-built — e.g. an RTU/packaged-unit measure on a WSHP-loop building, or a
+     DHW measure that assumes electric resistance when the PCA specifies gas boilers. Cross-check
+     the Audette equipment survey against the PCA before screening; a mismatch is a
+     `verifier__record_finding` conflict, not a silent screen-in.
+   - **Plans are genuinely differentiated paths, not hold sensitivities.** Reject a two-plan report
+     whose plans share identical capex, GHGI-reduction %, and ancillary revenue (that's one plan at
+     two exit assumptions). Real plans differ on capex, carbon %, IRR, AND CRREM/stranding status
+     (see recipe 8 "Plans"). The hold period maps to the path; it is not the differentiator.
+   - **Both plan trajectories on the chart.** A two-path report must populate `targets.trajectory`
+     with `planned_1` AND `planned_2` (+ `plan1_label`/`plan2_label`), not a single `planned` series.
+   - **Soft ancillary/DR revenue is NOT capitalized as a perpetuity.** Reject `capitalized_ancillary_
+     revenue = annual_DR ÷ exit_cap` on program-dependent PJM-DR/EV revenue; require risk-adjustment
+     (haircut/PV over term) + a with/without-ancillary sensitivity. Flag any plan whose net value
+     depends mostly on capitalized DR (fragile).
+   - **Subscription measures judged on annual net, not capitalized-fee-vs-savings.** Capitalizing a
+     cancellable subscription at the exit cap overstates the drag; require the annual net (savings +
+     risk-adjusted DR − fee) and a one-time-RCx alternative for contrast (recipe 8).
+   - **EV measures carry non-zero owner make-ready capex** (electrical/panel/trenching) — a $0-capex
+     EV line under a host agreement is a red flag (host agreement zeroes hardware, not make-ready).
+   - **Trajectory ↔ measure consistency (HARD — the verifier MUST check this).** Every measure with a
+     material modeled energy/fuel reduction must show up as a corresponding bend in the plan curve it
+     belongs to. A fuel-switch / electrification measure (e.g. gas WSHP boiler → air-source heat pump,
+     gas DHW → HPWH) eliminates a large gas load and MUST visibly pull that plan's `planned_*` carbon
+     line down in and after its install year. If a big electrification measure is in the measure list
+     but the plan's trajectory doesn't reflect it (the curve is flat/unchanged through the install
+     year), the trajectory and the measure model are inconsistent — that is a hard data error: record a
+     `verifier__record_finding` (kind `data-quality`, verdict `conflict`) and fix the trajectory before
+     render. Cross-check each plan's GHGI-reduction % against the sum of its measures' modeled
+     reductions on the same basis; they must agree.
+   - **Per-measure savings must reconcile with the measure's energy delta.** Every measure that
+     removes a material energy/gas load MUST carry a proportional `emissions_savings_tco2e` AND owner
+     `landlord_utility_savings` — a blank or near-zero attribution on a big fuel-switch (e.g. a gas
+     boiler → ASHP eliminating ~1+ GWh) is a hard error, not an omission. If the modeled savings come
+     out implausibly small, suspect an UNDER-CAPTURED BASELINE (an atypically low gas figure / GHGI for
+     the building type — the classic tell) rather than a genuinely tiny measure: re-derive against the
+     ESPM/utility actuals, or record a `verifier__record_finding` (data-quality) that the measure's
+     impact is understated pending a meter-coverage fix — never silently ship the tiny number.
+   - **No editorializing in report prose.** The deliverable states facts plainly — NO hype or
+     rhetorical framing. Do not write lines like "two genuinely different strategies — same asset,
+     different theses." The "genuinely differentiated plans" rule governs the MODELING (make the plans
+     actually differ on capex/carbon/IRR/stranding), NOT the copy. **`dashboard.title`**, recommendation,
+     summary_points, section intros, and executive_summary must be plain and specific — name the plan,
+     the number, the driver; skip the adjectives and the meta-commentary. (`dashboard.title` should be
+     a neutral label like "Decision summary", never a rhetorical headline.)
+   - **Plan narrative goes in per-plan bullets, not a paragraph wall.** `derive_engagement` writes a
+     deterministic `narrative`; if you want richer per-plan bullets, add `economics.plans[].summary_points[]`
+     (3–5 short bullets each: what it deploys, headline IRR/value, the key trade-off/sensitivity) via a
+     `patch_report` call AFTER `derive_engagement` — do NOT hand-assemble the report_data yourself. Keep
+     `executive_summary` to one short context line — do NOT cram both plans into a prose block there.
+   - **Utility-rate escalation is applied** to the savings cashflow over the hold (e.g. ~3% elec /
+     ~4% gas, or a cited regional forecast) and the assumption is stated — flat-nominal savings
+     understate later years and the capitalized exit value.
+   - **Regulatory/CRREM data comes from the tool, freshly.** Never carry a stale "tool unavailable"
+     note from a prior session's saved state into a new report — re-attempt `crrem__get_pathway`
+     (and record a finding if it genuinely errors); never ship "tool unavailable" prose as a result.
+   - **Verify ALL math at report generation — do not trust LLM-computed figures.** Before render,
+     recompute and reconcile every derived number in the payload: waterfall components sum to
+     `net_value_creation`; each capitalization = annual ÷ exit cap; GHGI reduction % =
+     (baseline − planned) / baseline; incremental = total − like-for-like; owner-share applied per
+     the capture map; unit conversions correct (incl. the kWh→MWh/GWh scaling); every table total =
+     Σ its line items; IRR consistent with the cashflow. Route the reconciliation through the
+     verifier — any mismatch beyond rounding is a `verifier__record_finding` and **blocks the
+     render** until resolved. The template's client-side sum check is a backstop, not the gate.
+6. **Never fail silently.** Outages halt the phase with the standing reconnect message. And never
+   fall back to hand-built report HTML when a tool/gate blocks — surface the blocker and stop.
+
+**State ledger:** `projects/<asset-key>/decarb-plan.json`, conforming to
+`skills/decarb-plan/state-schema.json`. Human-readable companion:
+`projects/<asset-key>/decarb-plan.md`, registered in Files. Update BOTH at every phase
+boundary. `<asset-key>` follows the project-kickoff convention: lowercase the asset name,
+replace spaces with hyphens.
+
+**Presentation standards** (apply to every number shown at a gate or in the report):
+
+- **Energy intensity in kWh/m²; absolute energy scaled to magnitude.** Express intensity as
+  kWh/m². For ABSOLUTE energy, scale the unit to keep the number readable: kWh, but switch to
+  **MWh at ≥1,000 kWh and GWh at ≥1,000,000 kWh** (e.g. 5,929,000 kWh → **5.9 GWh** or **5,929 MWh**,
+  never "5,929,000 kWh"). Convert gas from native units/GJ to the same energy basis. Areas in **m²**;
+  carbon as **tCO₂e** and intensity as **kgCO₂e/m²**. No therms, kBtu, ft², or kBtu/ft² in output.
+- **Max 2 significant figures displayed.** Round for display (e.g. 3.0 GWh, 130 kWh/m²,
+  1,200 tCO₂e). Keep full precision in state/engine inputs; only the *displayed* figure is
+  rounded.
+- **Benchmarking: ENERGY STAR score first, then BPD.** Lead with the asset's ENERGY STAR
+  score (1–100) where available. Where a peer comparison is needed, use the **Building
+  Performance Database filtered by property type + climate zone** — **never national
+  medians** and never an unfiltered peer set.
+
+**Working files (helper) — read `skills/helper-files/SKILL.md`:** maintain exactly ONE growing
+internal helper HTML for the engagement, saved via `save_file` to folder **`Helper Files`** as
+**`[state.helper.start_date] - Helper Files - Decarb Plan.html`** (start date fixed at P0, stored
+in `state.helper`). It is a rendered *view of state* — regenerate and re-save it at **every phase
+checkpoint** (P2 foundation, P3 measures, P4 write-back). Fill the skeleton at
+`skills/helper-files/references/skeleton.html`; the decarb **phase/gate checklist sections** are
+P0 Kickoff · P1 Evidence · P2 Model Foundation (2A model · 2B baseline+calibration · 2C split ·
+2D equipment) · GATE 1 · P3 Measures · GATE 2 · P4 Write-back+Verify · P4b Measure Descriptions ·
+P5 Deliverables · P6 Executive Summary. **Do NOT produce standalone intermediate/gate HTML** (no `p1-baseline.html`,
+no `building-model-verification.html`) — that material is checklist sections of the helper, and
+**GATE 1 / GATE 2 are reviewed as the helper's checklist sections**, not as polished artifacts.
+Only the **Report** and the **Delivery-Meeting Slides** are design-forward (`Reports/`, gate-only).
+
+**Speed & efficiency (hard rules — learned from live engagements; violating these is what makes a
+run slow):**
+
+1. **Audette WRITES: batch ≤6 per turn, checkpoint state after each batch, NEVER fire a large
+   parallel write burst.** The Audette OAuth token has no persisted refresh and dies mid-burst on
+   ~10+ parallel calls — which kills the turn and loses any uncheckpointed progress, forcing a
+   reconnect + resume. **Batch READS ≤6 per turn too (a large read burst stalls the session — see item 6); serialize/batch WRITES** (`create_building`,
+   `edit_building_attributes`, `add_building_utility_data`, `submit_equipment_survey`,
+   `create_custom_plan`). After each batch, write the done/pending building UIDs to state.
+2. **Read the authoritative schema/reference BEFORE any structured write — never guess arg keys.**
+   One `KeyError` retry-loop (e.g. the equipment-survey DHW keys) costs more than reading
+   `references/audette-modeling-recipes.md` once. Blank numeric fields are `null`, never `0`.
+3. **The state file is the ONE source of truth. Resume from the checkpoint; never recompute or
+   re-enter values from memory.** Adjudicated values are **LOCKED** — tag them and never revert to
+   a superseded number (the 15%→5% / 2031→2034 drift). Re-query IDs/UIDs from Audette; never
+   hand-carry them across threads (clubhouse UIDs went stale this way).
+4. **Validate the building model (count / GFA / UID set) in P2 step 2A BEFORE any upload or
+   calibration.** Discovering a model error after uploads means redoing every upload.
+   **Utility-data writes are CHECK-FIRST and idempotent.** Before `add_building_utility_data`, READ
+   the building's existing utility data and compare — if the meters/periods are already present and
+   match the source, SKIP the upload (or upload only the missing/changed periods). Never blind-upload
+   data that may already be there — it double-counts consumption and corrupts the calibrated baseline.
+   And if an upload call TIMES OUT or errors, do NOT blindly retry: **re-read the building first to
+   see whether the write actually landed** — a timeout is frequently a false failure (the write
+   succeeded server-side but the client gave up waiting), and a reflexive retry writes a duplicate.
+   Only re-upload the periods that a re-read shows are genuinely missing.
+5. **At each phase start, confirm the required tools/connectors are attached; STOP if missing**
+   (don't fabricate — the ESPM tripwire). Checkpoint before every expensive/irreversible action so
+   a dropped connection or deploy costs one batch, not the whole run.
+6. **Parallelize independent READS, but cap each turn at ~6 calls** (documents, ESPM pulls,
+   reference-library, memory recall, per-building plan/measure reads). One-at-a-time is too slow,
+   but a large parallel burst (~10+ calls in a single turn — e.g. CRREM pathway + all 25 custom
+   plans + state + template at once) stalls the managed-agent session's tool-result handshake and
+   hangs the turn (this is what repeatedly stalled P5 at "fetch CRREM + plan data simultaneously").
+   Fire ~6, wait, fire the next ~6.
+7. **Kickoff in ONE consolidated pass.** When an engagement reference doc exists (it usually does —
+   P0 step 1), pre-fill every kickoff answer from it + any needed research and present them **all at
+   once for confirmation**; ask only the genuinely-open items. Do NOT walk 8 questions one-at-a-time
+   across many turns (the first Westminster run burned ~30 min doing this).
+8. **Resume cheaply. `switch_customer_account` ONCE per session, then cache it.** On resume, do the
+   re-orientation in one or two small batches (≤6 calls each) — state file + account switch +
+   required-tool presence check + the reconciled-model doc — then continue. Don't spend multiple turns re-loading
+   context after every interruption (the original run re-oriented ~7 times).
+
+---
+
+## Resume Protocol (run this FIRST, always)
+
+Before anything else:
+
+```bash
+cat projects/<asset-key>/decarb-plan.json 2>/dev/null
+```
+
+- **File exists:** validate it against `skills/decarb-plan/state-schema.json`
+  (`phase` must be one of `P0|P1|P2|GATE1|P3|GATE2|P4|P4b|P5|P6|done`). Resume at the recorded
+  `phase`. **Never redo a completed phase** — every phase below is idempotent against the
+  ledger: skip any step whose output is already recorded in state.
+- **File missing:** this is a new engagement — start at P0.
+- **Phase `done`:** tell the user the engagement is complete and where the exports are
+  (`report.exports`); ask whether they want a revision cycle (re-enter P5) or a new engagement.
+- **Post-Gate-1 baseline changes:** if resuming (or mid-flight) you discover new or changed
+  baseline data after Gate 1 was passed, set `phase` back to `GATE1` and re-present **only
+  the changed items** — not the full gate. Never silently update an adjudicated baseline.
+
+---
+
+## P0 — Kickoff
+
+1. **FIRST, search the portfolio files for an engagement reference document.** Before asking
+   the user anything, enumerate portfolio + asset files (`list_files` / `search_files`) and
+   look for an **engagement reference** document (search terms: *"engagement reference",
+   "engagement summary", "scope of work", "kickoff", "engagement letter"*). If one exists,
+   read it and **pre-fill the kickoff answers from it** (goal, drivers, target, hold period,
+   hurdle, cap rate, constraints, contacts, deadline), **citing the document** for each
+   pre-filled field. Then ask the user **only what remains open** — do not re-ask questions
+   the reference document already answers; surface the pre-filled values for confirmation.
+2. Invoke the **project-kickoff** skill with project type **`decarb-plan`**
+   (`cat skills/project-kickoff/project-types/decarb-plan.md` for the question set).
+   Kickoff checks existing asset data before asking and saves
+   `projects/<asset-key>/decarb-plan-kickoff.md`. Pass through the engagement-reference
+   pre-fills so kickoff confirms rather than re-asks them.
+3. Map the kickoff outputs into `state.kickoff` **field-by-field**:
+
+   | Kickoff Store-as field | State ledger field |
+   |---|---|
+   | `goal` | `kickoff.goal` |
+   | `drivers` | `kickoff.drivers` |
+   | `primary_target` `{type, value, basis}` | `kickoff.target` `{type, value, basis}` |
+   | `secondary_targets` | `kickoff.secondary_targets` |
+   | `hold_period_years` | `kickoff.hold_period_years` |
+   | `capital_events` | `kickoff.capital_events` |
+   | `equipment_commitments` | `kickoff.equipment_commitments` |
+   | `budget_ceiling` | `kickoff.budget_ceiling` |
+   | `financing_appetite` | `kickoff.financing_appetite` |
+   | `irr_hurdle` `{value, source}` | `kickoff.irr_hurdle` — source string **verbatim, never paraphrased** |
+   | `turn_schedule` | `kickoff.turn_schedule` |
+   | `disruption_tolerance` | `kickoff.disruption_tolerance` |
+   | `existing_docs` | `kickoff.existing_docs` (also seeds `documents` in P1) |
+   | `documents_expected` | `kickoff.documents_expected` |
+   | `cap_rate` `{value, source}` | `kickoff.cap_rate` — source string **verbatim, never paraphrased** |
+   | `utility_escalation` `{elec_pct, gas_pct, source}` | `kickoff.utility_escalation` — **pre-fill OUR DEFAULTS (3%/yr electricity, 4%/yr gas) and present for confirmation/override**; these feed the recipe-8 savings cashflow. If the user gives a figure or a doc cites one, use it (source verbatim); otherwise carry the defaults, labeled "Soapbox default". |
+   | `stakeholders` | `kickoff.stakeholders` |
+   | `review_cadence` | `kickoff.review_cadence` |
+   | `deadline` | `kickoff.deadline` |
+   | `primary_contact` | `kickoff.primary_contact` |
+
+4. Create the state file with `asset` (`{id, name, portfolio_id}` — `id` is the **Soapbox
+   asset id**), the mapped `kickoff` block, and `phase: "P0"`. Create the companion
+   `decarb-plan.md` and register it in Files.
+5. Set `phase: "P1"` and save.
+
+---
+
+## P1 — Evidence Sweep
+
+Gather every source; record everything in state as you go.
+
+1. **Asset documents:** enumerate with `list_files` / `search_files`, read each relevant
+   document (audits, PCAs, utility data) with `read_file` / `search_documents`. Record each
+   in `state.documents` as `{name, type: audit|pca|utility|other, storage_path, read}` and
+   mark `read: true` once ingested.
+   **Capture the property's STREET ADDRESS from the PCA** (the cover/property-description page
+   carries it; the ALTA survey and appraisal are fallbacks). Take it from the document, verbatim.
+   **Never reverse-geocode it from lat/lon and never infer it from the asset name** — an
+   approximate address on a client deliverable is the same class of error as a fabricated figure.
+   ⚠️ **Where it has to land:** the report's address comes from the **Soapbox asset row**
+   (`street_address` + `city`/`state_province`), which `derive_engagement` reads server-side and
+   stamps as `propertyMeta.address`. Recording it only in `state` does NOT reach the report — that
+   mistake left the cover showing a bare "—" even though the agent had correctly read
+   "101 Medical Parkway, Lakeway, Texas" off the PCA (Bain/Evergreen 2026-07-30). Assets
+   onboarded from a bulk import routinely have a NULL `street_address`.
+   **There is currently NO agent tool that writes these columns** (`update_asset_metadata` only
+   writes the `metadata` JSONB, not `street_address`). So when the asset row has no address:
+   record what the document says, and **tell the user the exact value to save on the asset** so the
+   cover renders — do not silently ship a report with a blank address, and do not pretend you set
+   it. If no document states an address, say so and leave it blank.
+2. **Retrofit register + findings ledger:** `retrofit__get_measure_state` for the asset's
+   existing measure register; load existing open findings via `verifier__list_findings(asset_id)`
+   — capture `finding_ids`; the gas-split style pre-existing findings must be adjudicated at
+   Gate 1 alongside new conflicts, not duplicated — plus `verifier__verification_status` and
+   `verifier__get_verification_checklist` so known data-quality issues carry into
+   reconciliation.
+3. **Audette pulls:** the asset's `audette_property_id` is a **PROPERTY uid, NOT a building_model_uid**
+   — one property holds several buildings. **Do NOT call `get_building_model_details` on
+   `audette_property_id`** (it will 404 — a property is not a building). Enumerate the property's
+   buildings from the asset's `metadata.audette_building_uids` (authoritative), or by filtering the
+   Audette properties list on that `property_uid` (each row is one property+building pair). THEN, for
+   **every** building model uid, pull `get_building_model_details`, `get_equipment_survey`, and
+   `get_available_measures`, plus any existing carbon-reduction/custom plan surfaced by the model
+   details. Record ALL building uids for the property in `state.audette.building_uid[]`. Do NOT hand-aggregate
+   multi-building properties — `derive_engagement` now aggregates across buildings in the engine
+   (sums capex/savings/emissions, GFA-weighted intensity + CRREM, IRR on the combined cashflow).
+   Your job is only to assemble the complete building set + each building's two authored plan ids.
+4. **ESPM actuals** where the asset is linked — these sit at the top of the reconciliation
+   hierarchy.
+5. **Memory:** `verifier__recall_expertise` for shared engagement lessons + org-bank memory
+   recall for this asset/client.
+6. **Research — jurisdiction rules and incentives:** `retrofit__search_reference_library`
+   **FIRST**, web search second. **Every claim is cited with provenance `library|web`** in
+   `state.citations` as `{claim, source, provenance, url}`. No uncited claims survive to the
+   report.
+7. **BPS coverage — verify at the jurisdiction's official source (DEFAULT).** Do not infer BPS
+   applicability from size/type alone. Check the jurisdiction's covered-buildings registry for the
+   asset's actual address — prefer a data export/open dataset where one exists (many run on the
+   SEED Platform, e.g. Colorado's `co.beam-portal.org` "Covered Buildings List"), else navigate the
+   specific portal/map with the **Web Browser MCP** (`browser_navigate` + `browser_snapshot`; plain
+   web_fetch can't render these JS maps). Record whether the address is covered, its covered-building
+   ID/baseline/targets if found, and tag `verified-at-source` vs `threshold-inferred` in
+   `state.targets`. Full jurisdiction source registry + procedure live in the bps-analysis skill
+   (Step 1.5).
+
+   **7a. Compliance metric & pathway — a fine requires failing the GOVERNING pathway, not the hardest one.**
+   Many BPS are **dual-pathway**: the owner elects the metric they comply on.
+   - **Colorado Reg 28** (statewide, covered buildings ≥50k sqft): comply via **EITHER** the property-type
+     **site-EUI** target (or the alternative % EUI reduction from the 2021 baseline) **OR** the **GHG-intensity**
+     target. A building is compliant if it clears **either** pathway. Do **NOT** manufacture a penalty by
+     assessing only the site-EUI pathway (the one a gas-retaining plan fails) when the plan clears the GHG
+     pathway — the owner would simply elect the pathway they pass. If a plan clears any pathway, set that plan
+     `compliant: true`, `waterfall.pv_bps_fine_avoidance: 0`, and no `cashflow[].bps_fine_avoidance`.
+   - **Energize Denver** (Denver city only): **site-EUI** based, single metric — use EUI targets there.
+   - **Metric consistency (gated).** The plotted `targets.trajectory[].bps_target` line and the plan
+     trajectories (`planned`/`planned_1`/`planned_2`) MUST be on the **same metric that governs the fine**. If
+     you claim a penalty (`compliant:false` or `pv_bps_fine_avoidance>0`), some series (BAU or the non-compliant
+     plan) MUST visibly **exceed** `bps_target` in the penalty years — otherwise there is no fine on the plotted
+     metric and the render is **blocked** (`validateFineConsistency`). If the fine is genuinely EUI-driven,
+     plot the EUI trajectory vs the EUI target so the crossing shows; don't plot a carbon target and book an
+     EUI fine against it. Grid decarbonization credits the GHG pathway but **not** the site-EUI pathway — keep
+     that straight when deciding which pathway a plan actually elects.
+
+Set `phase: "P2"` and save.
+
+---
+
+## P2 — Model Foundation (validate → calibrate → split → equipment; LOCK before Gate 1)
+
+Establish and **LOCK all four foundation inputs before Gate 1 or any measure work.** Every rework
+in prior engagements traced to a foundation input surfacing late or drifting (building set, split,
+equipment, calibration). Gate 1 opens ONLY on a locked foundation. Record each with provenance in
+`state`; any disagreement becomes a `verifier__record_finding` conflict for Gate 1 adjudication.
+
+### 2A — Physical model validation (hard gate)
+
+The Audette building count and per-building GFA are frequently auto-generated (footprint-matched
+or total÷N) and WRONG. Before uploading utility/equipment data or calibrating, reconcile the model
+against ground truth:
+
+- Pull per-building footprints from the **ALTA / boundary survey** and **PCA** (search the asset's
+  documents). These give real building count, per-building footprint/GFA, and structure type
+  (residential vs clubhouse/amenity vs utility/mechanical).
+- Confirm, and record each check as state: (a) building COUNT matches the survey; (b) each building's
+  GFA matches its real footprint (not an even split); (c) the sum of building GFAs reconciles to the
+  property total (flag any unexplained delta); (d) non-residential structures are identified and typed.
+- If the model does NOT reconcile (wrong count, even-split GFAs, unreconciled total, mis-typed
+  amenity buildings), **STOP**: record a `verifier__record_finding` (kind data-quality, asset_id,
+  severity high) describing the discrepancy and surface it for adjudication. Do NOT upload utility
+  data, calibrate, or generate measures against a model that fails validation — a 10–20% calibration
+  "gap" is usually a building-model error, not an emission-factor difference.
+- **Materialize the COMPLETE, correct building set here — before any per-building write.** If the
+  model is short buildings (e.g. Audette has 17 but the survey shows 27), create ALL the missing
+  buildings, assign the shared property_id, and lock the final UID set into state IN ONE validated
+  step. Do not begin per-building edits/uploads on a partial set and discover the missing ones
+  mid-stream (the first run churned 17→27 that way, forcing rework). Batch the `create_building`
+  calls ≤6/turn per the Audette-write rule, checkpointing UIDs after each batch.
+- **Never bulk-delete building models to "fix" an editable attribute — verify first, edit in place.**
+  GFA IS editable: pass `gross_floor_area` (in m²) on the existing building; do NOT delete+recreate to
+  change it. (Belmar deleted+recreated all 7 buildings on a false "GFA not editable" claim; Coalton
+  edited the same field in place fine.) Deleting a building model is DESTRUCTIVE — it mints a new UID
+  and orphans everything keyed to the old one (uploaded utility data, equipment surveys,
+  carbon-reduction plans), forcing full re-upload/re-survey/re-create and compounding UID drift.
+  Before ANY bulk delete: (a) confirm you are holding BUILDING-model UIDs, not the PROPERTY UID (the
+  session context often surfaces the property uid — a property-uid-as-building-uid mixup plus an
+  SF-read-as-m² unit confusion is what made Village "delete ~102 models" to fix a 10× GFA error that
+  wasn't real); (b) confirm the attribute genuinely cannot be edited in place. Delete ONLY when the
+  model SET itself is structurally wrong (e.g. per-unit auto-models you must consolidate), verified —
+  and re-attach utility/survey/plan data to the new UIDs afterward.
+- Only once the model reconciles (or the owner adjudicates the correct structure) proceed. Then apply
+  the [[utility-split-estimation]] allocation rule: carve out common/amenity loads first, allocate the
+  remainder GFA-weighted (never even), and set landlord shares per building/end-use (tenant-metered
+  fuel = 0% on residential buildings, 100% on amenity buildings).
+- For Audette mechanics — building rebuilds, landlord shares, equipment survey patterns — read
+  `references/audette-modeling-recipes.md`.
+
+### 2B — Measured-energy baseline + calibration
+
+**Calibrate to measured energy — don't ask whether it's authoritative.** If measured whole-building
+energy exists (ESPM actuals, utility bills) and is sane, extract it, upload it to Audette, and
+adjust calibration factors until the model matches — rather than asking the user to choose between
+measured and modeled. A residual 10–20% gap after calibration is almost always a building-model
+error (revisit 2A), not an emission-factor difference. Pull ESPM via the energy-star tools (verify
+they're attached first — the tripwire); read the energy sub-skill for the exact tool sequence.
+
+**Calibration is a HARD gate on the economics.** An uncalibrated model inflates BOTH projected
+savings and costs, so no measure IRR is trustworthy until it is calibrated. If the model's
+first-year energy is **> ~10% off** measured (ESPM/bills) after calibration, **do NOT run measure
+economics (P3)** — record a `verifier__record_finding` (kind `data-quality`, verdict `conflict`,
+severity by materiality) and return to 2A/2B to fix it. (In the Cortland Rosslyn engagement the
+raw model was **+35%** over ESPM; uploading actuals + calibrating brought it to within ~4% and
+materially changed every measure's economics.) Record the post-calibration gap in `state.baseline`
+with its source.
+
+Build the baseline table in `state.baseline`. Required fields (each stored as
+`{value, unit, source}`):
+
+- Electricity: kWh/yr + $/yr
+- Gas: native units (therms/m³) **and** GJ, + $/yr
+- Owner/tenant utility splits
+- GFA, unit count, floors, year built
+- Equipment inventory with install years
+- Emissions tCO2e — with the emission-factor source named (factors via Audette/CRREM tooling)
+
+For **each field**: gather ALL candidate values with their sources.
+
+- **All sources agree** → record the value with its source in `state.baseline`.
+- **Sources disagree** → do NOT pick one. Create a conflict row in `state.conflicts`:
+  `{field, candidates: [{value, source}...], suggested: {value, source, rule}, finding_id}`
+  where `suggested` is computed from the hierarchy (measured utility/ESPM actuals >
+  audit-reported 12-mo > Audette modeled > estimates) and `rule` names which hierarchy rule
+  fired. Then call `verifier__record_finding` (kind `data-quality`, severity by materiality
+  of the field to targets/economics, verdict `conflict`, with `evidence[]` — the candidate
+  values and their sources — and `sources[]`) and store the returned `finding_id` on the row.
+
+**NO auto-resolution.** Every conflict waits for Gate 1.
+
+### 2C — Utility split (per fuel, per building)
+
+**Read `metadata.utility_split` first** — if the asset already has a persisted split, use it (don't
+re-derive, don't default to 100%). Only if absent, establish the owner/tenant utility split
+**per fuel, per building** via the **utility-split-estimation** skill
+(`cat skills/utility-split-estimation/SKILL.md`) — building form + jurisdiction RUBS rules + on-file
+docs + leasing evidence — then **persist it to `metadata.utility_split`** (the canonical record read
+by every future run; see that skill's persistence contract) in addition to `state.baseline` and the
+Gate-1 finding. Never default to 100%-owner or a round
+number. Tenant-metered fuel = 0% owner on residential; amenity/clubhouse buildings are typically
+100% owner on both fuels. The split is the **savings basis for every retrofit IRR**, so it is a
+foundation input, not a P3 afterthought. Record it in `state.baseline`; an unconfirmed or presumed
+split is a `verifier__record_finding` conflict adjudicated at Gate 1.
+
+**Capture is PER END-USE, keyed to WHERE THE LOAD SITS and who BEARS the cost — not one blended
+number per building.** A single residential building has BOTH tenant-metered in-unit loads (in-unit
+electric HVAC/appliances ≈ the tenant %) AND landlord loads — but the landlord loads split into two
+kinds that are NOT the same capture:
+- **Common-area / house-metered / amenity loads** (corridor & exterior/common lighting, garage,
+  elevator, common ventilation, spa/pool/laundry) — these are **genuinely landlord loads → capture
+  0.9–1.0**. RUBS does not rebill these to residents (or only trivially via CAM). Do NOT drop them
+  into the ~10% RUBS bucket, and NEVER apply the in-unit blended split to them (that is the bug that
+  credits a common-area LED ~95% to tenants).
+- **Master-metered load that is actually in-unit RESIDENTIAL consumption** (central heating/DHW
+  plant delivering heat/DHW to the units) — here master-metered means the owner pays the meter, not
+  that it bears the cost. **If the jurisdiction ALLOWS RUBS, assume the owner rebills up to ~90% to
+  tenants → net owner capture ≈ 10%**, unless documents show the owner absorbs it (true gross lease /
+  no RUBS). ~100% owner only when the owner genuinely absorbs the utility (documented gross lease, or
+  RUBS not permitted). This is the Rosslyn/Cortland rule — it applies to residential consumption
+  delivered through a master meter, NOT to common-area loads above.
+- Amenity/clubhouse buildings with no tenants are the clean 100% case.
+- **Solar under Virtual Net Metering (VNM): assume 80% of solar savings flows to the landlord.**
+  BTM solar offsetting the owner-paid house/common meter → ~100% owner (see recipe 2a map).
+- **BPS fine avoidance is 100% owner** regardless.
+Build a **capture map** in `state.capture_map` — every end-use → metering → RUBS-recovery status →
+net owner-capture % — and **never inherit Audette's account-default landlord share (commonly 15%)
+onto a master-metered end-use** (that under-credits it), **nor blanket it to 100%** (that
+over-credits it when RUBS applies — the Cortland error). The Rosslyn central gas plant carried the
+15% default when the correct figure was the RUBS-recovery split for its jurisdiction, not 15% and
+not an automatic 100%. Where metering or RUBS status is unconfirmed, record a
+`verifier__record_finding` conflict and resolve at Gate 1 — public listing sources (apartments.com,
+Zillow) + the jurisdiction's RUBS statute are valid cited evidence.
+
+### 2D — Equipment inventory (establish now — it drives P3 measure sequencing)
+
+Gather the **real** equipment set + install years / remaining useful life (RUL) from the PCA / MEP
+drawings / audit **now** — equipment type and RUL determine electrification timing (electrify at
+end-of-life, DHW→HPWH at RUL), so the roadmap in P3 cannot be sequenced without it. Map each system
+to its Audette representation per `references/audette-modeling-recipes.md` recipe 5 (e.g. hydronic
+furnaces → native `hydronic_furnace`, not a fan-coil proxy; WSHP → `heat_pump.water_loop_heat_pump`).
+Record capacities in **refrigeration tons** (Audette peculiarity — see recipe 5; DHW too), so the
+write-back in P4 is already in the right unit. Record the inventory in `state`.
+NOTE: the Audette `submit_equipment_survey` **write-back** happens in P4; here you establish the
+inventory *knowledge* that feeds measure selection.
+
+### Foundation lock
+
+All four inputs — validated physical model (2A), calibrated measured baseline (2B), per-fuel/
+per-building split (2C), equipment inventory (2D) — recorded in `state` with provenance, and every
+disagreement captured as a verifier conflict. **Do not proceed to Gate 1 until the foundation is
+locked.** Set `phase: "GATE1"` and save.
+
+---
+
+## GATE 1 — Foundation, Conflicts, Split/Exit, Targets (user)
+
+Gate 1 opens **only on a locked Model Foundation (P2)**. Present these blocks, then **stop and wait
+for the user**:
+
+Present each adjudication/decision to the user via `ask_user_question` (one call per decision — options = the candidate values, recommended/suggested first, allow_other:true, context = the one-line why-it-matters), not as one markdown table wall. Fall back to one-decision-per-message lettered multiple-choice if the tool is unavailable.
+
+**(a) Verified foundation** — the validated building model (count/GFA/types), calibrated baseline
+(with the measured source + residual calibration gap), and every agreed field with value, unit, source.
+
+**(b) Conflicts** — every row of `state.conflicts` as a **numbered decision**: candidates
+with sources, the suggested resolution, and the hierarchy rule that produced the suggestion.
+The user decides each one; the suggestion is never applied without their word.
+
+**(c) Split & exit — the two economic-gating decisions.** Present the per-fuel/per-building
+utility split (2C) and the exit assumptions (exit year + cap rate) for explicit confirmation.
+These gate every IRR, so they must be adjudicated and **LOCKED here** — once locked, no later phase
+re-enters a superseded value (past runs drifted 15%→5% / 2031→2034). Record the locked values with
+`adjudicated_by: "user"` in `state.baseline` / `state.kickoff`.
+
+Two things this presentation must carry, both raised by a client in delivery:
+
+- **The exit cap needs a cited market source, not a round number.** Clients are content for us to
+  set it — *"fine with you guys pulling from survey whatever is kind of market"* — but that is an
+  instruction to **go find a survey figure for this property type in this submarket and cite it**
+  (CBRE/JLL/Cushman cap-rate survey, PwC Investor Survey, a comparable-sale set), not licence to
+  carry 5.5% because it looks reasonable. If you cannot source one, present the value as
+  unevidenced, say so, and carry it into the report's limitations — an unsourced cap rate silently
+  sets the entire headline (the exit uplift is annual NOI ÷ this number).
+- **The landlord-capture % is an assumption the client has to validate.** The split confirmed here
+  becomes the share of every utility saving the owner actually keeps, and therefore every payback,
+  every MAC and the whole IRR. State the resulting figure as a number ("~80% of utility savings
+  accrue to the landlord under the modified-gross leases") and ask them to confirm it against the
+  actual leases. Until they do, it is a stated assumption, not a fact — and it goes in the report's
+  limitations, because a reader will otherwise take the paybacks as underwritten.
+
+**(c2) CRREM benchmark property type — confirm, don't assume.** The CRREM pathway defaults to
+the Audette archetype's mapping, but the RIGHT benchmark can differ: a warehouse with a material
+refrigeration load (walk-in coolers/freezers per the PCA) belongs on `refrigerated_warehouse_cool`
+(~7× the dry-warehouse curve), not `shipping/distribution_warehouse`; mixed-use, medical vs general
+office, etc. Present the proposed CRREM property type + the alternative(s) (`list_property_types`)
+and confirm with the user. Record `state.targets.crrem_property_type` = the confirmed CRREM type;
+it becomes P5's `derive_engagement crrem_property_type`. Skip only if the archetype is unambiguous.
+
+**(d) Target trajectory** — computed from `kickoff.target.type`, engine math only:
+
+| Target type | How the trajectory is computed |
+|---|---|
+| `crrem` | CRREM pathway points via crrem tooling → `state.targets.trajectory` |
+| `bps-fine-avoidance` | Jurisdiction milestone table + fine-exposure via engines/Audette compliance analysis (`run_compliance_analysis`) → `state.targets.bps_milestones` + `state.targets.fine_exposure` |
+| `percent` | Reduction-vs-baseline-year math via the cashflow/DCF engines |
+| `net-zero-year` | Glide path to zero via engines/Audette analysis |
+
+**Never LLM arithmetic** — if the engine for a target type is unavailable, the gate is
+blocked (see Failure Handling), not approximated.
+
+On the user's adjudications:
+
+1. Write each decision into the conflict row's `adjudication`:
+   `{value, source, adjudicated_by: "user", date}`.
+2. Call `verifier__resolve_finding` for each adjudicated conflict's `finding_id`, with
+   `resolution` `confirmed` or `dismissed` plus `note` (the adjudication rationale).
+3. Promote adjudicated values into `state.baseline` with the adjudicated source.
+4. On target confirmation, set `state.targets.confirmed_at`.
+
+Set `phase: "P3"` and save.
+
+---
+
+## P3 — Measure Plan
+
+**Ideation is delegated.** Invoke the **retrofit-advisor** skill for this asset — it reads the
+Gate-1-adjudicated `state.baseline` and audit docs in `state.documents`, runs the full
+measure-universe + source-audit cross-walk with provenance + confidence, and persists to the
+Retrofit register. Do not re-derive measures here. When it returns, load the register with
+`retrofit__get_measure_state({asset_id})` and continue.
+
+P3 must have run the retrofit-advisor ideation (register non-empty) before building the roster —
+do not assemble the Gate-2 roster from an empty or partial register.
+
+1. Record the register's returned measure ids in `state.measures.register_ids`.
+2. For candidates needing modeled physics (savings/carbon), run Audette
+   `run_measure_design_analysis`. Read `retrofit__get_retrofit_playbook('baseline-discipline')`
+   and **mark all modeled savings as provisional** per that playbook — modeled numbers are not
+   measured numbers and are labeled as such through to the report.
+3. **CapEx source — Soapbox Costing. ⛔ NON-NEGOTIABLE — no hand-estimated costs, ever.**
+   EVERY measure cost figure — capex, like-for-like, and incremental — MUST come from a
+   `costing__get_measure_capex` / `get_der_economics` call. This applies the FIRST time you touch a
+   measure's cost, including any exploratory/Gate-2 `compute_plan_economics` pass — NOT just at
+   authoring. Hard prohibitions (these are the exact ways this has gone wrong repeatedly):
+   - **NEVER invent a $/SF (or $/ton, $/unit) rate** or a "standard replacement" baseline from your
+     own knowledge and put it in a table or the engine. If a number didn't come from the costing MCP
+     (or a document/quote actually on file), it does not go in.
+   - **NEVER compute `incremental = gross − like_for_like` by subtracting a baseline YOU estimated.**
+     `get_measure_capex` returns `like_for_like` and `incremental` as SEPARATE fields already —
+     read them and use them verbatim. There is nothing for you to subtract and no sign to flip.
+   - If you catch yourself typing a "$/SF", a "standard re-roof at $X", or a "like-for-like of $Y"
+     that you did not get from `get_measure_capex`, STOP and call `get_measure_capex` first.
+   - For a purely-additive premium measure with no costing crosswalk (e.g. an R-50 insulation adder),
+     get the PREMIUM itself from costing (or a real on-file quote) and author it DIRECTLY as
+     `incremental_cost` with `like_for_like_cost = 0` — do not reconstruct a gross+baseline pair.
+   Then, mechanically (source fields from the tool, do not adjust):
+   `get_measure_capex` → capex low/base/high + `cost_breakdown` + `contingency_pct` + `escalation`
+   + `references`; `estimate_service_upgrade` for any fuel-switch/electrification measure → the
+   `electrical_capacity` UNVERIFIED range (never collapse it to a point estimate); `get_der_economics`
+   for solar/storage/GHP; `get_energy_prices`/`get_tariff` for the OpEx delta feeding the same
+   measure. Use `cost-bases.md` / engine defaults ONLY where the costing MCP has no coverage for
+   that measure/market, and flag those cells low-confidence. This step SOURCES CapEx into
+   `measure.cost` — it does not replace the plan's economics (capture, NPV/IRR, exit), which
+   continue to consume these figures exactly as below. Surface the costing tool's `references`
+   (citations) alongside each measure's cost so provenance survives to the report.
+   - **End-of-life LIKE-FOR-LIKE credit — the CapEx basis is the incremental, NOT the full cost, when a
+     measure replaces equipment that is at/near end of life.** `get_measure_capex` returns
+     `like_for_like` + `incremental` (= capex − like_for_like) for replacement measures that define a
+     baseline (e.g. a condensing boiler: the standard non-condensing boiler is the like-for-like the
+     owner installs regardless; only the condensing premium is the decarbonization increment). **Check
+     the existing unit's remaining useful life in the Audette equipment survey (`get_building_model_details`
+     install year / RUL). If it is at/near end of life (replaced regardless), set the measure's
+     `total_cost` = full capex, `like_for_like_cost` = the connector's `like_for_like`, and
+     `incremental_cost` = the connector's `incremental` — and the value bridge / cashflow use the
+     INCREMENTAL (premium) as the CapEx basis, since the like-for-like is a sunk baseline.** If the unit
+     has life left, `like_for_like_cost = 0` and the full capex is incremental. Never hand-adjust this in
+     the report — it flows: Audette RUL + Costing `like_for_like`/`incremental` → measure record → engine.
+3b. **INCENTIVE ESTIMATION STAGE — a mandatory P3 stage, not a side-task (never skip, never
+   ask first).** Three sub-steps per screened-in measure, in order:
+   **(i) RESEARCH** — cited programs only. **The server does NOT research incentives at derive
+   time** (it only matches a small static rule table). YOU run the incentives MCP here and carry
+   the results to the report: use `incentives__research_incentive_category` (capital/tax/
+   financing/operational/revenue) / `incentives__search_incentive_programs` plus the sources
+   below. Keep each program's `{program, description}` (name + eligibility/rate + citation) —
+   in P5 you pass this list to `derive_engagement` as **`incentive_programs`**, which is what
+   populates the report's Incentive Programs (Notes) section. If you skip this, that section
+   is blank (found live: Stowe had zero incentive analysis and an empty Notes page).
+   **(ii) ESTIMATE** — turn each applicable cited program into a dollar estimate with an
+   explicit basis: rate × the measure's real applicable quantity (kW, kWh saved, tons, SF),
+   program caps applied, stacking rules respected. Record `{program, basis, rate, quantity,
+   estimate, confidence, citation}`. No citation → no estimate. Post-OBBBA federal rules
+   (§48E/§179D timing) per the guidance above.
+   **(iii) AUTHOR** — write the estimate into the measure's Audette economics so `evaluate_measure`,
+   the engine, and every re-render consume it natively. An estimate that is researched but not
+   authored does NOT exist to the economics — the server flags plans whose research found cited
+   programs while authored incentives total $0.
+   **EXACT MECHANISM (do not paraphrase):** on each measure in `create_custom_plan` /
+   `update_custom_plan_measures` (the P4 write-back), set:
+   - `total_incentives` = the summed vetted per-measure incentive estimate (a dollar figure; use
+     **0** only when research genuinely found none — a real, defensible "no incentive available",
+     never as a skip).
+   - `user_provided_incentives: true` — the flag that tells `derive_engagement` this figure is
+     agent-researched-and-verified, so it **overrides the server's static incentive-rules table**
+     (which is stale/incomplete — that is why we research here). This flag is a **real Audette
+     field that round-trips through derive**; it is what drives the incentive's `medium` confidence
+     in the record. Omitting it silently drops you back to the static table.
+   - ⛔ **`incentive_program` (name) — REQUIRED whenever `total_incentives > 0`.** `derive_engagement`
+     **hard-blocks** a dollar figure that names no program ("unsourced incentive"): a number with no
+     program behind it is indistinguishable from an invented one. Set `incentive_citation` (URL) too.
+     Also record the program+citation in `incentive_programs` (P5, below) and in the measure `notes`,
+     so the audit trail survives even if Audette drops the field.
+   - **A $0 outcome is a legitimate, accepted result — not a failure and not something to pad.** Set
+     `total_incentives: 0` with `user_provided_incentives: true` and derive will proceed, disclosing
+     it in the report as "researched, none available". Never invent a program to avoid a $0.
+   Set `total_incentives` to the **net summed** estimate for the measure — do NOT also separately
+   discount the measure's capex for the same incentive, or you double-count. Gross capex stays the
+   measure's real `measure_cost`/`incremental_cost`; `total_incentives` is the offset the engine
+   nets out in the install-year cashflow.
+   Original guardrails: For
+   every screened-in measure, proactively search for and quantify:
+   - **Incentives** — ⚠️ **federal availability changed under OBBBA (P.L. 119-21, Jul 2025) — do
+     NOT apply pre-2025 IRA assumptions:**
+     - ⛔ **§48E ITC (solar/wind): DEAD for new work — never claim it, at ANY install year.**
+       Both surviving paths are closed: the construction-start safe harbor expired **Jul 4, 2026**,
+       and the placed-in-service deadline of **Dec 31, 2027** is not achievable for an array that
+       has not already been procured (design, permitting, equipment lead times, interconnection).
+       **$0 federal ITC is the correct figure for every solar measure you will ever author here.**
+       Do not model it, do not list it under `incentive_programs`, and do not describe it in the
+       notes as something to "preserve", "capture" or "begin procurement early" for — that reads as
+       a live recommendation. Justify rooftop PV on **energy and/or roof-lease economics alone**
+       (see the solar-monetization requirement below). The only exception is an array already
+       under construction with documented safe-harbor evidence — which is a client-supplied fact,
+       never an assumption you make.
+     - **§48E for storage/geothermal**: NOT terminated by the solar/wind provision (later
+       phase-down; FEOC rules apply) — still worth checking.
+     - **§179D deduction: dead for projects whose construction begins after Jun 30, 2026** —
+       for measures installing after that, do not include it.
+     - Therefore **state/local programs and utility rebates are now the PRIMARY incentive
+       sources** for most new measures. Sources: `retrofit__search_reference_library`
+       (jurisdiction rules gathered in P1), the Costing MCP (`get_der_economics` carries
+       DER incentives), and `brave-search` (DSIRE, utility program pages) as a labeled fallback.
+   - **Revenue** — grid services / demand-response, SRECs/RECs, and net-metering / VNM export
+     credits (solar VNM already enters at the 80% owner capture above).
+   - **⚠️ Income Audette can't model — pass via `derive_engagement`'s `ancillary_income[]`, NOT a
+     measure.** An **FTM solar ROOF-LEASE** payment (landlord rent; the array is grid-side, so the
+     building's energy/carbon are UNCHANGED and Audette models it as $0) and a **BTM-solar PPA
+     MARGIN** (the landlord sells power to the tenant — the owner earns the margin, NOT the gross
+     energy value) have no Audette measure representation. Do NOT force them in by inflating a
+     measure's `owner_utility_savings` (that mis-capitalizes into a huge fake exit uplift and the
+     capitalization guard will BLOCK the derive), and do NOT smuggle them through a $0 measure's
+     `lifetime_revenue`. Pass them as `derive_engagement` `ancillary_income: [{plan, label,
+     annual_amount, start_year?, years?}]` — the engine adds each straight to the matching plan's
+     cashflow as 100%-owner ancillary revenue. Every stream needs a real basis (lease LOI / PPA term
+     sheet / market comp).
+   Write them into the measure's **Audette economics**: incentives REDUCE net CapEx — record
+   **gross capex, incentive, and net capex separately**, each with its program citation as
+   provenance; recurring revenue enters the measure cashflow. Guardrails (inherit the sanity
+   checks above): **risk-adjust** program-dependent revenue (DR/EV/SREC), and **NEVER capitalize
+   soft ancillary revenue as an exit perpetuity**. Every incentive/revenue figure carries a real
+   source; use **null (not zero)** where none is found. This runs before step 4 so
+   `evaluate_measure` consumes the net-of-incentive CapEx and the revenue line.
+4. `retrofit__evaluate_measure` for **EVERY** register measure. Reminders:
+   - `asset_id` = the **Soapbox asset id** (`state.asset.id`) — not the Audette uid.
+   - `feasibility.score` is an **INTEGER 1–5**.
+   - Every economic field must be engine- or source-provenanced; the tool refuses
+     unprovenanced numbers — supply real sources, never fabricate provenance.
+   - Cap rate for exit math comes from `kickoff.cap_rate` **with its verbatim source string**.
+   - **Savings basis = the LOCKED per-end-use capture (from the 2C capture map, Gate 1) — set PER
+     MEASURE, keyed to the measure's end-use, never one building-wide split.** A measure's dollar
+     savings accrue only to the share the owner actually BEARS for **that end-use**:
+     - **Common-area / house-metered / amenity measures** (elevators, garage ventilation, corridor &
+       common lighting, spa/pool, BTM solar offsetting the house meter) → capture **~0.9–1.0** (they
+       are landlord loads); do NOT use the building's blended in-unit split and do NOT drop them into
+       the RUBS bucket.
+     - **Central plant serving in-unit RESIDENTIAL load** (central heating/DHW → units) → the
+       **RUBS-recovery capture: ≈10% net owner where RUBS applies, ~100% only where the owner absorbs
+       the utility** (documented gross lease / no RUBS).
+     - Solar under VNM = 80% owner. Never inherit Audette's 15% account-default, and never blanket a
+       master-metered load to 100%.
+     Set Audette's `landlord_share` for the measure to the end-use's locked capture (see recipe 2a's
+     end-use → `landlord_share` map) or modeled owner savings are mis-priced. Do NOT re-derive or
+     re-open the map here.
+   - Record returned measure ids in `state.measures.register_ids`.
+5. Roster labels come from the register — retrofit-advisor already screens candidates during
+   ideation, so decarb-plan does not re-screen here.
+6. **Roadmap phasing — sequence by decarb logic + equipment RUL, not independent IRR.** Read
+   `retrofit__get_retrofit_playbook('staging')`. Order measures as: load-reduction / controls &
+   retro-commissioning FIRST, then electrification of heating/DHW **timed to each system's RUL**
+   (from the 2D equipment inventory) and to `kickoff.capital_events`, then supply (solar/storage)
+   aligned to roof life. Screen by IRR ≥ hurdle *within* that sequence — never let a high-IRR
+   measure jump ahead of the load-reduction it depends on. Write `state.measures.roadmap_phases`.
+7. **Target-gap statement:** does the recommended set reach the confirmed target
+   (`state.targets`)? If not, which defensive additions close the gap and at what cost —
+   engine math only. Write `state.measures.gap_statement`.
+
+Set `phase: "GATE2"` and save.
+
+---
+
+## GATE 2 — Roster, Roadmap, Gap (user)
+
+Present, then **stop and wait for the user**:
+
+Present each adjudication/decision to the user via `ask_user_question` (one call per decision — options = the candidate values, recommended/suggested first, allow_other:true, context = the one-line why-it-matters), not as one markdown table wall. Fall back to one-decision-per-message lettered multiple-choice if the tool is unavailable.
+
+1. **Roster** — every measure under all four screening labels
+   (recommended / defensive / screened-out / needs-data), each with its reason, including the
+   named failing test for screened-out measures.
+1b. **Landlord/tenant savings attribution — an EXPLICIT per-measure user decision, never
+   silently inherited.** For every recommended/defensive measure, present the PROPOSED owner
+   share of its savings (from the Gate-1 2C capture map, keyed to the measure's end-use:
+   common-area/house-metered ≈0.9–1.0, in-unit/tenant-metered ≈0.0–0.1, central-plant-serving-
+   in-unit = RUBS-recovery ≈0.10, VNM solar 0.80) with its one-line basis (lease structure /
+   metering / RUBS evidence), and ask the user to CONFIRM or OVERRIDE each — one
+   `ask_user_question` per measure or per end-use group with identical splits (options: the
+   proposed share first, then plausible alternates, allow_other for a custom %). Record the
+   confirmed value per measure in `state.measures.landlord_share_confirmed[{measure, share,
+   basis, confirmed_by:'user'}]` — P4 authors Audette `landlord_share_*` from THESE confirmed
+   values, never directly from the unconfirmed map. A post-Gate-2 change to any share reopens
+   this step for that measure only.
+2. **Phased roadmap** — per-phase capex, NOI delta, and exit impact. **Engine numbers only.**
+3. **Target-gap statement** — `state.measures.gap_statement`, with defensive closures priced.
+4. **RECOMMENDED BUNDLE — the user selects it (do NOT auto-pick by NPV).** The report presents
+   ONE recommended plan that drives all the economics; the other plans' measures render as
+   "Alternative — not modeled in financials". After the plans are modeled (so real IRR/net-value
+   per plan is shown), ask the user via `ask_user_question` **which bundle is the recommended
+   one**, options = each plan with its headline IRR + net value + whether it clears the
+   hurdle (`state.kickoff.irr_hurdle`). If NEITHER plan clears the hurdle, say so plainly in the
+   question — the user may still pick the capital-light one. Record `state.report.recommended_plan`
+   = the chosen plan's exact label; it becomes P5's `derive_engagement recommended_plan`.
+
+The user confirms or edits the selection. Apply every edit via
+`retrofit__update_measure_state` (never by editing state alone — the register is the system
+of record for measure status). On confirmation set `state.measures.gate2_confirmed_at`.
+
+Set `phase: "P4"` and save.
+
+---
+
+## P4 — Write-Back + Verification
+
+1. **Audette write-back — TWO plans per building.** The deliverable is a genuinely differentiated
+   Plan A vs Plan B comparison (GATE 2 rule; recipe 8 "Plans"), and `derive_engagement` reads both
+   plans back **per building** — so you must WRITE both, for EVERY building model on the property.
+   For each `state.audette.building_uid`, author two distinct rosters and write each with
+   `create_custom_plan` (or `update_custom_plan_measures` if that plan already exists on the building):
+   - **Plan A** = the Plan 1 / Operational — Capital-Light roster (controls/RCx, DR, revenue add-ons,
+     lighting/elevator — near-zero net capex, high IRR, CRREM stranding deferred).
+   - **Plan B** = the Plan 2 / Deep Decarbonization roster = Plan A PLUS committed electrification
+     (DHW→HPWH, heating) timed to RUL — large capex, major carbon cut, CRREM-aligned. (A single-scenario
+     engagement writes only Plan A.)
+   Record BOTH ids per building in `state.audette.buildings[]` as
+   `{ building_model_uid, plan_a_id, plan_b_id }` (omit `plan_b_id` for single-scenario). This array is
+   what P5 step 0 passes to `derive_engagement`. (Legacy single-building/single-plan: recording a lone
+   `state.audette.custom_plan_id` still works.)
+   - **⚠️ Author `landlord_share` PER MEASURE, keyed to the measure's end-use / where the load sits —
+     NEVER one property/building-wide split stamped on every measure.** Audette computes
+     `annual_mean_landlord_utility_cost_savings` / `annual_mean_tenant_utility_cost_savings` from each
+     plan measure's authored `landlord_share`, so the owner/tenant split is fixed HERE, measure by
+     measure. On each measure in `create_custom_plan` / `update_custom_plan_measures` set the
+     `landlord_share_*` fields to that measure's USER-CONFIRMED share from GATE 2 step 1b
+     (`state.measures.landlord_share_confirmed`) — which was seeded from the locked 2C capture (Gate 1), using the **end-use →
+     `landlord_share` default map in recipe 2a** as the floor: common-area / house-metered / amenity /
+     BTM-solar-on-house-meter → **0.9–1.0**; in-unit / tenant-metered → **0.0–0.1**; central plant
+     serving in-unit residential load → split by served load (RUBS-recovery ≈0.10 net owner where RUBS
+     is verified); VNM solar → 0.80; BPS fine avoidance → 1.0. Applying a single building-wide split to
+     every measure is FORBIDDEN — it is the exact bug that credited a common-area LED and house-metered
+     solar ~95% to *tenants* by inheriting a whole-building split dominated by in-unit tenant meters.
+     **Verification cue:** after authoring, re-read the write-back — any measure the map assigns a HIGH
+     owner share (common-area / house-metered / amenity / BTM-solar-on-house-meter) whose Audette
+     savings land mostly on **tenants** is a red flag; re-check that measure's `landlord_share`.
+     (Central-plant-serving-in-unit measures whose savings correctly land on tenants under RUBS are NOT
+     the red flag.)
+   - **⚠️ Author the P3 3b incentives ONTO each measure here.** For every measure with a vetted
+     estimate from 3b(ii), set `total_incentives` (summed dollar estimate; 0 only where research
+     found none) and `user_provided_incentives: true` on the measure in `create_custom_plan` /
+     `update_custom_plan_measures`. `derive_engagement` reads these back (uncapped fetch) and
+     **prefers them over its static incentive-rules table** — this is the ONLY way the researched
+     incentive reaches the economics. A plan whose 3b research found cited programs but whose written
+     measures carry `total_incentives: 0` / no flag is a defect (the engine flags it): the research
+     was done but never authored, so the report shows $0 incentives. **Verification cue:** after
+     write-back, re-read the plan and confirm each screened-in measure's `total_incentives` matches
+     its 3b estimate and `user_provided_incentives` is `true`.
+     **⛔ STRUCTURAL HARD-BLOCK — this is not optional:** `derive_engagement` now REFUSES to derive a
+     record if ANY screened-in measure on the plan lacks an authored incentive decision. Resuming a
+     pre-authored plan does NOT exempt you — if you skip P3 and derive from a stale plan, derive
+     throws and names the offending measures. Every measure must carry either a real
+     `total_incentives` (> 0) or an explicit "researched — none available"
+     (`user_provided_incentives: true` with `total_incentives: 0`). There is no way to render past it.
+   - **⚠️ When an Audette measure's modeled economics are demonstrably wrong, CORRECT IT AT SOURCE
+     here — never override the number downstream in the report data or engine flows.** The classic
+     case: a fuel-switch (ASHP/HPWH) whose Audette `annual_mean_landlord_utility_cost_savings` shows
+     a SAVING because Audette valued the kWh swap at a rated/seasonal COP and/or blended rates,
+     when at real fuel prices (e.g. MA electricity $0.24/kWh vs gas ~$0.066/kWh-equiv, winter COP
+     2.0–2.8) the switch actually RAISES cost. A downstream fix — editing `economics.measures[]` or
+     the plan `cashflow[].utility_savings` by hand — does NOT work: the render gate recomputes and
+     rejects a hand-entered figure, `patch_report` refuses analytical fields, and the next
+     `fill_report` re-pulls the stale value → it reverts every time (the user asks repeatedly and it
+     never sticks). The ONLY durable fix is to re-model the measure in the Audette custom plan via
+     `update_custom_plan_measures` (correct the native CRM's COP, or use a generic measure with
+     explicit `fuel_cost_reduction_effects` — positive for the fuel removed, **negative** for the
+     fuel added — recipe 10), so Audette recomputes the correct (negative/near-zero) landlord
+     savings and every engine run + re-render pulls it natively. If Audette is disconnected, say so
+     and STOP — this correction cannot be made downstream; the user must reconnect Audette first.
+     Record the override as a verifier finding.
+2. **Equipment survey write-back:** submit the equipment inventory established in P2 (step 2D) —
+   and any Gate-1-adjudicated corrections — to Audette via `submit_equipment_survey`. (The inventory
+   *knowledge* was gathered in 2D to drive P3 sequencing; this is the deferred *write*.) Record each
+   submission in `state.audette.survey_corrections_submitted`.
+   **BEFORE the first submit, read the Audette `audette-equipment-survey` skill** (bundled with the
+   Audette MCP) — it is the single source of truth for the payload: all 10 required groups, enum
+   values, the **tons** capacity units (incl. DHW; airflow in CFM for AHU/RTU), the `null`-not-`0`
+   rule, and the audit-an-existing-survey's-units rule. Copy its payload template; do not guess keys.
+   For the decarb-specific *system→topology mapping* (which is NOT in that skill), see
+   `references/audette-modeling-recipes.md` recipe 5: hydronic furnaces →
+   `central_plant_heater_type=hydronic_furnace` (native match, never the fan-coil proxy);
+   WSHP/water-loop heat pumps → the `heat_pump` group (`water_loop_heat_pump`), never
+   `central_plant_heat_pump` (recipe 5c). Submit in batches of ≤6 buildings per turn (the Audette
+   OAuth token dies on large parallel bursts) and verify each with `get_equipment_survey`.
+   **⚠️ UNITS — every `*_size` capacity is in REFRIGERATION TONS, including DHW.** This is an Audette
+   peculiarity verified from source: `KW_PER_TON=3.5169`, and the value you submit is stored and
+   modelled verbatim as tons with NO conversion. Convert BEFORE submitting: MBH ÷ 12 = tons;
+   kW ÷ 3.5169 = tons. Never submit kW, MBH, kBtu, litres, or gallons in a `*_size` field. The ONE
+   exception is `air_handling_equipment_supply_air_rate`, which is CFM. There is **no** "schema says
+   kW" comment anywhere in the Audette source or this skill — do not invent one to justify kW; if
+   unsure, re-read recipe 5, do not guess.
+3. **RENDER GATE (HARD):** call `verifier__verification_status` for the asset and write the
+   result to `state.report.verification_status`. The deployed tool returns
+   `{pass: boolean, open_high: number, open_total: number}` — store that shape verbatim.
+   Enumerate open findings via `verifier__list_findings` before deciding overrides.
+   - **Pass** → proceed to P5.
+   - **Not pass** → resolve findings, or — only with explicit user approval — record a
+     documented override `{finding_id, override_reason, approved_by}` in
+     `state.report.overrides` for **each** open high-severity finding.
+   - Neither → **no render. The gate fails CLOSED.** Do not dispatch the renderer, do not
+     produce a partial report, do not summarize around it.
+
+Set `phase: "P4b"` and save.
+
+---
+
+### Authoring Audette plans — the traps that have actually cost real engagement time
+
+Every rule here comes from a live failure on 2026-08-03, and each one cost between one derive and
+an hour. Read this before you touch a plan.
+
+**1. Confirm which customer account you are on, before every write AND every derive.**
+`list_customer_accounts` → check `current_account`, and `switch_customer_account` if it is not the
+client you are working for. A reconnect can silently revert the session to a different account:
+Evergreen derives twice came back with a zero baseline because the token had reverted to Cortland,
+and the agent read it as a data problem rather than an account problem.
+
+**2. `update_custom_plan_measures` is broken server-side.** It returns
+`InvalidRequestError: A transaction is already begun on this Session` for ANY input — it fails
+before argument validation, so a plan id of all zeros produces the same error. Reads,
+`submit_equipment_survey`, building-attribute writes and `create_custom_plan` are all fine. **Do not
+reconnect over it** (see the tool-error rule in Failure modes) and do not retry it in a loop.
+Workaround: build a corrected plan with `create_custom_plan` and derive against the new id. Cost to
+respect: **there is no delete-plan tool**, so every workaround plan is permanent — Evergreen's
+building carries ~29 plans, and each confused re-derive added more. Get it right in one plan.
+
+**3. A recreated plan must carry the SCOPE, not just the `crm_id`.** `create_custom_plan` accepts
+`name`, `description`, `measure_size`, `size_unit`, `measure_cost`, `total_incentives`,
+`like_for_like_cost`, `lifetime`, `notes` and the `landlord_share_*` fields. Pass them. A
+catalog-only recreation silently downgrades the plan: "Rooftop BTM Solar PV, 175 kW" became
+"Install a Behind the Meter Solar Array" and a retro-commissioning bundle became "Install DCV
+Controls", so the report described thinner work than the client had agreed. If no `crm_id` fits, use
+`crm_id: "generic"` with explicit effects rather than the nearest wrong catalog entry.
+
+**4. `landlord_share_*` are FRACTIONS 0–1, not percentages** — despite the tool description saying
+"%". Passing 100 and 20 is rejected outright; pass 1 and 0.2.
+
+**5. Revenue arithmetic — the one that silently inflates money.** For a measure carrying revenue
+(`revenue_effect.revenue_by_year`):
+- Audette needs **one entry per model year from install to 2050** (23 entries for a 2028 install).
+  A shorter array throws `IndexError: list index out of range` server-side.
+- The deriver annualizes **`lifetime_revenue ÷ measure_life`**.
+- So the entries must **SUM to `annual × measure_life`** — NOT carry the annual figure each. A
+  23-entry array of $4,500 against a 10-year life became **$10,350/yr**, 2.3× the intended rate,
+  and nothing flagged it.
+- Verify after creating: read the measure back and check `lifetime_revenue ÷ measure_life` equals
+  the annual figure you intended.
+
+**6. Revenue is counted in exactly ONE place.** Either the measure carries it (`revenue_effect`) or
+you pass `ancillary_income` on the derive — never both. The engine SUMS them, and because each
+re-derive re-adds, the figure compounds: EV charging ran $10,350 → $13,950 → $24,300/yr across
+three derives, inflating net value creation from $478K to $771K. Prefer the measure: the revenue
+then lives with the capital, visible in the plan, and nothing has to be remembered on every future
+derive. `derive_engagement` now warns (`ancillary-income-double-counted`) when both exist.
+
+**7. Verify plan LABELS against plan IDS before deriving.** `plan_a_label`/`plan_b_label` are
+agent-supplied and are not checked against the ids. Crossing them attached "Recommended" to the
+full-roster plan, put post-exit measures inside the recommended bundle, and produced a null IRR —
+a confusing version that had to be diagnosed from roster counts. Read both plans back and confirm
+the label you are about to call `recommended_plan` belongs to the plan whose id you are passing.
+
+## P4b — Measure Descriptions (INTERACTIVE, before the report is produced)
+
+The measures table gives a client the numbers. It does not tell them **what the work is** — and they
+are being asked to approve scope, not spreadsheet rows. So the report has its own **Section 05 —
+Measure Descriptions**, ahead of Notes, and you write it **with the user**, here, once the bundle and
+the strategy are settled (Gate 2 done, Audette write-backs complete) and **before** the report is
+produced. That timing is deliberate: descriptions of a bundle still in flux get rewritten, and unlike
+the executive summary these don't depend on the derived economics — only on the agreed scope. They
+ship with the FIRST render, so this phase adds **no** extra render.
+
+**Sequence:**
+
+1. **Draft one description per measure in the recommended plan**, from the asset's real evidence —
+   the PCA's equipment inventory and condition notes, the Audette measure's own scope, the equipment
+   survey, roof/envelope observations. Say what is being replaced or added, where it is, what it
+   touches (ducts, controls, electrical capacity, roof), what it depends on, and whether it is a
+   like-for-like replacement at end of life or an incremental upgrade. 2–4 sentences.
+2. **Do not describe the economics.** Cost, payback, savings and abatement are already in the table
+   two pages earlier; repeating them here is padding and invites the two surfaces to disagree.
+3. **Show the user all of them together** and ask what to change. Scope wording is where their
+   client knowledge beats yours — how a measure is characterised ("brought forward at RUL" vs
+   "upgrade") changes how the asset team reads the ask. Use `ask_user_question` for genuine
+   either/ors; otherwise present the set and invite edits.
+4. **Iterate until they approve. Their wording wins.**
+5. **Carry them into P5** — pass the agreed set to `derive_engagement` as `measure_descriptions`
+   (see the P5 arg list), using each measure's exact name from the plan.
+
+**Content rules:**
+- **No boilerplate.** A description that would read identically on any building is worse than none —
+  it tells the client we didn't look at their asset. If the evidence doesn't support a real
+  description, say so to the user and let them supply it; don't fill the space.
+- **One per recommended measure**, ordered to match the measures table.
+- Alternatives (measures in the non-recommended plan) do NOT get descriptions — they are not the ask.
+- If a measure changes in Audette after this conversation — **including a rename** — come back and
+  update its description. Matching is by name, so a rename reads exactly like a removal: the report
+  flags any description with no matching measure name as scope to confirm. That flag appearing in a
+  delivered report means this step was skipped, not that the flag did its job.
+- **Don't restate the install year in the prose.** The measures table two pages earlier has an
+  install-year column, and the description sits under the measure's own heading. "…retro-commissioning
+  across 13 zones installed in 2029" was cut to "…across 13 zones" by the client on the Evergreen
+  report (2026-08-04) for exactly this reason.
+- **Spell it "modelled", not "modeled"**, in every string you write — measure descriptions,
+  executive summary, limitations, notes. The template's own labels are British ("Alternative — not
+  modelled in financials"), and the Evergreen report shipped with both spellings one column apart
+  because the prose was American and the chrome was not. Pick nothing; just match the template.
+- **Round any cost you do mention** — "$30k", not "$29,291". Cost lives in the table to the dollar;
+  in prose a precise figure reads as a quote rather than a planning number, and it goes stale the
+  moment the plan is re-priced. (Same client pass: "$3,129" → "$5k", "$29,291" → "$30k".)
+
+Set `phase: "P5"` and save.
+
+---
+
+## P5 — Report
+
+Before dispatching any render, re-run `verifier__verification_status` and re-confirm the
+gate (resume may have skipped P4's check).
+
+0. **Derive engagement economics via the engine.** Call `derive_engagement` with the FULL arg set.
+   `buildings[]` alone is NOT enough — every unsupplied arg **silently defaults** (no tool error):
+   exit cap → 0.055, exit year → +10yr, BPS penalty → 0, CRREM curve → OMITTED. Pass ALL of:
+   - `buildings`: `state.audette.buildings[]` verbatim — `[{building_model_uid, plan_a_id, plan_b_id}]`,
+     one entry per building on the property (single-building: one entry, or legacy
+     `building_model_uid` + `plan_id`). Each carries the two custom plan ids written back in P4.
+   - `plan_a_label` / `plan_b_label`: the two plan names (e.g. "Plan 1 — Capital-Light" /
+     "Plan 2 — Deep Decarbonization").
+   - `exit_cap_rate` = the Gate-1-locked `state.kickoff.cap_rate`; `exit_year` = as-of year +
+     `state.kickoff.hold_period_years`. **The engine has NO Audette fallback for these** — omit them
+     and every IRR is computed at 0.055 / +10yr, silently ignoring the locked exit assumptions.
+   - `bps_penalty_per_tco2e`: the applicable BPS fine rate when the asset is under a covered-building
+     regime (0 ONLY when genuinely none applies) — this drives the fine-avoidance stream.
+   - `crrem_region` + `country`: the CRREM region resolved for the asset's location (climate zone +
+     grid region) and its country — **without `crrem_region` the compliance curve is omitted.**
+   - `bps_thresholds`: BPS threshold lines for the EUI/GHGi charts, REQUIRED whenever the asset
+     sits in a BPS jurisdiction whose numeric target you have established with a real citation
+     (e.g. DC BEPS property-type Source-EUI/score targets — there is no server-side registry for
+     these yet; only WA CBPS is auto-stamped). Each entry `{metric:'eui'|'ghgi', value, label,
+     source}` — `source` is a verbatim citation to the program document/table. NEVER estimate or
+     recall a threshold from memory: no citation → no threshold (the chart simply omits the line).
+     Analyst-supplied thresholds are disclosed in the report's data-quality notes automatically.
+   - `recommended_plan`: the plan the USER selected at Gate 2 (`state.report.recommended_plan`) —
+     its exact label. It drives ALL report economics (bridge, cashflow, KPIs) and its measures are
+     the modeled set; the other plan's measures render as "Alternative — not modeled in financials".
+     Omit only for a genuine single-plan engagement. Do NOT let the server pick by NPV — the
+     recommendation is the user's call.
+   - `crrem_property_type`: the Gate-1-confirmed CRREM benchmark type (`state.targets.crrem_property_type`)
+     when it differs from the raw archetype — e.g. `refrigerated_warehouse_cool` for a refrigerated
+     warehouse. Omit to use the archetype default.
+   - `incentive_programs`: the cited programs from your P3 3b incentive research (`[{program,
+     description}]`). REQUIRED to populate the report's Incentive Programs (Notes) section — the
+     server does NOT research incentives itself. Omit only if research genuinely found none.
+     ⛔ **This list must RECONCILE with the measures table.** Every program listed here must either
+     (a) be quantified in some measure's `total_incentives`, or (b) say explicitly why it is not —
+     "screened, not quantified: <reason>" (program closed to new applicants, measure ineligible,
+     rebate not yet confirmed by the utility, etc.). A program named in the Notes while the
+     measures show $0 incentives reads to the client as money left on the table or, worse, as an
+     incentive we claimed and then failed to model (found live: Pedernales Electric Cooperative
+     rebates listed in the notes with no corresponding measure economics, Bain/Evergreen
+     2026-07-30). Before you call `derive_engagement`, check each listed program against the
+     per-measure `total_incentives` you authored in P4 and reconcile every mismatch.
+   - `irr_hurdle_pct`: the client's OWN IRR hurdle as a percent — **`state.kickoff.irr_hurdle.value`,
+     the figure locked at Gate 1**, not a number you pick here (Bain: 15). The report prints an
+     explicit pass/fail against the incl.-exit incremental IRR — that is the rate a hurdle screens on
+     an exit-framed plan. Never assume a hurdle; if the client hasn't given one, omit it rather than
+     inventing a benchmark. A live run modelled 12% against a client whose stated screen was 15% and
+     the client noticed in the delivery meeting ("a little low for us usually") — the locked kickoff
+     value is the only source.
+   - `measure_descriptions`: the set agreed with the user in **P4b** — `[{measure, description}]`,
+     one per recommended measure, ordered to match the measures table. Unlike `executive_summary`
+     this IS passed on the first derive, so Section 05 ships with the first render. `measure` must be
+     the measure name EXACTLY as it appears in the plan: descriptions are matched back by NAME
+     (Audette's custom-plan builder gives every hand-authored measure the id `generic`, so there is
+     no stable per-measure id to key on — `measure_id` is accepted but matches nothing today). Rename
+     a measure in Audette and its description no longer matches; the report then flags that scope to
+     be confirmed rather than presenting it as current.
+   - `dropped_alternatives_ack`: `[{measure, reason}]` — the ONLY sanctioned way to honour a
+     user-approved removal of a measure that an earlier version showed as analyzed-but-not-recommended.
+     `derive_engagement` BLOCKS with `alternatives-dropped` when such a measure silently disappears,
+     because the client was already shown it. If the user says to keep it out, pass it here with their
+     reason and the block becomes a disclosed exclusion recorded on the record.
+     ⛔ **Never add a measure back into an Audette plan purely to clear this gate**, and never
+     self-approve — the finding exists to force a human decision, not to be worked around. A live run
+     spent ~50 minutes looping on this and briefly re-added a measure the user had explicitly told it
+     to drop (Bain, 2026-08-03); the fix is one arg, not a plan edit.
+   - `executive_summary`: do NOT pass this on the first derive. It is authored interactively in **P6**,
+     after the report has rendered and the wording has been agreed with the user.
+   - `implementation_considerations` (+ optional `implementation_narrative`): the non-financial
+     decision factors for the Notes section — solar-model trade-offs (PPA lease vs owned BTM +
+     green lease), roof-replacement timing when the PCA flags limited roof life before rooftop
+     solar, interconnection/permitting lead times, etc. `[{title, detail}]`, grounded in the
+     asset's real docs — this is decision-useful content, not boilerplate.
+     ⛔ **If the plan contains ANY solar measure, one consideration MUST state the monetization
+     mechanism** — i.e. exactly *how the owner earns money from this array under this plan*, since
+     the federal ITC is no longer part of the answer. Name the specific mechanism(s) actually
+     modeled and tie each to the numbers in the report:
+     - **BTM (behind-the-meter) self-consumption** — the array offsets the building's purchased
+       kWh. State who captures it: on a modified-gross/full-service lease the landlord keeps the
+       saving; on NNN or tenant-metered load the TENANT does and the owner's benefit is ~$0 unless
+       leases are amended. State the landlord-capture % actually modeled.
+     - **Net metering / VNM export credits** — the tariff crediting exported kWh, and whether
+       export is even allowed at this interconnection.
+     - **FTM roof lease** — rent from a third-party developer; the array is grid-side, so the
+       building's energy and carbon are UNCHANGED (this flows via `ancillary_income[]`, not a
+       measure).
+     - **PPA** — the owner takes a margin/discount-to-tariff, not the array's gross value; if a
+       third party owns the array, the owner does not hold the asset.
+     - **SREC/REC sales** where a real market exists.
+     Also state the ownership consequence plainly: a third-party PPA or lease moves the tax
+     attributes and depreciation to the lessor. Do NOT write a consideration that recommends
+     preserving/capturing the §48E ITC — it is dead for new work (see P3 3b).
+     ⛔ **And say what a lease costs them in carbon.** Model the OWNED case (owners are content to
+     see it even when their own practice leans to leasing, because ownership is operationally
+     complex) — but whenever solar carries a material share of the plan's abatement, carry one line
+     naming that share and stating that under a roof lease or third-party PPA **the owner cannot
+     claim the reduction**; it belongs to whoever owns the array. On a live plan the array was 86 of
+     102 tCO₂e — i.e. the lease the client preferred would have forfeited most of the carbon story
+     the report was built on, and nobody had said so (Bain delivery meeting 2026-07-30).
+   - Rendering to the **decarb-capital-plan** template additionally consumes: exit panes and the
+     value bridge (both derive from the exit args above), `measures_considered` (server-extracted;
+     nothing for you to pass), and the same `bps_thresholds`.
+   The engine aggregates across all buildings (sums baselines/measures, property-intensity trajectory,
+   GFA-weighted CRREM, IRR from ONE combined run) — you do NOT hand-aggregate. Scenario and measure
+   selection (which Audette custom plans to derive) must already be settled by this point (P3/P4).
+   The server fetches Audette + Costing, runs the cashflow engine, and
+   **persists a complete engagement record** — economics (waterfall, cashflow, plans), CRREM
+   targets and emissions trajectory, the decision dashboard, a deterministic narrative, and
+   sources — returning you only a compact summary `{record_id, version, plans, verification}`.
+   **Do NOT hand-assemble economics, CRREM curves, trajectory, dashboard, or sources — there is
+   nothing left for you to compute; the record already contains all of it.** Review
+   `verification.findings`; if `ok: false`, fix the inputs **in Audette** (the custom plan,
+   equipment, or measure set) and re-call `derive_engagement` — never patch around a failing
+   verification by hand-editing numbers. Once `ok: true`, continue to step 1.
+
+1. **Render via `fill_report` — the SAME path RSRA uses (default; do not hand-write HTML or draw
+   charts).** Call `fill_report(template: 'decarb-capital-plan', data: {}, title: "<Asset> —
+   Decarbonization Roadmap")`. There is now **ONE** decarb report — the single-recommended-plan
+   capital plan. (`template: 'decarb'` also resolves to it, but name the canonical template.)
+   ⛔ **RENDER ONCE** (P6's agreed-summary re-render is the one sanctioned second render — see P6).
+   Do not render until the plan is FINAL — Gate 2 settled, all Audette
+   write-backs complete, and `derive_engagement` run on the final plans. A render is the last step,
+   not a progress check. Rendering early forces a re-render after every subsequent Audette edit or
+   re-derive: one live run rendered, re-derived, rendered, edited an Audette plan, and rendered
+   again — four renders where one was needed (Bain/Evergreen 2026-07-30).
+   **If you genuinely must re-render** (the data really did change), pass the SAME `artifact_id`
+   returned by the first call so the existing report updates in place instead of adding another
+   report card to the thread.
+   You author **no report_data** — the server detects the persisted decarb engagement record for
+   this asset and projects the entire deliverable from it, discarding whatever you pass as `data`.
+   **The report presents ONE recommended plan** (the value-driving plan — highest net value) and
+   drives ALL economics, the value bridge, and the year-by-year cashflow from that single plan.
+   Measures that belong to OTHER modeled scenarios are still listed in the measures table, marked
+   **"Alternative — not modeled in financials"** — included for comparison, excluded from the
+   headline economics.
+
+   **Be ready to say what "Recommended" means, because clients ask.** It means exactly one thing:
+   the measure is in the plan the USER selected at Gate 2, so it is inside the modeled economics.
+   It is *not* a claim that the measure clears their hurdle on its own — a plan can be recommended
+   as a bundle while individual measures inside it don't pay back. The table's decision columns are
+   projected per measure so the client can make that call themselves: **Payback** (net capex after
+   incentives ÷ the owner's annual net benefit — blank where there is no net capex or no benefit,
+   never zero), the **5-year screen** (does that payback land inside five years — the return-on-cost
+   test asked for in delivery), and **Abatement cost** (net lifetime cost ÷ tCO₂e abated **over the
+   hold to exit**, so it is comparable across measures and denominated in the client's own hold
+   period, not an arbitrary EUL). All three inherit the landlord-capture assumption from Gate 1(c) —
+   if that share is still unvalidated, the columns are directional and the report must say so. The template's own JavaScript renders every section and chart from the
+   projected data — the **decision dashboard**, the **value-creation waterfall / exit bridge**,
+   the **year-by-year cashflow**, and the **emissions trajectory with the CRREM pathway curve**.
+   (You still author BOTH Audette plans in P4 and derive both — that is what populates the
+   alternatives; the report just presents the recommended one as the headline.) You write NO report HTML, draw NO charts, and compute NO data object — your only
+   job upstream of this call was step 0. The render is verifier-gated server-side (it
+   independently recomputes economics via the same engine and blocks on divergence); if blocked,
+   the fix is always in Audette + a re-derive, never a hand-edited figure. Record
+   `state.report.render_iterations` starting at 0.
+
+   **⚠️ MANDATORY post-render verification — fetch the ACTUAL rendered output and check it,
+   every single `fill_report` call, no exceptions, before reporting completion to the user.**
+   The server-side render gate only re-checks economics/data correctness — it does NOT catch
+   presentation-layer or cross-field consistency bugs. All of the following shipped live
+   undetected on a real report until caught by hand-inspecting the raw data and the rendered
+   file directly: a CRREM pathway line drawn off the edge of its own chart (an unclamped axis
+   domain scaled a wider-range series past the frame); two unrelated measures sharing an
+   identical, meaningless like-for-like cost (a stray keyword match crosswalked a controls
+   bundle to the same per-unit rate as an actual equipment replacement); a whole Notes
+   subsection silently never populating despite the engine computing real data for it (a
+   projector simply never wired the field through); an auto-generated summary sentence
+   reading "returns a 0.0% incremental IRR" when the true value was null, not zero; a
+   client-requested color/header/section change that was coded and deployed but never actually
+   verified present in the output. **None of these failed the data-correctness gate.** Be
+   AGGRESSIVE and SKEPTICAL — assume something is wrong until you've actually checked, never
+   the reverse, and never accept "the tools can't inspect rendered HTML" as a stopping point —
+   fetch the file's real content (the Files signed URL, or `read_file` against the persisted
+   artifact) and grep/read it directly:
+   - **Cross-check every number that appears more than once** across measures/sections for
+     suspicious duplication (same $/kWh rate, same like-for-like cost, same savings figure on
+     unrelated equipment types) — a real coincidence is rare; a mismatched crosswalk/lookup is
+     common.
+   - **Confirm every conditionally-rendered subsection that SHOULD have data actually shows
+     content** for THIS engagement's real inputs — don't just confirm the code path exists;
+     confirm the populated section is genuinely non-empty in the output. An empty block from
+     broken wiring reads identically to "no data."
+   - **Confirm every narrative/auto-generated sentence is a real, sensible claim** — no bare
+     "0.0%"/"NaN"/"undefined"/"null" leaking through a template string, no numeric value that
+     silently defaulted instead of genuinely computing.
+   - **For any user-requested visual or structural change** (color, header text, section
+     rename/removal, new subsection), confirm it is ACTUALLY present in the rendered output —
+     not merely that the source change was made and deployed.
+   - **Record every discrepancy found as a `verifier__record_finding`** (kind `data-quality` or
+     `presentation`, whichever fits) BEFORE reporting completion — a discrepancy you noticed
+     but didn't record is one that resurfaces unverified on the next revision.
+
+2. **Revision loop — RE-DERIVE, DON'T RECOMPUTE.** On user revisions that change measures,
+   costs, or scenario terms, update the Audette custom plan and/or `derive_engagement` args,
+   re-call `derive_engagement`, then re-call `fill_report(same artifact_id, template, data: {})`
+   to re-render from the updated record (increment `state.report.render_iterations`); on
+   approval export **PDF and/or PPTX**. NEVER `save_file` a hand-built report and NEVER hand-edit
+   or reproduce the template's inlined HTML / chart / waterfall renderers to "apply" a revision —
+   the template owns all rendering and is re-fetched fresh on every `fill_report`. Hand-rebuilding
+   mangles charts, drops blocks, reintroduces overflow, and bypasses the gate. You only ever
+   trigger a re-derive + re-fill; you never touch a data payload directly.
+
+   **Small presentation-layer tweaks → `patch_report`, not a re-derive.** For a minor edit
+   after the report exists — reword a sentence, adjust a `data_quality`/`methodology` note, fix a
+   non-cascading value (address, year built, a citation), or hide a section (set its key to
+   `null`) — call **`patch_report(artifact_id, patch)`** with ONLY the changed fields (a JSON
+   Merge Patch). It loads the persisted data object, merges your delta, and re-renders in place —
+   no re-derivation, far cheaper, and it re-runs the same verifier gate.
+   `patch_report` rejects analytical fields (`economics`, `targets`, `dashboard`, …): any change
+   to a headline number — or renaming a plan / reordering sections — requires a fresh
+   `derive_engagement` (fix it at the source in Audette) followed by `fill_report`, so the
+   figures re-derive from the engine and re-pass the gate.
+
+   **⚠️ EXTERNAL DELIVERABLE — no internal-process language in any `patch_report` edit.**
+   The report is sent to external parties (owners, lenders, buyers) who have **no context**
+   for our internal workflow. Nothing you patch into ANY field — exec summary, dashboard, plan
+   `label`/`name`, `data_quality.summary`/`items[]`, methodology, findings — may reference our
+   internal process. Banned terms/patterns: **"Gate 1/2" / "Gate-1"/"Gate-2" / "at Gate…" /
+   "locked at gate"**, **"adjudicated" / "adjudication" / "adjudicated_by"**, **"verifier" /
+   "verification gate" / "Confirmed finding &lt;id&gt;" / raw finding IDs**, **"P0–P5" / "phase N"
+   / "workflow" / "roster"**. Rephrase in client terms: instead of *"Utility split: Locked at
+   Gate 1 — audit confirms…"* write *"Utility split confirmed by the AEI energy audit
+   (475250-EA1)."*; instead of a plan label *"Solar (No ITC) — full Gate-2 roster ✓ Selected"*
+   write *"Solar (No ITC) — Recommended"*. Confidence and provenance are welcome; the internal
+   machinery that produced them is not.
+3. **Register the deliverable in Files.** `fill_report` already persists the fully-rendered HTML
+   report to `Reports/` for you (server-side) — do **NOT** `save_file` the report HTML yourself
+   (you don't hold the rendered ~80KB string, so a manual save would only write a broken stub).
+   Just write all export paths (PDF/PPTX) to `state.report.exports`.
+4. **Retain lessons:** call `verifier__retain_shared_expertise` with the generalizable,
+   client-anonymous lessons from this engagement (reconciliation patterns, playbook gaps,
+   jurisdiction findings). It will refuse content that identifies the client or asset —
+   **never rephrase, strip, or restructure content to work around a refusal.** A refusal
+   means the lesson is not generalizable; drop it.
+
+Set `phase: "done"`, update the companion `decarb-plan.md`, and save.
+
+---
+
+## Failure Handling
+
+Named blockers, never silent: Audette/verifier/renderer outages halt the phase with the
+standing reconnect message; the state file always reflects the last completed step. The
+render gate fails CLOSED. Conflicting data discovered after Gate 1 reopens Gate 1 rather
+than silently updating the baseline.
+
+## P6 — Executive Summary (INTERACTIVE, and the last thing you do)
+
+The client asked for this directly (Bain delivery meeting, 2026-07-30): *"would be great to have
+some executive summary page in the beginning where it's a little easy and punchy — everything we
+just said about, hey, is CRREM aligned on a GHG basis until X, and the misaligned year."*
+
+**This phase runs AFTER the report has rendered, and it is a conversation, not a generation step.**
+An executive summary cannot be written before the numbers exist, and it must not be written *at* the
+user — it is the one part of the deliverable whose wording is a judgement call about what matters,
+so you develop it WITH them.
+
+**Sequence:**
+
+0. **The derive now CHECKS your figures.** `derive_engagement` emits
+   `exec-summary-figure-untraceable` (warn) listing any number in the summary that does not match a
+   value of its own kind in the record — an intensity claim is checked against intensities, a share
+   against shares, a dollar figure against dollars. **Resolve every one before you show the summary
+   to the user**: trace it to an exhibit or delete it. This exists because the first real summary
+   broke the rule below three times in four paragraphs — "37 to 15 kgCO₂e/m²" when the trajectory
+   ends at 11.0, "solar drives 58% of the carbon reduction" when solar is 94% of measure abatement
+   and 58% was the *consumption* share, and a net-value figure that contradicted the exhibit on the
+   same page (Bain/Evergreen 2026-08-03). The check is a warning, not a block, because it cannot know
+   every legitimate derivation — but a warning you ignore becomes a client-facing error.
+1. **Draft from the derived record.** Read the rendered figures. Every number you use must already
+   appear in the record — the compliance basis and divergence year come from
+   `impact.trajectory` vs `impact.crrem.pathway`, not from eyeballing the chart. Never introduce a
+   figure here that appears nowhere else in the report.
+2. **Say the honest thing.** If the asset does not merit much spend, write that. From the same
+   meeting, asked how blunt to be: *"there's the version where the exec summary says this is not a
+   particularly valuable asset to be spending a lot of time on — you should do this, and everything
+   else should be fine for the rest of the hold period."* The client's answer was to state the facts
+   plainly, including when a bundle falls below their hurdle. A padded list of marginal measures is
+   worse than a one-line "do this and move on".
+3. **Show the user the draft in chat and ask what they'd change.** Use `ask_user_question` for a
+   genuine either/or (framing, emphasis, how blunt); otherwise just present the text and invite
+   edits. **Do not proceed to render on the first draft.**
+4. **Iterate until they approve.** Their wording wins over yours — they know the client relationship.
+5. **Persist it and re-render ONCE.** Pass the agreed text to `derive_engagement` as
+   `executive_summary` `{headline, crrem_status, divergence_year, recommendation, limitations[]}`,
+   then `fill_report` with the SAME `artifact_id`. It lives on the record, so it survives the next
+   regeneration instead of being lost.
+
+⛔ **Any LATER derive can stale an already-agreed summary — re-check it every time.** The summary
+persists on the record, so a subsequent derive keeps the text while the economics move underneath
+it. This happened twice in one evening: a projector fix moved net value creation from $564K to
+$617,666, and then an EV double-count fix moved it again to $477,666 — the delivered summary was
+wrong on four figures each time, while reading perfectly. After ANY derive that follows a summary,
+re-read the four or five figures it quotes against the record and correct them before rendering.
+The `exec-summary-figure-untraceable` warning is your safety net, not your first check.
+
+**This is the one expected exception to RENDER ONCE.** The P5 render plus this final agreed-summary
+render is two — that is by design. Any render beyond those two means something upstream changed and
+should have been settled before P5.
+
+**Content rules:**
+- `divergence_year` only when there is a real divergence to name. An asset that stays below the
+  pathway for the whole hold has none — omit it rather than asserting a crossing that never happens.
+- `crrem_status` must name the BASIS (energy vs GHG intensity) and the pathway. "CRREM aligned" alone
+  is ambiguous: an asset can sit comfortably below on EUI while approaching the curve on GHGi, which
+  is exactly the case that prompted this request.
+- `limitations` is not boilerplate. Say what a reader would otherwise assume wrongly — e.g. "metered
+  energy data available from 2026 only", or an exit cap still awaiting survey confirmation.
+- **Say what the plan costs per tonne, and rank it.** The measures table now carries a marginal
+  abatement cost per measure (net capex ÷ annual tCO₂e). If the headline measure is the *expensive*
+  one — on Evergreen the 175 kW array is $4,377/annual tCO₂e against $1,490 for the DHW heat pump —
+  say so and say why it still earns its place (exit value, not carbon cost-effectiveness). A summary
+  that omits this reads as advocacy; one that states it reads as advice.
+- **Name which value convention you are quoting.** The bridge's Net counts operating cash over the
+  hold PLUS the capitalized exit uplift; the engine's plan-level net value creation counts the uplift
+  against capital alone. They legitimately differ. Quote one, label it, and do not let the summary
+  and the exhibit show different numbers with no explanation.
+- If the plan misses the client's `irr_hurdle_pct`, say so in the headline. The report already prints
+  the pass/fail; the summary should not imply a rosier verdict than the cashflow page.
+
+## Failure modes
+
+In practice:
+
+- **Audette outage** mid-P1/P3/P4: stop the phase, tell the user the Audette integration
+  needs reconnecting, save state at the last completed step. Do not substitute estimates for
+  the modeled physics and continue.
+- ⛔ **A derive that comes back `ok:false` is telling YOU something — read the finding, don't
+  reverse-engineer the engine.** Each finding names its own remedy. `alternatives-dropped` is cleared
+  either by restoring the measure or by `dropped_alternatives_ack` (see P5) — not by editing plans to
+  fool the check, and not by re-reading the skill hoping for a hidden mechanism. If a finding's remedy
+  is genuinely unclear, say so to the user and ask, rather than burning turns theorising.
+- ⛔ **A tool error is NOT an auth error unless it says so — and "reconnect" is not a remedy for
+  anything else.** Only a 401/403, an `invalid_token`/`expired` message, or an explicit
+  "connection expired" is an auth failure. Anything else — a 500, a validation error, a database
+  or transaction error, a timeout — is the tool failing at its own job, and reconnecting the
+  connector cannot change it. **Read the error text and repeat it to the user verbatim** rather
+  than paraphrasing it into a connection problem.
+  This cost a real user four reconnect cycles across 15 minutes (Bain, 2026-08-03):
+  `update_custom_plan_measures` returned `InvalidRequestError: A transaction is already begun on
+  this Session` — a server-side defect in Audette's own handler, reproducible with a plan id of
+  all zeros that matches nothing, while reads and other writes worked fine. The agent correctly
+  wrote "this is server-side, not a token issue" and then told the user to disconnect and
+  reconnect anyway, four times.
+  When a tool fails and it is not an auth error:
+  1. **Isolate it.** Does a READ against the same server work? Does a DIFFERENT write work? That
+     one comparison separates "the integration is down" from "this one endpoint is broken", and it
+     is the difference between a reconnect and a bug report.
+  2. **Say which it is**, name the failing tool, and quote the error.
+  3. **Offer the route around it** if one exists — e.g. `create_custom_plan` works while
+     `update_custom_plan_measures` is broken, so a corrected plan can be created rather than
+     edited (note the cost: Audette has no delete-plan tool, so every workaround plan is permanent).
+  4. **Never claim a fix you have not observed.** "Retrying cleared it" requires a successful call,
+     not an assumption.
+- **Verifier outage** at P2/Gate 1/P4: stop — conflicts cannot be recorded/resolved and the
+  render gate cannot be evaluated without it. Never proceed on the assumption it would pass.
+- **Renderer outage** at P5: stop after saving `state.report.data_json_path` — the data JSON
+  is durable; rendering resumes when the renderer is back.
+- **Gate-1 reopen:** any post-Gate-1 change to baseline data sets `phase: "GATE1"` and
+  re-presents only the changed items (see Resume Protocol). Adjudicated values are never
+  overwritten without the user re-adjudicating.
