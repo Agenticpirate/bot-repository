@@ -1,44 +1,52 @@
 # Source candidates — Batch 4
 
-Additive ingest on `main` after the 60-day `claude-skills-latest` archive. Skip trees already under `sources/`. Continue `scripts/download_skills_sh.py` (60/hour). First pass archived 2026-09-12 via `scripts/ingest_batch4.py`.
+Additive ingest on `main`. Skip trees already under `sources/`. Continue `scripts/download_skills_sh.py` (60/hour). Scripts: `ingest_batch4.py`, `deepen_batch4.py`.
 
 ## Priority 1 — Claude skill registries with APIs
 
-| Item | Dest | Notes |
+| Item | Dest | Status |
 | --- | --- | --- |
-| https://skillsmp.com/ `GET /api/v1/skills/search` | `sources/skillsmp.com/` | **Archived**: openapi + llms + popular sitemap 11,213 URLs + capped search |
-| https://www.agent37.com/skills + api.agent37.com | `sources/agent37.com/` | Public catalog if any |
-| https://agentskills.codes/ | `sources/agentskills.codes/` | Catalog / JSON feeds |
-| https://awesomeagentskills.dev/ | `sources/awesomeagentskills.dev/` | |
-| https://skillkit.io/ | `sources/skillkit.io/` | |
-| https://skillsclaude.org/skills | `sources/skillsclaude.org/` | |
-| jeremylongshore/tons-of-skills-marketplace (+ tonsofskills.com) | `sources/github/jeremylongshore-tons-of-skills-marketplace/` | |
-| junovale99/claude-skills-directory | `sources/github/junovale99-claude-skills-directory/` | |
-| FlorianBruniaux/claude-code-plugins | `sources/github/FlorianBruniaux-claude-code-plugins/` | |
-| L3DigitalNet/Claude-Code-Plugins | `sources/github/L3DigitalNet-Claude-Code-Plugins/` | |
-| anthropics/claude-plugins-community | `sources/github/anthropics-claude-plugins-community/` | Skip if already present |
+| skillsmp.com `GET /api/v1/skills/search` | `sources/skillsmp.com/` | **Archived**: openapi + llms + popular sitemap **11,213** + **2,002** search uniques + **1,978** GitHub raw SKILL.md. Search API has no file dump; anonymous 50/day. |
+| agent37.com/skills + api.agent37.com | `sources/agent37.com/` | Pages + sitemap. `/v1/skills` and `/v1/catalog` **401** (API key). |
+| agentskills.codes | `sources/agentskills.codes/` | **`GET /api/v1/skills` full catalog: 11,518**. Sitemap + llms.txt. No per-skill content API. |
+| awesomeagentskills.dev | `sources/awesomeagentskills.dev/` | Homepage HTML only (no sitemap/API). |
+| skillkit.io | `sources/skillkit.io/` | **403** Cloudflare/HTML challenge. |
+| skillsclaude.org/skills | `sources/skillsclaude.org/` | Next.js HTML; no public JSON/sitemap. |
+| jeremylongshore/tons-of-skills-marketplace + tonsofskills.com | `sources/github/jeremylongshore-tons-of-skills-marketplace/` + `sources/tonsofskills.com/` | Clone + site HTML |
+| junovale99 / FlorianBruniaux / L3DigitalNet | `sources/github/…` | Cloned |
+| anthropics/claude-plugins-community | `sources/github/anthropics-claude-plugins-community/` | Already present |
 
 ## Priority 2 — MCP / skill indexes
 
-| Item | Dest |
-| --- | --- |
-| dmgrok/agent_skills_directory (CDN JSON) | `sources/github/dmgrok-agent_skills_directory/` |
-| wookat/mcp-index `data/index.json` | `sources/github/wookat-mcp-index/` |
-| mcp.directory catalog | `sources/mcp.directory/` |
-| gengirish/skills-mcp, adarc8/skills-master-mcp, gotalab/skillport, GetSkill-Agent/getskill-mcp | `sources/github/…` |
-| team-telnyx/ai `/.well-known/agent-skills/index.json` | `sources/github/team-telnyx-ai/` |
-| microsoft/skills, android/skills | `sources/github/microsoft-skills/`, `sources/github/android-skills/` |
+| Item | Dest | Status |
+| --- | --- | --- |
+| dmgrok/agent_skills_directory | `sources/github/dmgrok-agent_skills_directory/` | Clone + **1,257** catalog.json skills |
+| wookat/mcp-index | `sources/github/wookat-mcp-index/` | `data/index.json` **4,209** MCP items |
+| mcp.directory | `sources/mcp.directory/` | llms.txt + sitemap (catalog first 4,000 URLs) |
+| gengirish / adarc8 / gotalab / GetSkill-Agent MCP repos | `sources/github/…` | Cloned |
+| team-telnyx/ai + well-known | `sources/github/team-telnyx-ai/` + `sources/telnyx.com-agent-skills/` | Repo clone + **247** discovery skills, **241** `.md` |
+| microsoft/skills, android/skills | `sources/github/microsoft-skills/`, `android-skills/` | Cloned (199 / 25 SKILL.md catalog rows) |
 
-## Priority 3 — OpenClaw / SOUL galleries
+## Priority 3 — OpenClaw / SOUL
 
-| Item | Dest |
-| --- | --- |
-| openclawskills.io/skills | `sources/openclawskills.io/` |
-| souls.directory | `sources/souls.directory/` |
-| openclawcheatsheet.com/gallery | `sources/openclawcheatsheet.com/` |
-| clawsouls/clawsouls, reisierx/famous-souls, tumf/greats-soul-archive | `sources/github/…` |
-| VoltAgent/awesome-openclaw-skills | `sources/github/VoltAgent-awesome-openclaw-skills/` |
+| Item | Dest | Status |
+| --- | --- | --- |
+| openclawskills.io/skills | `sources/openclawskills.io/` | Page + sitemap (8 URLs) |
+| souls.directory | `sources/souls.directory/` | llms.txt + large sitemap (catalog first 4,000) |
+| openclawcheatsheet.com/gallery | `sources/openclawcheatsheet.com/` | Gallery + sitemap **357** URLs |
+| clawsouls / famous-souls / greats-soul-archive | `sources/github/…` | Cloned |
+| VoltAgent/awesome-openclaw-skills | `sources/github/VoltAgent-awesome-openclaw-skills/` | Cloned |
 
 ## Priority 4 — more bots/agents/workflows
 
-botteams.ai, Anil-matcha/awesome-grok-bot, agentmarketplace.ai/browse, nodesphereai, agent.ceo, CrewForm/crewform, docs.crewship.ai, LangSmith Fleet + NirDiamant/awesome-LangGraph, marketinc.io/agents, tgent.com, bolna.ai, agenticskills.io, skillsplayground.com, agentdepot.dev/claude-code, app.kuchhbhi.in/skills.
+| Item | Dest | Status |
+| --- | --- | --- |
+| botteams.ai | `sources/botteams.ai/` | Homepage (API/llms later NXDOMAIN from this host) |
+| Anil-matcha/awesome-grok-bot | `sources/github/Anil-matcha-awesome-grok-bot/` | Cloned |
+| agentmarketplace.ai/browse | `sources/agentmarketplace.ai/` | Browse HTML + sitemap 180 URLs |
+| nodesphereai | `sources/nodesphereai/` | **NXDOMAIN** |
+| agent.ceo | `sources/agent.ceo/` | Home + registry + docs + llms.txt |
+| CrewForm/crewform + docs.crewship.ai | `sources/github/CrewForm-crewform/` + `sources/docs.crewship.ai/` | Clone + docs HTML; no public templates API |
+| LangSmith Fleet + NirDiamant/awesome-LangGraph | `sources/github/NirDiamant-awesome-LangGraph/` | Awesome cloned; Fleet is docs-only |
+| marketinc.io/agents, tgent.com, bolna.ai | `sources/marketinc.io/`, `tgent.com/`, `bolna.ai/` | Public HTML |
+| agenticskills.io, skillsplayground.com, agentdepot.dev, app.kuchhbhi.in/skills | matching `sources/` | HTML snapshots |

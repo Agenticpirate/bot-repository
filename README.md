@@ -69,7 +69,9 @@ This repository is a mirror for research and citation. **Canonical pages live on
 
 - [skills.sh](https://skills.sh/) — sitemap (~20k URLs) plus full `GET /api/download/{owner}/{repo}/{slug}` file contents where downloaded (API cap: 60/hour; resume via `scripts/download_skills_sh.py`)
 - [claude-skills-latest](sources/claude-skills-latest/) — 60-day Skillselion filter (2026-07-14 → 2026-09-12): **60442** recent metadata, **11049** with files, plus skills.sh `/hot` `/trending`, ClaudSkills SOTD, and maintained Claude skill repos
-- [skillsmp.com](https://skillsmp.com/) — public search API + popular sitemap (**11,213** skill URLs); unauthenticated search is capped
+- [skillsmp.com](https://skillsmp.com/) — public search API + popular sitemap (**11,213** skill URLs); **1,978** GitHub raw SKILL.md from search hits
+- [agentskills.codes](https://agentskills.codes/) — `GET /api/v1/skills` full catalog (**11,518** skills)
+- [telnyx.com agent-skills](https://telnyx.com/.well-known/agent-skills/index.json) — **247** discovery entries, **241** markdown files
 - [cursor.com/marketplace](https://cursor.com/marketplace) — public plugin/agent/skill listings (index HTML + per-listing metadata)
 - [n8nworkflows.xyz](https://n8nworkflows.xyz/) — **blocked** by Cloudflare from this host (see ERRORS.md)
 - [crewform.tech](https://crewform.tech/) — homepage only; no public catalog/API
@@ -141,6 +143,8 @@ sources/openagentskill.com/
 sources/skillselion.com/
 sources/claude-skills-latest/
 sources/skillsmp.com/
+sources/agentskills.codes/
+sources/telnyx.com-agent-skills/
 sources/claude-plugins.dev/
 sources/claude.com-docs/
 sources/claude.com-cowork/
@@ -298,18 +302,18 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | github/botpress-solutions | 173 |
 | n8n.io-workflows | 12326 |
 | skillsmp.com | 12268 |
-| agent37.com | 4 |
-| agentskills.codes | 2 |
+| agent37.com | 29 |
+| agentskills.codes | 11519 |
 | awesomeagentskills.dev | 2 |
 | skillkit.io | 1 (403) |
 | skillsclaude.org | 3 |
 | tonsofskills.com | 2 |
-| openclawskills.io | 2 |
-| souls.directory | 2 |
-| openclawcheatsheet.com | 3 |
-| mcp.directory | 2 |
+| openclawskills.io | 8 |
+| souls.directory | 4001 |
+| openclawcheatsheet.com | 358 |
+| mcp.directory | 4001 |
 | botteams.ai | 1 |
-| agentmarketplace.ai | 3 |
+| agentmarketplace.ai | 181 |
 | agenticskills.io | 2 |
 | skillsplayground.com | 2 |
 | agentdepot.dev | 3 |
@@ -333,17 +337,27 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | github/gotalab-skillport | 4 |
 | github/GetSkill-Agent-getskill-mcp | 1 |
 | github/team-telnyx-ai | 401 |
+| telnyx.com-agent-skills | 248 |
+| agent.ceo | 5 |
+| docs.crewship.ai | 2 |
+| marketinc.io | 2 |
+| tgent.com | 2 |
+| bolna.ai | 3 |
+| app.kuchhbhi.in | 2 |
+| nodesphereai | 1 (NXDOMAIN) |
 
 ## Fetch notes
 
-Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`, `scripts/download_skills_sh.py`, `scripts/ingest_priority_a.py`, `scripts/ingest_priority_b.py`, `scripts/ingest_priority_cd.py`, `scripts/ingest_claude_ecosystem.py`, `scripts/ingest_batch3.py`, `scripts/download_n8n_official.py`, `scripts/archive_claude_skills_latest.py`, `scripts/finish_claude_skills_latest.py`, `scripts/ingest_batch4.py`.
+Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`, `scripts/download_skills_sh.py`, `scripts/ingest_priority_a.py`, `scripts/ingest_priority_b.py`, `scripts/ingest_priority_cd.py`, `scripts/ingest_claude_ecosystem.py`, `scripts/ingest_batch3.py`, `scripts/download_n8n_official.py`, `scripts/archive_claude_skills_latest.py`, `scripts/finish_claude_skills_latest.py`, `scripts/ingest_batch4.py`, `scripts/deepen_batch4.py`.
 
 ## Caps / failures
 
-- **skills.sh** — full skill files via the download API (`files/` + hash). The API allows 60 requests/hour; **835** downloaded in `sources/skills.sh`, **19,152** remaining. Resume via `scripts/download_skills_sh.py`.
+- **skills.sh** — full skill files via the download API (`files/` + hash). The API allows 60 requests/hour; **838** downloaded in `sources/skills.sh`, **19,149** remaining. Resume via `scripts/download_skills_sh.py`.
 - **claude-skills-latest** — Skillselion `updatedAt` is a reindex stamp, so createdAt **or** updatedAt ≥ 2026-07-14 matches all **60,442** live skills. True `createdAt` in-window: **2,378** (**1,466** with files). Catalog: **62,817** rows, **11,049** `has_content`. skills.sh download API still 60/hour.
-- **skillsmp.com** — search requires `q`; unauthenticated totals are capped (`totalIsExact=false`). Popular sitemap has 11,213 skill URLs.
+- **skillsmp.com** — search requires `q`; anonymous REST 50/day. Popular sitemap 11,213 URLs. GitHub raw SKILL.md: 1,978 ok / 22 fail. No official content-download endpoint.
+- **agent37.com** — `api.agent37.com/v1/skills` and `/v1/catalog` HTTP 401 without API key.
 - **skillkit.io** — homepage HTTP 403 from this host.
+- **nodesphereai** — NXDOMAIN / no public host resolved.
 - **grokbothq.xyz** — 15 bot slugs ending in `_` have no `.md` variant; HTML saved instead.
 - **cursor.com/marketplace** — index HTML plus per-listing metadata; full listing HTML discarded (duplicate ~1.4 MiB Next.js shells).
 - **n8nworkflows.xyz** — Cloudflare 403 on retry; 0 workflow JSON files.

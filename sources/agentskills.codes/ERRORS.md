@@ -1,3 +1,3 @@
 # agentskills.codes
 
-None.
+List API only; no unauthenticated SKILL.md dump.
