@@ -1,20 +1,21 @@
 # skills.sh errors
 
-Updated: 2026-09-12T16:30:53Z
+Updated: 2026-09-12T16:32:03Z
 
 ## Rate limit
 
 Live `GET /api/download/{owner}/{repo}/{slug}` returns HTTP 429 `{"error":"rate_limit_exceeded","message":"Rate limit exceeded. Maximum 60 requests per hour."}` with `Retry-After: 60`.
 
-Target is all 19998 sitemap ids. 2051 have full `files/` + hash. 17914 remain.
+Target is all 19998 sitemap ids. 2068 have full `files/` + hash. 17896 remain.
 At 50 successful downloads/hour this is a multi-day resume job. The downloader is resume-friendly and stays under the cap.
 
 ## Permanent misses
 
-33 ids returned HTTP 404 from the download API; page HTML was saved once.
+34 ids returned HTTP 404 from the download API; page HTML was saved once.
 
 Recent failures / fallbacks:
 
-- `affaan-m/ecc/perl-testing` rate_limited: HTTP 429 rate_limit_exceeded (60/hour)
+- `flutter/agent-plugins/flutter-setting-up-on-macos` html_fallback: HTTP 404
+- `elevenlabs/skills/speech-to-text` rate_limited: HTTP 429 rate_limit_exceeded (60/hour)
 
 Resume: `python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`
