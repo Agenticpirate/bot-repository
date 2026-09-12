@@ -1,0 +1,88 @@
+---
+name: prath-mode
+description: >
+  Route user-invoked work to the owning skill in prathamdby/skills, including
+  multi-step delivery workflows.
+disable-model-invocation: true
+---
+
+# Prath mode
+
+The leaf owns its triggers, flags, procedure, and terminal states. Read it
+before acting. Never recreate a missing leaf or copy its procedure here.
+
+## Routing map
+
+| Immediate action                                           | Leaf                                        |
+| ---------------------------------------------------------- | ------------------------------------------- |
+| Commit scoped changes                                      | `commit` (`../commit/SKILL.md`)             |
+| Remove code slop                                           | `deslop` (`../deslop/SKILL.md`)             |
+| Create or update a PR                                      | `make-pr` (`../make-pr/SKILL.md`)           |
+| Address PR feedback                                        | `fix-pr` (`../fix-pr/SKILL.md`)             |
+| Inspect a PR, read threads, why CI is red, or post a reply | `gh` (`../gh/SKILL.md`)                     |
+| Review a plan, design, implementation, or proposal         | `peer-review` (`../peer-review/SKILL.md`)   |
+| Select among candidates or score progress                  | `verify` (`../verify/SKILL.md`)             |
+| Explain a diff as HTML                                     | `explain-diff` (`../explain-diff/SKILL.md`) |
+| Map or refresh the current repo                            | `recon` (`../recon/SKILL.md`)               |
+| Clone or search an external repo                           | `box` (`../box/SKILL.md`)                   |
+| Coordinate current-harness subagents                       | `orchestrate` (`../orchestrate/SKILL.md`)   |
+| Save or resume session state                               | `handoff` (`../handoff/SKILL.md`)           |
+| Launch Cursor Agent CLI                                    | `cursor-agent` (`../cursor-agent/SKILL.md`) |
+| Launch Claude Code CLI                                     | `claude-code` (`../claude-code/SKILL.md`)   |
+| Launch Codex CLI                                           | `codex` (`../codex/SKILL.md`)               |
+
+For one action, route to its leaf. Use `orchestrate` for several in-harness
+delegates. Chain only for a complete terminal outcome; several explicit
+outcomes select the matching chain. A review-shaped ask stays on
+`peer-review`. Do not prepend it to Ship planned work.
+Orientation or reply-only terminals go to `gh`; any fix, push, or "handle
+review feedback" stays `fix-pr`. `fix-pr` loads `gh` for GitHub I/O. `/gh`
+never continues into `fix-pr`.
+
+## Workflow chains
+
+| Requested outcome                 | Ordered owners                                                   | Complete when                                 |
+| --------------------------------- | ---------------------------------------------------------------- | --------------------------------------------- |
+| Ship planned work                 | implementation → `deslop` → `commit` → `make-pr`                 | planned work diff tested and PR URL verified  |
+| Save current work                 | optional `deslop` → `commit`                                     | new commit verified                           |
+| Finish PR feedback                | `fix-pr`                                                         | `fix-pr` report complete                      |
+| Inspect PR or CI, or post a reply | `gh`                                                             | script report or reply URL verified           |
+| Understand current repo           | `recon`                                                          | memory and report verified                    |
+| Research external code            | `box`                                                            | cited answer returned                         |
+| End or resume work                | `handoff`                                                        | create or resume terminal state               |
+
+Implementation is normal agent work, not a leaf. `fix-pr` already owns its
+fix, commit, push, re-hunt, and reply loop; never append those actions.
+`deslop` is required in Ship planned work and optional in custom or Save chains.
+Resolve mixed staged/unstaged paths before it. Implementation is done when the
+planned work's diff and relevant tests are recorded.
+
+## 1. Match
+
+Record a run ledger:
+
+`route | current owner | completed owners | diff/tests | terminal`
+
+If no route matches, ask one question about the intended outcome. Done when one
+leaf or chain and its terminal condition are recorded.
+
+## 2. Verify installation
+
+Resolve each leaf path relative to this file and verify it exists before the
+chain starts and before its turn. If any are missing, report every missing name
+and checked path, then stop with:
+`npx skills@latest add prathamdby/skills`
+
+Done when all required paths exist or the missing-skill report is sent.
+
+## 3. Invoke and resume
+
+Read the current leaf in full and run it to one of its terminal states. Advance
+only after success or no-op; pause the chain on blocked or waiting. After an
+interruption, verify the last owner's artifacts before continuing.
+
+Before `make-pr`, require a clean tree. For implementation, verify the
+planned work diff and test evidence in the ledger.
+
+Done when the recorded chain terminal condition is observed or the current
+leaf has reported why progress paused.
