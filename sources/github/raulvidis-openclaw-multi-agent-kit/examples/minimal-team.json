@@ -1,0 +1,99 @@
+{
+  "_comment": "Minimal 3-agent setup: orchestrator + coder + QA",
+  "_note": "Replace YOUR_BOT_TOKEN_X, YOUR_GROUP_ID, and TOPIC_BUILD with your values. Models intentionally unbound — agents inherit the OpenClaw runtime default.",
+
+  "agents": {
+    "defaults": {
+      "workspace": "/home/YOUR_USER/.openclaw/workspace",
+      "maxConcurrent": 2
+    },
+    "list": [
+      {
+        "id": "orchestrator",
+        "workspace": "/home/YOUR_USER/.openclaw/workspace/"
+      },
+      {
+        "id": "coder",
+        "workspace": "/home/YOUR_USER/.openclaw/workspace/agents/coder/"
+      },
+      {
+        "id": "qa",
+        "workspace": "/home/YOUR_USER/.openclaw/workspace/agents/qa/"
+      }
+    ]
+  },
+
+  "skills": {
+    "enabled": true
+  },
+
+  "acp": {
+    "enabled": true,
+    "backend": "acpx",
+    "defaultAgent": "claude",
+    "allowedAgents": ["claude", "codex", "opencode"]
+  },
+
+  "bindings": [
+    { "agentId": "coder", "match": { "channel": "telegram", "accountId": "coder" } },
+    { "agentId": "qa", "match": { "channel": "telegram", "accountId": "qa" } }
+  ],
+
+  "session": {
+    "dmScope": "per-channel-peer"
+  },
+
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "threadBindings": {
+        "spawnSessions": true,
+        "idleHours": 48
+      },
+      "accounts": {
+        "default": {
+          "botToken": "YOUR_ORCHESTRATOR_BOT_TOKEN",
+          "dmPolicy": "pairing",
+          "groups": {
+            "YOUR_GROUP_ID": {
+              "requireMention": false,
+              "groupPolicy": "open",
+              "enabled": true,
+              "topics": {
+                "1": { "requireMention": false, "enabled": true }
+              }
+            }
+          }
+        },
+        "coder": {
+          "botToken": "YOUR_CODER_BOT_TOKEN",
+          "dmPolicy": "pairing",
+          "groups": {
+            "YOUR_GROUP_ID": {
+              "requireMention": true,
+              "groupPolicy": "open",
+              "enabled": true,
+              "topics": {
+                "TOPIC_BUILD": { "requireMention": true, "enabled": true }
+              }
+            }
+          }
+        },
+        "qa": {
+          "botToken": "YOUR_QA_BOT_TOKEN",
+          "dmPolicy": "pairing",
+          "groups": {
+            "YOUR_GROUP_ID": {
+              "requireMention": true,
+              "groupPolicy": "open",
+              "enabled": true,
+              "topics": {
+                "TOPIC_BUILD": { "requireMention": true, "enabled": true }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

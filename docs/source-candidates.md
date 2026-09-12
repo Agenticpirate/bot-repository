@@ -53,8 +53,15 @@ Do not invent serials or scrape private data.
 | [moldable.sh](https://moldable.sh/bots) | sitemap + docs + GitHub packs | 70 site URLs; apps/skills clones. |
 | [officialskills.sh](https://officialskills.sh/) | sitemap 741 | Official vendor skill pages. |
 | [smithery.ai](https://smithery.ai/) | `GET /skills` | 420 uniques; 5×100 cap. |
-| [clawskills.sh](https://clawskills.sh/) | homepage hrefs | 5167 skill slugs; 2000 pages fetched. |
+| [clawskills.sh](https://clawskills.sh/) | homepage hrefs | 5167 skill slugs; remaining HTML fetched in batch 6. |
 | [skillsllm.com](https://skillsllm.com/) | sitemap `/skill/` | 5033 skill HTML pages. |
+| [clawhub.ai](https://clawhub.ai/) | `/api/v1/skills` + SKILL.md | Official registry; clawhub.com alias. See batch 6. |
+| [openclaw.com.au/skills](https://openclaw.com.au/skills) | sitemap | Guide pages only. |
+| [agent.soulid.io](https://agent.soulid.io/) | homepage hrefs | Marketplace HTML; SOUL bodies in cerealskill pack. |
+| [cerealskill/openclaw-agents](https://github.com/cerealskill/openclaw-agents) | GitHub shallow clone | 527 SOUL.md + 522 IDENTITY.md. |
+| [thedaviddias/souls-directory](https://github.com/thedaviddias/souls-directory) | GitHub shallow clone | Site source, not a SOUL dump. |
+| [raulvidis/openclaw-multi-agent-kit](https://github.com/raulvidis/openclaw-multi-agent-kit) | GitHub shallow clone | Templates. |
+| [Humain-Cloud/HumAIn-Uno](https://github.com/Humain-Cloud/HumAIn-Uno) | GitHub shallow clone | TypeScript seeds; no SKILL/SOUL.md. |
 
 ## Possible later
 
@@ -68,6 +75,6 @@ Do not invent serials or scrape private data.
 | Arahi / AI Hive | Mentioned as optional | Skipped; no clean public feed found this pass. |
 | crewform.tech catalog | Visual orchestration product | No public listing API. |
 
-See [source-candidates-batch2.md](source-candidates-batch2.md) for Priority A–D of the second ingest, [source-candidates-batch5.md](source-candidates-batch5.md) for Vellum / Moldable / officialskills / Smithery / ClawSkills / SkillsLLM.
+See [source-candidates-batch2.md](source-candidates-batch2.md) for Priority A–D of the second ingest, [source-candidates-batch5.md](source-candidates-batch5.md) for Vellum / Moldable / officialskills / Smithery / ClawSkills / SkillsLLM, [source-candidates-batch6.md](source-candidates-batch6.md) for ClawHub / SOUL galleries.
 
 Add a row under Confirmed when a new `sources/` tree lands.

@@ -1,0 +1,255 @@
+{
+  "_comment": "Full 10-agent team configuration for openclaw.json",
+  "_note": "Replace YOUR_BOT_TOKEN_X, YOUR_GROUP_ID, and topic numbers with your values. Models intentionally unbound — each agent inherits the OpenClaw runtime default, so this config runs on whatever provider/model you have configured.",
+
+  "agents": {
+    "defaults": {
+      "workspace": "/home/YOUR_USER/.openclaw/workspace",
+      "maxConcurrent": 4
+    },
+    "list": [
+      {
+        "id": "orchestrator",
+        "workspace": "/home/YOUR_USER/.openclaw/workspace/",
+        "subagents": { "allowAgents": ["*"] }
+      },
+      {
+        "id": "coder",
+        "workspace": "/home/YOUR_USER/.openclaw/workspace/agents/coder/"
+      },
+      {
+        "id": "qa",
+        "workspace": "/home/YOUR_USER/.openclaw/workspace/agents/qa/"
+      },
+      {
+        "id": "devops",
+        "workspace": "/home/YOUR_USER/.openclaw/workspace/agents/devops/"
+      },
+      {
+        "id": "researcher",
+        "workspace": "/home/YOUR_USER/.openclaw/workspace/agents/researcher/"
+      },
+      {
+        "id": "growth",
+        "workspace": "/home/YOUR_USER/.openclaw/workspace/agents/growth/"
+      },
+      {
+        "id": "content",
+        "workspace": "/home/YOUR_USER/.openclaw/workspace/agents/content/"
+      },
+      {
+        "id": "community",
+        "workspace": "/home/YOUR_USER/.openclaw/workspace/agents/community/"
+      },
+      {
+        "id": "leadgen",
+        "workspace": "/home/YOUR_USER/.openclaw/workspace/agents/leadgen/"
+      },
+      {
+        "id": "ops",
+        "workspace": "/home/YOUR_USER/.openclaw/workspace/agents/ops/"
+      }
+    ]
+  },
+
+  "skills": {
+    "enabled": true
+  },
+
+  "acp": {
+    "enabled": true,
+    "backend": "acpx",
+    "defaultAgent": "claude",
+    "allowedAgents": ["claude", "codex", "opencode", "gemini", "pi"]
+  },
+
+  "bindings": [
+    { "agentId": "coder", "match": { "channel": "telegram", "accountId": "coder" } },
+    { "agentId": "qa", "match": { "channel": "telegram", "accountId": "qa" } },
+    { "agentId": "devops", "match": { "channel": "telegram", "accountId": "devops" } },
+    { "agentId": "researcher", "match": { "channel": "telegram", "accountId": "researcher" } },
+    { "agentId": "growth", "match": { "channel": "telegram", "accountId": "growth" } },
+    { "agentId": "content", "match": { "channel": "telegram", "accountId": "content" } },
+    { "agentId": "community", "match": { "channel": "telegram", "accountId": "community" } },
+    { "agentId": "leadgen", "match": { "channel": "telegram", "accountId": "leadgen" } },
+    { "agentId": "ops", "match": { "channel": "telegram", "accountId": "ops" } },
+    {
+      "type": "acp",
+      "agentId": "coder",
+      "match": {
+        "channel": "telegram",
+        "accountId": "default",
+        "peer": { "kind": "group", "id": "YOUR_GROUP_ID:topic:YOUR_CODING_TOPIC_ID" }
+      },
+      "acp": {
+        "label": "coding",
+        "mode": "persistent",
+        "cwd": "/path/to/your/project"
+      }
+    }
+  ],
+
+  "session": {
+    "dmScope": "per-channel-peer"
+  },
+
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "threadBindings": {
+        "spawnSessions": true,
+        "idleHours": 48
+      },
+      "accounts": {
+        "default": {
+          "botToken": "YOUR_ORCHESTRATOR_BOT_TOKEN",
+          "dmPolicy": "pairing",
+          "groups": {
+            "YOUR_GROUP_ID": {
+              "requireMention": false,
+              "groupPolicy": "open",
+              "enabled": true,
+              "topics": {
+                "1": { "requireMention": false, "enabled": true },
+                "TOPIC_BUILD": { "enabled": false },
+                "TOPIC_RESEARCH": { "enabled": false },
+                "TOPIC_SOCIAL": { "enabled": false },
+                "TOPIC_LEADS": { "enabled": false },
+                "TOPIC_OPS": { "enabled": false }
+              }
+            }
+          }
+        },
+        "coder": {
+          "botToken": "YOUR_CODER_BOT_TOKEN",
+          "dmPolicy": "pairing",
+          "threadBindings": {
+            "spawnSessions": true
+          },
+          "groups": {
+            "YOUR_GROUP_ID": {
+              "requireMention": true,
+              "groupPolicy": "open",
+              "enabled": true,
+              "topics": {
+                "TOPIC_BUILD": { "requireMention": true, "enabled": true }
+              }
+            }
+          }
+        },
+        "qa": {
+          "botToken": "YOUR_QA_BOT_TOKEN",
+          "dmPolicy": "pairing",
+          "groups": {
+            "YOUR_GROUP_ID": {
+              "requireMention": true,
+              "groupPolicy": "open",
+              "enabled": true,
+              "topics": {
+                "TOPIC_BUILD": { "requireMention": true, "enabled": true }
+              }
+            }
+          }
+        },
+        "devops": {
+          "botToken": "YOUR_DEVOPS_BOT_TOKEN",
+          "dmPolicy": "pairing",
+          "groups": {
+            "YOUR_GROUP_ID": {
+              "requireMention": true,
+              "groupPolicy": "open",
+              "enabled": true,
+              "topics": {
+                "TOPIC_BUILD": { "requireMention": true, "enabled": true }
+              }
+            }
+          }
+        },
+        "researcher": {
+          "botToken": "YOUR_RESEARCHER_BOT_TOKEN",
+          "dmPolicy": "pairing",
+          "groups": {
+            "YOUR_GROUP_ID": {
+              "requireMention": true,
+              "groupPolicy": "open",
+              "enabled": true,
+              "topics": {
+                "TOPIC_RESEARCH": { "requireMention": true, "enabled": true }
+              }
+            }
+          }
+        },
+        "growth": {
+          "botToken": "YOUR_GROWTH_BOT_TOKEN",
+          "dmPolicy": "pairing",
+          "groups": {
+            "YOUR_GROUP_ID": {
+              "requireMention": true,
+              "groupPolicy": "open",
+              "enabled": true,
+              "topics": {
+                "TOPIC_RESEARCH": { "requireMention": true, "enabled": true }
+              }
+            }
+          }
+        },
+        "content": {
+          "botToken": "YOUR_CONTENT_BOT_TOKEN",
+          "dmPolicy": "pairing",
+          "groups": {
+            "YOUR_GROUP_ID": {
+              "requireMention": true,
+              "groupPolicy": "open",
+              "enabled": true,
+              "topics": {
+                "TOPIC_SOCIAL": { "requireMention": true, "enabled": true }
+              }
+            }
+          }
+        },
+        "community": {
+          "botToken": "YOUR_COMMUNITY_BOT_TOKEN",
+          "dmPolicy": "pairing",
+          "groups": {
+            "YOUR_GROUP_ID": {
+              "requireMention": true,
+              "groupPolicy": "open",
+              "enabled": true,
+              "topics": {
+                "TOPIC_SOCIAL": { "requireMention": true, "enabled": true }
+              }
+            }
+          }
+        },
+        "leadgen": {
+          "botToken": "YOUR_LEADGEN_BOT_TOKEN",
+          "dmPolicy": "pairing",
+          "groups": {
+            "YOUR_GROUP_ID": {
+              "requireMention": true,
+              "groupPolicy": "open",
+              "enabled": true,
+              "topics": {
+                "TOPIC_LEADS": { "requireMention": false, "enabled": true }
+              }
+            }
+          }
+        },
+        "ops": {
+          "botToken": "YOUR_OPS_BOT_TOKEN",
+          "dmPolicy": "pairing",
+          "groups": {
+            "YOUR_GROUP_ID": {
+              "requireMention": true,
+              "groupPolicy": "open",
+              "enabled": true,
+              "topics": {
+                "TOPIC_OPS": { "requireMention": false, "enabled": true }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,241 @@
+# OpenClaw Agents — Multi-Agent Telegram Supergroup Templates
+
+> **Production-tested templates for building AI agent teams on [OpenClaw](https://openclaw.sh) with Telegram supergroup integration.**
+
+This is an **OpenClaw-specific** project. These templates are designed to run on the OpenClaw platform — they use OpenClaw's agent system, workspace structure, session management, `sessions_send` for bot-to-bot communication, and Telegram channel bindings. If you're not running OpenClaw, these won't work out of the box.
+
+Built from a real production setup running 10 autonomous agents coordinated through a Telegram supergroup with dedicated topic channels. Each agent has its own bot, personality, workspace, and domain expertise.
+
+---
+
+## Credits & Inspiration
+
+Agent personality patterns and the concept of specialized AI agent divisions are inspired by **[The Agency](https://github.com/msitarzewski/agency-agents)** by [@msitarzewski](https://github.com/msitarzewski) — a collection of 55+ specialized AI agent personalities built for Claude Code. Great resource for agent design philosophy, personality crafting, and workflow patterns regardless of what platform you run.
+
+What we build here is different: the **operational infrastructure** for running those kinds of agents as a live, coordinated team on OpenClaw — with Telegram supergroups, shared context files, bot-to-bot triggers, cron schedules, topic-based team channels, and structured escalation chains.
+
+---
+
+## What Is This?
+
+A complete template kit for deploying a multi-agent team on **OpenClaw + Telegram**:
+
+- **SOUL.md templates** — Agent personality and behavior definitions
+- **IDENTITY.md templates** — Agent metadata and capabilities
+- **Workspace templates** — Shared context, memory, and coordination files
+- **openclaw.json snippets** — Configuration for agents, bindings, channels, and teams
+- **AI Instructions** — Step-by-step setup guide written for AI agents to follow
+- **Architecture docs** — How agents communicate, escalate, and share context
+
+---
+
+## Architecture Overview
+
+```
+                    ┌──────────┐
+                    │  You 👑   │
+                    └────┬─────┘
+                         │
+                    ┌────▼─────┐
+                    │Lead Agent│ Orchestrator
+                    └────┬─────┘
+          ┌──────────────┼──────────────┐
+          │              │              │
+    ┌─────▼─────┐  ┌────▼────┐  ┌─────▼─────┐
+    │ RESEARCH  │  │  BUILD  │  │  MARKET   │
+    │  Team     │  │  Team   │  │  Team     │
+    └─────┬─────┘  └────┬────┘  └─────┬─────┘
+          │              │              │
+    Research +     Code → QA →    Content +
+    Analytics      Deploy          Community
+```
+
+### Key Concepts
+
+- **Three Telegram routing models** — multi-bot routing, native topic routing, and DM forum topics
+- **Multi-bot routing** — Each agent has its own Telegram bot token and visible identity
+- **Native topic routing** — One Telegram bot can route different topics to different internal agents via `topics.<id>.agentId`
+- **One topic per team** — Teams share a topic channel in a supergroup
+- **Primary + Secondary agents** — Primary owns the topic; secondary responds when mentioned or triggered
+- **Shared context via files** — Agents coordinate through shared markdown files, not APIs
+- **Structured escalation** — Clear rules for when to escalate up the chain
+
+### Important Telegram Routing Caveat
+
+In native topic routing, `agentId` controls the **internal OpenClaw agent** that handles the message — workspace, memory, tools, prompt, model, session.
+
+It does **not** control the **visible Telegram bot identity**.
+
+So this:
+
+```json5
+"13": { agentId: "connor" }
+```
+
+means Topic 13 is handled by the `connor` agent internally, but replies still come from whichever Telegram account is attached to that group/topic (often the default/orchestrator bot).
+
+Use this rule of thumb:
+
+- **Want one visible bot with many internal specialist brains?** Use native topic routing.
+- **Want Connor to look like Connor and Kara to look like Kara?** Use multi-bot routing.
+
+---
+
+## Quick Start
+
+### For Humans
+
+See [`docs/supergroup-setup.md`](docs/supergroup-setup.md) for the full step-by-step guide.
+
+### For AI Agents
+
+See [`INSTRUCTIONS.md`](INSTRUCTIONS.md) — a complete setup guide written specifically for AI agents to follow. Give it to your orchestrator agent and let it handle the setup.
+
+---
+
+## Templates
+
+### Soul Templates (Agent Personalities)
+
+| Template | Role |
+|----------|------|
+| [Orchestrator](templates/soul/orchestrator.md) | Lead agent — coordinates all others |
+| [Coding Agent](templates/soul/coding-agent.md) | Software engineering specialist |
+| [QA Agent](templates/soul/qa-agent.md) | Testing and quality assurance |
+| [DevOps Agent](templates/soul/devops-agent.md) | Infrastructure and deployment |
+| [Research Agent](templates/soul/research-agent.md) | Market research and intelligence |
+| [Growth Agent](templates/soul/growth-agent.md) | Analytics and growth experiments |
+| [Content Agent](templates/soul/content-agent.md) | Social media content creation |
+| [Community Agent](templates/soul/community-agent.md) | Community engagement (Reddit, forums) |
+| [Lead Gen Agent](templates/soul/leadgen-agent.md) | Prospect research and lead scoring |
+| [Ops Agent](templates/soul/ops-agent.md) | Email, calendar, and data management |
+
+See [templates/soul/README.md](templates/soul/README.md) for the full role catalog, adaptation checklist, and advanced OpenClaw practices.
+
+### Identity Template
+
+| Template | Purpose |
+|----------|---------|
+| [Agent Identity](templates/identity/agent-identity.md) | Standard identity template for any agent |
+
+### Workspace Templates
+
+| Template | Purpose |
+|----------|---------|
+| [THESIS.md](templates/workspace/THESIS.md) | Business thesis — north star for all agents |
+| [SIGNALS.md](templates/workspace/SIGNALS.md) | Shared intelligence hub |
+| [FEEDBACK-LOG.md](templates/workspace/FEEDBACK-LOG.md) | Style corrections and lessons |
+| [SUPERGROUP-MAP.md](templates/workspace/SUPERGROUP-MAP.md) | Topic and agent mapping |
+| [AGENTS.md](templates/workspace/AGENTS.md) | Orchestrator operations guide |
+
+### Skill Templates (SKILL.md)
+
+| Template | Purpose |
+|----------|---------|
+| [Skills Index](templates/skills/README.md) | Overview + placement guidance |
+| [coding-handoff](templates/skills/coding-handoff/SKILL.md) | Build→QA→Deploy handoff lifecycle |
+| [research-intel](templates/skills/research-intel/SKILL.md) | Signal extraction + confidence scoring |
+| [leadgen-qualification](templates/skills/leadgen-qualification/SKILL.md) | ICP scoring + outreach routing |
+| [content-repurpose](templates/skills/content-repurpose/SKILL.md) | Cross-channel post repurposing |
+| [ops-triage](templates/skills/ops-triage/SKILL.md) | Priority routing for inbox/calendar/tasks |
+| [telegram-topic-setup](templates/skills/telegram-topic-setup/SKILL.md) | Automated topic creation and agent binding |
+| [acpx-session](templates/skills/acpx-session/SKILL.md) | ACPX session management patterns for agents |
+
+OpenClaw v2026.3.24+ includes a native Skills system with one-click install from [ClawHub](https://clawhub.com), Control UI management, and CLI tools. All templates above are compatible with the native system. See [docs/skills-system.md](docs/skills-system.md) for details.
+
+---
+
+## Team Configurations
+
+### Build Team (Code > QA > Deploy)
+
+**Topic:** Single shared topic
+**Agents:** Coder (primary) + QA (secondary) + DevOps (secondary)
+**Flow:** Coder builds > triggers QA via `sessions_send` > QA tests > triggers DevOps > DevOps deploys
+
+### Research Team
+
+**Topic:** Single shared topic
+**Agents:** Researcher (primary) + Growth Analyst (secondary)
+**Flow:** Researcher posts findings > triggers Analyst for metrics/experiments
+
+### Social Team
+
+**Topic:** Single shared topic
+**Agents:** Content Creator (primary) + Community Manager (secondary)
+**Flow:** Content posted on Twitter <> adapted for Reddit, cross-pollination of insights
+
+---
+
+## Agent Communication
+
+### Bot-to-Bot via sessions_send
+
+Telegram bots **cannot** see each other's messages. This is a Telegram limitation. Use OpenClaw's `sessions_send` to trigger teammates.
+
+Use the enforced handoff format documented here:
+- [Inter-Agent Handoff Standard](docs/inter-agent-handoff-standard.md)
+
+Quick example:
+
+```
+sessions_send(agentId="qa-agent", message="HANDOFF\nfrom: coder\nto: qa\ntask_id: build-142\npriority: P1\nsummary: Validate checkout fix\ncontext: branch=fix/coupon-rounding\ndeliver_to: telegram:-1001234567890:13\ndeadline: asap\ndone_when:\n- Repro no longer fails\n- Regression checks pass")
+```
+
+The receiving agent gets the message as a new session input and posts ACK + DONE updates in the shared topic.
+
+### ACPX Coding Subagents
+
+Agents can delegate coding work to dedicated coding agents (Claude Code, Codex, OpenCode) via [ACPX](https://github.com/openclaw/acpx):
+
+1. Define a coder agent with `runtime.type: "acp"` in openclaw.json
+2. Other agents trigger it via `sessions_spawn(runtime="acp")` from a subagent session
+3. Or use `/acp spawn codex --thread here` from a Telegram forum topic to turn it into a coding workspace (the `--bind here` flag works on Discord / BlueBubbles / iMessage but not on Telegram)
+
+See [docs/acpx-telegram.md](docs/acpx-telegram.md) for the full guide.
+
+### Shared Context via Files
+
+| File | Purpose |
+|------|---------|
+| `THESIS.md` | Business direction — all agents read |
+| `SIGNALS.md` | Intelligence hub — research writes, everyone reads |
+| `FEEDBACK-LOG.md` | Style corrections — any agent writes, all read |
+
+---
+
+## Examples
+
+- [`examples/full-team.json`](examples/full-team.json) — Complete 10-agent team config
+- [`examples/minimal-team.json`](examples/minimal-team.json) — Minimal 3-agent setup (orchestrator + coder + QA)
+
+---
+
+## Docs
+
+Every doc carries `summary:`/`read_when:` frontmatter; [docs/index.md](docs/index.md) is the full index.
+
+- [INSTRUCTIONS.md](INSTRUCTIONS.md) — **AI-readable setup guide** (give this to your agent)
+- [Architecture](docs/architecture.md) — Repo structure, platform concepts, editing checklists
+- [Agent Design Patterns](docs/agent-design-patterns.md) — How to write effective SOUL.md files
+- [Supergroup Setup Guide](docs/supergroup-setup.md) — Step-by-step Telegram setup
+- [Telegram Channel Architecture](docs/telegram-channel-architecture.md) — Production lane design for topic routing
+- [Telegram DM Topics Guide](docs/telegram-dm-topics.md) — How to create and use forum topics inside a direct chat
+- [Scaling Your Team](docs/scaling.md) — Adding new agents and teams
+- [Advanced OpenClaw Practices](docs/advanced-openclaw-practices.md) — High-leverage patterns for real multi-agent ops
+- [Skills System](docs/skills-system.md) — Native OpenClaw skills, ClawHub marketplace, creating custom skills
+- [ACPX for Telegram](docs/acpx-telegram.md) — Using ACPX as a Telegram coding agent backend
+
+---
+
+## Contributing
+
+PRs welcome. If you build a useful agent template or team configuration, share it.
+
+## License
+
+MIT
+
+---
+
+*Agent personality patterns inspired by [The Agency](https://github.com/msitarzewski/agency-agents) by [@msitarzewski](https://github.com/msitarzewski). OpenClaw operational layer by [@raulvidis](https://github.com/raulv).*

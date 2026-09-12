@@ -1,0 +1,354 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── NextAuth Models ────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String  @id @default(cuid())
+  sessionToken String  @unique
+  userId       String
+  expires      DateTime
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Core Models ────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  emailVerified DateTime?
+  image         String?
+  role          String    @default("user") // "user" | "admin"
+  bio           String?
+  accounts      Account[]
+  sessions      Session[]
+  agents        Agent[]   @relation("UserAgents")
+  stars         Star[]
+  comments      Comment[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Category {
+  id       String   @id @default(cuid())
+  name     String   @unique
+  slug     String   @unique
+  icon     String?
+  parentId String?
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+  agents   Agent[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Agent {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+  creatorId   String
+  creator     User     @relation("UserAgents", fields: [creatorId], references: [id])
+  privacy     String   @default("PRIVATE") // "PRIVATE" | "PUBLIC" | "UNLISTED"
+  source      String?  // "knowledge_base" | "fork" | "scratch" | "template" | "ai"
+  parentId    String?  // for forks
+  parent      Agent?   @relation("ForkedFrom", fields: [parentId], references: [id])
+  children    Agent[]  @relation("ForkedFrom")
+  readme      String   // markdown
+  code        String?  // full code bundle
+  stars       Int      @default(0)
+  tags        String   // JSON array stored as string
+  framework   String?  // langgraph, crewai, autogen, agno, llamaindex, etc.
+  llm         String?  // gpt-4o, claude, etc.
+  industry    String?  // healthcare, finance, etc.
+  difficulty  String?  // beginner, intermediate, advanced
+  language    String?  // python, typescript, etc.
+
+  // ─── Lifecycle & Workspace Fields ──────────────────────────────
+  status        String  @default("draft")  // "draft" | "active" | "testing" | "deployed" | "archived"
+  healthScore   Int     @default(0)        // 0-100 health score
+  systemPrompt  String? // system prompt / instruction
+  tools         String  @default("[]")     // JSON array of tool names
+  configJson    String  @default("{}")     // JSON object for agent-specific config
+  version       Int     @default(1)        // version counter
+  thumbnailUrl  String? // optional thumbnail/icon URL
+  deployUrl     String? // deployment endpoint URL if deployed
+  lastTestedAt  DateTime?
+  lastDeployedAt DateTime?
+  totalRequests Int     @default(0)        // total API calls/requests
+  avgLatencyMs  Int     @default(0)        // average response latency
+  errorRate     Float   @default(0)        // error rate 0-1
+
+  starredBy      Star[]
+  comments       Comment[]
+  versions       AgentVersion[]
+  deployments    AgentDeployment[]
+  analytics      AgentAnalytics[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([name])
+  @@index([categoryId])
+  @@index([creatorId])
+  @@index([framework])
+  @@index([industry])
+  @@index([privacy])
+  @@index([status])
+  @@index([healthScore])
+}
+
+model KnowledgeAgent {
+  id          String   @id @default(cuid())
+  name        String
+  category    String
+  description String
+  tools       String   // JSON array stored as string
+  models      String   // JSON array stored as string
+  repoPath    String   // relative path in cloned repo
+  readme      String
+  codeSnippet String?
+  framework   String?
+  llm         String?
+  industry    String?
+  difficulty  String?
+  language    String?
+  tags        String   // JSON array stored as string
+  author      String?
+  isCurated   Boolean  @default(true)
+  featured    Boolean  @default(false)
+  sourceUrl   String?  // external GitHub link if from README tables
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([name])
+  @@index([framework])
+  @@index([industry])
+  @@index([category])
+}
+
+model Star {
+  id        String   @id @default(cuid())
+  userId    String
+  agentId   String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, agentId])
+  @@index([agentId])
+  @@index([userId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  userId    String
+  agentId   String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agentId])
+  @@index([userId])
+}
+
+// ─── LLM Model Explorer ────────────────────────────────────────────
+
+model LLMModel {
+  id                    String   @id @default(cuid())
+  arenaKey              String   @unique // model key from Arena.ai (e.g., "claude-opus-4-6-thinking")
+  name                  String   // display name
+  organization          String   // Anthropic, OpenAI, Google, etc.
+  provider              String?  // underlying provider from Arena.ai
+  license               String   // Proprietary, MIT, Apache 2.0, etc.
+  modelUrl              String?  // official URL
+  arenaId               String?  // Arena.ai UUID
+
+  // Rankings & ratings
+  bestRank              Int      @default(9999)
+  bestRating            Float    @default(0)
+  totalVotes            Int      @default(0)
+
+  // Pricing
+  inputPricePerMillion  Float?   // USD per million input tokens
+  outputPricePerMillion Float?   // USD per million output tokens
+  contextLength         Int?     // max context window in tokens
+  pricePerImage         Float?   // USD per image generation
+  pricePerSecond        Float?   // USD per second of video
+
+  // Capabilities (JSON strings)
+  inputCapabilities     String   @default("{}")  // {text, image, file, video}
+  outputCapabilities    String   @default("{}")  // {text, web, image, search, video}
+
+  // Arena categories this model appears in (JSON array)
+  arenaCategories       String   @default("[]")  // ["text","code","vision",...]
+
+  // Per-category rankings (JSON: {category: {rank, rating, votes}})
+  categoryRankings      String   @default("{}")
+
+  // Use-case tags derived from capabilities and rankings
+  useCaseTags           String   @default("[]")  // ["coding","reasoning","creative",...]
+
+  // User-selectable in Arena
+  userSelectable        Boolean  @default(false)
+
+  // Metadata
+  releaseType           String?  // "new", "updated", etc.
+  lastSyncedAt          DateTime @default(now())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  bookmarks             ModelBookmark[]
+
+  @@index([name])
+  @@index([organization])
+  @@index([bestRank])
+  @@index([bestRating])
+  @@index([license])
+}
+
+model ModelBookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  modelId   String
+  model     LLMModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  note      String?  // user's personal note about why they bookmarked
+  createdAt DateTime @default(now())
+
+  @@unique([userId, modelId])
+  @@index([userId])
+  @@index([modelId])
+}
+
+model ModelSyncLog {
+  id          String   @id @default(cuid())
+  source      String   @default("arena.ai") // data source
+  syncType    String   // "full" | "changelog" | "delta"
+  status      String   // "success" | "failed" | "partial"
+  modelsAdded Int      @default(0)
+  modelsUpdated Int    @default(0)
+  modelsRemoved Int    @default(0)
+  errors      String   @default("[]") // JSON array of error messages
+  changelogSnippet String? // relevant changelog text if delta sync
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  duration    Int?     // milliseconds
+
+  @@index([source])
+  @@index([startedAt])
+}
+
+// ─── Agent Workspace Models ────────────────────────────────────────
+
+model AgentVersion {
+  id          String   @id @default(cuid())
+  agentId     String
+  agent       Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  version     Int
+  name        String
+  description String
+  systemPrompt String?
+  code        String?
+  configJson  String   @default("{}")
+  tools       String   @default("[]")
+  changelog   String?  // what changed in this version
+  createdBy   String   // user ID
+  createdAt   DateTime @default(now())
+
+  @@unique([agentId, version])
+  @@index([agentId])
+  @@index([createdAt])
+}
+
+model AgentDeployment {
+  id           String   @id @default(cuid())
+  agentId      String
+  agent        Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  environment  String   @default("production") // "production" | "staging" | "development"
+  status       String   @default("pending") // "pending" | "running" | "stopped" | "failed"
+  deployUrl    String?
+  version      Int      @default(1)
+  configJson   String   @default("{}")
+  logs         String   @default("[]") // JSON array of log entries
+  deployedBy   String   // user ID
+  deployedAt   DateTime @default(now())
+  stoppedAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([agentId])
+  @@index([status])
+  @@index([environment])
+}
+
+model AgentAnalytics {
+  id          String   @id @default(cuid())
+  agentId     String
+  agent       Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  date        DateTime // the date this record is for
+  requests    Int      @default(0)
+  errors      Int      @default(0)
+  avgLatencyMs Int     @default(0)
+  tokensUsed  Int      @default(0)
+  costUsd     Float    @default(0)
+  uniqueUsers Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([agentId, date])
+  @@index([agentId])
+  @@index([date])
+}
+
+model UserActivityLog {
+  id          String   @id @default(cuid())
+  userId      String
+  action      String   // "create_agent" | "update_agent" | "deploy_agent" | "test_agent" | "delete_agent" | "bookmark" | "star" | etc.
+  targetType  String   // "agent" | "model" | "knowledge" | etc.
+  targetId    String?  // ID of the target entity
+  metadata    String   @default("{}") // JSON with extra info
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
