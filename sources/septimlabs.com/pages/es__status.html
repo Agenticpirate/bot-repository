@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es" dir="ltr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Status &mdash; Septim Labs</title>
+    <!-- Open Graph + Twitter Card (auto-injected by inject_og_meta.py) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://septimlabs.com/es/status/" />
+    <meta property="og:title" content="Status &amp;mdash; Septim Labs" />
+    <meta property="og:description" content="Live uptime and response-time status for every live Septim Labs product surface. Client-side checks, no tracking, updates every 60 seconds." />
+    <meta property="og:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Septim Labs" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Status &amp;mdash; Septim Labs" />
+    <meta name="twitter:description" content="Live uptime and response-time status for every live Septim Labs product surface. Client-side checks, no tracking, updates every 60 seconds." />
+    <meta name="twitter:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+
+<meta name="description" content="Live uptime and response-time status for every live Septim Labs product surface. Client-side checks, no tracking, updates every 60 seconds." />
+<meta property="og:title" content="Status &mdash; Septim Labs" />
+<meta property="og:description" content="Live uptime dashboard for every live Septim Labs product surface." />
+<meta property="og:url" content="https://septimlabs.com/status" />
+<meta name="robots" content="index,follow" />
+<link rel="canonical" href="https://septimlabs.com/es/status/" />
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/kit/apple-touch-icon-180.png" />
+
+
+
+<style>
+  *,*::before,*::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: var(--bg);
+    --bg-2: var(--bg-1);
+    --border: var(--line);
+    --border-hi: var(--line-2);
+    --text: var(--ink);
+    --muted: var(--ink-2);
+    --subtle: var(--ink-3);
+    --accent: var(--p);
+    --warn: var(--p);
+    --down: var(--p);
+  }
+  body { font-family: var(--sans), -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.55; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  .mono { font-family: var(--mono), monospace; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 24px; }
+  nav { position: sticky; top: 0; z-index: 50; background: rgba(10,10,10,0.9); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; max-width: 1200px; margin: 0 auto; }
+  .nav-inner a.logo { font-weight: 800; letter-spacing: -.02em; font-size: 15px; color: var(--text); }
+  .nav-inner a.back { font-size: 13px; color: var(--muted); }
+  .nav-inner a:hover { color: var(--accent); }
+  main { padding: 64px 0 96px; }
+  .kicker { font-family: var(--mono), monospace; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  h1 { font-size: clamp(2rem, 4vw, 2.8rem); line-height: 1.1; font-weight: 800; letter-spacing: -.03em; margin-bottom: 12px; text-wrap: balance; }
+  .sub { font-size: 15px; color: var(--muted); max-width: 640px; margin-bottom: 28px; }
+  .overall { background: var(--bg-2); border: 1px solid var(--border); border-radius: 14px; padding: 22px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 28px; }
+  .overall .left { display: flex; align-items: center; gap: 14px; }
+  .overall .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px rgba(52,211,153,0.55); animation: pulse 2.2s ease-in-out infinite; }
+  .overall.warn .dot { background: var(--warn); box-shadow: 0 0 12px rgba(251,191,36,0.55); }
+  .overall.down .dot { background: var(--down); box-shadow: 0 0 12px rgba(239,68,68,0.55); }
+  @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.88); } }
+  .overall .title { font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
+  .overall .meta { font-family: var(--mono), monospace; font-size: 11px; color: var(--subtle); letter-spacing: .12em; text-transform: uppercase; }
+  .row { display: grid; grid-template-columns: 1.3fr auto auto; gap: 14px; align-items: center; padding: 14px 18px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-2); margin-bottom: 8px; transition: border-color .15s; }
+  .row:hover { border-color: var(--border-hi); }
+  .row .name { display: flex; flex-direction: column; gap: 2px; }
+  .row .name strong { font-size: 14px; font-weight: 600; }
+  .row .name span { font-family: var(--mono), monospace; font-size: 11px; color: var(--subtle); }
+  .row .status { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono), monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .row .status .d { width: 9px; height: 9px; border-radius: 50%; background: var(--subtle); }
+  .row .status.up .d { background: var(--accent); }
+  .row .status.warn .d { background: var(--warn); }
+  .row .status.down .d { background: var(--down); }
+  .row .rtt { font-family: var(--mono), monospace; font-size: 12px; color: var(--muted); text-align: right; min-width: 72px; }
+  .row .rtt.s { color: var(--subtle); }
+  .section-head { margin: 28px 0 10px; display: flex; align-items: baseline; justify-content: space-between; }
+  .section-head h2 { font-size: 13px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .section-head .ct { font-family: var(--mono), monospace; font-size: 11px; color: var(--subtle); }
+  footer { padding: 36px 0 24px; border-top: 1px solid var(--border); color: var(--subtle); font-size: 13px; margin-top: 40px; }
+  footer a { color: var(--muted); }
+  footer a:hover { color: var(--accent); }
+  .last-check { font-family: var(--mono), monospace; font-size: 11px; color: var(--subtle); letter-spacing: .08em; }
+  @media (max-width: 640px) { .row { grid-template-columns: 1fr auto; } .row .rtt { grid-column: 1 / -1; text-align: left; } }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../site.css?v=4.6.1">
+<style>
+  body[data-page="status"]{ --p: var(--n-mint); }
+</style>
+<!-- RETROFIT-V4-APPLIED -->
+<!-- TOKEN-CONVERT-V4-APPLIED -->
+<meta property="og:locale" content="es_ES" />
+</head>
+<body data-page="status">
+<div id="site-nav"></div>
+
+
+
+<main class="wrap">
+  <div class="kicker">&middot; live status &middot; client-side checks &middot;</div>
+  <h1>Every Septim surface, every 60 seconds.</h1>
+  <p class="sub">Your browser does the checks directly. No analytics, no tracking, no backend. If something&rsquo;s down, the dot goes red and you&rsquo;ll see the HTTP code it returned.</p>
+
+  <div class="overall" id="overall">
+    <div class="left">
+      <span class="dot"></span>
+      <div>
+        <div class="title" id="overall-title">Checking &hellip;</div>
+        <div class="meta" id="overall-meta">first sweep in progress</div>
+      </div>
+    </div>
+    <div class="last-check" id="last-check">&mdash;</div>
+  </div>
+
+  <div class="section-head"><h2>Platform surfaces</h2><div class="ct" id="ct-plat"></div></div>
+  <div id="group-platform"></div>
+
+  <div class="section-head"><h2>Paid products</h2><div class="ct" id="ct-paid"></div></div>
+  <div id="group-paid"></div>
+
+  <div class="section-head"><h2>Free tools &amp; waitlists</h2><div class="ct" id="ct-free"></div></div>
+  <div id="group-free"></div>
+
+  <div class="section-head"><h2>Blog surfaces</h2><div class="ct" id="ct-blog"></div></div>
+  <div id="group-blog"></div>
+
+</main>
+
+
+
+<script>
+// List of URLs to check. Each is fetched with a HEAD-style no-cors pseudo-request.
+// We cannot read the status code cross-origin from Vercel's own domain, so we
+// fall back to measuring latency: if fetch resolves we mark UP, if it throws we
+// mark DOWN, if > 2000ms we mark WARN. This is the honest client-side limit.
+const TARGETS = {
+  platform: [
+    { name: 'Homepage', url: '/' },
+    { name: 'Buy aggregator', url: '/buy/' },
+    { name: 'Family map', url: '/family/' },
+    { name: 'Tonight paste-kit', url: '/tonight/' },
+    { name: 'Changelog', url: '/changelog/' },
+  ],
+  paid: [
+    { name: 'Septim Rescue ($299)', url: '/septim-rescue/' },
+    { name: 'Septim Session ($149)', url: '/septim-session/' },
+    { name: 'Septim Sift ($199)', url: '/septim-sift/' },
+    { name: 'Septim Deploy ($499)', url: '/septim-deploy/' },
+    { name: 'Septim Dunner ($49)', url: '/septim-dunner/' },
+    { name: 'Septim Kinsman ($19)', url: '/septim-kinsman/' },
+    { name: 'Septim Starter ($9)', url: '/septim-starter/' },
+    { name: 'Septim Spire ($149)', url: '/tools/spire.html' },
+    { name: 'Septim Muster ($149 waitlist)', url: '/septim-muster/' },
+    { name: 'Septim Courier ($19/mo waitlist)', url: '/septim-courier/' },
+    { name: 'Septim Agents Pack ($49)', url: '/agents/' },
+    { name: 'Septim Audit ($99)', url: '/audit/' },
+    { name: 'Septim Product Kit ($99)', url: '/kit/' },
+  ],
+  free: [
+    { name: 'MCP Security Checklist', url: '/tools/mcp-security-checklist/' },
+    { name: 'Solana Launch Checklist', url: '/solana-launch-checklist/' },
+    { name: 'LAST EFFECTS (Studios)', url: '/studios/last-effects/' },
+  ],
+  blog: [
+    { name: 'Claude Code invisible token burn', url: '/blog/claude-code-invisible-token-burn-april-2026.html' },
+    { name: 'MCP server vulnerability checklist', url: '/blog/mcp-server-vulnerability-checklist-2026.html' },
+    { name: 'Claude Code cost monitor', url: '/blog/claude-code-cost-monitor-2026.html' },
+    { name: 'Best Claude Code sub-agents', url: '/blog/best-claude-code-sub-agents-2026.html' },
+    { name: 'How to write CLAUDE.md', url: '/blog/how-to-write-claude-md-2026.html' },
+    { name: 'Claude Code alternatives', url: '/blog/claude-code-alternatives-2026.html' },
+    { name: 'Best MCP servers 2026', url: '/blog/best-mcp-servers-2026.html' },
+    { name: 'Is Claude getting worse?', url: '/blog/is-claude-getting-worse-april-2026.html' },
+  ],
+};
+
+function statusClass(rtt, ok) {
+  if (!ok) return 'down';
+  if (rtt > 2000) return 'warn';
+  return 'up';
+}
+
+function statusLabel(rtt, ok) {
+  if (!ok) return 'down';
+  if (rtt > 2000) return 'slow';
+  return 'up';
+}
+
+function renderRow(item) {
+  const row = document.createElement('a');
+  row.className = 'row';
+  row.href = item.url;
+  row.target = '_blank';
+  row.rel = 'noopener';
+  row.innerHTML = `
+    <div class="name">
+      <strong>${item.name}</strong>
+      <span class="mono">${item.url}</span>
+    </div>
+    <div class="status" data-st="${item.url}"><span class="d"></span><span class="lbl">checking</span></div>
+    <div class="rtt s" data-rtt="${item.url}">&mdash;</div>
+  `;
+  return row;
+}
+
+function buildSection(group, items) {
+  const container = document.getElementById('group-' + group);
+  container.innerHTML = '';
+  items.forEach(item => container.appendChild(renderRow(item)));
+  document.getElementById('ct-' + group.substring(0, 4)).textContent = items.length + ' surfaces';
+}
+
+async function check(item) {
+  const start = performance.now();
+  try {
+    // We use same-origin fetch so we CAN read the status code.
+    const res = await fetch(item.url, { method: 'HEAD', cache: 'no-store' });
+    const rtt = Math.round(performance.now() - start);
+    return { ok: res.ok, code: res.status, rtt };
+  } catch (err) {
+    return { ok: false, code: 0, rtt: Math.round(performance.now() - start) };
+  }
+}
+
+async function sweep() {
+  const groups = Object.entries(TARGETS);
+  let allOk = true;
+  let slowCount = 0;
+  let downCount = 0;
+  let total = 0;
+  for (const [group, items] of groups) {
+    for (const item of items) {
+      total++;
+      const result = await check(item);
+      const st = document.querySelector('[data-st="' + item.url + '"]');
+      const rt = document.querySelector('[data-rtt="' + item.url + '"]');
+      if (!st || !rt) continue;
+      const klass = statusClass(result.rtt, result.ok);
+      const label = statusLabel(result.rtt, result.ok);
+      st.className = 'status ' + klass;
+      st.querySelector('.lbl').textContent = label + (result.ok ? '' : ' (' + result.code + ')');
+      rt.textContent = result.rtt + 'ms';
+      rt.className = 'rtt' + (result.rtt > 800 ? ' s' : '');
+      if (!result.ok) { allOk = false; downCount++; }
+      else if (result.rtt > 2000) { slowCount++; }
+    }
+  }
+  const ov = document.getElementById('overall');
+  const title = document.getElementById('overall-title');
+  const meta = document.getElementById('overall-meta');
+  ov.classList.remove('warn', 'down');
+  if (downCount > 0) {
+    ov.classList.add('down');
+    title.textContent = downCount + ' of ' + total + ' surfaces down';
+    meta.textContent = 'investigating — ethanq@septimlabs.com for urgent';
+  } else if (slowCount > 0) {
+    ov.classList.add('warn');
+    title.textContent = 'All ' + total + ' up, ' + slowCount + ' slow';
+    meta.textContent = 'slow = over 2s response, usually cold-start';
+  } else {
+    title.textContent = 'All ' + total + ' surfaces healthy';
+    meta.textContent = 'last sweep ' + new Date().toLocaleTimeString();
+  }
+  document.getElementById('last-check').textContent = 'Checked ' + new Date().toLocaleTimeString();
+}
+
+function init() {
+  for (const [group, items] of Object.entries(TARGETS)) {
+    buildSection(group, items);
+  }
+  sweep();
+  setInterval(sweep, 60000);
+}
+
+init();
+</script>
+
+
+<div id="site-foot"></div>
+<script src="../../site-shell.js?v=4.6.0"></script>
+<script src="../../site.js?v=4.6.0"></script>
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Claude Code Memory &amp; Context Management: Staying Under Budget</title>
+    <!-- Open Graph + Twitter Card (auto-injected by inject_og_meta.py) -->
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://septimlabs.com/blog/claude-code-memory-context-management" />
+    <meta property="og:title" content="Claude Code Memory &amp;amp; Context Management: Staying Under Budget — Septim Labs" />
+    <meta property="og:description" content="How Claude Code handles memory and context windows — and the practical techniques for staying under token budget on large codebases. Covers CLAUDE.md compression, session hygiene, and the sub-agent context trap." />
+    <meta property="og:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Septim Labs" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Claude Code Memory &amp;amp; Context Management: Staying Under Budget — Septim Labs" />
+    <meta name="twitter:description" content="How Claude Code handles memory and context windows — and the practical techniques for staying under token budget on large codebases. Covers CLAUDE.md compression, session hygiene, and the sub-agent context trap." />
+    <meta name="twitter:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+
+<meta name="description" content="How Claude Code handles memory and context windows — and the practical techniques for staying under token budget on large codebases. Covers CLAUDE.md compression, session hygiene, and the sub-agent context trap." />
+<meta name="keywords" content="claude code memory, claude code context, claude code context window, claude code token limit, claude code context management, claude code memory management 2026" />
+<meta property="og:title" content="Claude Code Memory &amp; Context Management: Staying Under Budget" />
+<meta property="og:description" content="Token budgets, context compression, and the five techniques that prevent runaway costs when Claude Code works on large codebases." />
+<meta property="og:url" content="https://septimlabs.com/blog/claude-code-memory-context-management.html" />
+<meta property="og:type" content="article" />
+<link rel="canonical" href="https://septimlabs.com/blog/claude-code-memory-context-management.html" />
+
+<!-- SEPTIM-I18N-HREFLANG -->
+<link rel="alternate" hreflang="x-default" href="https://septimlabs.com/blog/claude-code-memory-context-management.html" />
+<link rel="alternate" hreflang="en" href="https://septimlabs.com/blog/claude-code-memory-context-management.html" />
+<link rel="alternate" hreflang="es" href="https://septimlabs.com/es/blog/claude-code-memory-context-management.html" />
+<link rel="alternate" hreflang="zh" href="https://septimlabs.com/zh/blog/claude-code-memory-context-management.html" />
+<link rel="alternate" hreflang="hi" href="https://septimlabs.com/hi/blog/claude-code-memory-context-management.html" />
+<link rel="alternate" hreflang="pt" href="https://septimlabs.com/pt/blog/claude-code-memory-context-management.html" />
+<link rel="alternate" hreflang="de" href="https://septimlabs.com/de/blog/claude-code-memory-context-management.html" />
+<link rel="alternate" hreflang="fr" href="https://septimlabs.com/fr/blog/claude-code-memory-context-management.html" />
+<link rel="alternate" hreflang="ja" href="https://septimlabs.com/ja/blog/claude-code-memory-context-management.html" />
+<link rel="alternate" hreflang="ru" href="https://septimlabs.com/ru/blog/claude-code-memory-context-management.html" />
+<link rel="alternate" hreflang="ar" href="https://septimlabs.com/ar/blog/claude-code-memory-context-management.html" />
+<!-- /SEPTIM-I18N-HREFLANG -->
+
+
+
+
+
+
+
+
+
+
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/kit/apple-touch-icon-180.png" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BlogPosting",
+      "headline": "Claude Code Memory & Context Management: Staying Under Budget",
+      "description": "How Claude Code handles memory and context windows — and the practical techniques for staying under token budget on large codebases. Covers CLAUDE.md compression, session hygiene, and the sub-agent context trap.",
+      "url": "https://septimlabs.com/blog/claude-code-memory-context-management.html",
+      "datePublished": "2026-04-28",
+      "dateModified": "2026-04-28",
+      "author": {
+        "@type": "Organization",
+        "name": "Septim Labs",
+        "url": "https://septimlabs.com"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Septim Labs",
+        "url": "https://septimlabs.com",
+        "logo": { "@type": "ImageObject", "url": "https://septimlabs.com/assets/brand/kit/favicon-512.png"
+        }
+      },
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://septimlabs.com/blog/claude-code-memory-context-management.html"
+      },
+      "keywords": ["claude code memory", "claude code context", "claude code token limit", "claude code context management"]
+    }
+  ]
+}
+</script>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://septimlabs.com/"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://septimlabs.com/blog/"},{"@type":"ListItem","position":3,"name":"Claude Code Memory &amp; Context Management","item":"https://septimlabs.com/blog/claude-code-memory-context-management.html"}]}</script>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","speakable":{"@type":"SpeakableSpecification","cssSelector":["h1","h2",".lede","blockquote"]},"url":"https://septimlabs.com/blog/claude-code-memory-context-management.html"}</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../site.css?v=4.6.1">
+<style>
+  body[data-page="blog-claude-code-memory-context-management"]{ --p: var(--n-amber); }
+
+  *,*::before,*::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--sans), -apple-system, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.72; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  a { color: var(--p); text-decoration: none; } a:hover { text-decoration: underline; }
+  .mono, code { font-family: var(--mono), monospace; font-size: 0.9em; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+  article { padding: 56px 0 80px; }
+  .kicker { font-family: var(--mono), monospace; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--p); margin-bottom: 12px; display: block; }
+  h1 { font-size: clamp(28px, 5vw, 40px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.12; margin-bottom: 14px; }
+  h1 em {font-style:normal;color:var(--p)}
+  .byline { color: var(--ink-3); font-size: 14px; margin-bottom: 30px; font-family: var(--mono), monospace; }
+  article h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; margin-top: 44px; margin-bottom: 12px; }
+  article h3 { font-size: 17px; font-weight: 700; margin-top: 28px; margin-bottom: 8px; }
+  article p { color: var(--ink-2); margin-bottom: 16px; font-size: 16.5px; }
+  article ul, article ol { color: var(--ink-2); padding-left: 22px; margin-bottom: 18px; }
+  article li { margin-bottom: 6px; font-size: 16px; }
+  article code { background: var(--line); padding: 2px 6px; border-radius: 4px; color: var(--p); }
+  pre { background: var(--bg-1); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; margin: 20px 0; overflow-x: auto; }
+  pre code { background: none; padding: 0; color: var(--ink-2); font-size: 13.5px; line-height: 1.65; }
+
+  .tldr { background: rgba(251,191,36,0.05); border: 1px solid rgba(251,191,36,0.25); border-radius: 12px; padding: 20px 22px; margin: 28px 0 36px; }
+  .tldr-label { font-family: var(--mono), monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--p); margin-bottom: 10px; display: block; }
+  .tldr ul { margin-bottom: 0; }
+  .tldr li { font-size: 15px; color: var(--ink-2); }
+
+  .stat-row { display: flex; gap: 16px; margin: 24px 0; flex-wrap: wrap; }
+  .stat { background: var(--bg-1); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; flex: 1; min-width: 140px; }
+  .stat-number { font-family: var(--mono), monospace; font-size: 22px; font-weight: 700; color: var(--p); display: block; }
+  .stat-label { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+
+  .cta-box { background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.35); border-radius: 14px; padding: 22px 24px; margin: 36px 0; }
+  .cta-box h4 { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+  .cta-box p { font-size: 14px; color: var(--ink-2); margin-bottom: 12px; }
+  .cta-box a.btn { display: inline-block; background: var(--p); color: var(--bg); font-family: var(--mono), monospace; font-size: 13px; font-weight: 700; padding: 9px 18px; border-radius: 7px; text-decoration: none; margin-right: 10px; }
+  .cta-box a.btn:hover { opacity: 0.88; text-decoration: none; }
+  .cta-box .secondary-link { font-family: var(--mono), monospace; font-size: 13px; color: var(--p); font-weight: 700; }
+
+  .cite-this{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;margin:0 0 22px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+  .cite-this b{color:var(--p);font-weight:500}
+  .cite-this .pill{padding:3px 10px;border:1px solid var(--p);border-radius:99px;color:var(--p)}
+
+  .blog-motif{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--bg-1);padding:24px 26px;margin:14px 0 36px;overflow:hidden}
+  .blog-motif svg{display:block;width:100%;height:auto;overflow:visible;max-height:200px}
+  .blog-motif-cap{font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;display:block}
+  .cap-l{color:var(--p)}
+
+  .blog-related{margin:64px 0 0;padding:32px 28px;border:1px solid var(--line);border-radius:8px;background:var(--bg-1)}
+  .blog-related h4{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.12em;text-transform:uppercase;margin:0 0 18px}
+  .blog-related .row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .blog-related a{display:block;padding:14px 16px;border:1px solid var(--line);border-radius:6px;color:var(--ink);text-decoration:none;font-size:14px;line-height:1.45;transition:border-color .2s,background .2s,color .2s}
+  .blog-related a:hover{border-color:var(--p);background:var(--shade);color:var(--p)}
+  .blog-related a .lbl{display:block;font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+  @media (max-width:760px){.blog-related .row{grid-template-columns:1fr}}
+
+  /* unique motif: token budget gauge */
+  .gauge-bg { fill: var(--bg-1); stroke: var(--line); stroke-width: 1; }
+  .gauge-fill { fill: none; stroke-width: 18; stroke-linecap: butt; }
+  .gauge-fill.safe { stroke: var(--p); opacity: 0.8; }
+  .gauge-fill.warn { stroke: #fb923c; opacity: 0.7; }
+  .gauge-fill.danger { stroke: #ef4444; opacity: 0.8; }
+  .gauge-label { font-family: var(--mono), monospace; font-size: 10px; fill: var(--ink-3); text-anchor: middle; letter-spacing: 0.1em; text-transform: uppercase; }
+  .gauge-pct { font-family: var(--mono), monospace; font-size: 18px; font-weight: 700; fill: var(--p); text-anchor: middle; }
+  .gauge-tick { stroke: var(--line-2); stroke-width: 1; }
+  @keyframes bm-gauge-fill { from { stroke-dashoffset: 220; } to { stroke-dashoffset: 0; } }
+  .gauge-fill.safe { stroke-dasharray: 110; stroke-dashoffset: 110; animation: bm-gauge-fill 1.8s ease-out forwards; }
+  .gauge-fill.warn { stroke-dasharray: 60; stroke-dashoffset: 60; animation: bm-gauge-fill 2.2s 0.2s ease-out forwards; }
+  .gauge-fill.danger { stroke-dasharray: 50; stroke-dashoffset: 50; animation: bm-gauge-fill 2.4s 0.4s ease-out forwards; }
+</style>
+<!-- BLOG-MOTIFS-UNIQUE-V1 -->
+</head>
+<body data-page="blog-claude-code-memory-context-management">
+<div id="site-nav"></div>
+
+<main class="wrap">
+  <article>
+    <span class="kicker">&middot; claude code &middot; context &middot; token budget &middot; april 2026 &middot;</span>
+    <h1>Claude Code memory &amp; context: <em>staying under budget</em></h1>
+
+    <figure class="blog-motif" aria-labelledby="m-fc-gauge">
+      <figcaption id="m-fc-gauge" class="blog-motif-cap"><span class="cap-l">// figure</span> Token budget gauge — three zones across a 200K context window</figcaption>
+      <svg viewBox="0 0 720 180" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="m-t-gauge m-d-gauge">
+        <title id="m-t-gauge">Token budget gauge</title>
+        <desc id="m-d-gauge">A horizontal gauge divided into three color zones: green safe zone from 0 to 55% (0–110K tokens), orange warning zone from 55% to 80% (110K–160K), and red danger zone from 80% to 100% (160K–200K). Three percentage labels mark each threshold.</desc>
+        <!-- gauge bar background -->
+        <rect x="40" y="70" width="640" height="22" rx="4" class="gauge-bg"/>
+        <!-- safe fill: 0-110K = 55% = 352px -->
+        <rect x="40" y="70" width="352" height="22" rx="4" class="gauge-fill safe" style="stroke:none;fill:var(--p);opacity:0.7"/>
+        <!-- warn fill: 110K-160K = 25% = 160px -->
+        <rect x="392" y="70" width="160" height="22" rx="0" style="fill:#fb923c;opacity:0.65"/>
+        <!-- danger fill: 160K-200K = 20% = 128px -->
+        <rect x="552" y="70" width="128" height="22" rx="0" style="fill:#ef4444;opacity:0.75;border-radius:0 4px 4px 0"/>
+
+        <!-- tick marks -->
+        <line x1="392" y1="64" x2="392" y2="100" class="gauge-tick"/>
+        <line x1="552" y1="64" x2="552" y2="100" class="gauge-tick"/>
+        <line x1="680" y1="64" x2="680" y2="100" class="gauge-tick"/>
+
+        <!-- labels -->
+        <text x="210" y="108" class="gauge-label" style="fill:var(--p)">0–110K &middot; SAFE</text>
+        <text x="472" y="108" class="gauge-label" style="fill:#fb923c">110K–160K &middot; WATCH</text>
+        <text x="616" y="108" class="gauge-label" style="fill:#ef4444">160K+ &middot; COMPRESS</text>
+
+        <text x="40" y="60" class="gauge-label">0</text>
+        <text x="392" y="60" class="gauge-label">55%</text>
+        <text x="552" y="60" class="gauge-label">80%</text>
+        <text x="680" y="60" class="gauge-label">100%</text>
+
+        <text x="360" y="148" class="gauge-label" style="font-size:9px">200K context window &middot; claude-sonnet-4-5</text>
+      </svg>
+    </figure>
+
+    <div class="cite-this">
+      <span><b>// FILED</b> Claude Code &middot; Context</span>
+      <span><b>// SOURCE</b> Septim Labs</span>
+      <span><b>// PERMALINK</b> /blog/claude-code-memory-context-management.html</span>
+      <span class="pill">cite this &rarr;</span>
+    </div>
+
+    <div role="contentinfo" aria-label="Article byline" style="display:flex;flex-wrap:wrap;align-items:center;gap:.85rem;max-width:780px;margin:1.6rem auto 0;padding:.8rem 1rem;background:var(--shade);border:1px solid var(--line);border-radius:10px;font-family:var(--sans),-apple-system,sans-serif;font-size:.82rem;color:var(--ink-2);line-height:1.5;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);color:var(--p);font-weight:800;font-size:.85rem;flex-shrink:0;">E</span>
+      <div style="flex:1;min-width:0">
+        <div style="color:var(--ink);font-weight:600;font-size:.92rem">By <a href="https://septimlabs.com/about" style="color:var(--ink);text-decoration:underline;text-underline-offset:3px">the Septim Labs team</a></div>
+        <div style="font-family:var(--mono),monospace;font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-top:.18rem">Published April 28, 2026</div>
+      </div>
+      <a href="https://septimlabs.com/find" style="font-family:var(--mono),monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--p);text-decoration:none;padding:.4rem .8rem;border:1px solid rgba(251,191,36,0.32);border-radius:999px;background:rgba(251,191,36,0.06);white-space:nowrap;">Find your tool &rarr;</a>
+    </div>
+
+    <div class="byline">Published April 28, 2026 &middot; by Septim Labs &middot; 11 min read</div>
+
+    <div class="tldr">
+      <span class="tldr-label">TL;DR</span>
+      <ul>
+        <li>Claude Code has no persistent memory across sessions. Every session starts blank. Everything Claude knows about your project must either come from the filesystem it reads or from your CLAUDE.md.</li>
+        <li>The context window fills fastest when Claude reads large files, when sessions get long, and when sub-agents spawn and carry their own context copies.</li>
+        <li>Five techniques reduce context burn by 40–60% in practice: targeted file references, session hygiene, CLAUDE.md compression, compact mode, and explicit task scoping.</li>
+      </ul>
+    </div>
+
+    <h2>What "memory" means for Claude Code</h2>
+
+    <p>Claude Code has no persistent memory in the traditional sense. It does not remember what you did in yesterday's session. It does not accumulate knowledge about your codebase over time. Each time you run <code>claude</code> in a project directory, the model starts with an empty context and fills it by reading files, running tools, and processing your conversation.</p>
+
+    <p>What persists across sessions is the filesystem — and specifically, anything you have written into files Claude Code can read. Your CLAUDE.md is not a memory system; it is a pre-loaded document that substitutes for the exploration Claude would otherwise do by reading every file in the repo. The Memory MCP server (from Anthropic's reference implementations) provides a separate persistent graph, but it requires explicit setup and is not the default behavior.</p>
+
+    <div class="stat-row">
+      <div class="stat"><span class="stat-number">200K</span><span class="stat-label">tokens: claude-sonnet-4-5 context window</span></div>
+      <div class="stat"><span class="stat-number">~750</span><span class="stat-label">words per 1K tokens (rough estimate)</span></div>
+      <div class="stat"><span class="stat-number">∞</span><span class="stat-label">sessions you can run — no rollover from one to next</span></div>
+      <div class="stat"><span class="stat-number">/compact</span><span class="stat-label">command that summarizes and compresses the current session</span></div>
+    </div>
+
+    <h2>How context fills up</h2>
+
+    <p>Understanding where tokens go is the prerequisite for controlling cost. In a typical Claude Code session, the context window fills from four sources in roughly this order:</p>
+
+    <ol>
+      <li><strong>System prompt and CLAUDE.md.</strong> These are loaded at session start and persist for the duration. A 500-line CLAUDE.md costs roughly 2,500 tokens up front — which is well worth it for the exploration it replaces, but worth knowing.</li>
+      <li><strong>File reads.</strong> Every time Claude Code reads a file to answer a question or understand context, the file contents enter the context. A 400-line TypeScript module is approximately 3,000–4,000 tokens. Reading 10 files costs 30,000–40,000 tokens before the model has written a single line of code.</li>
+      <li><strong>Tool outputs.</strong> When Claude runs bash commands, the output is appended to context. <code>npm test</code> producing 200 lines of output consumes as much context as a medium-sized file.</li>
+      <li><strong>Conversation history.</strong> Every message — yours and Claude's — stays in the context for the life of the session. A long back-and-forth about a complex problem can consume as much context as all the file reads combined.</li>
+    </ol>
+
+    <p>The practical consequence: the first 20 minutes of a complex session are cheap. The last 20 minutes of a session that has been running for 2 hours are expensive per turn, because each new message carries the full history as context.</p>
+
+    <h2>The five techniques</h2>
+
+    <h3>1. Reference specific files, not the whole codebase</h3>
+
+    <p>Claude Code will explore broadly if you ask broad questions. "What's wrong with my authentication system?" triggers a filesystem scan. "Is there a race condition in the <code>refreshToken</code> function in <code>src/lib/auth.ts</code>?" reads one file. Both cost tokens; the second produces a more useful answer at a fraction of the price.</p>
+
+    <p>When you need Claude Code to understand a broad area of the codebase, use your CLAUDE.md to pre-describe the architecture rather than asking Claude to explore it. "The auth module uses JWT, implemented in <code>src/lib/auth.ts</code>, with middleware in <code>src/middleware/auth.ts</code>" costs 30 tokens of CLAUDE.md and prevents 30,000 tokens of exploration.</p>
+
+    <h3>2. Session hygiene — start fresh for unrelated tasks</h3>
+
+    <p>One long session is usually more expensive than two short sessions for the same total work. The reason is that every message in session B carries the context of task A, even though task A is finished and irrelevant. Starting a new session for an unrelated task costs the setup overhead of a new CLAUDE.md load (~2,500 tokens) but saves the accumulated history of the previous task.</p>
+
+    <p>A practical rule: when you move from one task to a qualitatively different one — from "write tests for the user module" to "refactor the payment module" — start a new session. Use the same session only when tasks share context that would need re-establishing.</p>
+
+    <h3>3. Use /compact before the session degrades</h3>
+
+    <p>Claude Code has a built-in <code>/compact</code> command that asks the model to summarize the session so far and replace the full conversation history with the summary. This can reduce context by 60–80% while preserving the decisions made and the state reached.</p>
+
+    <p>Run <code>/compact</code> when you notice response quality degrading, when the session has been running for over 90 minutes, or when the token indicator (if your terminal shows it) crosses the 55% threshold shown in the gauge above. After compaction, the session continues with a summary-based context rather than the full transcript.</p>
+
+    <h3>4. Write task handoff notes to files</h3>
+
+    <p>If you are working on a multi-session task — something that will take several days — write a handoff note at the end of each session. This is a plain text file in the project directory that describes: what was completed, what was decided, what comes next, and what the current state of any in-progress work is.</p>
+
+    <p>At the start of the next session, point Claude Code at the handoff note explicitly. This replaces the exploration Claude would otherwise do to re-establish context, and it is more accurate than asking Claude to infer the current state from the git log.</p>
+
+    <pre><code># Task handoff — 2026-04-28 — Auth refactor
+
+## Completed
+- Replaced bcrypt with argon2 in src/lib/auth.ts
+- Updated all tests — 47 passing
+
+## Decided
+- Not migrating existing password hashes on first release
+- Will add migration UI in v1.1
+
+## Next session
+- Implement the session invalidation endpoint (POST /api/auth/invalidate)
+- Wire it to the admin panel logout button in src/components/AdminNav.tsx
+
+## State
+- src/lib/auth.ts is clean, committed
+- src/middleware/auth.ts has an uncommitted WIP for the invalidate handler
+</code></pre>
+
+    <h3>5. Control sub-agent context budgets explicitly</h3>
+
+    <p>Claude Code can spawn sub-agents for parallel work. Each sub-agent carries a full copy of the context it needs — which means a five-agent parallel task consumes five times the context of a sequential task. This is the pattern behind the "Tokenocalypse" cost spikes documented in the <a href="tokenocalypse-subagent-cost-guide.html">sub-agent cost guide</a>.</p>
+
+    <p>When you instruct Claude Code to use parallel agents, be explicit about the scope each agent should have. "Run three agents in parallel, each reading only its assigned module" produces much lower cost than "run three agents on the full codebase." The sub-agent task specification is where you apply the same file-scoping principles as individual sessions.</p>
+
+    <!-- MID CTA -->
+    <div class="cta-box">
+      <h4>Septim Drills — $29 pay-once</h4>
+      <p>Structured exercises for Claude Code power users. Includes a context-management drill set — 12 exercises covering session hygiene, CLAUDE.md compression, sub-agent budgets, and the /compact workflow. Verified against real cost data from the Anthropic console.</p>
+      <a class="btn" href="https://buy.stripe.com/4gM8wIagSeCMaGY4qOcjS0k">Get Septim Drills — $29 &rarr;</a>
+    </div>
+
+    <h2>The CLAUDE.md compression pass</h2>
+
+    <p>Most CLAUDE.md files grow over time. A developer adds a new rule here, a new convention there, a reminder about the legacy module, a note about the production database credentials format. After three months, the CLAUDE.md is 800 lines and costs 4,000 tokens per session just to load — tokens that are spent before Claude has read any code.</p>
+
+    <p>A compression pass on your CLAUDE.md should happen every 30 days on an active project. The goal is to reduce the file to the information that Claude could not infer from reading the code itself. Things to cut:</p>
+
+    <ul>
+      <li>Rules that are enforced by the linter or CI — Claude will see the failure anyway</li>
+      <li>Descriptions of file structure that are obvious from the directory listing</li>
+      <li>Decisions that have been superseded but never removed</li>
+      <li>Examples that repeat what the code itself demonstrates</li>
+    </ul>
+
+    <p>The <a href="../drills/">Septim Drills ($29)</a> pack includes a CLAUDE.md audit exercise that walks through this compression pass in a structured way — with before/after token counts and quality comparisons showing that shorter, denser CLAUDE.md files produce better Claude Code behavior than verbose ones.</p>
+
+    <h2>When you hit the context limit mid-task</h2>
+
+    <p>If a task genuinely requires more context than the window allows, the options are:</p>
+
+    <ol>
+      <li><strong>Decompose the task.</strong> Break it into stages, each in its own session. Use handoff notes between stages.</li>
+      <li><strong>Use /compact and continue.</strong> Run <code>/compact</code> to replace history with a summary, then continue. Quality degrades somewhat after compaction, but it is usually adequate for completing a task in progress.</li>
+      <li><strong>Use a larger context model.</strong> Anthropic's claude-opus-4 has extended context options. This costs more per token but solves the window constraint for tasks that cannot be decomposed.</li>
+      <li><strong>Use file-based persistence.</strong> Have Claude Code write its intermediate findings to files — summaries, outlines, decision logs — and read those files instead of the full conversation history in subsequent turns.</li>
+    </ol>
+
+    <p>The fourth approach is the most token-efficient for long-running multi-session work. It is also the one that most developers do not think to set up until they have already hit the wall twice. Building file-based persistence into your task structure from the start is a better pattern than retrofitting it under pressure.</p>
+
+    <h2>Using the Memory MCP server for persistent context</h2>
+
+    <p>For teams that want true persistence across sessions — not just file-based handoff notes but a queryable knowledge graph — the <a href="best-mcp-servers-2026.html">Memory MCP server</a> (Anthropic's official reference implementation) provides entity-relationship storage that survives across Claude Code sessions.</p>
+
+    <p>The setup requires running the MCP server locally and configuring it in your <code>.claude/settings.json</code>. Once wired up, Claude Code can read and write observations about your codebase — which modules are stable, which are in active development, which APIs are deprecated — and retrieve them in future sessions without re-reading all the source files.</p>
+
+    <p>See the <a href="mcp-server-tutorial-2026.html">MCP server tutorial</a> for the exact configuration. The <a href="../vault/">Septim Vault ($29)</a> includes a pre-built MCP configuration for the memory server alongside seven other commonly-needed servers, saving the per-server setup overhead.</p>
+
+    <div class="cta-box">
+      <h4>Septim Drills — $29 &middot; context mastery exercises</h4>
+      <p>Twelve structured context-management drills, a CLAUDE.md audit checklist, sub-agent budgeting exercises, and a cost-projection worksheet. Pay once, GitHub repo invite on purchase.</p>
+      <a class="btn" href="https://buy.stripe.com/4gM8wIagSeCMaGY4qOcjS0k">Buy Septim Drills — $29 &rarr;</a>
+      <a class="secondary-link" href="../septim-rescue/">Burned through your API budget? Septim Rescue ($299) &rarr;</a>
+    </div>
+
+    <aside class="blog-related" aria-label="Related from Septim Labs">
+      <h4>// continue reading</h4>
+      <div class="row">
+        <a href="tokenocalypse-subagent-cost-guide.html"><span class="lbl">// related post</span>The sub-agent cost spike guide</a>
+        <a href="getting-started-with-claude-code-2026.html"><span class="lbl">// related post</span>Getting started with Claude Code</a>
+        <a href="mcp-server-tutorial-2026.html"><span class="lbl">// related post</span>MCP server tutorial 2026</a>
+      </div>
+    </aside>
+  </article>
+</main>
+
+<div id="site-foot"></div>
+<script src="../site-shell.js?v=4.6.0"></script>
+<script src="../site.js?v=4.6.0"></script>
+</body>
+</html>

@@ -1,0 +1,524 @@
+{
+  "name": "Scribo Languages",
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "version": "0.1.17",
+  "aliases": [
+    "translation",
+    "languages"
+  ],
+  "visibility": "public",
+  "description": "Language learning journal with AI-powered translations",
+  "runtime": "vite_hono",
+  "author": "Moldable",
+  "license": "FSL-1.1-ALv2",
+  "repository": "moldable-ai/apps",
+  "icon": "📓",
+  "iconPath": "public/icon.png",
+  "category": "education",
+  "tags": [
+    "languages",
+    "translation",
+    "learning",
+    "journal"
+  ],
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/editor": "^0.1.57",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "scribo.entries",
+        "name": "Language journal entries",
+        "description": "Read and manage Scribo language journal entries and translations.",
+        "scopes": [
+          {
+            "id": "scribo.entries.list",
+            "name": "List entries",
+            "description": "List journal entries with optional language and text filters.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string"
+                },
+                "sourceLanguage": {
+                  "type": "string"
+                },
+                "targetLanguage": {
+                  "type": "string"
+                },
+                "includeTranslation": {
+                  "type": "boolean"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 200
+                }
+              }
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "scribo.entries.search",
+            "name": "Search entries",
+            "description": "Search entry title, source text, and translation.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string"
+                },
+                "includeTranslation": {
+                  "type": "boolean"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 200
+                }
+              }
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "scribo.entries.get",
+            "name": "Get entry",
+            "description": "Get one journal entry by ID.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "scribo.native.createTranslated",
+            "name": "Create and translate entry",
+            "description": "Save a native journal entry and translate it server-side; provider failure is persisted as retryable entry state.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "languagePair": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "en-fr",
+                      "en-es",
+                      "en-de",
+                      "fr-en",
+                      "fr-es",
+                      "fr-de",
+                      "es-en",
+                      "es-fr",
+                      "es-de",
+                      "de-en",
+                      "de-fr",
+                      "de-es"
+                    ]
+                  },
+                  "minItems": 1,
+                  "maxItems": 1
+                }
+              },
+              "required": [
+                "title",
+                "content",
+                "languagePair"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "important",
+            "surfaces": [
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "scribo.native.updateTranslated",
+            "name": "Save and retranslate entry",
+            "description": "Save native source edits and retranslate server-side; provider failure leaves the source saved and retryable.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "content"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "important",
+            "surfaces": [
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "scribo.native.retryTranslation",
+            "name": "Retry entry translation",
+            "description": "Retry server-side translation for one saved journal entry.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "important",
+            "surfaces": [
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "scribo.entries.create",
+            "name": "Create entry",
+            "description": "Create a language journal entry.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "translation": {
+                  "type": "string"
+                },
+                "sourceLanguage": {
+                  "type": "string"
+                },
+                "targetLanguage": {
+                  "type": "string"
+                }
+              }
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "scribo.entries.update",
+            "name": "Update entry",
+            "description": "Update journal entry title, content, translation, or language pair.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "translation": {
+                  "type": "string"
+                },
+                "sourceLanguage": {
+                  "type": "string"
+                },
+                "targetLanguage": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "scribo.entries.delete",
+            "name": "Delete entry",
+            "description": "Delete one journal entry.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "scribo.translate",
+            "name": "Translate markdown",
+            "description": "Translate markdown text using Scribo's translation provider and block cache.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "markdown": {
+                  "type": "string"
+                },
+                "from": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "cache": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "description": "Optional Scribo translation cache."
+                }
+              },
+              "required": [
+                "markdown",
+                "from",
+                "to"
+              ]
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "changesState": true
+          }
+        ]
+      },
+      {
+        "id": "scribo.drive",
+        "name": "Drive Scribo",
+        "description": "Inspect and navigate Scribo's journal interface for voice-driven workflows.",
+        "scopes": [
+          {
+            "id": "scribo.ui.describe",
+            "name": "Describe Scribo views",
+            "description": "Return a language-model-readable catalog of Scribo's navigable views.",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "scribo.ui.navigate",
+            "name": "Navigate Scribo",
+            "description": "Queue navigation to the document list or a specific journal document.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "documents",
+                    "document"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Required existing journal entry ID for the document view."
+                },
+                "params": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              },
+              "required": [
+                "view"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "scribo.ui.read",
+            "name": "Read Scribo",
+            "description": "Read faithful structured journal data; a document read includes its complete source text and translation.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "documents",
+                    "document"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Required existing journal entry ID when reading a document."
+                }
+              },
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "scribo.ui.openDocument",
+            "name": "Open document",
+            "description": "Open an existing Scribo journal document in its editor.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "documentId": {
+                  "type": "string",
+                  "description": "Existing journal entry ID."
+                }
+              },
+              "required": [
+                "documentId"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scribo.cards",
+        "description": "Saved translation chat card.",
+        "name": "Chat cards",
+        "scopes": [
+          {
+            "description": "Present one saved translation in chat; does not retranslate.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            },
+            "id": "scribo.cards.present",
+            "name": "Present one saved translation in chat; does not retranslate."
+          },
+          {
+            "description": "Read the selected saved translation without changing history.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            },
+            "id": "scribo.cards.read",
+            "name": "Read the selected saved translation without changing history."
+          }
+        ]
+      }
+    ]
+  },
+  "env": [],
+  "vault": [
+    {
+      "key": "DEEPL_API_KEY",
+      "name": "DeepL API Key",
+      "description": "Powers automatic translations between languages",
+      "url": "https://www.deepl.com/en/your-account/keys",
+      "required": true,
+      "capabilities": [
+        "deepl/translate"
+      ]
+    },
+    {
+      "key": "ELEVENLABS_API_KEY",
+      "name": "ElevenLabs API Key",
+      "description": "Powers text-to-speech pronunciation playback",
+      "url": "https://elevenlabs.io/app/settings/api-keys",
+      "required": false,
+      "capabilities": [
+        "elevenlabs/text-to-speech"
+      ]
+    }
+  ],
+  "routeName": "scribo",
+  "screenshots": [
+    "public/screenshots/1.png"
+  ],
+  "tagline": "Write in any language, translate and learn as you go"
+}

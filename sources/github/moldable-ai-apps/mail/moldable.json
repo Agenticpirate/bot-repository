@@ -1,0 +1,1502 @@
+{
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "name": "Mail",
+  "version": "0.2.21",
+  "aliases": ["email", "inbox"],
+  "runtime": "vite_hono",
+  "visibility": "public",
+  "description": "Fast multi-account Gmail client for search, reading, replies, forwarding, and sending email",
+  "author": "Moldable",
+  "license": "FSL-1.1-ALv2",
+  "icon": "✉️",
+  "category": "productivity",
+  "tags": ["email", "gmail", "inbox", "productivity"],
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "mail.messages",
+        "name": "Email messages",
+        "description": "Allow approved apps to read selected Gmail message context in this workspace.",
+        "scopes": [
+          {
+            "id": "mail.native.messages",
+            "name": "Read a mobile mailbox view",
+            "description": "Return a bounded mobile mailbox or search view. With multiple accounts and no accountId, this returns a unified view and reports any account-specific failures.",
+            "risk": "low",
+            "surfaces": ["voice", "nativeUI"],
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["view"],
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "inbox",
+                    "unread",
+                    "starred",
+                    "sent",
+                    "all",
+                    "trash",
+                    "search"
+                  ]
+                },
+                "query": {
+                  "type": "string"
+                },
+                "maxResults": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 50
+                }
+              }
+            }
+          },
+          {
+            "id": "mail.native.mailboxes",
+            "name": "Read mobile mailboxes",
+            "description": "Return the familiar mobile mailbox hierarchy with bounded cached counts. With multiple accounts and no accountId, counts cover the unified mailbox.",
+            "risk": "low",
+            "surfaces": ["voice", "nativeUI"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.native.compose",
+            "name": "Prepare mobile draft form",
+            "description": "Return an empty compose draft or a validated reply-draft projection. This does not create or send anything.",
+            "risk": "low",
+            "surfaces": ["voice", "nativeUI"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "replyTo": {
+                  "type": "string"
+                },
+                "draftId": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "changesState": true
+          },
+          {
+            "id": "mail.native.drafts",
+            "name": "Read Gmail drafts",
+            "description": "Return Gmail drafts for the native Drafts mailbox. With multiple accounts and no accountId, drafts are unified and remain account-qualified.",
+            "risk": "low",
+            "surfaces": ["voice", "nativeUI"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.status",
+            "name": "Email connection status",
+            "description": "Check whether Gmail is connected in this workspace.",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.proactive.status",
+            "name": "Email reactivity status",
+            "description": "Inspect whether durable Gmail history synchronization is established and current for one account.",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.proactive.sync",
+            "name": "Check for new email now",
+            "description": "Run one durable Gmail history synchronization now and report its bounded status.",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "changesState": true
+          },
+          {
+            "id": "mail.messages.inbox",
+            "name": "Paged inbox messages",
+            "description": "List Inbox messages with pagination metadata for iterative review. With multiple accounts and no accountId, returns an account-qualified unified inbox.",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "query": {
+                  "type": "string"
+                },
+                "pageToken": {
+                  "type": "string"
+                },
+                "maxResults": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 100
+                },
+                "includeBodies": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "outputSchema": {
+              "type": "object",
+              "properties": {
+                "messages": {
+                  "type": "array"
+                },
+                "nextPageToken": {
+                  "type": "string"
+                },
+                "resultSizeEstimate": {
+                  "type": "number"
+                },
+                "scope": {
+                  "type": "string",
+                  "enum": ["account", "unified"]
+                },
+                "accountErrors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "mail.messages.list",
+            "name": "Paged email messages",
+            "description": "List Gmail messages by label/search with pageToken support. With multiple accounts and no accountId, returns an account-qualified unified list.",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "query": {
+                  "type": "string"
+                },
+                "labelId": {
+                  "type": "string"
+                },
+                "pageToken": {
+                  "type": "string"
+                },
+                "maxResults": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 100
+                },
+                "includeBodies": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "outputSchema": {
+              "type": "object",
+              "properties": {
+                "messages": {
+                  "type": "array"
+                },
+                "nextPageToken": {
+                  "type": "string"
+                },
+                "resultSizeEstimate": {
+                  "type": "number"
+                },
+                "scope": {
+                  "type": "string",
+                  "enum": ["account", "unified"]
+                },
+                "accountErrors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "mail.messages.unread",
+            "name": "Unread email",
+            "description": "List recent unread email summaries. With multiple accounts and no accountId, result.messages is unified and account-qualified; inspect accountErrors before claiming completeness.",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "query": {
+                  "type": "string"
+                },
+                "labelId": {
+                  "type": "string"
+                },
+                "maxResults": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 50
+                }
+              }
+            },
+            "outputSchema": {
+              "type": "object",
+              "properties": {
+                "messages": {
+                  "type": "array"
+                },
+                "scope": {
+                  "type": "string",
+                  "enum": ["account", "unified"]
+                },
+                "accountErrors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "mail.messages.search",
+            "name": "Search email",
+            "description": "Search Gmail and return compact message summaries. With multiple accounts and no accountId, result.messages is unified and account-qualified; inspect accountErrors before claiming completeness.",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "query": {
+                  "type": "string"
+                },
+                "labelId": {
+                  "type": "string"
+                },
+                "maxResults": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 50
+                }
+              }
+            },
+            "outputSchema": {
+              "type": "object",
+              "properties": {
+                "messages": {
+                  "type": "array"
+                },
+                "scope": {
+                  "type": "string",
+                  "enum": ["account", "unified"]
+                },
+                "accountErrors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "mail.messages.get",
+            "name": "Get email message",
+            "description": "Get one Gmail message by ID. Pass the accountId returned by unified list/search results so colliding Gmail IDs resolve to the correct account. Includes attachment IDs and text-reading availability. To read a relevant PDF, text, CSV, or Markdown attachment, call this same method with attachment: {id} from the message’s attachments. Returns bounded page text and PDF links in attachmentContent; continue with its next cursor until the relevant pages are read. No separate approval is needed beyond this message-read permission. Scanned pages with no text are explicitly marked needsOcr. Read relevant attachments before claiming a fact is unavailable or asking the user to check it. Attachment metadata includes a generic reference. Use getAttachment/readAttachment/viewImage with that reference for shared authorized tools, including visual inspection of images. attachment: {id, mode: \"materialize\"} returns only an asset-addressed reference in attachmentContent; binary data stays outside RPC JSON.",
+            "risk": "low",
+            "surfaces": ["voice", "nativeUI"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "attachment": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["id"],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2048,
+                      "description": "The id from this message’s attachments array; do not use a filename or invent an ID."
+                    },
+                    "startPage": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 10000,
+                      "default": 1
+                    },
+                    "pageCount": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 5,
+                      "default": 3
+                    },
+                    "textOffset": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000000,
+                      "default": 0,
+                      "description": "Use the returned next.textOffset to continue a long page."
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": ["materialize"],
+                      "description": "Return a generic authorized attachment asset reference instead of extracting text."
+                    }
+                  }
+                }
+              },
+              "required": ["id"]
+            }
+          },
+          {
+            "id": "mail.accounts.list",
+            "name": "List Gmail accounts",
+            "description": "List connected Gmail accounts and identify the active account.",
+            "risk": "low",
+            "surfaces": ["voice", "nativeUI"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.accounts.setActive",
+            "name": "Select Gmail account",
+            "description": "Set the active Gmail account used when an RPC does not provide accountId.",
+            "risk": "important",
+            "surfaces": ["voice", "nativeUI"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                }
+              },
+              "required": ["accountId"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.triage",
+            "name": "Summarize unread inbox",
+            "description": "Return a deterministic unread Inbox summary with sender, subject, date, and optional Gmail labels. With multiple accounts and no accountId, it is unified and reports accountErrors. No AI classification is performed.",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "query": {
+                  "type": "string"
+                },
+                "maxResults": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 100
+                },
+                "includeLabels": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.read",
+            "name": "Read email",
+            "description": "Read one Gmail message body with optional headers. Includes attachment IDs and text-reading availability. To read a relevant PDF, text, CSV, or Markdown attachment, call this same method with attachment: {id} from the message’s attachments. Returns bounded page text and PDF links in attachmentContent; continue with its next cursor until the relevant pages are read. No separate approval is needed beyond this message-read permission. Scanned pages with no text are explicitly marked needsOcr. Read relevant attachments before claiming a fact is unavailable or asking the user to check it. Attachment metadata includes a generic reference. Use getAttachment/readAttachment/viewImage with that reference for shared authorized tools, including visual inspection of images. attachment: {id, mode: \"materialize\"} returns only an asset-addressed reference in attachmentContent; binary data stays outside RPC JSON.",
+            "risk": "low",
+            "surfaces": ["voice", "nativeUI"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "messageId": {
+                  "type": "string"
+                },
+                "includeHeaders": {
+                  "type": "boolean"
+                },
+                "html": {
+                  "type": "boolean"
+                },
+                "attachment": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["id"],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2048,
+                      "description": "The id from this message’s attachments array; do not use a filename or invent an ID."
+                    },
+                    "startPage": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 10000,
+                      "default": 1
+                    },
+                    "pageCount": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 5,
+                      "default": 3
+                    },
+                    "textOffset": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000000,
+                      "default": 0,
+                      "description": "Use the returned next.textOffset to continue a long page."
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": ["materialize"],
+                      "description": "Return a generic authorized attachment asset reference instead of extracting text."
+                    }
+                  }
+                }
+              },
+              "required": ["messageId"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.send",
+            "name": "Send email",
+            "description": "Send an email from a selected Gmail account or one of its configured send-as identities.",
+            "risk": "important",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "from": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "cc": {
+                  "type": "string"
+                },
+                "bcc": {
+                  "type": "string"
+                },
+                "allowedRecipients": {
+                  "type": "array",
+                  "description": "Optional host-bounded recipient allowlist. Mail checks the fully resolved To, Cc, and Bcc envelope before sending.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1,
+                  "maxItems": 64
+                },
+                "subject": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string"
+                },
+                "html": {
+                  "type": "boolean"
+                },
+                "threadId": {
+                  "type": "string"
+                },
+                "draftId": {
+                  "type": "string"
+                }
+              },
+              "required": ["to"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.reply",
+            "name": "Reply to email",
+            "description": "Reply to a Gmail message with Gmail-compatible thread and reference headers.",
+            "risk": "important",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "messageId": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string"
+                },
+                "from": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "cc": {
+                  "type": "string"
+                },
+                "bcc": {
+                  "type": "string"
+                },
+                "allowedRecipients": {
+                  "type": "array",
+                  "description": "Optional host-bounded recipient allowlist. Mail resolves the reply envelope and rejects any recipient outside it.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1,
+                  "maxItems": 64
+                },
+                "html": {
+                  "type": "boolean"
+                },
+                "draft": {
+                  "type": "boolean"
+                },
+                "remove": {
+                  "type": "string"
+                }
+              },
+              "required": ["messageId", "body"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.replyAll",
+            "name": "Reply all to email",
+            "description": "Reply to all non-self recipients with Gmail-compatible threading and alias de-duplication.",
+            "risk": "important",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "messageId": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string"
+                },
+                "from": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "cc": {
+                  "type": "string"
+                },
+                "bcc": {
+                  "type": "string"
+                },
+                "allowedRecipients": {
+                  "type": "array",
+                  "description": "Optional host-bounded recipient allowlist. Mail resolves every reply-all recipient and rejects any address outside it.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1,
+                  "maxItems": 64
+                },
+                "html": {
+                  "type": "boolean"
+                },
+                "draft": {
+                  "type": "boolean"
+                },
+                "remove": {
+                  "type": "string"
+                }
+              },
+              "required": ["messageId", "body"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.forward",
+            "name": "Forward email",
+            "description": "Forward a Gmail message with sender, date, subject, recipient, and original body attribution.",
+            "risk": "important",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "messageId": {
+                  "type": "string"
+                },
+                "from": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "cc": {
+                  "type": "string"
+                },
+                "bcc": {
+                  "type": "string"
+                },
+                "allowedRecipients": {
+                  "type": "array",
+                  "description": "Optional host-bounded recipient allowlist. Mail checks the fully resolved forwarded-message envelope before sending.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1,
+                  "maxItems": 64
+                },
+                "body": {
+                  "type": "string"
+                },
+                "html": {
+                  "type": "boolean"
+                },
+                "draft": {
+                  "type": "boolean"
+                }
+              },
+              "required": ["messageId", "to"],
+              "additionalProperties": false
+            }
+          }
+        ]
+      },
+      {
+        "id": "mail.filters",
+        "name": "Native inbox filters",
+        "description": "Create and manage workspace-scoped native Mail filters. Enabled filters archive matching Inbox mail locally, both when created (unless applyExisting is false) and for new inbound Gmail messages before proactive routines. They never delete mail, mark spam, unsubscribe, or send messages.",
+        "scopes": [
+          {
+            "id": "mail.filters.list",
+            "name": "List native inbox filters",
+            "description": "List the workspace native Mail filters. An optional accountId returns global filters plus filters bound to that connected account. This does not change Gmail.",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.filters.create",
+            "name": "Create native inbox filter",
+            "description": "Create an enabled or disabled native Mail filter. By default, it immediately archives matching messages already in the applicable Inbox, then applies to future inbound Gmail mail. Set applyExisting to false to skip the existing-Inbox pass. Match categories combine with AND; values within one category combine with OR. Omit accountId to apply across connected accounts. Matching messages remain in All Mail.",
+            "risk": "important",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "required": ["name", "match"],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "accountId": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean"
+                },
+                "match": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "fromAddresses": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 50,
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "fromDomains": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 50,
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "subjectContains": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 50,
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "subjectEquals": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 50,
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "applyExisting": {
+                  "type": "boolean",
+                  "description": "Whether to immediately apply this filter to matching messages already in the Inbox. Defaults to true."
+                }
+              }
+            }
+          },
+          {
+            "id": "mail.filters.apply",
+            "name": "Apply native inbox filter now",
+            "description": "Run one specified native filter, or all enabled native filters when id is omitted, against the current Inbox across applicable connected accounts. Matching messages are archived from Inbox and remain in All Mail. New mail is still filtered automatically.",
+            "risk": "important",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Optional native filter id. Omit to apply all enabled filters."
+                }
+              }
+            }
+          },
+          {
+            "id": "mail.filters.update",
+            "name": "Update native inbox filter",
+            "description": "Rename, enable or disable, rebind, or replace the match conditions on an existing native Mail filter. Set accountId to null to make a filter apply across connected accounts. Use mail.filters.apply to run changed conditions against existing Inbox mail.",
+            "risk": "important",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "required": ["id"],
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "accountId": {
+                  "type": ["string", "null"]
+                },
+                "enabled": {
+                  "type": "boolean"
+                },
+                "match": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "fromAddresses": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 50,
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "fromDomains": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 50,
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "subjectContains": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 50,
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "subjectEquals": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 50,
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "mail.filters.delete",
+            "name": "Delete native inbox filter",
+            "description": "Remove one native Mail filter by the id returned from mail.filters.list or mail.filters.create. It does not change already archived Gmail messages.",
+            "risk": "important",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "required": ["id"],
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "mail.drive",
+        "name": "Drive Mail",
+        "description": "Describe, navigate, read, and perform the approved signature actions in the Mail app.",
+        "scopes": [
+          {
+            "id": "mail.ui.describe",
+            "name": "Describe Mail UI",
+            "description": "List every navigable Mail view with model-readable entity guidance.",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "id": "mail.ui.navigate",
+            "name": "Navigate Mail UI",
+            "description": "Navigate the open Mail app to the inbox or a validated message. This only changes the visible view.",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "view": {
+                  "type": "string",
+                  "enum": ["inbox", "message"]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Required Gmail message id when view is message."
+                },
+                "params": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                }
+              },
+              "required": ["view"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.ui.openMessage",
+            "name": "Open message",
+            "description": "Open a validated Gmail message in the visible Mail reader.",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "messageId": {
+                  "type": "string"
+                }
+              },
+              "required": ["messageId"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.messages.archive",
+            "name": "Archive message",
+            "description": "Archive a Gmail message by removing it from the Inbox. This changes Gmail state, but the message remains in All Mail and can be restored to the Inbox.",
+            "risk": "important",
+            "surfaces": ["voice", "nativeUI"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "messageId": {
+                  "type": "string"
+                }
+              },
+              "required": ["messageId"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.messages.spam",
+            "name": "Mark message as spam",
+            "description": "Mark the Gmail conversation containing messageId as spam. Gmail removes it from the Inbox and uses the report to improve filtering. Use only when the message is actually unwanted or abusive.",
+            "risk": "important",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "messageId": {
+                  "type": "string",
+                  "description": "Gmail message id returned by a Mail message-list or search method."
+                }
+              },
+              "required": ["messageId"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.messages.unsubscribe",
+            "name": "Unsubscribe and archive message",
+            "description": "Use a supported List-Unsubscribe header on messageId, then archive the Gmail conversation. Mail only submits standardized one-click HTTPS requests or sends the header-specified mailto request; it rejects messages without a supported unsubscribe header.",
+            "risk": "important",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "messageId": {
+                  "type": "string",
+                  "description": "Gmail message id returned by a Mail message-list or search method."
+                }
+              },
+              "required": ["messageId"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.messages.markRead",
+            "name": "Mark message read",
+            "description": "Remove the Gmail UNREAD label from a message.",
+            "risk": "important",
+            "surfaces": ["voice", "nativeUI"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "messageId": {
+                  "type": "string"
+                }
+              },
+              "required": ["messageId"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.messages.markUnread",
+            "name": "Mark message unread",
+            "description": "Add the Gmail UNREAD label to a message.",
+            "risk": "important",
+            "surfaces": ["voice", "nativeUI"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "messageId": {
+                  "type": "string"
+                }
+              },
+              "required": ["messageId"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.messages.star",
+            "name": "Star message",
+            "description": "Add the Gmail STARRED label to a message.",
+            "risk": "important",
+            "surfaces": ["voice", "nativeUI"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "messageId": {
+                  "type": "string"
+                }
+              },
+              "required": ["messageId"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.messages.unstar",
+            "name": "Unstar message",
+            "description": "Remove the Gmail STARRED label from a message.",
+            "risk": "important",
+            "surfaces": ["voice", "nativeUI"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "messageId": {
+                  "type": "string"
+                }
+              },
+              "required": ["messageId"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.messages.trash",
+            "name": "Move message to Trash",
+            "description": "Move a Gmail message to Trash. It can be restored later but is treated as destructive in NativeUI.",
+            "risk": "destructive",
+            "surfaces": ["voice", "nativeUI"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "messageId": {
+                  "type": "string"
+                }
+              },
+              "required": ["messageId"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.drafts.create",
+            "name": "Create or update draft",
+            "description": "Create or update a Gmail draft with optional recipients, subject, body, and thread association. This never sends email.",
+            "risk": "important",
+            "surfaces": ["voice", "nativeUI"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "cc": {
+                  "type": "string"
+                },
+                "bcc": {
+                  "type": "string"
+                },
+                "subject": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string"
+                },
+                "threadId": {
+                  "type": "string"
+                },
+                "draftId": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.drafts.delete",
+            "name": "Delete Gmail draft",
+            "description": "Permanently delete one Gmail draft. This does not delete a sent message.",
+            "risk": "destructive",
+            "surfaces": ["voice", "nativeUI"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "draftId": {
+                  "type": "string"
+                }
+              },
+              "required": ["draftId"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.messages.send",
+            "name": "Send email",
+            "description": "Send an explicitly submitted email from the native Mail composer. If draftId is present, update and send that Gmail draft.",
+            "risk": "important",
+            "surfaces": ["nativeUI"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "draftId": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "cc": {
+                  "type": "string"
+                },
+                "bcc": {
+                  "type": "string"
+                },
+                "subject": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string"
+                },
+                "threadId": {
+                  "type": "string"
+                }
+              },
+              "required": ["to"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.ui.read",
+            "name": "Read Mail view",
+            "description": "Return an inbox summary or one message's clean speakable body using Mail's sanitized text representation; raw HTML is never returned.",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "view": {
+                  "type": "string",
+                  "enum": ["inbox", "message"]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Gmail message id to read."
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        ]
+      },
+      {
+        "id": "mail.cards",
+        "name": "Chat cards",
+        "description": "Compact email previews and drafts with tappable Mail quick looks.",
+        "scopes": [
+          {
+            "id": "mail.cards.present",
+            "name": "Present an email draft in chat",
+            "description": "Present a compact existing Gmail draft in chat. Tapping opens its editable Mail composer. Pass draftId and accountId. Presenting never sends email.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "draftId": {
+                  "type": "string"
+                },
+                "accountId": {
+                  "type": "string"
+                }
+              },
+              "required": ["draftId", "accountId"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.cards.read",
+            "name": "Read a draft card",
+            "description": "Read the current draft revision or its durable card-send outcome.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "draftId": {
+                  "type": "string"
+                },
+                "accountId": {
+                  "type": "string"
+                }
+              },
+              "required": ["draftId", "accountId"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.cards.save",
+            "name": "Save inline draft edits",
+            "description": "Save explicitly submitted card values after checking the exact draft revision.",
+            "risk": "important",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "draftId": {
+                  "type": "string"
+                },
+                "accountId": {
+                  "type": "string"
+                },
+                "expectedRevision": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "cc": {
+                  "type": "string"
+                },
+                "bcc": {
+                  "type": "string"
+                },
+                "subject": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "draftId",
+                "accountId",
+                "expectedRevision",
+                "to",
+                "cc",
+                "bcc",
+                "subject",
+                "body"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.cards.send",
+            "name": "Send an inline draft",
+            "description": "Send the exact user-submitted inline draft once, after checking its revision. Requires explicit user submission. Reopened sent cards cannot send again.",
+            "risk": "important",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "draftId": {
+                  "type": "string"
+                },
+                "accountId": {
+                  "type": "string"
+                },
+                "expectedRevision": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "cc": {
+                  "type": "string"
+                },
+                "bcc": {
+                  "type": "string"
+                },
+                "subject": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "draftId",
+                "accountId",
+                "expectedRevision",
+                "to",
+                "cc",
+                "bcc",
+                "subject",
+                "body"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "mail.cards.messages.present",
+            "name": "Present email cards",
+            "description": "Show one or up to eight selected emails as compact tappable cards in chat. Prefer this when referencing emails instead of repeating their contents. No email actions are performed.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["accountId", "messageIds"],
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "messageIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "minItems": 1,
+                  "maxItems": 8
+                }
+              }
+            }
+          },
+          {
+            "id": "mail.cards.messages.read",
+            "name": "Read an email card",
+            "description": "Read selected email previews or a bounded detail for one of the presented messageIds. Does not mark read, archive, or reply.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["accountId", "messageIds"],
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "messageIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "minItems": 1,
+                  "maxItems": 8
+                },
+                "detailId": {
+                  "type": "string",
+                  "description": "An ID within messageIds to load the full email quick look."
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "env": [],
+  "routeName": "mail",
+  "iconPath": "public/icon.png",
+  "screenshots": ["public/screenshots/1.png"],
+  "tagline": "A fast, keyboard-driven Gmail client for all your accounts"
+}

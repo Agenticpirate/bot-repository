@@ -1,0 +1,1211 @@
+{
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "name": "Calendar",
+  "version": "0.1.18",
+  "aliases": [
+    "schedule",
+    "events"
+  ],
+  "runtime": "vite_hono",
+  "visibility": "public",
+  "description": "Integrated multi-account calendar with Google Calendar connections",
+  "author": "Moldable",
+  "license": "FSL-1.1-ALv2",
+  "repository": "moldable-ai/apps",
+  "icon": "🗓️",
+  "iconPath": "public/icon.png",
+  "category": "productivity",
+  "tags": [
+    "calendar",
+    "schedule",
+    "events",
+    "google"
+  ],
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "calendar.events",
+        "name": "Calendar events",
+        "description": "Allow approved apps to read and manage calendar events and invitees across connected Google accounts in this workspace.",
+        "scopes": [
+          {
+            "id": "calendar.native.events",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Read a mobile calendar view",
+            "description": "Return a bounded mobile calendar list with connection and empty-state information.",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "view"
+              ],
+              "properties": {
+                "accountId": {
+                  "type": "string",
+                  "description": "Optional connected Calendar account ID. Omit to read all connected accounts."
+                },
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "today",
+                    "upcoming",
+                    "range",
+                    "search",
+                    "picker",
+                    "day"
+                  ]
+                },
+                "query": {
+                  "type": "string"
+                },
+                "days": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 90
+                },
+                "timeMin": {
+                  "type": "string"
+                },
+                "timeMax": {
+                  "type": "string"
+                },
+                "maxResults": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 100
+                },
+                "date": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                }
+              }
+            }
+          },
+          {
+            "id": "calendar.events.today",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Today's calendar events",
+            "description": "See event titles, times, attendees, organizers, conferencing links, and availability for today's schedule in this workspace.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string",
+                  "description": "Optional connected Calendar account ID. Omit to read all connected accounts."
+                },
+                "onlyFuture": {
+                  "type": "boolean"
+                },
+                "includeDeclined": {
+                  "type": "boolean"
+                },
+                "maxResults": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 2500
+                },
+                "query": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "id": "calendar.events.upcoming",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Upcoming calendar events",
+            "description": "See upcoming event titles, times, attendees, organizers, conferencing links, and availability over the next N days.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string",
+                  "description": "Optional connected Calendar account ID. Omit to read all connected accounts."
+                },
+                "days": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 90
+                },
+                "includeDeclined": {
+                  "type": "boolean"
+                },
+                "maxResults": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 2500
+                }
+              }
+            }
+          },
+          {
+            "id": "calendar.events.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Calendar events in a date range",
+            "description": "See event titles, start and end times, attendees, organizers, conferencing links, and availability for a requested date range so the app can show schedule context.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string",
+                  "description": "Optional connected Calendar account ID. Omit to read all connected accounts."
+                },
+                "timeMin": {
+                  "type": "string",
+                  "description": "ISO datetime lower bound."
+                },
+                "timeMax": {
+                  "type": "string",
+                  "description": "ISO datetime upper bound."
+                },
+                "includeDeclined": {
+                  "type": "boolean"
+                },
+                "maxResults": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 2500
+                },
+                "query": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "id": "calendar.events.search",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Search calendar events",
+            "description": "Search calendar event title, location, attendees, organizer, conferencing links, and status within an optional date range.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string",
+                  "description": "Optional connected Calendar account ID. Omit to read all connected accounts."
+                },
+                "query": {
+                  "type": "string"
+                },
+                "timeMin": {
+                  "type": "string"
+                },
+                "timeMax": {
+                  "type": "string"
+                },
+                "maxResults": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 2500
+                }
+              }
+            }
+          },
+          {
+            "id": "calendar.events.get",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Get calendar event",
+            "description": "Get one calendar event by ID from the default event window.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string",
+                  "description": "Account ID returned with the event. Omit only when the event ID is unique across connected accounts."
+                },
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "calendar.events.findByICalUid",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Find event by iCalendar UID",
+            "description": "Find a Google Calendar event by its iCalendar UID and return the current attendee response status.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string",
+                  "description": "Optional connected Calendar account ID to search."
+                },
+                "iCalUid": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "iCalUid"
+              ]
+            }
+          },
+          {
+            "id": "calendar.events.create",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Create calendar event",
+            "description": "Create a single event or a true recurring series on the connected user's primary Google Calendar. Set recurrence for a series; attendee notifications default to none unless requested.",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "summary",
+                "start",
+                "end"
+              ],
+              "properties": {
+                "accountId": {
+                  "type": "string",
+                  "description": "Connected Calendar account to create the event in. Defaults to the active account."
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                },
+                "description": {
+                  "type": "string",
+                  "maxLength": 10000
+                },
+                "location": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "start": {
+                  "type": "string",
+                  "description": "ISO date-time."
+                },
+                "end": {
+                  "type": "string",
+                  "description": "ISO date-time after start."
+                },
+                "timeZone": {
+                  "type": "string"
+                },
+                "recurrence": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "description": "Structured recurrence rule. Omit for a one-time event.",
+                  "required": [
+                    "frequency"
+                  ],
+                  "properties": {
+                    "frequency": {
+                      "type": "string",
+                      "enum": [
+                        "daily",
+                        "weekly",
+                        "monthly",
+                        "yearly"
+                      ]
+                    },
+                    "interval": {
+                      "type": "number",
+                      "minimum": 1,
+                      "maximum": 99
+                    },
+                    "byDay": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 7,
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "MO",
+                          "TU",
+                          "WE",
+                          "TH",
+                          "FR",
+                          "SA",
+                          "SU"
+                        ]
+                      }
+                    },
+                    "byMonthDay": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 31,
+                      "items": {
+                        "type": "number",
+                        "minimum": -31,
+                        "maximum": 31
+                      }
+                    },
+                    "byMonth": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 12,
+                      "items": {
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 12
+                      }
+                    },
+                    "count": {
+                      "type": "number",
+                      "minimum": 1,
+                      "maximum": 2500,
+                      "description": "Total number of occurrences. Do not combine with until."
+                    },
+                    "until": {
+                      "type": "string",
+                      "description": "RFC3339 date-time for the final recurrence boundary. Do not combine with count."
+                    },
+                    "weekStartsOn": {
+                      "type": "string",
+                      "enum": [
+                        "MO",
+                        "TU",
+                        "WE",
+                        "TH",
+                        "FR",
+                        "SA",
+                        "SU"
+                      ]
+                    }
+                  }
+                },
+                "attendees": {
+                  "type": "array",
+                  "maxItems": 200,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "email"
+                    ],
+                    "properties": {
+                      "email": {
+                        "type": "string",
+                        "format": "email"
+                      },
+                      "displayName": {
+                        "type": "string"
+                      },
+                      "optional": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                },
+                "sendUpdates": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "externalOnly",
+                    "none"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": "calendar.events.recurring.instances",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "List recurring event instances",
+            "description": "List concrete occurrences belonging to a recurring Google Calendar series. An occurrence returned here can be used for an instance-scoped update or deletion.",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "anyOf": [
+                {
+                  "required": [
+                    "eventId"
+                  ]
+                },
+                {
+                  "required": [
+                    "iCalUid"
+                  ]
+                }
+              ],
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "eventId": {
+                  "type": "string",
+                  "description": "A recurring master ID or any occurrence ID in the series."
+                },
+                "iCalUid": {
+                  "type": "string"
+                },
+                "timeMin": {
+                  "type": "string"
+                },
+                "timeMax": {
+                  "type": "string"
+                },
+                "maxResults": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 2500
+                }
+              }
+            }
+          },
+          {
+            "id": "calendar.events.update",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Update calendar event or recurring series",
+            "description": "Update one occurrence or its entire recurring series. Use scope=instance for only the supplied occurrence and scope=series for the recurring master. Recurrence rules can only be changed with series scope. Google sends updates by default.",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "anyOf": [
+                {
+                  "required": [
+                    "eventId"
+                  ]
+                },
+                {
+                  "required": [
+                    "iCalUid"
+                  ]
+                }
+              ],
+              "required": [
+                "scope",
+                "changes"
+              ],
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "eventId": {
+                  "type": "string"
+                },
+                "iCalUid": {
+                  "type": "string"
+                },
+                "scope": {
+                  "type": "string",
+                  "enum": [
+                    "instance",
+                    "series"
+                  ]
+                },
+                "changes": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 500
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "maxLength": 10000
+                    },
+                    "location": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "maxLength": 1000
+                    },
+                    "start": {
+                      "type": "string",
+                      "description": "RFC3339 date-time. Supply start and end together."
+                    },
+                    "end": {
+                      "type": "string",
+                      "description": "RFC3339 date-time. Supply start and end together."
+                    },
+                    "timeZone": {
+                      "type": "string"
+                    },
+                    "recurrence": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "description": "A replacement structured recurrence rule, or null to make the event non-recurring. Series scope only.",
+                      "properties": {
+                        "frequency": {
+                          "type": "string",
+                          "enum": [
+                            "daily",
+                            "weekly",
+                            "monthly",
+                            "yearly"
+                          ]
+                        },
+                        "interval": {
+                          "type": "number",
+                          "minimum": 1,
+                          "maximum": 99
+                        },
+                        "byDay": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "MO",
+                              "TU",
+                              "WE",
+                              "TH",
+                              "FR",
+                              "SA",
+                              "SU"
+                            ]
+                          }
+                        },
+                        "byMonthDay": {
+                          "type": "array",
+                          "items": {
+                            "type": "number",
+                            "minimum": -31,
+                            "maximum": 31
+                          }
+                        },
+                        "byMonth": {
+                          "type": "array",
+                          "items": {
+                            "type": "number",
+                            "minimum": 1,
+                            "maximum": 12
+                          }
+                        },
+                        "count": {
+                          "type": "number",
+                          "minimum": 1,
+                          "maximum": 2500
+                        },
+                        "until": {
+                          "type": "string"
+                        },
+                        "weekStartsOn": {
+                          "type": "string",
+                          "enum": [
+                            "MO",
+                            "TU",
+                            "WE",
+                            "TH",
+                            "FR",
+                            "SA",
+                            "SU"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "frequency"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "sendUpdates": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "externalOnly",
+                    "none"
+                  ],
+                  "description": "Defaults to all."
+                }
+              }
+            }
+          },
+          {
+            "id": "calendar.events.delete",
+            "risk": "destructive",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Delete calendar event or recurring series",
+            "description": "Delete one occurrence or the entire recurring series. This is destructive. Use scope=instance only with a concrete occurrence and scope=series to remove every occurrence. Google sends cancellations by default.",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "anyOf": [
+                {
+                  "required": [
+                    "eventId"
+                  ]
+                },
+                {
+                  "required": [
+                    "iCalUid"
+                  ]
+                }
+              ],
+              "required": [
+                "scope"
+              ],
+              "properties": {
+                "accountId": {
+                  "type": "string"
+                },
+                "eventId": {
+                  "type": "string"
+                },
+                "iCalUid": {
+                  "type": "string"
+                },
+                "scope": {
+                  "type": "string",
+                  "enum": [
+                    "instance",
+                    "series"
+                  ]
+                },
+                "sendUpdates": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "externalOnly",
+                    "none"
+                  ],
+                  "description": "Defaults to all."
+                }
+              }
+            }
+          },
+          {
+            "id": "calendar.events.invitees.add",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Add calendar invitees",
+            "description": "Add one or more invitees to one event occurrence or its entire recurring series without recreating it. Existing organizer and self attendee records are preserved. Google sends event updates by default.",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "anyOf": [
+                {
+                  "required": [
+                    "eventId"
+                  ]
+                },
+                {
+                  "required": [
+                    "iCalUid"
+                  ]
+                }
+              ],
+              "required": [
+                "attendees"
+              ],
+              "properties": {
+                "accountId": {
+                  "type": "string",
+                  "description": "Account ID returned with the event so the correct Google identity is used."
+                },
+                "eventId": {
+                  "type": "string"
+                },
+                "iCalUid": {
+                  "type": "string"
+                },
+                "scope": {
+                  "type": "string",
+                  "enum": [
+                    "event",
+                    "series"
+                  ],
+                  "description": "Defaults to event. Use series to update the recurring master and every occurrence."
+                },
+                "attendees": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 200,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "email"
+                    ],
+                    "properties": {
+                      "email": {
+                        "type": "string",
+                        "format": "email"
+                      },
+                      "displayName": {
+                        "type": "string"
+                      },
+                      "optional": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                },
+                "sendUpdates": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "externalOnly",
+                    "none"
+                  ],
+                  "description": "Defaults to all so newly added invitees receive an invitation."
+                }
+              }
+            }
+          },
+          {
+            "id": "calendar.events.invitees.update",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Edit calendar invitees",
+            "description": "Edit invitees on one event occurrence or its entire recurring series. Organizer and connected-user attendee records cannot be changed. Google sends event updates by default.",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "anyOf": [
+                {
+                  "required": [
+                    "eventId"
+                  ]
+                },
+                {
+                  "required": [
+                    "iCalUid"
+                  ]
+                }
+              ],
+              "required": [
+                "attendees"
+              ],
+              "properties": {
+                "accountId": {
+                  "type": "string",
+                  "description": "Account ID returned with the event so the correct Google identity is used."
+                },
+                "eventId": {
+                  "type": "string"
+                },
+                "iCalUid": {
+                  "type": "string"
+                },
+                "scope": {
+                  "type": "string",
+                  "enum": [
+                    "event",
+                    "series"
+                  ],
+                  "description": "Defaults to event. Use series to update the recurring master and every occurrence."
+                },
+                "attendees": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 200,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "email"
+                    ],
+                    "anyOf": [
+                      {
+                        "required": [
+                          "newEmail"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "displayName"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "optional"
+                        ]
+                      }
+                    ],
+                    "properties": {
+                      "email": {
+                        "type": "string",
+                        "format": "email",
+                        "description": "Current invitee email address."
+                      },
+                      "newEmail": {
+                        "type": "string",
+                        "format": "email"
+                      },
+                      "displayName": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "optional": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                },
+                "sendUpdates": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "externalOnly",
+                    "none"
+                  ],
+                  "description": "Defaults to all so affected invitees receive the event update."
+                }
+              }
+            }
+          },
+          {
+            "id": "calendar.events.invitees.remove",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Remove calendar invitees",
+            "description": "Remove invitees from one event occurrence or its entire recurring series while preserving organizer and connected-user records. Missing emails are treated as already removed. Google sends event updates by default.",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "anyOf": [
+                {
+                  "required": [
+                    "eventId"
+                  ]
+                },
+                {
+                  "required": [
+                    "iCalUid"
+                  ]
+                }
+              ],
+              "required": [
+                "emails"
+              ],
+              "properties": {
+                "accountId": {
+                  "type": "string",
+                  "description": "Account ID returned with the event so the correct Google identity is used."
+                },
+                "eventId": {
+                  "type": "string"
+                },
+                "iCalUid": {
+                  "type": "string"
+                },
+                "scope": {
+                  "type": "string",
+                  "enum": [
+                    "event",
+                    "series"
+                  ],
+                  "description": "Defaults to event. Use series to update the recurring master and every occurrence."
+                },
+                "emails": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 200,
+                  "items": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                },
+                "sendUpdates": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "externalOnly",
+                    "none"
+                  ],
+                  "description": "Defaults to all so removed invitees receive the cancellation/update."
+                }
+              }
+            }
+          },
+          {
+            "id": "calendar.events.rsvp",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Respond to calendar invite",
+            "description": "Update the current user's RSVP status for an existing Google Calendar event.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string",
+                  "description": "Account ID returned with the event so the RSVP reaches the correct Google identity."
+                },
+                "eventId": {
+                  "type": "string"
+                },
+                "iCalUid": {
+                  "type": "string"
+                },
+                "responseStatus": {
+                  "type": "string",
+                  "enum": [
+                    "accepted",
+                    "tentative",
+                    "declined",
+                    "needsAction"
+                  ]
+                },
+                "sendUpdates": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "externalOnly",
+                    "none"
+                  ]
+                }
+              },
+              "required": [
+                "responseStatus"
+              ]
+            }
+          },
+          {
+            "id": "calendar.status",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Calendar connection status",
+            "description": "Check connected Calendar accounts and the active account in this workspace."
+          },
+          {
+            "id": "calendar.calendars.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "List calendars",
+            "description": "List Google calendars across connected accounts.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string",
+                  "description": "Optional connected Calendar account ID. Omit to list calendars across all connected accounts."
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "calendar.drive",
+        "name": "Drive Calendar",
+        "description": "Inspect and visibly navigate Calendar day agendas and month grids in the active workspace.",
+        "scopes": [
+          {
+            "id": "calendar.ui.describe",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Describe Calendar UI",
+            "description": "List Calendar's day and month views with model-readable date formats and navigation guidance.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "id": "calendar.ui.navigate",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Navigate Calendar UI",
+            "description": "Navigate the visible Calendar app to a day or month. For day, entityId is YYYY-MM-DD; for month, entityId is YYYY-MM. The client applies a last-wins workspace UI intent.",
+            "inputSchema": {
+              "type": "object",
+              "required": [
+                "view",
+                "entityId"
+              ],
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "day",
+                    "month"
+                  ]
+                },
+                "entityId": {
+                  "type": "string"
+                },
+                "params": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          {
+            "id": "calendar.ui.showDay",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Show calendar day",
+            "description": "Show one local calendar day in the agenda and month grid. date must be a real YYYY-MM-DD calendar date. This changes only the visible UI.",
+            "inputSchema": {
+              "type": "object",
+              "required": [
+                "date"
+              ],
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "description": "Calendar date in YYYY-MM-DD format."
+                }
+              }
+            }
+          },
+          {
+            "id": "calendar.ui.showMonth",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Show calendar month",
+            "description": "Show one calendar month grid. month must be a real YYYY-MM value. This changes only the visible UI.",
+            "inputSchema": {
+              "type": "object",
+              "required": [
+                "month"
+              ],
+              "properties": {
+                "month": {
+                  "type": "string",
+                  "description": "Calendar month in YYYY-MM format."
+                }
+              }
+            }
+          },
+          {
+            "id": "calendar.ui.read",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Read calendar view",
+            "description": "Read structured events for a target day or complete month range. Returns the exact time bounds, connection state, and event objects; disconnected calendars return connected false with an empty event list.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string",
+                  "description": "Optional connected Calendar account ID. Omit to read all connected accounts."
+                },
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "day",
+                    "month"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "YYYY-MM-DD for day or YYYY-MM for month."
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "calendar.cards",
+        "name": "Chat cards",
+        "description": "Compact app-owned previews with a fuller view on tap.",
+        "scopes": [
+          {
+            "id": "calendar.cards.present",
+            "name": "Show an event card with its time and full event details on tap.",
+            "description": "Show an event card with its time and full event details on tap.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "accountId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "env": [],
+  "routeName": "calendar",
+  "screenshots": [
+    "public/screenshots/1.png"
+  ],
+  "tagline": "Your Google Calendars, one clean month view and daily agenda"
+}

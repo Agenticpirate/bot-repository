@@ -1,0 +1,607 @@
+{
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "name": "Notes",
+  "version": "0.1.15",
+  "aliases": [
+    "notepad",
+    "writing"
+  ],
+  "visibility": "public",
+  "description": "A Google Keep-style note taking app with pinning and markdown support",
+  "runtime": "vite_hono",
+  "author": "Moldable",
+  "license": "FSL-1.1-ALv2",
+  "repository": "moldable-ai/apps",
+  "icon": "📝",
+  "iconPath": "public/icon.png",
+  "category": "productivity",
+  "tags": [
+    "notes",
+    "markdown",
+    "writing",
+    "keep"
+  ],
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/editor": "^0.1.57",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "notes.notes",
+        "name": "Notes",
+        "description": "Read and manage notes in the active workspace.",
+        "scopes": [
+          {
+            "id": "notes.native.read",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Read the mobile Notes experience",
+            "description": "Return a bounded route-specific projection for the active notes list, search results, or one note.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "route": {
+                  "type": "string",
+                  "enum": [
+                    "home",
+                    "search",
+                    "note"
+                  ]
+                },
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "archived",
+                    "trash"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "query": {
+                  "type": "string"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 50
+                }
+              },
+              "required": [
+                "route"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "notes.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "List notes",
+            "description": "List notes with optional archive, deleted, label, and text filters.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string"
+                },
+                "includeArchived": {
+                  "type": "boolean"
+                },
+                "includeDeleted": {
+                  "type": "boolean"
+                },
+                "includeContent": {
+                  "type": "boolean"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 200
+                }
+              }
+            }
+          },
+          {
+            "id": "notes.search",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Search notes",
+            "description": "Search note titles, content, and labels.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string"
+                },
+                "includeArchived": {
+                  "type": "boolean"
+                },
+                "includeDeleted": {
+                  "type": "boolean"
+                },
+                "includeContent": {
+                  "type": "boolean"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 200
+                }
+              }
+            }
+          },
+          {
+            "id": "notes.get",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Get note",
+            "description": "Read one note by ID, including its full content. For voice requests without an ID, use notes.search first.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "notes.create",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Create note",
+            "description": "Create a new note.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "labels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "isPinned": {
+                  "type": "boolean"
+                },
+                "isArchived": {
+                  "type": "boolean"
+                },
+                "color": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "id": "notes.update",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Update note",
+            "description": "Update one note's content, title, labels, pin/archive/deleted state, or color. For voice requests without an ID, use notes.search first.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "labels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "isPinned": {
+                  "type": "boolean"
+                },
+                "isArchived": {
+                  "type": "boolean"
+                },
+                "isDeleted": {
+                  "type": "boolean"
+                },
+                "color": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "notes.native.updateLabels",
+            "risk": "important",
+            "surfaces": [
+              "nativeUI"
+            ],
+            "name": "Update note labels",
+            "description": "Resolve a bounded set of native label slots and replace one note's labels.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "labelChoices": {
+                  "type": "array",
+                  "maxItems": 8,
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "label-1",
+                      "label-2",
+                      "label-3",
+                      "label-4",
+                      "label-5",
+                      "label-6",
+                      "label-7",
+                      "label-8"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "labelChoices"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "notes.native.setPin",
+            "risk": "low",
+            "surfaces": [
+              "nativeUI"
+            ],
+            "name": "Pin or unpin a note",
+            "description": "Set the pinned state of one note from the native Notes experience.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "isPinned": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "isPinned"
+              ],
+              "additionalProperties": false
+            },
+            "changesState": true
+          },
+          {
+            "id": "notes.delete",
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Move note to Trash",
+            "description": "Move one note to Trash. This is recoverable with notes.restore. For voice requests without an ID, use notes.search first.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "notes.restore",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Restore note from Trash",
+            "description": "Restore one trashed note by ID. For voice requests without an ID, use notes.search with includeDeleted true first.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "notes.deletePermanently",
+            "risk": "destructive",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Permanently delete note",
+            "description": "Permanently delete one note by ID. This is destructive and cannot be undone. For voice requests without an ID, use notes.search first.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "notes.emptyTrash",
+            "risk": "destructive",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Permanently empty Notes Trash",
+            "description": "Permanently delete every note currently in Trash. This is destructive and cannot be undone.",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false
+            }
+          }
+        ]
+      },
+      {
+        "id": "notes.drive",
+        "name": "Notes drive controls",
+        "description": "Allow voice, chat, and approved apps to create, navigate, open, and read Notes views.",
+        "scopes": [
+          {
+            "id": "notes.ui.describe",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Describe Notes UI",
+            "description": "List Notes views and entity requirements in language suitable for a model.",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false
+            },
+            "outputSchema": {
+              "type": "object"
+            }
+          },
+          {
+            "id": "notes.ui.navigate",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Navigate Notes UI",
+            "description": "Navigate to the note library or open one existing note by entityId.",
+            "inputSchema": {
+              "type": "object",
+              "required": [
+                "view"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "notes",
+                    "note"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "params": {
+                  "type": "object",
+                  "additionalProperties": false
+                }
+              }
+            },
+            "outputSchema": {
+              "type": "object"
+            }
+          },
+          {
+            "id": "notes.ui.openNote",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Open note",
+            "description": "Open one existing note in the markdown editor. This does not change the note.",
+            "inputSchema": {
+              "type": "object",
+              "required": [
+                "noteId"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "noteId": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "outputSchema": {
+              "type": "object"
+            }
+          },
+          {
+            "id": "notes.ui.createNote",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Create and open note",
+            "description": "Create one note and queue its markdown editor before the Notes window opens. Use this single outcome for requests such as “open Notes and create a note that says I love you.”",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "labels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "isPinned": {
+                  "type": "boolean"
+                },
+                "isArchived": {
+                  "type": "boolean"
+                },
+                "color": {
+                  "type": "string"
+                }
+              }
+            },
+            "outputSchema": {
+              "type": "object"
+            }
+          },
+          {
+            "id": "notes.ui.read",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Read Notes UI data",
+            "description": "Read a clean JSON representation of the note library or one note, including complete markdown content.",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "notes",
+                    "note"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "outputSchema": {
+              "type": "object"
+            }
+          }
+        ]
+      },
+      {
+        "id": "notes.cards",
+        "name": "Chat cards",
+        "description": "A compact note preview that opens its full Markdown content.",
+        "scopes": [
+          {
+            "id": "notes.cards.present",
+            "name": "Show a note card",
+            "description": "Show an existing note as a compact title and excerpt in chat, with a tappable full-note quick look. Use a note id from notes.list/search. Does not edit, pin, or archive the note.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255
+                }
+              }
+            }
+          },
+          {
+            "id": "notes.cards.read",
+            "name": "Read note card",
+            "description": "Read the selected note with a bounded document preview.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "env": [],
+  "routeName": "notes",
+  "screenshots": [
+    "public/screenshots/1.png"
+  ],
+  "tagline": "A Google Keep-style notebook with markdown and pinning"
+}

@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Claude API Rate Limit Strategies (2026): Handling 429s, Backoff, and Queue Patterns — Septim Labs</title>
+    <!-- Open Graph + Twitter Card (auto-injected by inject_og_meta.py) -->
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://septimlabs.com/blog/claude-api-rate-limit-strategies-2026" />
+    <meta property="og:title" content="Claude API Rate Limit Strategies (2026): Handling 429s, Backoff, and Queue Patterns — Septim Labs" />
+    <meta property="og:description" content="How to handle Claude API 429 rate limit errors in 2026. Exponential backoff implementation, queue patterns, tier limits by model, and what actually works at scale." />
+    <meta property="og:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Septim Labs" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Claude API Rate Limit Strategies (2026): Handling 429s, Backoff, and Queue Patterns — Septim Labs" />
+    <meta name="twitter:description" content="How to handle Claude API 429 rate limit errors in 2026. Exponential backoff implementation, queue patterns, tier limits by model, and what actually works at scale." />
+    <meta name="twitter:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+
+<meta name="description" content="How to handle Claude API 429 rate limit errors in 2026. Exponential backoff implementation, queue patterns, tier limits by model, and what actually works at scale." />
+<meta name="keywords" content="claude api rate limit, anthropic api 429, claude api rate limit handling 2026, exponential backoff claude, claude api queue, anthropic rate limit strategies" />
+<meta property="og:title" content="Claude API Rate Limit Strategies (2026): Handling 429s, Backoff, and Queues" />
+<meta property="og:description" content="The definitive 2026 guide to Claude API rate limits: tier tables, exponential backoff code, queue patterns, and what changes with Haiku vs Sonnet vs Opus." />
+<meta property="og:url" content="https://septimlabs.com/blog/claude-api-rate-limit-strategies-2026.html" />
+<meta property="og:type" content="article" />
+<link rel="canonical" href="https://septimlabs.com/blog/claude-api-rate-limit-strategies-2026.html" />
+
+<!-- SEPTIM-I18N-HREFLANG -->
+<link rel="alternate" hreflang="x-default" href="https://septimlabs.com/blog/claude-api-rate-limit-strategies-2026.html" />
+<link rel="alternate" hreflang="en" href="https://septimlabs.com/blog/claude-api-rate-limit-strategies-2026.html" />
+<link rel="alternate" hreflang="es" href="https://septimlabs.com/es/blog/claude-api-rate-limit-strategies-2026.html" />
+<link rel="alternate" hreflang="zh" href="https://septimlabs.com/zh/blog/claude-api-rate-limit-strategies-2026.html" />
+<link rel="alternate" hreflang="hi" href="https://septimlabs.com/hi/blog/claude-api-rate-limit-strategies-2026.html" />
+<link rel="alternate" hreflang="pt" href="https://septimlabs.com/pt/blog/claude-api-rate-limit-strategies-2026.html" />
+<link rel="alternate" hreflang="de" href="https://septimlabs.com/de/blog/claude-api-rate-limit-strategies-2026.html" />
+<link rel="alternate" hreflang="fr" href="https://septimlabs.com/fr/blog/claude-api-rate-limit-strategies-2026.html" />
+<link rel="alternate" hreflang="ja" href="https://septimlabs.com/ja/blog/claude-api-rate-limit-strategies-2026.html" />
+<link rel="alternate" hreflang="ru" href="https://septimlabs.com/ru/blog/claude-api-rate-limit-strategies-2026.html" />
+<link rel="alternate" hreflang="ar" href="https://septimlabs.com/ar/blog/claude-api-rate-limit-strategies-2026.html" />
+<!-- /SEPTIM-I18N-HREFLANG -->
+
+
+
+
+
+
+
+
+
+
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/kit/apple-touch-icon-180.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../site.css?v=4.6.1">
+<style>
+  body[data-page="blog-claude-api-rate-limit-strategies-2026"]{ --p: var(--n-orange); }
+
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--sans),-apple-system,sans-serif;background:var(--bg);color:var(--ink);line-height:1.72;-webkit-font-smoothing:antialiased}
+  a{color:var(--p);text-decoration:none}a:hover{text-decoration:underline}
+  .wrap{max-width:720px;margin:0 auto;padding:0 24px}
+
+  article{padding:56px 0 80px}
+  .kicker{font-family:var(--mono),monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--p);margin-bottom:12px;display:block}
+  h1{font-size:clamp(28px,5vw,40px);font-weight:700;letter-spacing:-.03em;line-height:1.1;margin-bottom:14px}
+  h1 em{font-style:normal;color:var(--p)}
+  .byline{color:var(--ink-3);font-size:14px;margin-bottom:30px;font-family:var(--mono),monospace}
+  article h2{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-top:44px;margin-bottom:12px}
+  article h3{font-size:18px;font-weight:700;margin-top:28px;margin-bottom:8px}
+  article p{color:var(--ink-2);margin-bottom:16px;font-size:16.5px}
+  article ul,article ol{color:var(--ink-2);padding-left:22px;margin-bottom:18px}
+  article li{margin-bottom:8px;font-size:16px}
+  article pre{background:var(--bg-1);border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:18px 0;font-size:13.5px;line-height:1.6}
+  article code{background:var(--line);padding:2px 6px;border-radius:4px;color:var(--p)}
+  article pre code{background:none;padding:0;color:var(--ink)}
+
+  /* Unique motif: token bucket / wave pattern */
+  .blog-motif{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--bg-1);padding:24px 26px;margin:14px 0 36px;overflow:hidden}
+  .blog-motif svg{display:block;width:100%;height:auto;overflow:visible;max-height:180px}
+  .bucket-body{fill:var(--bg-1);stroke:var(--line-2);stroke-width:1.5}
+  .bucket-fill{fill:var(--p);opacity:.25}
+  .bucket-fill.low{opacity:.08}
+  .bucket-label{font-family:var(--mono),monospace;font-size:10px;fill:var(--ink-3);letter-spacing:.1em;text-transform:uppercase}
+  .bucket-label.hi{fill:var(--p)}
+  .refill-arrow{stroke:var(--p);stroke-width:1.5;fill:var(--p)}
+  .wave{stroke:var(--p);stroke-width:1.5;fill:none;opacity:.4;stroke-dasharray:4 4;animation:wave-scroll 3s linear infinite}
+  @keyframes wave-scroll{to{stroke-dashoffset:-40}}
+  .request-dot{fill:var(--p);animation:req-drop 2s ease-in infinite}
+  @keyframes req-drop{0%{opacity:0;transform:translateY(-10px)}30%{opacity:1}100%{opacity:0;transform:translateY(30px)}}
+
+  .rate-table{width:100%;border-collapse:collapse;margin:24px 0;font-size:13.5px}
+  .rate-table th,.rate-table td{padding:10px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  .rate-table th{background:rgba(251,146,60,.06);color:var(--ink-3);font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono),monospace;font-weight:500}
+  .rate-table .model{font-family:var(--mono),monospace;font-size:12.5px;color:var(--ink);font-weight:600}
+  .rate-table .hi{color:var(--p);font-weight:600}
+
+  .header-box{background:var(--bg-1);border:1px solid var(--line);border-radius:8px;padding:16px 18px;margin:20px 0;font-family:var(--mono),monospace;font-size:13px;line-height:1.8}
+  .header-box .hk{color:var(--p)}
+  .header-box .hv{color:var(--ink-2)}
+
+  .cta-box{background:rgba(251,146,60,.05);border:1px solid rgba(251,146,60,.28);border-radius:14px;padding:22px 24px;margin:36px 0}
+  .cta-box h4{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px}
+  .cta-box p{font-size:14px;color:var(--ink-2);margin-bottom:10px}
+  .cta-box a{font-family:var(--mono),monospace;font-size:13px;color:var(--p);font-weight:700}
+
+  .cite-this{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-family:var(--mono),monospace;font-size:10.5px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;margin:0 0 22px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+  .cite-this b{color:var(--p);font-weight:500}
+  .cite-this .pill{padding:3px 10px;border:1px solid var(--p);border-radius:99px;color:var(--p);background:rgba(251,146,60,.06)}
+
+  .blog-related{margin:64px 0 0;padding:32px 28px;border:1px solid var(--line);border-radius:8px;background:var(--bg-1)}
+  .blog-related h4{font-family:var(--mono),monospace;font-size:11px;color:var(--ink-3);letter-spacing:.12em;text-transform:uppercase;margin:0 0 18px}
+  .blog-related .row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .blog-related a{display:block;padding:14px 16px;border:1px solid var(--line);border-radius:6px;color:var(--ink);text-decoration:none;font-size:14px;line-height:1.45;transition:border-color .2s,background .2s,color .2s}
+  .blog-related a:hover{border-color:var(--p);background:rgba(251,146,60,.04);color:var(--p)}
+  .blog-related a .lbl{display:block;font-family:var(--mono),monospace;font-size:9.5px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+
+  footer{padding:30px 0;border-top:1px solid var(--line);text-align:center;color:var(--ink-3);font-size:12px}
+  @media(max-width:640px){.blog-related .row{grid-template-columns:1fr}}
+</style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "@id": "https://septimlabs.com/blog/claude-api-rate-limit-strategies-2026.html",
+  "headline": "Claude API Rate Limit Strategies (2026): Handling 429s, Backoff, and Queue Patterns",
+  "description": "How to handle Claude API 429 rate limit errors: tier tables, exponential backoff code, queue patterns, and per-model differences.",
+  "datePublished": "2026-04-28",
+  "dateModified": "2026-04-28",
+  "author": {
+    "@type": "Organization",
+    "@id": "https://septimlabs.com/#organization",
+    "name": "Septim Labs",
+    "url": "https://septimlabs.com/about"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "@id": "https://septimlabs.com/#organization",
+    "name": "Septim Labs",
+    "url": "https://septimlabs.com",
+    "logo": { "@type": "ImageObject", "url": "https://septimlabs.com/assets/brand/kit/favicon-512.png" }
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://septimlabs.com/blog/claude-api-rate-limit-strategies-2026.html"
+  },
+  "image": "https://septimlabs.com/assets/brand/kit/og-card-v2.png",
+  "inLanguage": "en-US",
+  "articleSection": "Claude Code",
+  "keywords": ["claude api rate limit", "anthropic 429", "exponential backoff", "claude api queue", "rate limit handling 2026"]
+}
+</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://septimlabs.com/"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://septimlabs.com/blog/"},{"@type":"ListItem","position":3,"name":"Claude API Rate Limit Strategies (2026)","item":"https://septimlabs.com/blog/claude-api-rate-limit-strategies-2026.html"}]}</script>
+</head>
+<body data-page="blog-claude-api-rate-limit-strategies-2026">
+<div id="site-nav"></div>
+
+<main class="wrap">
+  <article>
+    <span class="kicker">&middot; api operations &middot; engineering &middot; april 2026 &middot;</span>
+    <h1>Claude API Rate Limits (2026): Handling <em>429s</em>, Backoff, and Queues</h1>
+
+<!-- BLOG-MOTIFS-UNIQUE-V1 -->
+    <!-- Unique motif: token bucket visualization -->
+    <figure class="blog-motif" aria-labelledby="m-cap-ratelimit">
+      <figcaption id="m-cap-ratelimit" style="display:none">Token bucket rate limiting diagram showing three tier buckets at different fill levels</figcaption>
+      <svg viewBox="0 0 720 160" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Three token buckets at different fill levels representing rate limit tiers">
+        <!-- Bucket 1: full (Tier 3) -->
+        <rect x="80" y="30" width="80" height="100" rx="4" class="bucket-body"/>
+        <rect x="80" y="55" width="80" height="75" rx="0 0 4 4" class="bucket-fill"/>
+        <text x="120" y="22" text-anchor="middle" class="bucket-label hi">TIER 3</text>
+        <text x="120" y="148" text-anchor="middle" class="bucket-label">40k RPM</text>
+        <!-- Bucket 2: half (Tier 2) -->
+        <rect x="220" y="30" width="80" height="100" rx="4" class="bucket-body"/>
+        <rect x="220" y="80" width="80" height="50" rx="0 0 4 4" class="bucket-fill"/>
+        <text x="260" y="22" text-anchor="middle" class="bucket-label">TIER 2</text>
+        <text x="260" y="148" text-anchor="middle" class="bucket-label">10k RPM</text>
+        <!-- Bucket 3: nearly empty (Tier 1) -->
+        <rect x="360" y="30" width="80" height="100" rx="4" class="bucket-body"/>
+        <rect x="360" y="115" width="80" height="15" rx="0 0 4 4" class="bucket-fill low"/>
+        <text x="400" y="22" text-anchor="middle" class="bucket-label">TIER 1</text>
+        <text x="400" y="148" text-anchor="middle" class="bucket-label">5k RPM</text>
+        <!-- refill arrows -->
+        <text x="510" y="60" class="bucket-label hi">REFILLS EVERY MINUTE</text>
+        <text x="510" y="80" class="bucket-label">→ 429 if empty on request</text>
+        <text x="510" y="100" class="bucket-label">→ retry-after header tells you when</text>
+        <text x="510" y="120" class="bucket-label hi">→ exponential backoff is wrong here</text>
+      </svg>
+    </figure>
+
+    <div class="cite-this"><span><b>// FILED</b> API Engineering</span><span><b>// DATE</b> APR 28, 2026</span><span><b>// SLUG</b> /blog/claude-api-rate-limit-strategies-2026.html</span><span class="pill">cite this →</span></div>
+    <div class="byline">Published April 28, 2026 &middot; by Septim Labs &middot; 12 min read</div>
+
+    <p>A 429 from the Claude API means you've hit a rate limit. The response includes a <code>retry-after</code> header that tells you exactly when to retry. Most developers ignore this header and implement exponential backoff instead&mdash;which is the wrong strategy for Anthropic's rate limit design and can make throughput worse, not better.</p>
+
+    <p>This post covers Anthropic's rate limit structure as of April 2026, the correct retry pattern, practical queue implementations for high-volume applications, and the specific failure modes you'll encounter with each model tier.</p>
+
+    <h2>What Anthropic's rate limits actually are</h2>
+
+    <p>Anthropic uses three limit types, all operating simultaneously. You can hit any of them independently:</p>
+
+    <ol>
+      <li><strong>Requests per minute (RPM)</strong> &mdash; how many API calls you can make in a 60-second window</li>
+      <li><strong>Tokens per minute (TPM)</strong> &mdash; total tokens (input + output) across all requests in a 60-second window</li>
+      <li><strong>Tokens per day (TPD)</strong> &mdash; cumulative token usage in a 24-hour period</li>
+    </ol>
+
+    <p>Your limits depend on your usage tier. Anthropic automatically promotes accounts through tiers based on spend history. As of April 2026:</p>
+
+    <table class="rate-table">
+      <thead><tr><th>Tier</th><th>Criteria</th><th>Claude Sonnet RPM</th><th>Sonnet TPM</th><th>Haiku RPM</th></tr></thead>
+      <tbody>
+        <tr><td class="hi">Build (Tier 1)</td><td>New account, any spend</td><td class="model">5</td><td class="model">25,000</td><td class="model">50</td></tr>
+        <tr><td class="hi">Scale (Tier 2)</td><td>$100 spend + 7 days</td><td class="model">50</td><td class="model">100,000</td><td class="model">2,000</td></tr>
+        <tr><td class="hi">Growth (Tier 3)</td><td>$500 spend + 14 days</td><td class="model">1,000</td><td class="model">500,000</td><td class="model">5,000</td></tr>
+        <tr><td class="hi">Scale (Tier 4)</td><td>$2,000 spend + 14 days</td><td class="model">2,000</td><td class="model">1,000,000</td><td class="model">10,000</td></tr>
+      </tbody>
+    </table>
+
+    <p>Tier 1 limits are severe. 5 requests per minute on Sonnet means you can run one request every 12 seconds on average. For a developer building a batch processing tool, this is the single biggest constraint in the early stages of a project. Haiku's higher RPM on Tier 1 (50 RPM) is why many developers use Haiku for early-stage testing and switch to Sonnet at Tier 2.</p>
+
+    <h2>What the 429 response actually contains</h2>
+
+    <p>When you hit a rate limit, the response looks like this:</p>
+
+    <pre><code>HTTP/1.1 429 Too Many Requests
+retry-after: 37
+anthropic-ratelimit-requests-limit: 50
+anthropic-ratelimit-requests-remaining: 0
+anthropic-ratelimit-requests-reset: 2026-04-28T14:23:00Z
+anthropic-ratelimit-tokens-limit: 100000
+anthropic-ratelimit-tokens-remaining: 48221
+anthropic-ratelimit-tokens-reset: 2026-04-28T14:23:00Z
+
+{
+  "type": "error",
+  "error": {
+    "type": "rate_limit_error",
+    "message": "Rate limit exceeded: requests"
+  }
+}</code></pre>
+
+    <p>The headers tell you exactly what you need:</p>
+
+    <div class="header-box">
+      <span class="hk">retry-after</span>: <span class="hv">37</span> &nbsp;&nbsp;// seconds until you can retry<br/>
+      <span class="hk">anthropic-ratelimit-requests-remaining</span>: <span class="hv">0</span> &nbsp;&nbsp;// no requests left this window<br/>
+      <span class="hk">anthropic-ratelimit-tokens-remaining</span>: <span class="hv">48221</span> &nbsp;&nbsp;// tokens still available<br/>
+      <span class="hk">anthropic-ratelimit-requests-reset</span>: <span class="hv">2026-04-28T14:23:00Z</span> &nbsp;&nbsp;// exact reset time
+    </div>
+
+    <p>In this example you hit the RPM limit (0 requests remaining) but still have token budget (48,221 tokens remaining). Waiting 37 seconds and retrying will succeed. Implementing exponential backoff here would wait longer than necessary and reduce throughput for no benefit.</p>
+
+    <h2>The correct retry pattern: header-first, not exponential</h2>
+
+    <p>For Claude API rate limits specifically, the correct retry strategy is:</p>
+
+    <ol>
+      <li>Check the <code>retry-after</code> header on a 429 response</li>
+      <li>Wait exactly that many seconds (add 1 second for clock jitter)</li>
+      <li>Retry the request</li>
+      <li>If still 429 (unusual), apply exponential backoff starting from the <code>retry-after</code> base</li>
+    </ol>
+
+    <p>Here's a Python implementation:</p>
+
+    <pre><code>import anthropic
+import time
+import random
+
+client = anthropic.Anthropic()
+
+def make_request_with_retry(prompt: str, max_retries: int = 5):
+    retries = 0
+    backoff_base = 1.0
+
+    while retries < max_retries:
+        try:
+            response = client.messages.create(
+                model="claude-sonnet-4-5",
+                max_tokens=1024,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            return response
+
+        except anthropic.RateLimitError as e:
+            retries += 1
+            if retries >= max_retries:
+                raise
+
+            # Read the retry-after header if available
+            retry_after = None
+            if hasattr(e, 'response') and e.response is not None:
+                retry_after_str = e.response.headers.get('retry-after')
+                if retry_after_str:
+                    retry_after = float(retry_after_str)
+
+            if retry_after is not None:
+                # Use the header value + small jitter
+                wait = retry_after + random.uniform(0, 1)
+            else:
+                # Fall back to exponential backoff
+                wait = backoff_base * (2 ** (retries - 1)) + random.uniform(0, 1)
+
+            print(f"Rate limited. Waiting {wait:.1f}s before retry {retries}/{max_retries}")
+            time.sleep(wait)
+
+        except anthropic.APIStatusError as e:
+            # Non-rate-limit errors: don't retry
+            raise</code></pre>
+
+    <p>For TypeScript/Node.js applications:</p>
+
+    <pre><code>import Anthropic from '@anthropic-ai/sdk';
+
+const client = new Anthropic();
+
+async function makeRequestWithRetry(
+  prompt: string,
+  maxRetries = 5
+): Promise<Anthropic.Message> {
+  let retries = 0;
+
+  while (retries < maxRetries) {
+    try {
+      return await client.messages.create({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }],
+      });
+    } catch (err) {
+      if (err instanceof Anthropic.RateLimitError) {
+        retries++;
+        if (retries >= maxRetries) throw err;
+
+        const retryAfter = err.headers?.['retry-after'];
+        const waitMs = retryAfter
+          ? (parseFloat(retryAfter) + Math.random()) * 1000
+          : Math.pow(2, retries) * 1000 + Math.random() * 1000;
+
+        console.log(`Rate limited. Waiting ${(waitMs/1000).toFixed(1)}s`);
+        await new Promise(resolve => setTimeout(resolve, waitMs));
+      } else {
+        throw err;
+      }
+    }
+  }
+  throw new Error('Max retries exceeded');
+}</code></pre>
+
+    <h2>Queue patterns for batch workloads</h2>
+
+    <p>Retry logic handles individual request failures. For applications that need to process hundreds or thousands of requests (document processing, code review pipelines, batch analysis), you need a queue pattern with rate-awareness built in at dispatch time.</p>
+
+    <h3>Pattern 1: Token bucket queue (simple)</h3>
+
+    <p>Track your own request count and sleep until the window resets if you're approaching the limit:</p>
+
+    <pre><code>import time
+from collections import deque
+
+class RateLimitedClient:
+    def __init__(self, rpm_limit: int = 50, tpm_limit: int = 100_000):
+        self.rpm_limit = rpm_limit
+        self.tpm_limit = tpm_limit
+        self.request_times = deque()  # timestamps of recent requests
+        self.token_usage = deque()    # (timestamp, token_count) pairs
+
+    def _clean_window(self):
+        now = time.time()
+        cutoff = now - 60
+        while self.request_times and self.request_times[0] < cutoff:
+            self.request_times.popleft()
+        while self.token_usage and self.token_usage[0][0] < cutoff:
+            self.token_usage.popleft()
+
+    def _wait_if_needed(self, estimated_tokens: int):
+        self._clean_window()
+
+        # Wait for RPM headroom
+        if len(self.request_times) >= self.rpm_limit:
+            oldest = self.request_times[0]
+            wait = 60 - (time.time() - oldest) + 0.1
+            if wait > 0:
+                time.sleep(wait)
+            self._clean_window()
+
+        # Wait for TPM headroom
+        current_tokens = sum(t for _, t in self.token_usage)
+        if current_tokens + estimated_tokens > self.tpm_limit:
+            oldest = self.token_usage[0][0]
+            wait = 60 - (time.time() - oldest) + 0.1
+            if wait > 0:
+                time.sleep(wait)
+            self._clean_window()
+
+    def request(self, client, prompt: str, estimated_tokens: int = 1000):
+        self._wait_if_needed(estimated_tokens)
+        now = time.time()
+        self.request_times.append(now)
+
+        response = make_request_with_retry(prompt)
+
+        # Record actual usage
+        actual_tokens = response.usage.input_tokens + response.usage.output_tokens
+        self.token_usage.append((now, actual_tokens))
+        return response</code></pre>
+
+    <h3>Pattern 2: Anthropic Batch API (for throughput over latency)</h3>
+
+    <p>For workloads where you don't need immediate responses, the Anthropic Batch API is the correct tool. It accepts up to 10,000 requests per batch, processes them asynchronously over up to 24 hours, and charges 50% less per token than the real-time API. Rate limits are much more generous for batch requests.</p>
+
+    <pre><code>import anthropic
+
+client = anthropic.Anthropic()
+
+# Create a batch
+batch = client.messages.batches.create(
+    requests=[
+        {
+            "custom_id": f"request-{i}",
+            "params": {
+                "model": "claude-sonnet-4-5",
+                "max_tokens": 1024,
+                "messages": [{"role": "user", "content": prompt}]
+            }
+        }
+        for i, prompt in enumerate(prompts)
+    ]
+)
+
+print(f"Batch created: {batch.id}")
+# Poll batch.results_url or subscribe to webhook for completion</code></pre>
+
+    <p>Batch API is the right answer for: document analysis pipelines, nightly summarization jobs, large-scale code review automation, and any use case where results are needed within 24 hours rather than within seconds.</p>
+
+    <h2>Per-model rate limit behavior</h2>
+
+    <p>Rate limits are enforced per model family. A few things that catch developers by surprise:</p>
+
+    <ul>
+      <li><strong>Haiku has dramatically higher RPM at every tier.</strong> If you're bottlenecked on RPM rather than token quality, using Haiku for classification/routing and Sonnet only for generation is a common throughput pattern.</li>
+      <li><strong>TPM limits count input tokens on streaming requests at send time, not at completion.</strong> If you're streaming a long-context request, the input tokens are deducted from your TPM budget immediately, not after the stream finishes.</li>
+      <li><strong>Opus has separate (lower) limits.</strong> If your application uses <code>claude-opus-4</code>, check the tier table for Opus specifically&mdash;it's not the same as Sonnet limits.</li>
+      <li><strong>Cache reads don't count against TPM.</strong> Prompt caching with <code>cache_control: {"type": "ephemeral"}</code> means the cached portion of a prompt doesn't consume TPM when it's a cache hit. For large-context applications, this is the single most important rate-limit optimization.</li>
+    </ul>
+
+    <h2>Caching as a rate limit strategy</h2>
+
+    <p>Prompt caching deserves its own section because it's underused. When you mark the top of your prompt (system prompt, large context document) as cacheable, Anthropic stores the KV representation of those tokens for 5 minutes. Subsequent requests that hit the cache:</p>
+
+    <ul>
+      <li>Cost 10% of the full input token price</li>
+      <li>Don't count against TPM for the cached portion</li>
+      <li>Complete faster (cached tokens skip the attention computation)</li>
+    </ul>
+
+    <p>For a 200-page document you're analyzing with multiple prompts, caching the document means only the first request costs full input tokens. Requests 2 through N pay 10% for the document. On 50 requests at 200,000 input tokens each, that's the difference between 10M tokens and 2M tokens of TPM consumption.</p>
+
+    <pre><code>response = client.messages.create(
+    model="claude-sonnet-4-5",
+    max_tokens=1024,
+    system=[
+        {
+            "type": "text",
+            "text": large_document_text,
+            "cache_control": {"type": "ephemeral"}  # cache this block
+        }
+    ],
+    messages=[{"role": "user", "content": specific_question}]
+)</code></pre>
+
+    <h2>What to monitor in production</h2>
+
+    <p>Four metrics worth tracking per deployment:</p>
+
+    <ol>
+      <li><strong>429 rate</strong> &mdash; percentage of requests that result in a rate limit error. Above 5% is a sign your queue isn't managing the limit correctly.</li>
+      <li><strong>TPM utilization</strong> &mdash; ratio of tokens used to tokens limit. Read <code>anthropic-ratelimit-tokens-remaining</code> from response headers and track it over time.</li>
+      <li><strong>Retry latency</strong> &mdash; p50/p95 of the wait time from initial 429 to successful retry. This tells you whether your backoff is calibrated to the actual <code>retry-after</code> values you're seeing.</li>
+      <li><strong>Cache hit rate</strong> &mdash; if you're using prompt caching, <code>usage.cache_read_input_tokens</code> / total input tokens. A hit rate below 60% on a system-prompt-heavy application suggests the cache is expiring too frequently.</li>
+    </ol>
+
+    <div class="cta-box">
+      <h4>Septim Vault: API key and credential management for Claude workflows</h4>
+      <p>If you're building multi-environment Claude API integrations and juggling API keys across projects, Septim Vault is a key-management toolkit for Claude Code workflows. Keeps credentials out of your codebase, out of your shell history, and out of version control. Pay once.</p>
+      <p><a href="https://buy.stripe.com/00w7sE4Wy1Q05mEe1ocjS0l">Get Septim Vault &mdash; $29 &rarr;</a></p>
+    </div>
+
+    <h2>Requesting a rate limit increase</h2>
+
+    <p>If you've hit Tier 4 limits and still need more capacity, Anthropic has an enterprise rate limit request form in the console. In practice, the Batch API at 50% cost and 10,000 requests per batch handles most high-volume use cases without needing an increase. Rate limit increases take 5&ndash;10 business days to process and aren't guaranteed.</p>
+
+    <p>For applications that need real-time throughput above Tier 4 limits, the correct answer is usually architectural: distribute requests across multiple API keys (separate Anthropic accounts), implement model cascading (Haiku for filtering, Sonnet for generation), or use the Batch API for the non-time-sensitive portion of the workload.</p>
+
+    <aside class="blog-related" aria-label="Related from Septim Labs">
+      <h4>// continue reading</h4>
+      <div class="row">
+        <a href="claude-code-cost-optimization-checklist-2026.html"><span class="lbl">// related post</span>25-item Claude Code cost checklist</a>
+        <a href="claude-api-pricing-calculator-2026.html"><span class="lbl">// related post</span>Claude API pricing calculator 2026</a>
+        <a href="tokenocalypse-subagent-cost-guide.html"><span class="lbl">// related post</span>The Tokenocalypse: subagent cost runaway</a>
+      </div>
+    </aside>
+  </article>
+</main>
+
+<div id="site-foot"></div>
+<script src="../site-shell.js?v=4.6.0"></script>
+<script src="../site.js?v=4.6.0"></script>
+</body>
+</html>

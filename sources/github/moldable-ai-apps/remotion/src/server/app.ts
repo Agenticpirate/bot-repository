@@ -1,0 +1,1657 @@
+import {
+  ensureDir,
+  getAppDataDir,
+  getWorkspaceFromRequest,
+  readJson,
+  safePath,
+  writeJson,
+} from '@moldable-ai/storage'
+import {
+  getCompositionPath,
+  getExportsDir,
+  getProjectDir,
+  getProjectsDir,
+  readProject,
+  readProjectIndex,
+  readProjectMetadata,
+  writeCompositionCode,
+  writeProject,
+  writeProjectIndex,
+  writeProjectMetadata,
+} from '../lib/storage'
+import {
+  type CreateProjectInput,
+  DEFAULT_COMPOSITION_CODE,
+  type ProjectMetadata,
+  type UpdateProjectInput,
+} from '../lib/types'
+import {
+  REMOTION_UI_VIEW_IDS,
+  type RemotionUiIntent,
+  type RemotionUiViewId,
+} from '../lib/ui-intent'
+import { Hono } from 'hono'
+import { cors } from 'hono/cors'
+import { lookup } from 'mime-types'
+import { execFile } from 'node:child_process'
+import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import path from 'node:path'
+import { promisify } from 'node:util'
+import { v4 as uuidv4 } from 'uuid'
+import { z } from 'zod'
+
+const execFileAsync = promisify(execFile)
+
+export const app = new Hono()
+
+app.use('/api/moldable/today', async (c, next) => {
+  if (c.req.method !== 'GET') {
+    await next()
+    return
+  }
+
+  await next()
+
+  const response = c.res
+  const contentType = response.headers.get('content-type') ?? ''
+  if (!contentType.includes('application/json')) return
+
+  const data = (await response
+    .clone()
+    .json()
+    .catch(() => null)) as unknown
+  if (!isMoldableTodayResponse(data)) return
+
+  const dismissals = await readMoldableTodayDismissals(c.req.raw)
+  const items = filterMoldableTodayDismissedItems(data.items, dismissals)
+  if (items.length === data.items.length) return
+
+  const headers = new Headers(response.headers)
+  headers.delete('content-length')
+  c.res = new Response(JSON.stringify({ ...data, items }), {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
+})
+app.use('/api/*', cors())
+
+type NativeRenderJob = {
+  id: string
+  projectId: string
+  projectName: string
+  status: 'active' | 'completed' | 'failed'
+  startedAt: string
+  completedAt?: string
+  outputFileName?: string
+  error?: string
+}
+
+function renderJobsPath(workspaceId?: string) {
+  return safePath(getAppDataDir(workspaceId), 'render-jobs.json')
+}
+
+async function readRenderJobs(workspaceId?: string) {
+  return readJson<NativeRenderJob[]>(renderJobsPath(workspaceId), [])
+}
+
+async function upsertRenderJob(
+  workspaceId: string | undefined,
+  job: NativeRenderJob,
+) {
+  const jobs = await readRenderJobs(workspaceId)
+  await writeJson(
+    renderJobsPath(workspaceId),
+    [job, ...jobs.filter((candidate) => candidate.id !== job.id)].slice(0, 50),
+  )
+}
+
+type RpcRequest = {
+  method?: unknown
+  params?: unknown
+}
+
+type RpcParams = Record<string, unknown>
+type RpcStatus = 400 | 404 | 409 | 500
+
+const REMOTION_UI_VIEWS: Array<{
+  id: RemotionUiViewId
+  name: string
+  description: string
+}> = [
+  {
+    id: 'projects',
+    name: 'Project list',
+    description:
+      'The sidebar list of Remotion video projects and the empty editor surface. Takes no entityId or params.',
+  },
+  {
+    id: 'project',
+    name: 'Project editor',
+    description:
+      'One Remotion project with its composition preview, settings, source editor, and render controls. Requires entityId set to a project id.',
+  },
+]
+
+const uiDescribeParamsSchema = z.object({}).strict().optional()
+const uiNavigateParamsSchema = z
+  .object({
+    view: z.enum(REMOTION_UI_VIEW_IDS),
+    entityId: z.string().trim().min(1).optional(),
+    params: z.object({}).strict().optional(),
+  })
+  .strict()
+const uiReadParamsSchema = z
+  .object({
+    view: z.enum(REMOTION_UI_VIEW_IDS).optional(),
+    entityId: z.string().trim().min(1).optional(),
+  })
+  .strict()
+  .optional()
+const uiOpenProjectParamsSchema = z.object({
+  projectId: z.string().trim().min(1),
+})
+const nativeReadParamsSchema = z
+  .object({
+    route: z.enum(['library', 'project']),
+    id: z.string().trim().min(1).optional(),
+    limit: z.number().int().min(1).max(24).optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.route === 'project' && !value.id) {
+      context.addIssue({
+        code: 'custom',
+        path: ['id'],
+        message: 'id is required.',
+      })
+    }
+  })
+  .strict()
+
+function nativeRenderDate(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleString('en-CA', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
+function projectNativeRenderJobs(jobs: NativeRenderJob[], projectId?: string) {
+  const scoped = jobs
+    .filter((job) => !projectId || job.projectId === projectId)
+    .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+  const activeRenders = scoped
+    .filter((job) => job.status === 'active')
+    .slice(0, 4)
+    .map((job) => ({
+      title: job.projectName,
+      statusLabel: 'Rendering',
+      statusTone: 'pending',
+      progressLabel: `Rendering ${job.projectName}`,
+      startedLabel: `Started ${nativeRenderDate(job.startedAt)}`,
+    }))
+  const recentRenders = scoped
+    .filter((job) => job.status !== 'active')
+    .slice(0, projectId ? 8 : 6)
+    .map((job, index, records) => ({
+      title: job.projectName,
+      subtitle:
+        job.status === 'completed'
+          ? `Exported ${job.outputFileName || 'video'}`
+          : `Failed · ${job.error?.trim().slice(0, 180) || 'Render failed'}`,
+      timestamp: nativeRenderDate(job.completedAt ?? job.startedAt),
+      tone: job.status === 'completed' ? 'success' : 'error',
+      icon: job.status === 'completed' ? 'checkmark.circle' : 'xmark.octagon',
+      isLast: index === records.length - 1,
+    }))
+  const latest = scoped[0]
+  return {
+    activeRenders,
+    recentRenders,
+    renderSummary:
+      activeRenders.length > 0
+        ? `${activeRenders.length} active`
+        : recentRenders.length > 0
+          ? `${recentRenders.length} recent`
+          : 'No renders yet',
+    renderStatusBadges: [
+      latest
+        ? {
+            text:
+              latest.status === 'active'
+                ? 'Render in progress'
+                : latest.status === 'completed'
+                  ? 'Last render completed'
+                  : 'Last render failed',
+            tone:
+              latest.status === 'active'
+                ? 'pending'
+                : latest.status === 'completed'
+                  ? 'success'
+                  : 'error',
+            icon:
+              latest.status === 'active'
+                ? 'hourglass'
+                : latest.status === 'completed'
+                  ? 'checkmark.circle'
+                  : 'xmark.octagon',
+          }
+        : {
+            text: 'Not rendered yet',
+            tone: 'neutral',
+            icon: 'film',
+          },
+    ],
+    renderEmptyStates:
+      activeRenders.length === 0 && recentRenders.length === 0
+        ? [
+            {
+              title: 'No renders yet',
+              description:
+                'Start an export from Remotion on Mac to track it here.',
+            },
+          ]
+        : [],
+  }
+}
+
+const SAFE_CHILD_ENV_KEYS = new Set([
+  'HOME',
+  'LANG',
+  'LC_ALL',
+  'LC_CTYPE',
+  'LOGNAME',
+  'PATH',
+  'SHELL',
+  'TMP',
+  'TMPDIR',
+  'USER',
+])
+
+function getSafeChildEnv(): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {}
+  for (const [key, value] of Object.entries(process.env)) {
+    if (typeof value === 'string' && SAFE_CHILD_ENV_KEYS.has(key)) {
+      env[key] = value
+    }
+  }
+  return env
+}
+
+function getRpcWorkspaceId(request: Request): string | undefined {
+  return (
+    request.headers.get('x-moldable-workspace-id') ??
+    getWorkspaceFromRequest(request)
+  )
+}
+
+function uiIntentPath(workspaceId?: string): string {
+  return safePath(getAppDataDir(workspaceId), 'ui-intent.json')
+}
+
+async function readUiIntent(
+  workspaceId?: string,
+): Promise<RemotionUiIntent | null> {
+  return readJson<RemotionUiIntent | null>(uiIntentPath(workspaceId), null)
+}
+
+async function writeUiIntent(
+  workspaceId: string | undefined,
+  input: Omit<RemotionUiIntent, 'id' | 'createdAt'>,
+): Promise<RemotionUiIntent> {
+  const intent: RemotionUiIntent = {
+    ...input,
+    id: uuidv4(),
+    createdAt: new Date().toISOString(),
+  }
+  await ensureDir(getAppDataDir(workspaceId))
+  await writeJson(uiIntentPath(workspaceId), intent)
+  return intent
+}
+
+async function acknowledgeUiIntent(
+  workspaceId: string | undefined,
+  intentId: string,
+): Promise<boolean> {
+  const current = await readUiIntent(workspaceId)
+  if (!current || current.id !== intentId) return false
+  await writeJson(uiIntentPath(workspaceId), null)
+  return true
+}
+
+function asParams(value: unknown): RpcParams {
+  return value && typeof value === 'object' ? (value as RpcParams) : {}
+}
+
+function stringParam(params: RpcParams, key: string): string | undefined {
+  const value = params[key]
+  return typeof value === 'string' ? value : undefined
+}
+
+function numberParam(params: RpcParams, key: string): number | undefined {
+  const value = params[key]
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function booleanParam(params: RpcParams, key: string): boolean | undefined {
+  const value = params[key]
+  return typeof value === 'boolean' ? value : undefined
+}
+
+function rpcError(code: string, message: string, status: RpcStatus = 400) {
+  return {
+    body: {
+      ok: false,
+      error: { code, message },
+    },
+    status,
+  }
+}
+
+app.get('/api/moldable/health', (c) => {
+  const portRaw = process.env.MOLDABLE_PORT
+  const port = portRaw ? Number(portRaw) : null
+
+  return c.json(
+    {
+      appId: process.env.MOLDABLE_APP_ID ?? 'remotion',
+      port,
+      status: 'ok',
+      ts: Date.now(),
+    },
+    200,
+    {
+      'Cache-Control': 'no-store',
+    },
+  )
+})
+
+app.get('/api/moldable/today', async (c) => {
+  try {
+    const workspaceId = getWorkspaceFromRequest(c.req.raw)
+    const projectIds = await readProjectIndex(workspaceId)
+
+    const projects: ProjectMetadata[] = []
+    for (const id of projectIds) {
+      const metadata = await readProjectMetadata(workspaceId, id)
+      if (metadata) {
+        projects.push(metadata)
+      }
+    }
+
+    projects.sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    )
+
+    const items: unknown[] = []
+    let resume: unknown = null
+
+    const now = Date.now()
+    const RECENT_MS = 24 * 60 * 60 * 1000
+
+    // BLOCKED: a project that can't render because its composition is empty.
+    // New projects ship with DEFAULT_COMPOSITION_CODE, so an empty composition
+    // means the user cleared it and the project is stuck. Only flag a recently
+    // touched one (otherwise it's an abandoned draft, not actionable), and hand
+    // off to chat, which can write the composition via remotion.projects.update.
+    let blockedProject: ProjectMetadata | null = null
+    for (const metadata of projects) {
+      if (now - new Date(metadata.updatedAt).getTime() > RECENT_MS) {
+        break // projects are sorted newest-first; nothing recent past here
+      }
+      const compositionPath = getCompositionPath(workspaceId, metadata.id)
+      const code = await readFile(compositionPath, 'utf-8').catch(() => '')
+      if (code.trim().length === 0) {
+        blockedProject = metadata
+        break
+      }
+    }
+
+    if (blockedProject) {
+      items.push({
+        id: `remotion:blocked:${blockedProject.id}`,
+        kind: 'blocked',
+        surface: 'nudge',
+        title: `${blockedProject.name} has no composition`,
+        subtitle: "Empty composition — can't render",
+        icon: '🎬',
+        priority: 90,
+        actions: [
+          {
+            type: 'message',
+            label: 'Build composition',
+            prompt: `The Remotion project "${blockedProject.name}" (id ${blockedProject.id}, ${blockedProject.width}x${blockedProject.height} @ ${blockedProject.fps}fps, ${blockedProject.durationInFrames} frames) has an empty composition and can't render. Write a Remotion composition for it, then save it by calling the Moldable app API with targetAppId "remotion" and method "remotion.projects.update" passing { id: "${blockedProject.id}", compositionCode: "<the code>" }. When you're done, refresh the home view by calling the Moldable app API with targetAppId "today" and method "today.refresh".`,
+          },
+          { type: 'open-app', label: 'Open in editor' },
+        ],
+      })
+    }
+
+    // RESUME: the project the user was actually working in — most-recently
+    // edited, but only if it was touched recently. A project untouched for days
+    // isn't "where you left off"; surfacing it would be stale noise.
+    const mostRecent = projects[0]
+    if (
+      mostRecent &&
+      (!blockedProject || blockedProject.id !== mostRecent.id) &&
+      now - new Date(mostRecent.updatedAt).getTime() <= RECENT_MS
+    ) {
+      resume = {
+        title: mostRecent.name,
+        subtitle: `${mostRecent.width}×${mostRecent.height} · ${mostRecent.fps}fps`,
+        icon: '🎞️',
+        lastTouchedAt: mostRecent.updatedAt,
+      }
+    }
+
+    return c.json({ items, resume, generatedAt: new Date().toISOString() })
+  } catch (error) {
+    console.error('Failed to build Today items:', error)
+    return c.json({ items: [], generatedAt: new Date().toISOString() })
+  }
+})
+
+app.get('/api/projects', async (c) => {
+  try {
+    const workspaceId = getWorkspaceFromRequest(c.req.raw)
+    const projectIds = await readProjectIndex(workspaceId)
+    const projects: ProjectMetadata[] = []
+
+    for (const id of projectIds) {
+      const metadata = await readProjectMetadata(workspaceId, id)
+      if (metadata) {
+        projects.push(metadata)
+      }
+    }
+
+    projects.sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    )
+
+    return c.json(projects)
+  } catch (error) {
+    console.error('Failed to read projects:', error)
+    return c.json({ error: 'Failed to read projects' }, 500)
+  }
+})
+
+app.post('/api/projects', async (c) => {
+  try {
+    const workspaceId = getWorkspaceFromRequest(c.req.raw)
+    const input = await c.req.json<CreateProjectInput>()
+    const now = new Date().toISOString()
+    const projectId = uuidv4()
+
+    const metadata: ProjectMetadata = {
+      id: projectId,
+      name: input.name || 'Untitled Project',
+      description: input.description || '',
+      createdAt: now,
+      updatedAt: now,
+      width: input.width ?? 1920,
+      height: input.height ?? 1080,
+      fps: input.fps ?? 30,
+      durationInFrames: input.durationInFrames ?? 450,
+      autoDuration: input.autoDuration ?? false,
+    }
+
+    const compositionCode = input.compositionCode ?? DEFAULT_COMPOSITION_CODE
+
+    await ensureDir(getProjectsDir(workspaceId))
+    await writeProject(workspaceId, { ...metadata, compositionCode })
+
+    const projectIds = await readProjectIndex(workspaceId)
+    projectIds.push(projectId)
+    await writeProjectIndex(workspaceId, projectIds)
+
+    return c.json({ ...metadata, compositionCode })
+  } catch (error) {
+    console.error('Failed to create project:', error)
+    return c.json({ error: 'Failed to create project' }, 500)
+  }
+})
+
+app.get('/api/projects/:id', async (c) => {
+  try {
+    const id = c.req.param('id')
+    const workspaceId = getWorkspaceFromRequest(c.req.raw)
+    const project = await readProject(workspaceId, id)
+
+    if (!project) {
+      return c.json({ error: 'Project not found' }, 404)
+    }
+
+    return c.json(project)
+  } catch (error) {
+    console.error('Failed to read project:', error)
+    return c.json({ error: 'Failed to read project' }, 500)
+  }
+})
+
+app.put('/api/projects/:id', async (c) => {
+  try {
+    const id = c.req.param('id')
+    const workspaceId = getWorkspaceFromRequest(c.req.raw)
+    const existing = await readProjectMetadata(workspaceId, id)
+
+    if (!existing) {
+      return c.json({ error: 'Project not found' }, 404)
+    }
+
+    const input = await c.req.json<UpdateProjectInput>()
+    const { compositionCode, ...metadataUpdates } = input
+    const updatedMetadata = {
+      ...existing,
+      ...metadataUpdates,
+      id: existing.id,
+      createdAt: existing.createdAt,
+      updatedAt: new Date().toISOString(),
+    }
+
+    await writeProjectMetadata(workspaceId, id, updatedMetadata)
+
+    if (compositionCode !== undefined) {
+      await writeCompositionCode(workspaceId, id, compositionCode)
+    }
+
+    const project = await readProject(workspaceId, id)
+    return c.json(project)
+  } catch (error) {
+    console.error('Failed to update project:', error)
+    return c.json({ error: 'Failed to update project' }, 500)
+  }
+})
+
+app.delete('/api/projects/:id', async (c) => {
+  try {
+    const id = c.req.param('id')
+    const workspaceId = getWorkspaceFromRequest(c.req.raw)
+    const existing = await readProjectMetadata(workspaceId, id)
+
+    if (!existing) {
+      return c.json({ error: 'Project not found' }, 404)
+    }
+
+    await rm(getProjectDir(workspaceId, id), { recursive: true, force: true })
+
+    const projectIds = await readProjectIndex(workspaceId)
+    await writeProjectIndex(
+      workspaceId,
+      projectIds.filter((pid) => pid !== id),
+    )
+
+    return c.json({ success: true })
+  } catch (error) {
+    console.error('Failed to delete project:', error)
+    return c.json({ error: 'Failed to delete project' }, 500)
+  }
+})
+
+// Stored thumbnail bytes are served as an app asset, never embedded in card events.
+app.get('/api/projects/:id/thumbnail', async (c) => {
+  const metadata = await readProjectMetadata(
+    getWorkspaceFromRequest(c.req.raw),
+    c.req.param('id'),
+  )
+  const match = metadata?.thumbnail?.match(
+    /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/,
+  )
+  if (!match || match[2].length > 8_000_000)
+    return c.text('Thumbnail unavailable', 404)
+  c.header('Content-Type', match[1])
+  c.header('Cache-Control', 'private, max-age=60')
+  return c.body(new Uint8Array(Buffer.from(match[2], 'base64')))
+})
+
+app.get('/api/projects/:id/code', async (c) => {
+  try {
+    const id = c.req.param('id')
+    const workspaceId = getWorkspaceFromRequest(c.req.raw)
+    const metadata = await readProjectMetadata(workspaceId, id)
+
+    if (!metadata) {
+      return c.json({ error: 'Project not found' }, 404)
+    }
+
+    const compositionPath = getCompositionPath(workspaceId, id)
+
+    try {
+      const code = await readFile(compositionPath, 'utf-8')
+      return c.json({ code, path: compositionPath })
+    } catch {
+      return c.json({ code: '', path: compositionPath })
+    }
+  } catch (error) {
+    console.error('Failed to read project code:', error)
+    return c.json({ error: 'Failed to read project code' }, 500)
+  }
+})
+
+app.put('/api/projects/:id/code', async (c) => {
+  try {
+    const id = c.req.param('id')
+    const workspaceId = getWorkspaceFromRequest(c.req.raw)
+    const metadata = await readProjectMetadata(workspaceId, id)
+
+    if (!metadata) {
+      return c.json({ error: 'Project not found' }, 404)
+    }
+
+    const { code } = await c.req.json<{ code: unknown }>()
+
+    if (typeof code !== 'string') {
+      return c.json({ error: 'Code must be a string' }, 400)
+    }
+
+    const compositionPath = getCompositionPath(workspaceId, id)
+    await writeFile(compositionPath, code, 'utf-8')
+
+    return c.json({ success: true, path: compositionPath })
+  } catch (error) {
+    console.error('Failed to update project code:', error)
+    return c.json({ error: 'Failed to update project code' }, 500)
+  }
+})
+
+app.get('/api/projects/:id/public/*', async (c) => {
+  const id = c.req.param('id')
+  const publicPath = c.req.param('*') ?? ''
+  const url = new URL(c.req.url)
+  const workspaceId =
+    url.searchParams.get('workspace') ||
+    getWorkspaceFromRequest(c.req.raw) ||
+    undefined
+  const dataDir = getAppDataDir(workspaceId)
+  const pathParts = publicPath.split('/').filter(Boolean)
+  const filePath = safePath(dataDir, 'projects', id, 'public', ...pathParts)
+
+  try {
+    const stats = await stat(filePath)
+    if (!stats.isFile()) {
+      return c.json({ error: 'Not a file' }, 404)
+    }
+
+    const fileBuffer = await readFile(filePath)
+    const fileName = pathParts[pathParts.length - 1] ?? ''
+    const contentType = lookup(fileName) || 'application/octet-stream'
+
+    return new Response(new Uint8Array(fileBuffer), {
+      headers: {
+        'Content-Type': contentType,
+        'Content-Length': stats.size.toString(),
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Accept-Ranges': 'bytes',
+        'Access-Control-Allow-Origin': '*',
+      },
+    })
+  } catch (error) {
+    console.error('Error serving public file:', error)
+    return c.json({ error: 'File not found' }, 404)
+  }
+})
+
+app.post('/api/projects/:id/render', async (c) => {
+  const workspaceId = getWorkspaceFromRequest(c.req.raw)
+  let renderJob: NativeRenderJob | null = null
+  try {
+    const id = c.req.param('id')
+    const metadata = await readProjectMetadata(workspaceId, id)
+
+    if (!metadata) {
+      return c.json({ error: 'Project not found' }, 404)
+    }
+
+    const exportsDir = getExportsDir(workspaceId)
+    await mkdir(exportsDir, { recursive: true })
+
+    const timestamp = Date.now()
+    const sanitizedName = metadata.name.replace(/[^a-zA-Z0-9-_]/g, '_')
+    const outputFileName = `${sanitizedName}_${timestamp}.mp4`
+    const outputPath = path.join(exportsDir, outputFileName)
+    const appRoot = process.cwd()
+    const renderScript = path.join(appRoot, 'scripts', 'render.mjs')
+    const projectDir = getProjectDir(workspaceId, id)
+
+    renderJob = {
+      id: uuidv4(),
+      projectId: id,
+      projectName: metadata.name,
+      status: 'active',
+      startedAt: new Date().toISOString(),
+    }
+    await upsertRenderJob(workspaceId, renderJob)
+
+    const { stdout, stderr } = await execFileAsync(
+      'node',
+      [renderScript, projectDir, outputPath],
+      {
+        cwd: appRoot,
+        timeout: 5 * 60 * 1000,
+        env: {
+          ...getSafeChildEnv(),
+          NODE_ENV: 'production',
+        },
+      },
+    )
+
+    console.log('Render stdout:', stdout)
+    if (stderr) console.error('Render stderr:', stderr)
+
+    renderJob = {
+      ...renderJob,
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+      outputFileName,
+    }
+    await upsertRenderJob(workspaceId, renderJob)
+
+    return c.json({
+      success: true,
+      outputPath,
+      fileName: outputFileName,
+      renderId: renderJob.id,
+    })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    console.error('Render error:', errorMessage)
+    if (renderJob) {
+      await upsertRenderJob(workspaceId, {
+        ...renderJob,
+        status: 'failed',
+        completedAt: new Date().toISOString(),
+        error: errorMessage.slice(0, 500),
+      }).catch(() => undefined)
+    }
+    return c.json({ error: 'Export failed', details: errorMessage }, 500)
+  }
+})
+
+app.get('/api/moldable/ui-intent', async (c) => {
+  return c.json(await readUiIntent(getRpcWorkspaceId(c.req.raw)))
+})
+
+app.delete('/api/moldable/ui-intent', async (c) => {
+  const workspaceId = getRpcWorkspaceId(c.req.raw)
+  const id = c.req.query('id') ?? ''
+  return c.json({
+    deleted: id ? await acknowledgeUiIntent(workspaceId, id) : false,
+  })
+})
+
+app.post('/api/moldable/rpc', async (c) => {
+  const workspaceId = getRpcWorkspaceId(c.req.raw)
+
+  try {
+    const body = (await c.req.json()) as RpcRequest
+    const method = typeof body.method === 'string' ? body.method : ''
+    const params = asParams(body.params)
+
+    if (!method) {
+      const error = rpcError('invalid_request', 'method is required')
+      return c.json(error.body, error.status)
+    }
+
+    if (
+      method === 'remotion.cards.present' ||
+      method === 'remotion.cards.read'
+    ) {
+      const input = z
+        .object({
+          id: z.string().min(1).max(256),
+          detail: z.boolean().optional(),
+        })
+        .strict()
+        .parse(params)
+      const project = await readProject(workspaceId, input.id)
+      if (!project)
+        return c.json(
+          {
+            ok: false,
+            error: {
+              code: 'not_found',
+              message: 'This video project is no longer available.',
+            },
+          },
+          404,
+        )
+      if (method === 'remotion.cards.present')
+        return c.json({
+          ok: true,
+          result: {
+            appCard: {
+              version: 1,
+              title: project.name.slice(0, 240) || 'Video',
+              resourcePath: '/index.html?card=preview',
+              input: { id: project.id },
+              readMethod: 'remotion.cards.read',
+              actions: [],
+              height: 400,
+            },
+          },
+        })
+      if (
+        input.detail &&
+        Buffer.byteLength(project.compositionCode, 'utf8') > 150_000
+      )
+        return c.json(
+          {
+            ok: false,
+            error: {
+              code: 'preview_too_large',
+              message:
+                'This composition is too large for a chat preview. Open it in Remotion.',
+            },
+          },
+          413,
+        )
+      const thumbnail = project.thumbnail?.startsWith('data:image/')
+        ? `/api/projects/${encodeURIComponent(project.id)}/thumbnail?workspace=${encodeURIComponent(workspaceId ?? 'default')}&v=${encodeURIComponent(project.updatedAt)}`
+        : project.thumbnail?.startsWith('https://')
+          ? project.thumbnail
+          : undefined
+      return c.json({
+        ok: true,
+        result: {
+          id: project.id,
+          name: project.name.slice(0, 240),
+          description: project.description.slice(0, input.detail ? 5000 : 300),
+          thumbnail,
+          width: project.width,
+          height: project.height,
+          fps: project.fps,
+          durationInFrames: project.durationInFrames,
+          compositionCode: input.detail ? project.compositionCode : undefined,
+        },
+      })
+    }
+
+    if (method === 'remotion.native.read') {
+      const parsed = nativeReadParamsSchema.safeParse(body.params)
+      if (!parsed.success) {
+        const error = rpcError(
+          'invalid_params',
+          'Remotion received invalid native route parameters.',
+        )
+        return c.json(
+          {
+            ...error.body,
+            error: { ...error.body.error, detail: parsed.error.flatten() },
+          },
+          error.status,
+        )
+      }
+      const input = parsed.data
+      if (input.route === 'library') {
+        const [ids, renderJobs] = await Promise.all([
+          readProjectIndex(workspaceId),
+          readRenderJobs(workspaceId),
+        ])
+        const projects = (
+          await Promise.all(
+            ids.map((id) => readProjectMetadata(workspaceId, id)),
+          )
+        )
+          .filter((project): project is ProjectMetadata => Boolean(project))
+          .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+        const limit = input.limit ?? 24
+        const visible = projects.slice(0, limit)
+        const renderProjection = projectNativeRenderJobs(renderJobs)
+        return c.json({
+          ok: true,
+          result: {
+            ...renderProjection,
+            summary: `${projects.length} ${projects.length === 1 ? 'project' : 'projects'}`,
+            projects: visible.map((project) => ({
+              id: project.id,
+              title: project.name,
+              subtitle:
+                project.description || `${project.width} × ${project.height}`,
+              detail: `${(project.durationInFrames / project.fps).toFixed(1)} sec · ${project.fps} fps · ${project.width} × ${project.height}`,
+              displayLabel: `Open ${project.name}`,
+            })),
+            emptyStates:
+              projects.length === 0
+                ? [
+                    {
+                      title: 'No video projects yet',
+                      description:
+                        'Create a Remotion project with Moldable and it will appear here.',
+                    },
+                  ]
+                : [],
+            truncationNotice:
+              projects.length > visible.length
+                ? `Showing the ${visible.length} most recently updated projects.`
+                : '',
+          },
+        })
+      }
+      const project = await readProject(workspaceId, input.id!)
+      if (!project) {
+        const error = rpcError(
+          'project_not_found',
+          'Project was not found.',
+          404,
+        )
+        return c.json(error.body, error.status)
+      }
+      const exportedComponents = Array.from(
+        project.compositionCode.matchAll(
+          /export\s+(?:default\s+)?(?:const|function|class)\s+([A-Za-z_$][\w$]*)/g,
+        ),
+        (match) => match[1],
+      )
+      const durationSeconds = project.durationInFrames / project.fps
+      const renderProjection = projectNativeRenderJobs(
+        await readRenderJobs(workspaceId),
+        project.id,
+      )
+      return c.json({
+        ok: true,
+        result: {
+          ...renderProjection,
+          id: project.id,
+          title: project.name,
+          editLabel: `Edit ${project.name}`,
+          deleteLabel: `Delete ${project.name}`,
+          description: project.description || 'No description',
+          statusLabel: project.compositionCode.trim()
+            ? 'Composition ready'
+            : 'Composition needed',
+          statusTone: project.compositionCode.trim() ? 'success' : 'warning',
+          statusBadges: [
+            {
+              text: project.compositionCode.trim()
+                ? 'Composition ready'
+                : 'Composition needed',
+              tone: project.compositionCode.trim() ? 'success' : 'warning',
+              icon: 'film.stack',
+            },
+          ],
+          metrics: [
+            {
+              label: 'Duration',
+              value: `${durationSeconds.toFixed(1)} sec`,
+              detail: `${project.durationInFrames} frames`,
+            },
+            {
+              label: 'Frame rate',
+              value: `${project.fps} fps`,
+              detail: project.autoDuration ? 'Auto duration' : 'Fixed duration',
+            },
+            {
+              label: 'Canvas',
+              value: `${project.width} × ${project.height}`,
+              detail:
+                project.width >= project.height ? 'Landscape' : 'Portrait',
+            },
+            {
+              label: 'Source',
+              value: `${project.compositionCode.length.toLocaleString()} chars`,
+              detail: `${exportedComponents.length} exported ${exportedComponents.length === 1 ? 'component' : 'components'}`,
+            },
+          ],
+          components: exportedComponents.map((name) => ({
+            name,
+            detail: 'Exported component',
+          })),
+          emptyComponents:
+            exportedComponents.length === 0
+              ? [
+                  {
+                    title: 'No exported components found',
+                    description:
+                      'Ask Moldable to author or repair the composition on desktop.',
+                  },
+                ]
+              : [],
+          updatedLabel: `Updated ${new Date(project.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+          deleteConfirmationName: '',
+          draft: {
+            name: project.name,
+            description: project.description,
+            width: project.width,
+            height: project.height,
+            fps: project.fps,
+            durationInFrames: project.durationInFrames,
+            deleteConfirmationName: '',
+          },
+        },
+      })
+    }
+
+    if (method === 'remotion.ui.describe') {
+      const parsed = uiDescribeParamsSchema.safeParse(body.params)
+      if (!parsed.success) {
+        const error = rpcError(
+          'invalid_params',
+          'Remotion received invalid UI description parameters.',
+        )
+        return c.json(
+          {
+            ...error.body,
+            error: { ...error.body.error, detail: parsed.error.flatten() },
+          },
+          error.status,
+        )
+      }
+      return c.json({
+        ok: true,
+        result: {
+          views: REMOTION_UI_VIEWS,
+          entities: 'Project ids come from remotion.projects.list.',
+        },
+      })
+    }
+
+    if (method === 'remotion.ui.navigate') {
+      const parsed = uiNavigateParamsSchema.safeParse(body.params)
+      if (!parsed.success) {
+        return c.json(
+          {
+            ok: false,
+            error: {
+              code: 'invalid_params',
+              message: 'Remotion received invalid navigation parameters.',
+              detail: parsed.error.flatten(),
+            },
+          },
+          400,
+        )
+      }
+      const input = parsed.data
+      if (input.view === 'projects' && input.entityId) {
+        const error = rpcError(
+          'invalid_params',
+          'The projects view takes no entityId.',
+        )
+        return c.json(error.body, error.status)
+      }
+      if (input.view === 'project' && !input.entityId) {
+        const error = rpcError(
+          'entity_id_required',
+          'The project view requires an entityId.',
+        )
+        return c.json(error.body, error.status)
+      }
+      if (
+        input.view === 'project' &&
+        !(await readProjectMetadata(workspaceId, input.entityId!))
+      ) {
+        const error = rpcError(
+          'project_not_found',
+          'Project was not found.',
+          404,
+        )
+        return c.json(error.body, error.status)
+      }
+      const intent = await writeUiIntent(workspaceId, {
+        view: input.view,
+        ...(input.entityId ? { entityId: input.entityId } : {}),
+      })
+      return c.json({
+        ok: true,
+        result: { ok: true, intentId: intent.id },
+      })
+    }
+
+    if (method === 'remotion.ui.openProject') {
+      const parsed = uiOpenProjectParamsSchema.safeParse(body.params)
+      if (!parsed.success) {
+        return c.json(
+          {
+            ok: false,
+            error: {
+              code: 'invalid_params',
+              message: 'Remotion received invalid open-project parameters.',
+              detail: parsed.error.flatten(),
+            },
+          },
+          400,
+        )
+      }
+      const project = await readProjectMetadata(
+        workspaceId,
+        parsed.data.projectId,
+      )
+      if (!project) {
+        const error = rpcError(
+          'project_not_found',
+          'Project was not found.',
+          404,
+        )
+        return c.json(error.body, error.status)
+      }
+      const intent = await writeUiIntent(workspaceId, {
+        view: 'project',
+        entityId: project.id,
+      })
+      return c.json({
+        ok: true,
+        result: { ok: true, intentId: intent.id, projectId: project.id },
+      })
+    }
+
+    if (method === 'remotion.ui.read') {
+      const parsed = uiReadParamsSchema.safeParse(body.params)
+      if (!parsed.success) {
+        return c.json(
+          {
+            ok: false,
+            error: {
+              code: 'invalid_params',
+              message: 'Remotion received invalid read parameters.',
+              detail: parsed.error.flatten(),
+            },
+          },
+          400,
+        )
+      }
+      const input = parsed.data ?? {}
+      const view = input.view ?? (input.entityId ? 'project' : 'projects')
+      if (view === 'projects') {
+        if (input.entityId) {
+          const error = rpcError(
+            'invalid_params',
+            'The projects view takes no entityId.',
+          )
+          return c.json(error.body, error.status)
+        }
+        const ids = await readProjectIndex(workspaceId)
+        const projects = (
+          await Promise.all(
+            ids.map((id) => readProjectMetadata(workspaceId, id)),
+          )
+        )
+          .filter((project): project is ProjectMetadata => Boolean(project))
+          .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+        return c.json({
+          ok: true,
+          result: { view: 'projects', projects },
+        })
+      }
+      if (!input.entityId) {
+        const error = rpcError(
+          'entity_id_required',
+          'The project view requires an entityId.',
+        )
+        return c.json(error.body, error.status)
+      }
+      const project = await readProject(workspaceId, input.entityId)
+      if (!project) {
+        const error = rpcError(
+          'project_not_found',
+          'Project was not found.',
+          404,
+        )
+        return c.json(error.body, error.status)
+      }
+      const exportedComponents = Array.from(
+        project.compositionCode.matchAll(
+          /export\s+(?:default\s+)?(?:const|function|class)\s+([A-Za-z_$][\w$]*)/g,
+        ),
+        (match) => match[1],
+      )
+      return c.json({
+        ok: true,
+        result: {
+          view: 'project',
+          project: {
+            id: project.id,
+            name: project.name,
+            description: project.description,
+            width: project.width,
+            height: project.height,
+            fps: project.fps,
+            durationInFrames: project.durationInFrames,
+            durationSeconds: project.durationInFrames / project.fps,
+            autoDuration: project.autoDuration ?? false,
+            createdAt: project.createdAt,
+            updatedAt: project.updatedAt,
+          },
+          composition: {
+            exportedComponents,
+            sourceLength: project.compositionCode.length,
+            code: project.compositionCode,
+          },
+        },
+      })
+    }
+
+    if (method === 'remotion.projects.list') {
+      const projectIds = await readProjectIndex(workspaceId)
+      const projects: ProjectMetadata[] = []
+      const query = stringParam(params, 'query')?.toLowerCase()
+      const limit = Math.max(
+        1,
+        Math.min(numberParam(params, 'limit') ?? 100, 500),
+      )
+
+      for (const id of projectIds) {
+        const metadata = await readProjectMetadata(workspaceId, id)
+        if (metadata) {
+          projects.push(metadata)
+        }
+      }
+
+      const filtered = projects
+        .filter((project) =>
+          query
+            ? `${project.name}\n${project.description}`
+                .toLowerCase()
+                .includes(query)
+            : true,
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+        )
+        .slice(0, limit)
+
+      return c.json({ ok: true, result: filtered })
+    }
+
+    if (method === 'remotion.projects.get') {
+      const id = stringParam(params, 'id')
+      if (!id) {
+        const error = rpcError('invalid_params', 'id is required')
+        return c.json(error.body, error.status)
+      }
+      const project = await readProject(workspaceId, id)
+      if (!project) {
+        const error = rpcError(
+          'project_not_found',
+          'Project was not found',
+          404,
+        )
+        return c.json(error.body, error.status)
+      }
+      return c.json({ ok: true, result: project })
+    }
+
+    if (method === 'remotion.projects.create') {
+      const now = new Date().toISOString()
+      const projectId = uuidv4()
+      const metadata: ProjectMetadata = {
+        id: projectId,
+        name: stringParam(params, 'name') ?? 'Untitled Project',
+        description: stringParam(params, 'description') ?? '',
+        createdAt: now,
+        updatedAt: now,
+        width: numberParam(params, 'width') ?? 1920,
+        height: numberParam(params, 'height') ?? 1080,
+        fps: numberParam(params, 'fps') ?? 30,
+        durationInFrames: numberParam(params, 'durationInFrames') ?? 450,
+        autoDuration: booleanParam(params, 'autoDuration') ?? false,
+      }
+      const compositionCode =
+        stringParam(params, 'compositionCode') ?? DEFAULT_COMPOSITION_CODE
+
+      await ensureDir(getProjectsDir(workspaceId))
+      await writeProject(workspaceId, { ...metadata, compositionCode })
+      const projectIds = await readProjectIndex(workspaceId)
+      await writeProjectIndex(workspaceId, [...projectIds, projectId])
+      return c.json({ ok: true, result: { ...metadata, compositionCode } })
+    }
+
+    if (method === 'remotion.projects.update') {
+      const id = stringParam(params, 'id')
+      if (!id) {
+        const error = rpcError('invalid_params', 'id is required')
+        return c.json(error.body, error.status)
+      }
+      const existing = await readProjectMetadata(workspaceId, id)
+      if (!existing) {
+        const error = rpcError(
+          'project_not_found',
+          'Project was not found',
+          404,
+        )
+        return c.json(error.body, error.status)
+      }
+
+      const width = numberParam(params, 'width')
+      const height = numberParam(params, 'height')
+      const fps = numberParam(params, 'fps')
+      const durationInFrames = numberParam(params, 'durationInFrames')
+      if (
+        (width !== undefined &&
+          (!Number.isInteger(width) || width < 16 || width > 8192)) ||
+        (height !== undefined &&
+          (!Number.isInteger(height) || height < 16 || height > 8192)) ||
+        (fps !== undefined &&
+          (!Number.isInteger(fps) || fps < 1 || fps > 120)) ||
+        (durationInFrames !== undefined &&
+          (!Number.isInteger(durationInFrames) ||
+            durationInFrames < 1 ||
+            durationInFrames > 1_000_000))
+      ) {
+        const error = rpcError(
+          'invalid_render_settings',
+          'Width and height must be 16–8192, fps 1–120, and duration 1–1,000,000 frames.',
+        )
+        return c.json(error.body, error.status)
+      }
+
+      const updatedMetadata: ProjectMetadata = {
+        ...existing,
+        ...(stringParam(params, 'name') !== undefined
+          ? { name: stringParam(params, 'name')! }
+          : {}),
+        ...(stringParam(params, 'description') !== undefined
+          ? { description: stringParam(params, 'description')! }
+          : {}),
+        ...(width !== undefined ? { width } : {}),
+        ...(height !== undefined ? { height } : {}),
+        ...(fps !== undefined ? { fps } : {}),
+        ...(durationInFrames !== undefined ? { durationInFrames } : {}),
+        ...(booleanParam(params, 'autoDuration') !== undefined
+          ? { autoDuration: booleanParam(params, 'autoDuration')! }
+          : {}),
+        updatedAt: new Date().toISOString(),
+      }
+      await writeProjectMetadata(workspaceId, id, updatedMetadata)
+
+      const compositionCode = stringParam(params, 'compositionCode')
+      if (compositionCode !== undefined) {
+        await writeCompositionCode(workspaceId, id, compositionCode)
+      }
+
+      return c.json({
+        ok: true,
+        result: await readProject(workspaceId, id),
+      })
+    }
+
+    if (method === 'remotion.projects.delete') {
+      const id = stringParam(params, 'id')
+      if (!id) {
+        const error = rpcError('invalid_params', 'id is required')
+        return c.json(error.body, error.status)
+      }
+      const existing = await readProjectMetadata(workspaceId, id)
+      if (!existing) {
+        const error = rpcError(
+          'project_not_found',
+          'Project was not found',
+          404,
+        )
+        return c.json(error.body, error.status)
+      }
+      const confirmationName = stringParam(params, 'confirmationName')
+      if (
+        confirmationName !== undefined &&
+        confirmationName !== existing.name
+      ) {
+        const error = rpcError(
+          'confirmation_mismatch',
+          'The confirmation name must exactly match the project name.',
+          409,
+        )
+        return c.json(error.body, error.status)
+      }
+      await rm(getProjectDir(workspaceId, id), { recursive: true, force: true })
+      const projectIds = await readProjectIndex(workspaceId)
+      await writeProjectIndex(
+        workspaceId,
+        projectIds.filter((projectId) => projectId !== id),
+      )
+      return c.json({ ok: true, result: { deleted: true, id } })
+    }
+
+    if (method === 'remotion.projects.code') {
+      const id = stringParam(params, 'id')
+      if (!id) {
+        const error = rpcError('invalid_params', 'id is required')
+        return c.json(error.body, error.status)
+      }
+      const metadata = await readProjectMetadata(workspaceId, id)
+      if (!metadata) {
+        const error = rpcError(
+          'project_not_found',
+          'Project was not found',
+          404,
+        )
+        return c.json(error.body, error.status)
+      }
+      const compositionPath = getCompositionPath(workspaceId, id)
+      const code = await readFile(compositionPath, 'utf-8').catch(() => '')
+      return c.json({ ok: true, result: { id, path: compositionPath, code } })
+    }
+
+    return c.json(
+      {
+        ok: false,
+        error: {
+          code: 'method_not_found',
+          message: `Remotion does not expose ${method}.`,
+        },
+      },
+      404,
+    )
+  } catch (error) {
+    console.error('Remotion RPC failed:', error)
+    return c.json(
+      {
+        ok: false,
+        error: {
+          code: 'remotion_rpc_failed',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Remotion could not complete the request.',
+        },
+      },
+      500,
+    )
+  }
+})
+
+app.post('/api/moldable/today/dismiss', async (c) => {
+  const body = (await c.req.json().catch(() => null)) as unknown
+  if (!isMoldableTodayDismissalRequest(body)) {
+    return c.json({ error: 'Invalid Today dismissal payload.' }, 400)
+  }
+
+  const dismissals = await recordMoldableTodayDismissal(c.req.raw, {
+    id: body.id,
+    dismissalKey: body.dismissalKey,
+    materialDismissalKey: body.materialDismissalKey,
+    dismissedAt: body.dismissedAt ?? new Date().toISOString(),
+    item: body.item,
+  })
+
+  return c.json({ ok: true, dismissals: dismissals.length })
+})
+
+type MoldableTodayItem = {
+  id?: unknown
+  kind?: unknown
+  title?: unknown
+  subtitle?: unknown
+  groupHint?: unknown
+}
+
+type MoldableTodayDismissal = {
+  id: string
+  dismissalKey?: string
+  materialDismissalKey?: string
+  dismissedAt: string
+  item?: {
+    kind?: string
+    title?: string
+    subtitle?: string
+    groupHint?: string
+  }
+}
+
+function isMoldableTodayResponse(value: unknown): value is {
+  items: MoldableTodayItem[]
+  [key: string]: unknown
+} {
+  return isMoldableTodayRecord(value) && Array.isArray(value.items)
+}
+
+function isMoldableTodayDismissalRequest(
+  value: unknown,
+): value is MoldableTodayDismissal {
+  if (!isMoldableTodayRecord(value)) return false
+  return (
+    typeof value.id === 'string' &&
+    value.id.trim().length > 0 &&
+    optionalMoldableTodayString(value.dismissalKey) &&
+    optionalMoldableTodayString(value.materialDismissalKey) &&
+    optionalMoldableTodayString(value.dismissedAt) &&
+    (value.item === undefined || isMoldableTodayDismissalItem(value.item))
+  )
+}
+
+function isMoldableTodayDismissalItem(value: unknown): value is {
+  kind?: string
+  title?: string
+  subtitle?: string
+  groupHint?: string
+} {
+  if (!isMoldableTodayRecord(value)) return false
+  return (
+    optionalMoldableTodayString(value.kind) &&
+    optionalMoldableTodayString(value.title) &&
+    optionalMoldableTodayString(value.subtitle) &&
+    optionalMoldableTodayString(value.groupHint)
+  )
+}
+
+function optionalMoldableTodayString(value: unknown): boolean {
+  return value === undefined || typeof value === 'string'
+}
+
+function isMoldableTodayRecord(
+  value: unknown,
+): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+async function recordMoldableTodayDismissal(
+  request: Request,
+  dismissal: MoldableTodayDismissal,
+): Promise<MoldableTodayDismissal[]> {
+  const current = await readMoldableTodayDismissals(request)
+  const key = dismissal.dismissalKey ?? dismissal.id
+  const next = [
+    ...current.filter((entry) => (entry.dismissalKey ?? entry.id) !== key),
+    dismissal,
+  ].sort((a, b) => a.id.localeCompare(b.id))
+  await writeMoldableTodayDismissals(request, next)
+  return next
+}
+
+async function readMoldableTodayDismissals(
+  request: Request,
+): Promise<MoldableTodayDismissal[]> {
+  const filePath = await moldableTodayDismissalsPath(request)
+  const { readFile } = await import('node:fs/promises')
+  try {
+    const data = JSON.parse(await readFile(filePath, 'utf8')) as unknown
+    return Array.isArray(data)
+      ? data.filter(isMoldableTodayDismissalRequest)
+      : []
+  } catch (error) {
+    if (isNodeFileNotFound(error)) return []
+    throw error
+  }
+}
+
+async function writeMoldableTodayDismissals(
+  request: Request,
+  dismissals: MoldableTodayDismissal[],
+): Promise<void> {
+  const filePath = await moldableTodayDismissalsPath(request)
+  const fs = await import('node:fs/promises')
+  const path = await import('node:path')
+  await fs.mkdir(path.dirname(filePath), { recursive: true })
+  const tempPath = path.join(
+    path.dirname(filePath),
+    '.' +
+      path.basename(filePath) +
+      '.' +
+      process.pid +
+      '.' +
+      Date.now() +
+      '.tmp',
+  )
+  await fs.writeFile(tempPath, JSON.stringify(dismissals, null, 2), 'utf8')
+  await fs.rename(tempPath, filePath)
+}
+
+async function moldableTodayDismissalsPath(request: Request): Promise<string> {
+  const path = await import('node:path')
+  return path.join(moldableTodayDataDir(request), 'today-dismissals.json')
+}
+
+function moldableTodayDataDir(request: Request): string {
+  const workspaceId =
+    request.headers.get('x-moldable-workspace') ??
+    request.headers.get('x-moldable-workspace-id') ??
+    process.env.MOLDABLE_WORKSPACE_ID ??
+    'personal'
+  const appId = process.env.MOLDABLE_APP_ID
+
+  if (appId) {
+    const home =
+      process.env.MOLDABLE_HOME ??
+      (process.env.HOME ?? process.cwd()) + '/.moldable'
+    return home + '/workspaces/' + workspaceId + '/apps/' + appId + '/data'
+  }
+
+  return process.env.MOLDABLE_APP_DATA_DIR ?? process.cwd() + '/data'
+}
+
+function filterMoldableTodayDismissedItems<T extends MoldableTodayItem>(
+  items: T[],
+  dismissals: MoldableTodayDismissal[],
+): T[] {
+  if (dismissals.length === 0) return items
+  const dismissedIds = new Set(dismissals.map((entry) => entry.id))
+  const dismissedMaterialKeys = new Set(
+    dismissals
+      .map((entry) => entry.materialDismissalKey)
+      .filter((key): key is string => Boolean(key)),
+  )
+
+  return items.filter((item) => {
+    if (typeof item.id === 'string' && dismissedIds.has(item.id)) return false
+    return !dismissedMaterialKeys.has(moldableTodayMaterialKey(item))
+  })
+}
+
+function moldableTodayMaterialKey(item: MoldableTodayItem): string {
+  return [
+    'material',
+    process.env.MOLDABLE_APP_ID ?? '',
+    typeof item.kind === 'string' ? item.kind : '',
+    'text',
+    normalizeMoldableTodayText(item.title),
+    normalizeMoldableTodayText(item.subtitle),
+    typeof item.groupHint === 'string' ? item.groupHint : '',
+    '',
+  ].join('\u001e')
+}
+
+function normalizeMoldableTodayText(value: unknown): string {
+  return typeof value === 'string'
+    ? value.trim().replace(/\s+/g, ' ').toLowerCase()
+    : ''
+}
+
+function isNodeFileNotFound(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    'code' in error &&
+    (error as NodeJS.ErrnoException).code === 'ENOENT'
+  )
+}

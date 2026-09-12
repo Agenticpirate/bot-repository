@@ -1,0 +1,527 @@
+{
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "name": "Microscope",
+  "version": "0.1.13",
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "runtime": "vite_hono",
+  "visibility": "public",
+  "description": "Explore the natural world through generated images, transparent 2D relief layers, procedural 3D models, and optional fal Hunyuan3D or Tripo renders.",
+  "author": "Moldable",
+  "license": "MIT",
+  "icon": "🔬",
+  "iconPath": "public/icon.png",
+  "category": "education",
+  "tags": [
+    "science",
+    "learning",
+    "images",
+    "gpt-image-2",
+    "3d"
+  ],
+  "aliases": [
+    "magic scope",
+    "science explorer",
+    "3d nature viewer",
+    "microscope"
+  ],
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "env": [],
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "microscope.explore",
+        "name": "Microscope",
+        "description": "List library specimens and generated explorations, create GPT Image 2 science images, remove their backgrounds, and inspect the resulting 2D relief or generated 3D model.",
+        "scopes": [
+          {
+            "id": "microscope.list",
+            "name": "List explorations",
+            "description": "List built-in specimens and generated workspace explorations.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "nativeProjection": {
+                  "type": "boolean"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 16
+                }
+              },
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "microscope.generate",
+            "name": "Generate exploration",
+            "description": "Generate a new educational exploration. Microscope infers the category and metadata, creates a GPT Image 2 image, removes its background, and starts a background 3D render.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "prompt": {
+                  "type": "string"
+                },
+                "quality": {
+                  "type": "string",
+                  "enum": [
+                    "medium",
+                    "high"
+                  ]
+                },
+                "modelProvider": {
+                  "type": "string",
+                  "enum": [
+                    "fal",
+                    "tripo"
+                  ]
+                }
+              },
+              "required": [
+                "prompt"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "microscope.materialize",
+            "name": "Generate real specimen",
+            "description": "Create a real generated exploration from a built-in specimen id.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "quality": {
+                  "type": "string",
+                  "enum": [
+                    "medium",
+                    "high"
+                  ]
+                },
+                "modelProvider": {
+                  "type": "string",
+                  "enum": [
+                    "fal",
+                    "tripo"
+                  ]
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "microscope.regenerate",
+            "name": "Regenerate exploration",
+            "description": "Regenerate an existing generated exploration in place.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "modelProvider": {
+                  "type": "string",
+                  "enum": [
+                    "fal",
+                    "tripo"
+                  ]
+                },
+                "quality": {
+                  "type": "string",
+                  "enum": [
+                    "medium",
+                    "high"
+                  ]
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "microscope.regenerateModel",
+            "name": "Regenerate 3D model",
+            "description": "Regenerate only the 3D model for an existing generated exploration, preserving the current 2D layer.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "modelProvider": {
+                  "type": "string",
+                  "enum": [
+                    "fal",
+                    "tripo"
+                  ]
+                },
+                "quality": {
+                  "type": "string",
+                  "enum": [
+                    "medium",
+                    "high"
+                  ]
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "microscope.retryBackground",
+            "name": "Retry removing background",
+            "description": "Retry background removal from the preserved original image for an existing generated exploration.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "modelProvider": {
+                  "type": "string",
+                  "enum": [
+                    "fal",
+                    "tripo"
+                  ]
+                },
+                "quality": {
+                  "type": "string",
+                  "enum": [
+                    "medium",
+                    "high"
+                  ]
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "microscope.cancel",
+            "name": "Cancel generation",
+            "description": "Cancel a stuck or unwanted generated exploration and keep any finished 2D layer available.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "changesState": true
+          },
+          {
+            "id": "microscope.move",
+            "name": "Move generated exploration",
+            "description": "Move a generated workspace exploration to another existing science world.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "categoryId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "categoryId"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "microscope.delete",
+            "name": "Delete generated exploration",
+            "description": "Permanently delete a generated exploration and its workspace assets.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "microscope.prompts",
+            "name": "Prompt ideas",
+            "description": "Return sample prompts and category metadata for chat-driven exploration.",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "microscope.settings",
+            "name": "Read settings",
+            "description": "Return Microscope settings including the selected 3D model provider and default quality.",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "microscope.updateSettings",
+            "name": "Update settings",
+            "description": "Update Microscope settings such as the selected 3D model provider and default quality.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "modelProvider": {
+                  "type": "string",
+                  "enum": [
+                    "fal",
+                    "tripo"
+                  ]
+                },
+                "quality": {
+                  "type": "string",
+                  "enum": [
+                    "medium",
+                    "high"
+                  ]
+                }
+              },
+              "required": [
+                "modelProvider",
+                "quality"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "microscope.drive",
+        "name": "Drive Microscope",
+        "description": "Describe, navigate, open, and read the Microscope UI and its scientific analysis content.",
+        "scopes": [
+          {
+            "id": "microscope.ui.describe",
+            "name": "Describe Microscope UI",
+            "description": "List every navigable Microscope view with model-readable category and entry guidance.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "microscope.ui.navigate",
+            "name": "Navigate Microscope UI",
+            "description": "Navigate the open Microscope app to the library, a validated science category, or a validated exploration entry. This only changes the visible view.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "library",
+                    "category",
+                    "entry"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Required category id for category or exploration id for entry."
+                },
+                "params": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "view"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "microscope.ui.openEntry",
+            "name": "Open exploration",
+            "description": "Open a validated exploration entry in the interactive Microscope specimen view.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "entryId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "entryId"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "microscope.ui.read",
+            "name": "Read Microscope view",
+            "description": "Return faithful structured science content for the library, a category, or an entry, including description, observations, details, prompts, scale, and render status.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "library",
+                    "category",
+                    "entry"
+                  ]
+                },
+                "entityId": {
+                  "type": "string"
+                },
+                "nativeProjection": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "microscope.cards",
+        "name": "Chat cards",
+        "description": "Specimen image and interactive model quick look.",
+        "scopes": [
+          {
+            "id": "microscope.cards.present",
+            "name": "Present one existing specimen or generated exploration.",
+            "description": "Present one existing specimen or generated exploration.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "microscope.cards.read",
+            "name": "Read the selected exploration; model assets only on detail reads.",
+            "description": "Read the selected exploration; model assets only on detail reads.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "detail": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "tagline": "Explore anything in science as interactive 3D"
+}

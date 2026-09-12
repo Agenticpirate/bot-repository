@@ -1,0 +1,1119 @@
+{
+  "name": "Database",
+  "version": "0.1.15",
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "aliases": [
+    "database",
+    "postgres"
+  ],
+  "runtime": "vite_hono",
+  "visibility": "public",
+  "description": "Connect to PostgreSQL databases and browse schemas, tables, and read-only query results",
+  "author": "Moldable",
+  "license": "MIT",
+  "icon": "🗄️",
+  "iconPath": "public/icon.png",
+  "category": "developer-tools",
+  "tags": [],
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "db-browser.browser",
+        "name": "Database browser",
+        "description": "Read database metadata, run bounded read-only queries only when explicitly asked, and manage saved SQL editor tabs through Database without exposing credentials. Write and admin execution are not exposed to agents.",
+        "scopes": [
+          {
+            "id": "db-browser.connections.list",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "List connections",
+            "description": "List saved database connections and Database preferences without returning credentials."
+          },
+          {
+            "id": "db-browser.context.get",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Get database context",
+            "description": "Get saved connections, the active connection, schema metadata, and saved SQL tabs for query assistance.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "includeSchema": {
+                  "type": "boolean"
+                },
+                "includeSqlWorkspace": {
+                  "type": "boolean"
+                },
+                "includeDashboards": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          {
+            "id": "db-browser.schema.list",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "List schema",
+            "description": "List schemas, tables, and views for a saved connection.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "id": "db-browser.schema.search",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Search schema",
+            "description": "Search schema, table, and view names for a saved connection.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "query": {
+                  "type": "string"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              },
+              "required": [
+                "query"
+              ]
+            }
+          },
+          {
+            "id": "db-browser.schema.describe",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Describe table",
+            "description": "Describe columns for a table or view.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "schema": {
+                  "type": "string"
+                },
+                "table": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "schema",
+                "table"
+              ]
+            }
+          },
+          {
+            "id": "db-browser.native.tablePreview",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Preview table rows on mobile",
+            "description": "Return at most 25 rows and 12 columns for an explicitly selected table using the existing read-only connection policy.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "schema": {
+                  "type": "string"
+                },
+                "table": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "schema",
+                "table"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "db-browser.native.queries",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Read saved queries on mobile",
+            "description": "Return bounded titles and SQL previews for saved SQL tabs without executing them.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "db-browser.native.queryDetail",
+            "risk": "low",
+            "surfaces": [
+              "nativeUI"
+            ],
+            "name": "Read a saved query on mobile",
+            "description": "Return one bounded saved SQL tab and its metadata without executing it.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "queryId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "queryId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "db-browser.native.dashboards",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Read dashboard summaries on mobile",
+            "description": "Return bounded dashboard names and chart counts without running or editing charts.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "db-browser.native.dashboardDetail",
+            "risk": "low",
+            "surfaces": [
+              "nativeUI"
+            ],
+            "name": "Read a dashboard on mobile",
+            "description": "Render bounded results for supported saved read-only chart families and identify unsupported chart types honestly.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "dashboardId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "dashboardId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "db-browser.query.explain",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Explain query",
+            "description": "Run EXPLAIN for one read-only SQL statement through Database and aivault.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "sql": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "sql"
+              ]
+            }
+          },
+          {
+            "id": "db-browser.query.runReadonly",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Run read-only query",
+            "description": "Run one bounded read-only SQL statement through Database and aivault only when the user explicitly asks to execute it. Do not use this for writes or admin commands.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "sql": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "sql"
+              ]
+            }
+          },
+          {
+            "id": "db-browser.sqlTabs.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "List SQL tabs",
+            "description": "List saved SQL editor tabs for a connection.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "id": "db-browser.sqlTabs.create",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Create SQL tab",
+            "description": "Create a saved SQL editor tab, optionally selecting it in Database.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "sql": {
+                  "type": "string"
+                },
+                "select": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          {
+            "id": "db-browser.sqlTabs.update",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Update SQL tab",
+            "description": "Update the title or SQL for a saved SQL editor tab.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "tabId": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "sql": {
+                  "type": "string"
+                },
+                "select": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "tabId"
+              ]
+            }
+          },
+          {
+            "id": "db-browser.sqlTabs.edit",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Edit SQL tab",
+            "description": "Perform surgical exact string replacement in a saved SQL editor tab. Mirrors chat file editing: oldString must be unique unless replaceAll is true. Defaults to the active SQL tab when tabId is omitted.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "tabId": {
+                  "type": "string"
+                },
+                "oldString": {
+                  "type": "string"
+                },
+                "newString": {
+                  "type": "string"
+                },
+                "replaceAll": {
+                  "type": "boolean"
+                },
+                "select": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "oldString",
+                "newString"
+              ]
+            }
+          },
+          {
+            "id": "db-browser.sqlTabs.select",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Select SQL tab",
+            "description": "Mark a saved SQL editor tab as selected for a connection.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "tabId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "tabId"
+              ]
+            }
+          },
+          {
+            "id": "db-browser.dashboards.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "List dashboards",
+            "description": "List dashboards and their charts for a connection. Use this to find dashboard and chart ids or names before editing.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "id": "db-browser.dashboards.create",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Create dashboard",
+            "description": "Create a dashboard for analytics charts, optionally selecting it.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "charts": {
+                  "type": "array"
+                },
+                "select": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          {
+            "id": "db-browser.dashboards.update",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Update dashboard",
+            "description": "Update a dashboard by dashboardId or dashboardName. Use dashboardName for natural language edits when the name is unique.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "dashboardId": {
+                  "type": "string"
+                },
+                "dashboardName": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "charts": {
+                  "type": "array"
+                },
+                "select": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          {
+            "id": "db-browser.dashboards.delete",
+            "risk": "destructive",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Delete dashboard",
+            "description": "Delete a dashboard by dashboardId or unique dashboardName.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "dashboardId": {
+                  "type": "string"
+                },
+                "dashboardName": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "id": "db-browser.dashboards.select",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Select dashboard",
+            "description": "Select a dashboard by dashboardId or unique dashboardName.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "dashboardId": {
+                  "type": "string"
+                },
+                "dashboardName": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "id": "db-browser.dashboardCharts.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "List dashboard charts",
+            "description": "List charts for a dashboard by dashboardId or unique dashboardName.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "dashboardId": {
+                  "type": "string"
+                },
+                "dashboardName": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "id": "db-browser.dashboardCharts.create",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Create dashboard chart",
+            "description": "Create a chart in a dashboard by dashboardId or unique dashboardName. Chart SQL must be read-only.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "dashboardId": {
+                  "type": "string"
+                },
+                "dashboardName": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "line",
+                    "area",
+                    "bar",
+                    "stacked-bar",
+                    "horizontal-bar",
+                    "composed",
+                    "pie",
+                    "donut",
+                    "scatter",
+                    "bubble",
+                    "number",
+                    "table"
+                  ]
+                },
+                "sql": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "string",
+                  "enum": [
+                    "sm",
+                    "md",
+                    "lg",
+                    "xl"
+                  ]
+                },
+                "xAxis": {
+                  "type": "string"
+                },
+                "series": {
+                  "type": "array"
+                },
+                "categoryColumn": {
+                  "type": "string"
+                },
+                "valueColumn": {
+                  "type": "string"
+                },
+                "colorColumn": {
+                  "type": "string"
+                },
+                "sizeColumn": {
+                  "type": "string"
+                },
+                "labelColumn": {
+                  "type": "string"
+                },
+                "metricColumn": {
+                  "type": "string"
+                },
+                "comparisonColumn": {
+                  "type": "string"
+                },
+                "comparisonMode": {
+                  "type": "string",
+                  "enum": [
+                    "auto",
+                    "percent",
+                    "previous-value",
+                    "number"
+                  ]
+                },
+                "tableColumns": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "maxRows": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 5000
+                },
+                "visibleRange": {
+                  "type": "object"
+                },
+                "showLegend": {
+                  "type": "boolean"
+                },
+                "showAxes": {
+                  "type": "boolean"
+                },
+                "showGrid": {
+                  "type": "boolean"
+                },
+                "showDots": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "sql"
+              ]
+            }
+          },
+          {
+            "id": "db-browser.dashboardCharts.update",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Update dashboard chart",
+            "description": "Update a chart by dashboardId/dashboardName and chartId/chartName. Preserve existing chart fields unless the user asks to change them.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "dashboardId": {
+                  "type": "string"
+                },
+                "dashboardName": {
+                  "type": "string"
+                },
+                "chartId": {
+                  "type": "string"
+                },
+                "chartName": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "line",
+                    "area",
+                    "bar",
+                    "stacked-bar",
+                    "horizontal-bar",
+                    "composed",
+                    "pie",
+                    "donut",
+                    "scatter",
+                    "bubble",
+                    "number",
+                    "table"
+                  ]
+                },
+                "sql": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "string",
+                  "enum": [
+                    "sm",
+                    "md",
+                    "lg",
+                    "xl"
+                  ]
+                },
+                "xAxis": {
+                  "type": "string"
+                },
+                "series": {
+                  "type": "array"
+                },
+                "categoryColumn": {
+                  "type": "string"
+                },
+                "valueColumn": {
+                  "type": "string"
+                },
+                "colorColumn": {
+                  "type": "string"
+                },
+                "sizeColumn": {
+                  "type": "string"
+                },
+                "labelColumn": {
+                  "type": "string"
+                },
+                "metricColumn": {
+                  "type": "string"
+                },
+                "comparisonColumn": {
+                  "type": "string"
+                },
+                "comparisonMode": {
+                  "type": "string",
+                  "enum": [
+                    "auto",
+                    "percent",
+                    "previous-value",
+                    "number"
+                  ]
+                },
+                "tableColumns": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "maxRows": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 5000
+                },
+                "visibleRange": {
+                  "type": "object"
+                },
+                "showLegend": {
+                  "type": "boolean"
+                },
+                "showAxes": {
+                  "type": "boolean"
+                },
+                "showGrid": {
+                  "type": "boolean"
+                },
+                "showDots": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          {
+            "id": "db-browser.dashboardCharts.edit",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Edit dashboard chart SQL",
+            "description": "Perform surgical exact string replacement in a dashboard chart SQL query by dashboardId/dashboardName and chartId/chartName. oldString must be unique unless replaceAll is true.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "dashboardId": {
+                  "type": "string"
+                },
+                "dashboardName": {
+                  "type": "string"
+                },
+                "chartId": {
+                  "type": "string"
+                },
+                "chartName": {
+                  "type": "string"
+                },
+                "oldString": {
+                  "type": "string"
+                },
+                "newString": {
+                  "type": "string"
+                },
+                "replaceAll": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "oldString",
+                "newString"
+              ]
+            }
+          },
+          {
+            "id": "db-browser.dashboardCharts.delete",
+            "risk": "destructive",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Delete dashboard chart",
+            "description": "Delete a dashboard chart by dashboardId/dashboardName and chartId/chartName.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "dashboardId": {
+                  "type": "string"
+                },
+                "dashboardName": {
+                  "type": "string"
+                },
+                "chartId": {
+                  "type": "string"
+                },
+                "chartName": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "db-browser.drive",
+        "name": "Drive Database",
+        "description": "Inspect and visibly navigate database connections, table previews, SQL workspaces, and dashboards.",
+        "scopes": [
+          {
+            "id": "db-browser.ui.describe",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Describe Database UI",
+            "description": "List every navigable Database view with model-readable table, SQL tab, and dashboard entity guidance.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "id": "db-browser.ui.navigate",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Navigate Database UI",
+            "description": "Navigate the visible Database app to connections, table, query, or dashboard. Table entityId is schema.table and is validated against the active connection; SQL tab and dashboard ids are also validated.",
+            "inputSchema": {
+              "type": "object",
+              "required": [
+                "view"
+              ],
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "connections",
+                    "table",
+                    "query",
+                    "dashboard"
+                  ]
+                },
+                "entityId": {
+                  "type": "string"
+                },
+                "params": {
+                  "type": "object",
+                  "description": "Optional connectionId and view-specific parameters."
+                }
+              }
+            }
+          },
+          {
+            "id": "db-browser.ui.openTable",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Open database table",
+            "description": "Open an existing table or view in the bounded row-preview UI. table should be schema.table; an unqualified name is accepted only when unique in the active connection. This changes only the visible UI.",
+            "inputSchema": {
+              "type": "object",
+              "required": [
+                "table"
+              ],
+              "properties": {
+                "table": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "id": "db-browser.query.run",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Run read-only query",
+            "description": "Run one bounded read-only SQL statement using Database's existing db-browser.query.runReadonly execution path. Use only when the user explicitly asks to execute a query; writes and admin statements are rejected by the existing read-only policy.",
+            "inputSchema": {
+              "type": "object",
+              "required": [
+                "sql"
+              ],
+              "properties": {
+                "connectionId": {
+                  "type": "string"
+                },
+                "sql": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "id": "db-browser.ui.read",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Read Database view",
+            "description": "Read a faithful structured representation of the target view. Table reads return columns and at most 200 rows; query reads return saved SQL tabs plus the most recent drive-query rows; connection and dashboard views return their owned structured data.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "connections",
+                    "table",
+                    "query",
+                    "dashboard"
+                  ]
+                },
+                "entityId": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "db-browser.cards",
+        "name": "Chat cards",
+        "description": "Compact read-only preview with fuller quick look.",
+        "scopes": [
+          {
+            "id": "db-browser.cards.present",
+            "name": "Show preview",
+            "description": "Present a scoped read-only chat card.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "table": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "connectionId",
+                "schema",
+                "table"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "db-browser.cards.read",
+            "name": "Read preview",
+            "description": "Read the bound record with bounded detail.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "connectionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "schema": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "table": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "detail": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "connectionId",
+                "schema",
+                "table"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "env": [],
+  "screenshots": [
+    "public/screenshots/1.png"
+  ],
+  "tagline": "Browse, query, and chart your Postgres databases locally"
+}

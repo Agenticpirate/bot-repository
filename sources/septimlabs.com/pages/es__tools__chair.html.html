@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="canonical" href="https://septimlabs.com/es/tools/chair.html" />
+<meta property="og:locale" content="es_ES" />
+
+<!-- SEPTIM-I18N-HREFLANG -->
+<link rel="alternate" hreflang="x-default" href="https://septimlabs.com/tools/chair.html" />
+<link rel="alternate" hreflang="en" href="https://septimlabs.com/tools/chair.html" />
+<link rel="alternate" hreflang="es" href="https://septimlabs.com/es/tools/chair.html" />
+<link rel="alternate" hreflang="zh" href="https://septimlabs.com/zh/tools/chair.html" />
+<link rel="alternate" hreflang="hi" href="https://septimlabs.com/hi/tools/chair.html" />
+<link rel="alternate" hreflang="pt" href="https://septimlabs.com/pt/tools/chair.html" />
+<link rel="alternate" hreflang="de" href="https://septimlabs.com/de/tools/chair.html" />
+<link rel="alternate" hreflang="fr" href="https://septimlabs.com/fr/tools/chair.html" />
+<link rel="alternate" hreflang="ja" href="https://septimlabs.com/ja/tools/chair.html" />
+<link rel="alternate" hreflang="ru" href="https://septimlabs.com/ru/tools/chair.html" />
+<link rel="alternate" hreflang="ar" href="https://septimlabs.com/ar/tools/chair.html" />
+<!-- /SEPTIM-I18N-HREFLANG -->
+
+<title>Chair — Septim Labs</title>
+    <!-- Open Graph + Twitter Card (auto-injected by inject_og_meta.py) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://septimlabs.com/es/tools/chair" />
+    <meta property="og:title" content="Chair — Septim Labs" />
+    <meta property="og:description" content="Septim Labs — pay-once developer tools, custom SMB software builds. You buy once, you keep it." />
+    <meta property="og:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Septim Labs" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Chair — Septim Labs" />
+    <meta name="twitter:description" content="Septim Labs — pay-once developer tools, custom SMB software builds. You buy once, you keep it." />
+    <meta name="twitter:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../site.css?v=4.6.1" />
+<style>
+/* CHAIR — Salon/clinic scheduling. Metaphor: an appointment book.
+   Soft, warm, two-color: bone paper + dusty rose. Calendar grid is the centerpiece. */
+:root[data-theme="dark"] .ch-page{
+  --paper:var(--bg);--paper-2:var(--bg);--paper-3:#141414;
+  --ink-a:#f0f0f0;--ink2-a:#9aa0aa;--ink3-a:#5a606a;
+  --rule-a:var(--line);--rule2-a:var(--line-2);
+  --field-a:var(--bg);--field2-a:#141414;
+  --p:#ff5fb0;--p-soft:rgba(255,95,176,.14);--p-deep:#a04880;
+  --ok:#5fc587;--warn:#e6a14a;--err:#e96c6c;
+}
+:root[data-theme="light"] .ch-page{
+  --paper:var(--ink);--paper-2:#f5f5f5;--paper-3:#e8e8e8;
+  --ink-a:var(--bg);--ink2-a:#454852;--ink3-a:#7a7e88;
+  --rule-a:rgba(0,0,0,.10);--rule2-a:rgba(0,0,0,.22);
+  --field-a:#f5f5f5;--field2-a:#e8e8e8;
+  --p:#a04880;--p-soft:rgba(160,72,128,.10);--p-deep:#7a3060;
+  --ok:#2a7e4f;--warn:#a06820;--err:#a02818;
+}
+body{background:var(--paper)}
+.ch-page{background:var(--paper);color:var(--ink-a);font-family:var(--sans);line-height:1.5}
+
+/* HUD */
+.hud{position:sticky;top:0;z-index:40;display:grid;grid-template-columns:auto 1fr auto auto auto;
+  align-items:center;background:color-mix(in srgb,var(--paper) 90%,transparent);
+  backdrop-filter:blur(12px);border-bottom:1px solid var(--rule2-a);
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3-a)}
+.hud > *{padding:11px 18px;border-right:1px solid var(--rule-a)}
+.hud > *:last-child{border-right:none}
+.hud .file{color:var(--p);font-weight:700}
+.hud .file::before{content:"✻";margin-right:8px;color:var(--p)}
+.hud .clock{font-variant-numeric:tabular-nums;color:var(--ink-a);min-width:130px;text-align:center}
+@media(max-width:780px){.hud{grid-template-columns:auto 1fr auto}.hud .build{display:none}}
+
+/* Hero */
+.hero{padding:80px clamp(20px,5vw,80px) 60px;border-bottom:1px solid var(--rule2-a);
+  display:grid;grid-template-columns:1fr 1.2fr;gap:60px;align-items:start;position:relative}
+.hero::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(900px 480px at 100% 0%,var(--p-soft),transparent 60%)}
+.hero > *{position:relative;z-index:1}
+.crumb{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3-a);
+  display:flex;gap:14px;align-items:center;margin-bottom:32px}
+.crumb a{color:var(--ink2-a);text-decoration:none}
+.crumb b{color:var(--p);font-weight:600}
+.hero h1{font-style:normal;font-weight:600;font-size:clamp(64px,9vw,140px);letter-spacing:-.025em;line-height:.92;margin:0 0 28px;color:var(--ink-a)}
+.hero h1 b{font-family:var(--sans);font-style:normal;font-weight:700;display:block;color:var(--p);font-size:.55em;letter-spacing:-.04em;margin-bottom:18px;text-transform:uppercase;line-height:1}
+.hero .blurb{font-size:18px;line-height:1.6;color:var(--ink2-a);max-width:54ch;margin:0 0 32px}
+.hero .blurb b{color:var(--ink-a);font-weight:600;background:var(--p-soft);padding:1px 6px}
+.hero .blurb em{font-style:normal;color:var(--ink-a);font-weight:500}
+.hero .meta{display:grid;grid-template-columns:repeat(4,auto);border:1px solid var(--rule2-a);background:var(--paper-2);width:fit-content;font-family:var(--mono)}
+.hero .meta > div{padding:14px 22px;border-right:1px solid var(--rule-a)}
+.hero .meta > div:last-child{border-right:none}
+.hero .meta .k{color:var(--ink3-a);letter-spacing:.16em;text-transform:uppercase;font-size:10px;margin-bottom:6px}
+.hero .meta .v{color:var(--ink-a);font-size:18px;font-weight:600;letter-spacing:-.01em}
+.hero .meta .v.price{color:var(--p);font-size:24px}
+.hero .actions{margin-top:32px;display:flex;gap:14px;flex-wrap:wrap}
+.btn-p{display:inline-flex;align-items:center;gap:10px;padding:14px 24px;background:var(--p);color:var(--ink);text-decoration:none;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;border-radius:99px}
+.btn-p:hover{background:var(--p-deep)}
+.btn-g{display:inline-flex;align-items:center;gap:10px;padding:14px 24px;border:1px solid var(--rule2-a);color:var(--ink-a);text-decoration:none;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;border-radius:99px}
+.btn-g:hover{border-color:var(--ink-a)}
+
+/* APPOINTMENT BOOK — calendar centerpiece */
+.book{background:var(--paper-2);border:1px solid var(--rule2-a);border-radius:6px;overflow:hidden;font-family:var(--mono);box-shadow:0 4px 24px var(--p-soft)}
+.book .bh{display:flex;justify-content:space-between;align-items:center;padding:18px 18px 16px;border-bottom:1px solid var(--rule2-a);background:var(--paper);font-size:12px;letter-spacing:.06em;font-weight:600;color:var(--ink-a)}
+.book .bh .day{font-style:normal;font-weight:600;font-size:18px;color:var(--ink-a);letter-spacing:0;line-height:1.3}
+.book .bh .ind{display:inline-flex;align-items:center;gap:6px;color:var(--p);font-size:10px;letter-spacing:.18em;text-transform:uppercase}
+.book .bh .ind::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--p);box-shadow:0 0 10px var(--p);animation:bp 2s infinite}
+@keyframes bp{50%{opacity:.3}}
+.book .grid{display:grid;grid-template-columns:60px repeat(4,1fr);position:relative;min-height:540px}
+.book .timecol{border-right:1px solid var(--rule-a);background:var(--paper)}
+.book .timecol .t{height:60px;padding:6px 8px;font-size:10px;letter-spacing:.06em;color:var(--ink3-a);text-align:right;border-bottom:1px solid var(--rule-a);text-transform:uppercase}
+.book .col{position:relative;border-right:1px solid var(--rule-a)}
+.book .col:last-child{border-right:none}
+.book .colh{padding:10px 12px;background:var(--paper);border-bottom:1px solid var(--rule2-a);text-align:center;font-size:11px}
+.book .colh b{display:block;color:var(--ink-a);font-weight:600;letter-spacing:-.005em;font-family:var(--sans);font-size:13px;margin-bottom:2px}
+.book .colh small{display:block;color:var(--ink3-a);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase}
+.book .col .slot{position:absolute;left:6px;right:6px;background:var(--p);color:var(--ink);border-radius:4px;padding:8px 10px;font-family:var(--sans);font-size:11.5px;line-height:1.35;box-shadow:0 2px 6px rgba(0,0,0,.12);overflow:hidden}
+.book .col .slot.s2{background:var(--p2);color:#1f1614}
+.book .col .slot.dim{background:transparent;border:1px dashed var(--rule2-a);color:var(--ink3-a);box-shadow:none}
+.book .col .slot.dim small{color:var(--ink3-a)}
+.book .col .slot.warn{background:var(--warn);color:#1f1614}
+.book .col .slot b{display:block;font-weight:600;font-size:12.5px;margin-bottom:1px;letter-spacing:-.005em}
+.book .col .slot small{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;opacity:.85;display:block}
+.book .col .gridlines{position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none}
+.book .col .gridlines .gl{position:absolute;left:0;right:0;height:1px;background:var(--rule-a)}
+.book .now{position:absolute;left:60px;right:0;height:2px;background:var(--p);box-shadow:0 0 8px var(--p);z-index:8}
+.book .now::before{content:"";position:absolute;left:-6px;top:-5px;width:12px;height:12px;background:var(--p);border-radius:50%}
+@media(max-width:980px){.hero{grid-template-columns:1fr}.book .grid{grid-template-columns:60px repeat(2,1fr);min-height:440px}.book .col:nth-child(n+4){display:none}}
+
+/* Section */
+.sec{padding:90px clamp(20px,5vw,80px);border-bottom:1px solid var(--rule2-a)}
+.sec .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:48px;border-bottom:1px solid var(--rule-a);padding-bottom:14px}
+.sec .head .ex{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-a);font-weight:700}
+.sec .head .ex b{background:var(--p);color:var(--ink);padding:3px 9px;margin-right:10px;border-radius:99px}
+.sec .head .pg{font-family:var(--mono);font-size:10px;color:var(--ink3-a);letter-spacing:.14em;text-transform:uppercase}
+.sec h2{font-style:normal;font-weight:600;font-size:clamp(40px,5vw,76px);letter-spacing:-.02em;line-height:1;margin:0 0 24px;max-width:18ch;color:var(--ink-a)}
+.sec h2 b{font-family:var(--sans);font-style:normal;font-weight:700;color:var(--p);letter-spacing:-.035em}
+.sec .copy{font-size:16px;line-height:1.65;color:var(--ink2-a);max-width:60ch;margin:0 0 16px}
+.sec .copy b{color:var(--ink-a);font-weight:600;background:var(--p-soft);padding:1px 5px}
+
+/* SMS demo + deposit */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:32px}
+.phone{background:var(--paper-2);border:1px solid var(--rule2-a);border-radius:30px;padding:18px 14px 22px;max-width:340px;margin:0 auto;font-family:var(--sans);box-shadow:0 8px 32px var(--p-soft)}
+.phone .pbar{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:10px;color:var(--ink3-a);padding:0 8px 10px;border-bottom:1px solid var(--rule-a);margin-bottom:12px;letter-spacing:.04em}
+.phone .pbar b{color:var(--ink-a);font-family:var(--sans);font-size:13px;font-weight:600;letter-spacing:-.005em}
+.phone .msg{padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.45;margin-bottom:8px;max-width:78%}
+.phone .msg.in{background:var(--paper-3);color:var(--ink-a);border-bottom-left-radius:4px}
+.phone .msg.out{background:var(--p);color:var(--ink);margin-left:auto;border-bottom-right-radius:4px}
+.phone .msg.out b{color:var(--ink);font-weight:700}
+.phone .msg .t{font-family:var(--mono);font-size:9.5px;color:var(--ink3-a);margin-top:4px;letter-spacing:.06em}
+.phone .msg.out .t{color:var(--line-3)}
+.phone .typing{padding:10px 14px;background:var(--paper-3);border-radius:18px;width:60px;display:flex;gap:4px;align-items:center;justify-content:center;border-bottom-left-radius:4px}
+.phone .typing span{width:6px;height:6px;border-radius:50%;background:var(--ink3-a);animation:tt 1.4s infinite ease-in-out}
+.phone .typing span:nth-child(2){animation-delay:.2s}.phone .typing span:nth-child(3){animation-delay:.4s}
+@keyframes tt{0%,80%,100%{opacity:.3}40%{opacity:1}}
+
+.deposit{background:var(--paper-2);border:1px solid var(--rule2-a);border-radius:6px;padding:32px;font-family:var(--sans);position:relative}
+.deposit .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3-a);margin-bottom:16px}
+.deposit .amt{font-size:96px;font-weight:700;color:var(--p);letter-spacing:-.04em;line-height:.95;margin-bottom:12px}
+.deposit p{font-size:15px;line-height:1.6;color:var(--ink2-a);margin:0 0 18px}
+.deposit p b{color:var(--ink-a);font-weight:600}
+.deposit .stack{display:grid;grid-template-columns:1fr;gap:12px;margin-top:24px}
+.deposit .row{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:var(--paper);border:1px solid var(--rule-a);border-radius:6px;font-family:var(--mono);font-size:12px}
+.deposit .row b{font-family:var(--sans);font-size:14px;font-weight:600;color:var(--ink-a);letter-spacing:-.005em}
+.deposit .row small{display:block;color:var(--ink3-a);font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;margin-top:2px;font-weight:400}
+.deposit .row .amt2{font-family:var(--mono);font-size:13px;color:var(--p);font-weight:700;font-variant-numeric:tabular-nums}
+@media(max-width:880px){.duo{grid-template-columns:1fr}.phone{max-width:100%}}
+
+/* CLIENT records */
+.clients{margin-top:24px;display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--rule2-a);background:var(--rule-a);border-radius:6px;overflow:hidden}
+.client{background:var(--paper);padding:24px;font-family:var(--sans)}
+.client .av{width:48px;height:48px;border-radius:50%;background:var(--p);color:var(--ink);display:grid;place-items:center;font-weight:700;font-size:18px;letter-spacing:-.01em;margin-bottom:14px}
+.client .av.b{background:var(--p2);color:#1f1614}
+.client .av.c{background:var(--ink-a);color:var(--paper)}
+.client b{display:block;font-weight:600;color:var(--ink-a);font-size:16px;letter-spacing:-.01em;margin-bottom:2px}
+.client .meta{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--ink3-a);margin-bottom:12px}
+.client .last{font-style:normal;font-weight:600;font-size:14px;color:var(--ink2-a);line-height:1.5;border-top:1px solid var(--rule-a);padding-top:12px;margin-bottom:10px}
+.client .stat{display:flex;gap:14px;font-family:var(--mono);font-size:10.5px;color:var(--ink2-a);letter-spacing:.04em}
+.client .stat b{font-family:var(--sans);font-size:14px;color:var(--p);font-weight:700;display:inline}
+@media(max-width:780px){.clients{grid-template-columns:1fr}}
+
+/* BUY */
+.buy{padding:120px clamp(20px,5vw,80px);background:var(--paper-2);border-top:1px solid var(--rule2-a);
+  display:grid;grid-template-columns:1.4fr 1fr;gap:48px;align-items:center}
+.buy h3{font-style:normal;font-weight:600;font-size:clamp(40px,5vw,84px);letter-spacing:-.02em;margin:0 0 16px;line-height:1.04;color:var(--ink-a)}
+.buy h3 b{font-family:var(--sans);font-style:normal;font-weight:700;color:var(--p);display:block;letter-spacing:-.035em;line-height:1}
+.buy .copy{font-size:16px;line-height:1.6;color:var(--ink2-a);max-width:48ch;margin:0 0 28px}
+.buy .price{font-size:140px;font-weight:700;letter-spacing:-.04em;line-height:.95;color:var(--p)}
+.buy .price small{display:block;font-family:var(--mono);font-size:11px;color:var(--ink3-a);letter-spacing:.14em;font-weight:500;margin-top:14px;text-transform:uppercase}
+@media(max-width:780px){.buy{grid-template-columns:1fr}}
+
+/* NEXT */
+.next{padding:0;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule2-a);border-top:1px solid var(--rule2-a)}
+.next a{padding:36px 28px;text-decoration:none;background:var(--paper);display:flex;flex-direction:column;gap:6px;color:inherit}
+.next a:hover{background:var(--paper-2)}
+.next a .l{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ink3-a);text-transform:uppercase}
+.next a .n{font-style:normal;font-weight:600;font-size:32px;color:var(--ink-a);letter-spacing:-.01em}
+.next a .d{font-size:13px;color:var(--ink2-a);line-height:1.5;margin-top:4px}
+@media(max-width:780px){.next{grid-template-columns:1fr}}
+</style>
+<!-- TOKEN-CONVERT-V4-APPLIED -->
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/kit/apple-touch-icon-180.png" />
+</head>
+<body data-page="tools">
+<div id="site-nav"></div>
+
+<main class="ch-page">
+
+<div class="hud">
+  <span class="file">CHAIR/05 · APPT BOOK</span>
+  <span style="color:var(--ink2-a);overflow:hidden;white-space:nowrap;text-overflow:ellipsis"># 4 chairs · 23 booked today · 2 walk-ins waiting · last reminder sent 4 min ago</span>
+  <span class="clock" id="clk">--:--:-- UTC</span>
+  <span style="color:var(--ink3-a)">v1.7</span>
+  <span style="color:var(--ok)">● OPEN</span>
+</div>
+
+<header class="hero">
+  <div>
+    <div class="crumb"><a href="../tools.html">/ tools</a><span>›</span><b>05 · chair</b><span>·</span><span>service</span></div>
+    <h1><b>Scheduling</b>without<br/>the monthly bill.</h1>
+    <p class="blurb">For salons, clinics, studios, and anyone who books their day in fifteen-minute increments. SMS reminders, deposits, no-show fees, client history. <em>Paga una vez, book forever.</em></p>
+    <div class="meta">
+      <div><div class="k">Chairs</div><div class="v">unlimited</div></div>
+      <div><div class="k">SMS</div><div class="v">included*</div></div>
+      <div><div class="k">Deposits</div><div class="v">Stripe</div></div>
+      <div><div class="k">Price</div><div class="v price">$99</div></div>
+    </div>
+    <div class="actions">
+      <a class="btn-p" href="../contact.html?subject=Chair">Buy · $99 once →</a>
+      <a class="btn-g" href="#book">See the day</a>
+    </div>
+  </div>
+
+  <div class="book" id="book">
+    <div class="bh"><span class="day">Tuesday · 14 Enero</span><span class="ind">Live · 23 booked</span></div>
+    <div class="grid">
+      <div class="timecol">
+        <div class="colh" style="background:var(--paper-2);height:auto;padding:14px 8px"><b>—</b></div>
+        <div class="t">9 AM</div><div class="t">10 AM</div><div class="t">11 AM</div><div class="t">12 PM</div><div class="t">1 PM</div><div class="t">2 PM</div><div class="t">3 PM</div><div class="t">4 PM</div>
+      </div>
+      <div class="col">
+        <div class="colh"><b>Marielle</b><small>Stylist · 8 booked</small></div>
+        <div class="gridlines"><div class="gl" style="top:60px"></div><div class="gl" style="top:120px"></div><div class="gl" style="top:180px"></div><div class="gl" style="top:240px"></div><div class="gl" style="top:300px"></div><div class="gl" style="top:360px"></div><div class="gl" style="top:420px"></div></div>
+        <div class="slot" style="top:8px;height:48px"><b>P. Jeong</b><small>Cut · 30m · paid</small></div>
+        <div class="slot s2" style="top:64px;height:108px"><b>R. Davila</b><small>Color + style · 1h 45m</small></div>
+        <div class="slot" style="top:180px;height:54px"><b>S. Watts</b><small>Bang trim · 30m · NEW</small></div>
+        <div class="slot dim" style="top:248px;height:48px"><small>Open · 30m</small></div>
+        <div class="slot" style="top:300px;height:108px"><b>K. Lien</b><small>Balayage · 1h 45m</small></div>
+      </div>
+      <div class="col">
+        <div class="colh"><b>Jules</b><small>Stylist · 6 booked</small></div>
+        <div class="gridlines"><div class="gl" style="top:60px"></div><div class="gl" style="top:120px"></div><div class="gl" style="top:180px"></div><div class="gl" style="top:240px"></div><div class="gl" style="top:300px"></div><div class="gl" style="top:360px"></div><div class="gl" style="top:420px"></div></div>
+        <div class="slot s2" style="top:24px;height:84px"><b>M. Park</b><small>Color refresh · 1h 20m</small></div>
+        <div class="slot warn" style="top:120px;height:48px"><b>D. Holt</b><small>Held · awaiting deposit</small></div>
+        <div class="slot" style="top:180px;height:48px"><b>O. Aiyer</b><small>Cut + dry · 30m</small></div>
+        <div class="slot" style="top:240px;height:108px"><b>T. Cruz</b><small>Highlights · 1h 45m</small></div>
+        <div class="slot dim" style="top:360px;height:60px"><small>Lunch · 1h</small></div>
+      </div>
+      <div class="col">
+        <div class="colh"><b>Akiko</b><small>Color · 5 booked</small></div>
+        <div class="gridlines"><div class="gl" style="top:60px"></div><div class="gl" style="top:120px"></div><div class="gl" style="top:180px"></div><div class="gl" style="top:240px"></div><div class="gl" style="top:300px"></div><div class="gl" style="top:360px"></div><div class="gl" style="top:420px"></div></div>
+        <div class="slot" style="top:0;height:120px"><b>J. Lambert</b><small>Full bleach + tone · 2h</small></div>
+        <div class="slot s2" style="top:128px;height:54px"><b>N. Roy</b><small>Glaze · 45m</small></div>
+        <div class="slot" style="top:200px;height:60px"><b>K. Otieno</b><small>Color match · 1h</small></div>
+        <div class="slot dim" style="top:264px;height:48px"><small>Open · 30m</small></div>
+        <div class="slot" style="top:316px;height:96px"><b>F. Esposito</b><small>Babylights · 1h 30m</small></div>
+      </div>
+      <div class="col">
+        <div class="colh"><b>Sam</b><small>Asst · 4 booked</small></div>
+        <div class="gridlines"><div class="gl" style="top:60px"></div><div class="gl" style="top:120px"></div><div class="gl" style="top:180px"></div><div class="gl" style="top:240px"></div><div class="gl" style="top:300px"></div><div class="gl" style="top:360px"></div><div class="gl" style="top:420px"></div></div>
+        <div class="slot s2" style="top:8px;height:36px"><b>Wash · P.J.</b><small>15m</small></div>
+        <div class="slot dim" style="top:48px;height:60px"><small>Open · 1h</small></div>
+        <div class="slot s2" style="top:112px;height:36px"><b>Wash · R.D.</b><small>15m</small></div>
+        <div class="slot s2" style="top:200px;height:54px"><b>Color asst</b><small>45m</small></div>
+        <div class="slot dim" style="top:260px;height:36px"><small>Open · 30m</small></div>
+        <div class="slot s2" style="top:300px;height:54px"><b>Color asst</b><small>45m</small></div>
+        <div class="slot s2" style="top:360px;height:36px"><b>Wash · F.E.</b><small>15m</small></div>
+      </div>
+      <div class="now" style="top:calc(36px + 165px)"></div>
+    </div>
+  </div>
+</header>
+
+<!-- SMS + DEPOSIT -->
+<section class="sec">
+  <div class="head"><span class="ex"><b>EXHIBIT A</b>Reminders &amp; deposits</span><span class="pg">PG. 02 / 06</span></div>
+  <h2>Two of the small things <b>that pay for themselves.</b></h2>
+  <p class="copy">A typical no-show costs the chair around $80 in unbookable time. The two things that fix it are an SMS the day before, and a $20 deposit at booking. Chair does both — without a per-message fee, without a per-transaction subscription tier.</p>
+
+  <div class="duo">
+    <div class="phone">
+      <div class="pbar"><span>9:41</span><b>SALON · YOU</b><span>5G ●●●</span></div>
+      <div class="msg out"><b>Hi Riya — quick reminder you're booked with Marielle tomorrow at 11:00 for color + style.</b> Reply <b>Y</b> to confirm or <b>R</b> to reschedule.<div class="t">14:42 · automatic, day before</div></div>
+      <div class="msg in">Y, see you tomorrow! 💕<div class="t">14:48</div></div>
+      <div class="msg out">Confirmed. Marielle will see you at 11. Park in the alley off Mott — first 30 min free.<div class="t">14:48 · auto-reply, customizable</div></div>
+      <div class="typing"><span></span><span></span><span></span></div>
+    </div>
+
+    <div class="deposit">
+      <div class="lbl">— Deposit · this week</div>
+      <div class="amt">$1,840</div>
+      <p>Held in your Stripe account. <b>23 deposits taken</b>, applied to the bill at checkout. Two no-shows kept the deposit. None of it touches us.</p>
+      <div class="stack">
+        <div class="row"><div><b>R. Davila · color + style</b><small>Mar 14 · taken at booking</small></div><div class="amt2">$50.00</div></div>
+        <div class="row"><div><b>K. Lien · balayage</b><small>Mar 14 · taken at booking</small></div><div class="amt2">$50.00</div></div>
+        <div class="row"><div><b>D. Holt · cut · NO-SHOW</b><small>Mar 13 · kept</small></div><div class="amt2" style="color:var(--err)">$20.00</div></div>
+        <div class="row"><div><b>F. Esposito · babylights</b><small>Mar 14 · taken</small></div><div class="amt2">$80.00</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CLIENT cards -->
+<section class="sec">
+  <div class="head"><span class="ex"><b>EXHIBIT B</b>Client history</span><span class="pg">PG. 04 / 06</span></div>
+  <h2>Six visits.<b>One memory.</b></h2>
+  <p class="copy">A returning client should never have to explain her color formula again. Chair keeps a one-line note per visit and the formulas she liked, so the chair after lunch knows what the chair before lunch knew.</p>
+
+  <div class="clients">
+    <div class="client">
+      <div class="av">RD</div>
+      <b>Riya Davila</b>
+      <div class="meta">CLIENT #142 · 18 visits · with Marielle</div>
+      <p class="last">"Loves the warm copper she got in Octubre. Hates being told she'd 'love a pixie'."</p>
+      <div class="stat"><span>Last · <b>62d ago</b></span><span>LTV · <b>$2,840</b></span><span>Avg · <b>1h 30m</b></span></div>
+    </div>
+    <div class="client">
+      <div class="av b">KL</div>
+      <b>Kioko Lien</b>
+      <div class="meta">CLIENT #208 · 6 visits · with Marielle</div>
+      <p class="last">"Balayage every Q. Allergic to ammonia. Always running ten minutes late, that's fine."</p>
+      <div class="stat"><span>Last · <b>91d ago</b></span><span>LTV · <b>$1,260</b></span><span>Avg · <b>1h 45m</b></span></div>
+    </div>
+    <div class="client">
+      <div class="av c">FE</div>
+      <b>Federica Esposito</b>
+      <div class="meta">CLIENT #094 · 24 visits · with Akiko</div>
+      <p class="last">"Babylights, never bleach to the scalp. Brings her dog Otto. He sits."</p>
+      <div class="stat"><span>Last · <b>43d ago</b></span><span>LTV · <b>$4,020</b></span><span>Avg · <b>1h 30m</b></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- BUY -->
+<section class="buy">
+  <div>
+    <h3>Ninety-nine dollars.<br/><b>Forever.</b></h3>
+    <p class="copy">SMS is at-cost — usually around $0.01 per message, billed by Twilio directly to your account, not us. Stripe processing is at Stripe rates, billed by Stripe directly to your account, not us. We never touch the money.</p>
+    <a class="btn-p" href="../contact.html?subject=Chair">Buy Chair · $99 once →</a>
+  </div>
+  <div class="price">$99<small>ONCE · *SMS AT-COST · NO MONTHLY FEE</small></div>
+</section>
+
+<nav class="next">
+  <a href="dock.html"><span class="l">— Next tool · 06</span><span class="n">Dock →</span><span class="d">Tenant ledger, lease docs, and maintenance tickets for property managers.</span></a>
+  <a href="yard.html"><span class="l">— O back to</span><span class="n">Yard →</span><span class="d">Estimating + dispatch for trades. Replaces a $400/mo CRM.</span></a>
+</nav>
+</main>
+
+<div id="site-foot"></div>
+<div class="grain" aria-hidden="true"></div>
+<script src="../../site.js?v=4.6.0"></script>
+<script src="../../site-shell.js?v=4.6.0"></script>
+<script>
+(()=>{const c=document.getElementById('clk');if(!c)return;const f=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');c.textContent=`${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`};f();setInterval(f,1000)})();
+</script>
+</body>
+</html>

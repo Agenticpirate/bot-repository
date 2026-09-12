@@ -1,0 +1,345 @@
+{
+  "name": "Code",
+  "version": "0.1.14",
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "aliases": [
+    "editor",
+    "ide"
+  ],
+  "visibility": "public",
+  "description": "A lightweight, VS Code-like IDE for exploring and editing local codebases with integrated AI context and browser preview.",
+  "runtime": "vite_hono",
+  "author": "Moldable",
+  "license": "FSL-1.1-ALv2",
+  "icon": "💻",
+  "iconPath": "public/icon.png",
+  "category": "developer-tools",
+  "tags": [],
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "code-editor.project",
+        "name": "Code project",
+        "description": "Read and update Code app project context and inspect files through the Code app.",
+        "scopes": [
+          {
+            "id": "code-editor.project.get",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Get current project",
+            "description": "Get the current root path, preview URL, recent projects, and open tabs."
+          },
+          {
+            "id": "code-editor.project.recent",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Recent projects",
+            "description": "List recently opened projects."
+          },
+          {
+            "id": "code-editor.project.set",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Set current project",
+            "description": "Set the current project root and optional preview URL.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "rootPath": {
+                  "type": "string"
+                },
+                "previewUrl": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "id": "code-editor.preferences.get",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Get Code preferences",
+            "description": "Read Code app workspace preferences."
+          },
+          {
+            "id": "code-editor.native.file.read",
+            "risk": "low",
+            "surfaces": [
+              "nativeUI"
+            ],
+            "name": "Read a native project file",
+            "description": "Read one bounded text file using an opaque NativeUI project id and repository-relative path.",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "projectId": {
+                  "type": "string"
+                },
+                "relativePath": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "projectId",
+                "relativePath"
+              ]
+            }
+          },
+          {
+            "id": "code-editor.files.search",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Search project files",
+            "description": "Search files in the current or supplied project root, respecting .gitignore.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "root": {
+                  "type": "string"
+                },
+                "projectId": {
+                  "type": "string",
+                  "description": "Opaque project id returned by the NativeUI project list."
+                },
+                "pattern": {
+                  "type": "string",
+                  "description": "fast-glob pattern. Defaults to **/*."
+                },
+                "query": {
+                  "type": "string"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 500
+                },
+                "nativeProjection": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          {
+            "id": "code-editor.files.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "List directory",
+            "description": "List files and folders under a directory, including ignore-dim state.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "root": {
+                  "type": "string"
+                },
+                "includeHidden": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "path"
+              ]
+            }
+          },
+          {
+            "id": "code-editor.files.read",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Read file",
+            "description": "Read a text file through the Code app.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "maxChars": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 100000
+                }
+              },
+              "required": [
+                "path"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "code-editor.drive",
+        "name": "Drive Code",
+        "description": "Inspect and visibly navigate Code's project picker, IDE, and file tabs without mutating project files.",
+        "scopes": [
+          {
+            "id": "code-editor.ui.describe",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Describe Code UI",
+            "description": "List every navigable Code view with model-readable guidance for project roots and file entities.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "id": "code-editor.ui.navigate",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Navigate Code UI",
+            "description": "Navigate the visible Code app to projects, editor, or file. The file view requires an existing absolute entityId that resolves inside the configured project root. The client applies a last-wins workspace UI intent.",
+            "inputSchema": {
+              "type": "object",
+              "required": [
+                "view"
+              ],
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "projects",
+                    "editor",
+                    "file"
+                  ]
+                },
+                "entityId": {
+                  "type": "string"
+                },
+                "params": {
+                  "type": "object",
+                  "description": "The editor view optionally accepts projectPath."
+                }
+              }
+            }
+          },
+          {
+            "id": "code-editor.ui.openFile",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Open project file",
+            "description": "Open an existing file as the active editor tab. path must resolve to a regular file within the app's configured project root; traversal and symlink escapes are rejected. This changes only the visible UI.",
+            "inputSchema": {
+              "type": "object",
+              "required": [
+                "path"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Absolute path within the configured project root."
+                }
+              }
+            }
+          },
+          {
+            "id": "code-editor.ui.read",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Read Code view",
+            "description": "Read the current or target file plus the project's open and active file lists. File content is capped at 100,000 bytes and reports truncation; binary images are identified without dumping bytes.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "projects",
+                    "editor",
+                    "file"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Optional absolute target file path inside the project root."
+                },
+                "nativeProjection": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "code-editor.cards",
+        "name": "Chat cards",
+        "description": "Compact read-only preview with fuller quick look.",
+        "scopes": [
+          {
+            "id": "code-editor.cards.present",
+            "name": "Show preview",
+            "description": "Present a scoped read-only chat card.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "relativePath": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                }
+              },
+              "required": [
+                "projectId",
+                "relativePath"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "env": [],
+  "routeName": "code-editor",
+  "screenshots": [
+    "public/screenshots/1.png"
+  ],
+  "tagline": "A VS Code-style IDE with live preview, built in"
+}

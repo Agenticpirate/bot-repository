@@ -1,0 +1,486 @@
+{
+  "name": "Git",
+  "version": "0.1.20",
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "aliases": [
+    "repo",
+    "version-control"
+  ],
+  "visibility": "public",
+  "description": "Simple Git client for branch management, staging, and diffing",
+  "runtime": "vite_hono",
+  "author": "Moldable",
+  "license": "FSL-1.1-ALv2",
+  "repository": "moldable-ai/apps",
+  "icon": "🛠️",
+  "iconPath": "public/icon.png",
+  "routeName": "git-flow",
+  "category": "developer-tools",
+  "tags": [
+    "git",
+    "version-control",
+    "developer",
+    "code"
+  ],
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "git-flow.repository",
+        "name": "Git repository",
+        "description": "Read Git repository status, diffs, history, recent repositories, and non-destructive AI helpers.",
+        "scopes": [
+          {
+            "id": "git-flow.status",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Git status",
+            "description": "Get repository branch, changed files, unpushed commits, and recent repositories.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "repoPath": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "id": "git-flow.repos.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Recent repositories",
+            "description": "List recent repositories tracked by the Git app."
+          },
+          {
+            "id": "git-flow.repo.set",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Set current repository",
+            "description": "Set the Git app current repository.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ]
+            }
+          },
+          {
+            "id": "git-flow.repo.remove",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Remove tracked repository",
+            "description": "Forget a repository in the active workspace without deleting or modifying its files.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ]
+            }
+          },
+          {
+            "id": "git-flow.native.commitReview",
+            "risk": "low",
+            "surfaces": [
+              "nativeUI"
+            ],
+            "name": "Prepare a native commit review",
+            "description": "Return bounded changed-file rows and an editable generated commit message for one tracked repository.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "repoPath": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "repoPath"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "git-flow.diff",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Current diff",
+            "description": "Get the current staged and unstaged diff, optionally for one file.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "repoPath": {
+                  "type": "string"
+                },
+                "filePath": {
+                  "type": "string"
+                },
+                "maxChars": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          {
+            "id": "git-flow.commitDiff",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Commit diff",
+            "description": "Get the diff for one commit hash.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "hash": {
+                  "type": "string"
+                },
+                "repoPath": {
+                  "type": "string"
+                },
+                "maxChars": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "hash"
+              ]
+            }
+          },
+          {
+            "id": "git-flow.history",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Commit history",
+            "description": "List recent commits.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "repoPath": {
+                  "type": "string"
+                },
+                "limit": {
+                  "type": "number"
+                },
+                "offset": {
+                  "type": "number"
+                },
+                "nativeProjection": {
+                  "type": "boolean",
+                  "description": "Return only bounded NativeUI-safe commit fields and accept an opaque native repository id."
+                }
+              }
+            }
+          },
+          {
+            "id": "git-flow.generateCommitMessage",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Generate commit message",
+            "description": "Generate a commit summary and body for selected changed files.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "paths": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "paths"
+              ]
+            }
+          },
+          {
+            "id": "git-flow.reviewCode",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Review selected diff",
+            "description": "Review selected changed files and return actionable findings.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "paths": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "paths"
+              ]
+            }
+          },
+          {
+            "id": "git-flow.editors.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Detected editors",
+            "description": "List editors detected by the Git app."
+          }
+        ]
+      },
+      {
+        "id": "git-flow.commits",
+        "name": "Git commits",
+        "description": "Create local commits in repositories explicitly tracked by the Git app.",
+        "scopes": [
+          {
+            "id": "git-flow.commit",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Create local commit",
+            "description": "Stage and commit selected paths, or all current changes when paths is omitted. Uses the Git app's AI commit-message generator when summary is omitted. This does not push or open a pull request.",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "repoPath": {
+                  "type": "string",
+                  "description": "Absolute path of a repository already tracked by the Git app."
+                },
+                "paths": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Changed repository-relative paths to commit. Omit to commit all current changes."
+                },
+                "summary": {
+                  "type": "string",
+                  "description": "Optional commit summary. Omit to generate one from the selected diff."
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Optional commit body, used only when summary is provided."
+                },
+                "message": {
+                  "type": "string",
+                  "description": "Editable complete commit message; the first line is the summary and remaining lines form the body."
+                }
+              },
+              "required": [
+                "repoPath"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "git-flow.drive",
+        "name": "Drive Git",
+        "description": "Inspect and visibly navigate tracked repositories, changed files, and history without performing any mutating Git action.",
+        "scopes": [
+          {
+            "id": "git-flow.ui.describe",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Describe Git UI",
+            "description": "List every navigable Git view with model-readable tracked-repository entity guidance.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "id": "git-flow.ui.navigate",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Navigate Git UI",
+            "description": "Navigate the visible Git app to repositories, repository, changes, or history. Repository-backed views require an entityId path already tracked by the app. This changes only the visible UI and runs no mutating Git verb.",
+            "inputSchema": {
+              "type": "object",
+              "required": [
+                "view"
+              ],
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "repositories",
+                    "repository",
+                    "changes",
+                    "history"
+                  ]
+                },
+                "entityId": {
+                  "type": "string"
+                },
+                "params": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          {
+            "id": "git-flow.ui.showRepo",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Show repository",
+            "description": "Open a tracked repository's detail view. repoId is an optional tracked repository path; omit it to use the current repository. Read-only: no branch, index, working-tree, or remote state is modified.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "repoId": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "id": "git-flow.ui.read",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Read Git view",
+            "description": "Read a structured status and branches summary for the current or target tracked repository, including changed files and ahead/behind counts. The repositories view returns tracked repository summaries. Read-only: no Git state is modified.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "repositories",
+                    "repository",
+                    "changes",
+                    "history"
+                  ]
+                },
+                "entityId": {
+                  "type": "string"
+                },
+                "nativeProjection": {
+                  "type": "boolean",
+                  "description": "Return a bounded NativeUI-safe projection with opaque repository ids instead of local paths."
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "git-flow.cards",
+        "name": "Chat cards",
+        "description": "Compact read-only preview with fuller quick look.",
+        "scopes": [
+          {
+            "id": "git-flow.cards.present",
+            "name": "Show preview",
+            "description": "Present a scoped read-only chat card.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "repoPath": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "filePath": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                }
+              },
+              "required": [
+                "repoPath"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "git-flow.cards.read",
+            "name": "Read preview",
+            "description": "Read the bound record with bounded detail.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "repoPath": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "filePath": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                "detail": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "repoPath"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "env": [],
+  "screenshots": [
+    "public/screenshots/1.png"
+  ],
+  "tagline": "A clean Git client with AI commits and review, built in"
+}

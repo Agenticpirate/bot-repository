@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="canonical" href="https://septimlabs.com/es/tools/lattice.html" />
+<meta property="og:locale" content="es_ES" />
+
+<!-- SEPTIM-I18N-HREFLANG -->
+<link rel="alternate" hreflang="x-default" href="https://septimlabs.com/tools/lattice.html" />
+<link rel="alternate" hreflang="en" href="https://septimlabs.com/tools/lattice.html" />
+<link rel="alternate" hreflang="es" href="https://septimlabs.com/es/tools/lattice.html" />
+<link rel="alternate" hreflang="zh" href="https://septimlabs.com/zh/tools/lattice.html" />
+<link rel="alternate" hreflang="hi" href="https://septimlabs.com/hi/tools/lattice.html" />
+<link rel="alternate" hreflang="pt" href="https://septimlabs.com/pt/tools/lattice.html" />
+<link rel="alternate" hreflang="de" href="https://septimlabs.com/de/tools/lattice.html" />
+<link rel="alternate" hreflang="fr" href="https://septimlabs.com/fr/tools/lattice.html" />
+<link rel="alternate" hreflang="ja" href="https://septimlabs.com/ja/tools/lattice.html" />
+<link rel="alternate" hreflang="ru" href="https://septimlabs.com/ru/tools/lattice.html" />
+<link rel="alternate" hreflang="ar" href="https://septimlabs.com/ar/tools/lattice.html" />
+<!-- /SEPTIM-I18N-HREFLANG -->
+
+<title>Lattice — Septim Labs</title>
+    <!-- Open Graph + Twitter Card (auto-injected by inject_og_meta.py) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://septimlabs.com/es/tools/lattice" />
+    <meta property="og:title" content="Lattice — Septim Labs" />
+    <meta property="og:description" content="Septim Labs — pay-once developer tools, custom SMB software builds. You buy once, you keep it." />
+    <meta property="og:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Septim Labs" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Lattice — Septim Labs" />
+    <meta name="twitter:description" content="Septim Labs — pay-once developer tools, custom SMB software builds. You buy once, you keep it." />
+    <meta name="twitter:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../site.css?v=4.6.1" />
+<style>
+/* LATTICE — code review. Diff-pane metaphor. Mono-heavy, terminal green. */
+:root[data-theme="dark"] .lt-page{
+  --paper:var(--bg);--paper-2:var(--bg);--paper-3:#141414;
+  --ink-a:#f0f0f0;--ink2-a:#9aa0aa;--ink3-a:#5a606a;
+  --rule-a:var(--line);--rule2-a:var(--line-2);
+  --field-a:var(--bg);--field2-a:#141414;
+  --p:#7ee787;--p-soft:rgba(126,231,135,.10);
+  --ok:#5fc587;--warn:#e6a14a;--err:#e96c6c;
+}
+:root[data-theme="light"] .lt-page{
+  --paper:var(--ink);--paper-2:#f5f5f5;--paper-3:#e8e8e8;
+  --ink-a:var(--bg);--ink2-a:#454852;--ink3-a:#7a7e88;
+  --rule-a:rgba(0,0,0,.10);--rule2-a:rgba(0,0,0,.22);
+  --field-a:#f5f5f5;--field2-a:#e8e8e8;
+  --p:#1a7f37;--p-soft:rgba(26,127,55,.08);
+  --ok:#2a7e4f;--warn:#a06820;--err:#a02818;
+}
+body{background:var(--paper)}
+.lt-page{background:var(--paper);color:var(--ink-a);font-family:var(--sans);line-height:1.5}
+.hud{position:sticky;top:0;z-index:40;display:grid;grid-template-columns:auto 1fr auto auto auto;align-items:center;background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--rule2-a);font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3-a)}
+.hud > *{padding:11px 18px;border-right:1px solid var(--rule-a)}.hud > *:last-child{border-right:none}
+.hud .file{color:var(--p);font-weight:700}.hud .file::before{content:"⟁";margin-right:8px}
+.hud .clock{font-variant-numeric:tabular-nums;color:var(--ink-a);min-width:130px;text-align:center}
+@media(max-width:780px){.hud{grid-template-columns:auto 1fr auto}.hud .build{display:none}}
+
+.hero{padding:80px clamp(20px,5vw,80px) 60px;border-bottom:1px solid var(--rule2-a);display:grid;grid-template-columns:1fr 1.3fr;gap:60px;align-items:start}
+.crumb{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3-a);display:flex;gap:14px;align-items:center;margin-bottom:32px}
+.crumb a{color:var(--ink2-a);text-decoration:none}.crumb b{color:var(--p);font-weight:600}
+.hero h1{font-family:var(--mono);font-size:clamp(48px,7vw,108px);font-weight:700;letter-spacing:-.04em;line-height:.95;margin:0 0 28px;color:var(--ink-a)}
+.hero h1 em{font-style:normal;font-weight:700;color:var(--p)}
+.hero h1 .br{color:var(--ink3-a)}
+.hero .blurb{font-size:18px;line-height:1.6;color:var(--ink2-a);max-width:54ch;margin:0 0 32px}
+.hero .blurb b{color:var(--ink-a);font-weight:600;background:var(--p-soft);padding:1px 6px;border-radius:3px}
+.hero .blurb code{font-family:var(--mono);background:var(--paper-2);padding:1px 6px;border-radius:3px;color:var(--p);font-size:.9em}
+.hero .meta{display:grid;grid-template-columns:repeat(4,auto);border:1px solid var(--rule2-a);background:var(--paper-2);width:fit-content;font-family:var(--mono);border-radius:6px;overflow:hidden}
+.hero .meta > div{padding:14px 22px;border-right:1px solid var(--rule-a)}.hero .meta > div:last-child{border-right:none}
+.hero .meta .k{color:var(--ink3-a);letter-spacing:.16em;text-transform:uppercase;font-size:10px;margin-bottom:6px}
+.hero .meta .v{color:var(--ink-a);font-size:18px;font-weight:600}.hero .meta .v.price{color:var(--p);font-size:24px;font-weight:700}
+.hero .actions{margin-top:32px;display:flex;gap:14px;flex-wrap:wrap}
+.btn-p{display:inline-flex;align-items:center;gap:10px;padding:14px 24px;background:var(--p);color:#0d1116;text-decoration:none;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;border-radius:6px}
+.btn-g{display:inline-flex;align-items:center;gap:10px;padding:14px 24px;border:1px solid var(--rule2-a);color:var(--ink-a);text-decoration:none;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;border-radius:6px}
+
+/* DIFF VIEW */
+.diff{background:var(--paper-2);border:1px solid var(--rule2-a);border-radius:8px;overflow:hidden;font-family:var(--mono);font-size:12.5px;box-shadow:0 8px 32px rgba(0,0,0,.20)}
+.diff .dh{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--paper-3);border-bottom:1px solid var(--rule-a);font-size:11px;color:var(--ink2-a)}
+.diff .dh .pr{color:var(--p);font-weight:700}
+.diff .dh .pr::before{content:"●";margin-right:6px;color:var(--p)}
+.diff .dh .branch{color:var(--acc)}
+.diff .meta{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;background:var(--paper);border-bottom:1px solid var(--rule-a);font-size:10.5px}
+.diff .meta > div{padding:12px 16px;border-right:1px solid var(--rule-a)}.diff .meta > div:last-child{border-right:none}
+.diff .meta .k{color:var(--ink3-a);letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px;font-size:9.5px}
+.diff .meta .v{color:var(--ink-a);font-family:var(--sans);font-size:13px;font-weight:600;letter-spacing:-.005em}
+.diff .meta .v small{font-family:var(--mono);color:var(--ink3-a);font-size:10px;font-weight:400;display:block;margin-top:2px;letter-spacing:.04em}
+.diff .file{padding:10px 16px;background:var(--paper-3);font-size:11.5px;color:var(--ink2-a);border-bottom:1px solid var(--rule-a);display:flex;justify-content:space-between}
+.diff .file b{color:var(--ink-a);font-weight:600}
+.diff .file .n{color:var(--p)}
+.diff .hunk{padding:6px 14px;background:var(--paper-3);font-size:10.5px;color:var(--ink3-a);border-bottom:1px solid var(--rule-a)}
+.diff .ln{display:grid;grid-template-columns:36px 36px 1fr;font-size:12px;line-height:1.65}
+.diff .ln > span{padding:1px 12px;color:var(--ink3-a);font-size:10.5px;text-align:right;user-select:none;border-right:1px solid var(--rule-a)}
+.diff .ln > code{padding:1px 14px;color:var(--ink-a);white-space:pre;overflow-x:auto;font-family:var(--mono)}
+.diff .ln.add{background:var(--add)}
+.diff .ln.add > code::before{content:"+";color:var(--p);margin-right:6px;margin-left:-12px}
+.diff .ln.del{background:var(--del)}
+.diff .ln.del > code{color:var(--ink2-a)}
+.diff .ln.del > code::before{content:"−";color:var(--err);margin-right:6px;margin-left:-12px}
+.diff .ln .kw{color:var(--err)}.diff .ln .fn{color:var(--acc)}.diff .ln .str{color:var(--p)}.diff .ln .com{color:var(--ink3-a);font-style:normal}
+.diff .cmt{margin:0 14px 0 86px;padding:14px 16px;background:var(--paper);border:1px solid var(--rule2-a);border-left:3px solid var(--acc);font-family:var(--sans);font-size:13.5px;line-height:1.5;border-radius:0 4px 4px 0;position:relative}
+.diff .cmt .who{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px;color:var(--ink3-a)}
+.diff .cmt .who b{color:var(--ink-a);font-weight:600}
+.diff .cmt .who .av{width:18px;height:18px;border-radius:50%;background:var(--acc);color:var(--ink);display:grid;place-items:center;font-size:9px;font-weight:700;font-family:var(--mono)}
+.diff .cmt p{margin:0;color:var(--ink-a)}
+.diff .cmt p code{background:var(--paper-2);padding:1px 5px;border-radius:3px;font-size:.85em;color:var(--p)}
+.diff .ftr{padding:14px 16px;background:var(--paper-3);border-top:1px solid var(--rule-a);display:flex;justify-content:space-between;font-size:11px;color:var(--ink2-a)}
+.diff .ftr .ok{color:var(--p);font-weight:700}
+@media(max-width:980px){.hero{grid-template-columns:1fr}.diff{font-size:11px}}
+@media(max-width:680px){.diff .meta{grid-template-columns:1fr 1fr}}
+
+.sec{padding:90px clamp(20px,5vw,80px);border-bottom:1px solid var(--rule2-a)}
+.sec .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:48px;border-bottom:1px solid var(--rule-a);padding-bottom:14px}
+.sec .head .ex{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-a);font-weight:700}
+.sec .head .ex b{background:var(--p);color:#0d1116;padding:3px 9px;margin-right:10px;border-radius:3px}
+.sec .head .pg{font-family:var(--mono);font-size:10px;color:var(--ink3-a);letter-spacing:.14em;text-transform:uppercase}
+.sec h2{font-family:var(--mono);font-size:clamp(34px,4.5vw,68px);font-weight:700;letter-spacing:-.035em;line-height:1.04;margin:0 0 24px;max-width:20ch;color:var(--ink-a)}
+.sec h2 em{font-style:normal;font-weight:700;color:var(--p)}
+.sec .copy{font-size:16px;line-height:1.65;color:var(--ink2-a);max-width:60ch;margin:0 0 16px}
+.sec .copy b{color:var(--ink-a);font-weight:600}
+.sec .copy code{font-family:var(--mono);background:var(--paper-2);padding:1px 5px;border-radius:3px;color:var(--p);font-size:.9em}
+
+/* QUEUE */
+.queue{margin-top:24px;background:var(--paper-2);border:1px solid var(--rule2-a);border-radius:8px;font-family:var(--mono);font-size:12px;overflow:hidden}
+.queue .row{display:grid;grid-template-columns:60px 1fr 110px 90px 90px 90px;border-bottom:1px solid var(--rule-a);align-items:center}
+.queue .row > *{padding:14px 18px;border-right:1px solid var(--rule-a)}.queue .row > *:last-child{border-right:none}
+.queue .row.h{background:var(--paper-3);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3-a);font-weight:700}
+.queue .num{color:var(--p);font-weight:700}
+.queue .ttl b{font-family:var(--sans);font-size:14px;font-weight:600;color:var(--ink-a);display:block;letter-spacing:-.005em;margin-bottom:2px}
+.queue .ttl small{color:var(--ink3-a);font-size:10.5px;font-family:var(--mono)}
+.queue .stat{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+.queue .stat.r{color:var(--p)}.queue .stat.cr{color:var(--warn)}.queue .stat.rdy{color:var(--acc)}.queue .stat.dr{color:var(--ink3-a)}
+.queue .who{color:var(--ink2-a)}
+.queue .delt{font-variant-numeric:tabular-nums;text-align:right}
+.queue .delt .a{color:var(--p)}.queue .delt .d{color:var(--err)}
+.queue .age{color:var(--ink3-a);text-align:right}
+@media(max-width:780px){.queue .row{grid-template-columns:50px 1fr 80px}.queue .who,.queue .delt,.queue .age{display:none}}
+
+/* BUY */
+.buy{padding:120px clamp(20px,5vw,80px);background:var(--paper-2);border-top:1px solid var(--rule2-a);display:grid;grid-template-columns:1.4fr 1fr;gap:48px;align-items:center}
+.buy h3{font-family:var(--mono);font-size:clamp(36px,4.5vw,72px);font-weight:700;letter-spacing:-.035em;margin:0 0 16px;line-height:1.04;color:var(--ink-a)}
+.buy h3 em{font-style:normal;font-weight:700;color:var(--p)}
+.buy .copy{font-size:16px;line-height:1.6;color:var(--ink2-a);max-width:48ch;margin:0 0 28px}
+.buy .price{font-size:140px;font-weight:700;letter-spacing:-.04em;line-height:.95;color:var(--p);font-family:var(--mono)}
+.buy .price small{display:block;font-family:var(--mono);font-size:11px;color:var(--ink3-a);letter-spacing:.14em;font-weight:500;margin-top:14px;text-transform:uppercase}
+@media(max-width:780px){.buy{grid-template-columns:1fr}}
+
+.next{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule2-a);border-top:1px solid var(--rule2-a)}
+.next a{padding:36px 28px;text-decoration:none;background:var(--paper);display:flex;flex-direction:column;gap:6px;color:inherit}
+.next a:hover{background:var(--paper-2)}
+.next a .l{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ink3-a);text-transform:uppercase}
+.next a .n{font-family:var(--mono);font-size:28px;font-weight:700;color:var(--ink-a);letter-spacing:-.02em}
+.next a .d{font-size:13px;color:var(--ink2-a);line-height:1.5;margin-top:4px}
+@media(max-width:780px){.next{grid-template-columns:1fr}}
+</style>
+<!-- TOKEN-CONVERT-V4-APPLIED -->
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/kit/apple-touch-icon-180.png" />
+</head>
+<body data-page="tools">
+<div id="site-nav"></div>
+
+<main class="lt-page">
+
+<div class="hud">
+  <span class="file">LATTICE/08 · #1042</span>
+  <span style="color:var(--ink2-a);overflow:hidden;white-space:nowrap;text-overflow:ellipsis"># 1 PR open · 7 commits · 2 reviewers · 14 comments · CI: ✓ build · ✓ test · ✓ lint · ⚠ 1 hint</span>
+  <span class="clock" id="clk">--:--:-- UTC</span>
+  <span style="color:var(--ink3-a)">v0.18</span>
+  <span style="color:var(--p)">● READY</span>
+</div>
+
+<header class="hero">
+  <div>
+    <div class="crumb"><a href="../tools.html">/ tools</a><span>›</span><b>08 · lattice</b><span>·</span><span>review</span></div>
+    <h1>git diff,<br/><span class="br">|</span> <em>but humane.</em></h1>
+    <p class="blurb">A code-review tool that lives in your editor. Open a PR with <code>lt open</code>, leave a comment with two keystrokes, approve and merge without ever loading github.com. <b>For teams of 2–20 who got tired of the round trip.</b></p>
+    <div class="meta">
+      <div><div class="k">Seats</div><div class="v">unlimited</div></div>
+      <div><div class="k">Repos</div><div class="v">unlimited</div></div>
+      <div><div class="k">Hosting</div><div class="v">git over ssh</div></div>
+      <div><div class="k">Price</div><div class="v price">$179</div></div>
+    </div>
+    <div class="actions">
+      <a class="btn-p" href="../contact.html?subject=Lattice">Buy · $179 once →</a>
+      <a class="btn-g" href="#queue">See the queue</a>
+    </div>
+  </div>
+
+  <div class="diff">
+    <div class="dh"><span><span class="pr">#1042 OPEN</span> · refactor: pull rate-limiter into middleware</span><span><span class="branch">feat/rl-mw</span> ← <span class="branch">main</span></span></div>
+    <div class="meta">
+      <div><div class="k">Autor</div><div class="v">k. mendoza<small>3 commits · 2d ago</small></div></div>
+      <div><div class="k">Reviewers</div><div class="v">v.iyer · r.tan<small>1 approved · 1 changes</small></div></div>
+      <div><div class="k">Files</div><div class="v">+4 −2 · 6 changed<small>+128 / −47 lines</small></div></div>
+      <div><div class="k">CI</div><div class="v" style="color:var(--p)">✓ green<small>build · test · lint · 1 hint</small></div></div>
+    </div>
+    <div class="file"><span><b>src/middleware/rate_limiter.ts</b> · <span class="n">+62</span> <span style="color:var(--err)">−14</span></span><span style="color:var(--ink3-a)">view raw</span></div>
+    <div class="hunk">@@ -8,12 +8,18 @@ export class RateLimiter</div>
+    <div class="ln"><span>8</span><span>8</span><code>  <span class="kw">private</span> bucket: <span class="fn">TokenBucket</span>;</code></div>
+    <div class="ln del"><span>9</span><span></span><code>  <span class="kw">constructor</span>(rps: <span class="fn">number</span>) {</code></div>
+    <div class="ln add"><span></span><span>9</span><code>  <span class="kw">constructor</span>(opts: <span class="fn">RLOptions</span>) {</code></div>
+    <div class="ln del"><span>10</span><span></span><code>    <span class="kw">this</span>.bucket = <span class="kw">new</span> <span class="fn">TokenBucket</span>(rps);</code></div>
+    <div class="ln add"><span></span><span>10</span><code>    <span class="kw">this</span>.bucket = <span class="kw">new</span> <span class="fn">TokenBucket</span>(opts.rps, opts.burst ?? opts.rps);</code></div>
+    <div class="ln add"><span></span><span>11</span><code>    <span class="kw">this</span>.key = opts.keyFn ?? (<span class="fn">req</span> =&gt; req.ip);</code></div>
+    <div class="ln"><span>11</span><span>12</span><code>  }</code></div>
+    <div class="ln"><span>12</span><span>13</span><code> </code></div>
+    <div class="ln add"><span></span><span>14</span><code>  <span class="com">// returns 429 with a Retry-After header on overflow</span></code></div>
+    <div class="ln add"><span></span><span>15</span><code>  <span class="fn">handle</span> = <span class="kw">async</span> (req, res, next) =&gt; {</code></div>
+    <div class="ln add"><span></span><span>16</span><code>    <span class="kw">const</span> k = <span class="kw">this</span>.key(req);</code></div>
+    <div class="ln add"><span></span><span>17</span><code>    <span class="kw">if</span> (<span class="fn">!</span><span class="kw">this</span>.bucket.take(k)) <span class="kw">return</span> res.status(<span class="str">429</span>).set(<span class="str">'Retry-After'</span>, <span class="str">'1'</span>).end();</code></div>
+    <div class="ln add"><span></span><span>18</span><code>    <span class="fn">next</span>();</code></div>
+    <div class="ln add"><span></span><span>19</span><code>  };</code></div>
+    <div class="ln"><span>13</span><span>20</span><code>}</code></div>
+    <div class="cmt"><div class="who"><span class="av">VI</span><b>v. iyer</b> commented · 4h ago</div><p>Nice — way cleaner. One thought: should <code>burst</code> default to <code>rps * 2</code> instead of <code>rps</code>? Otherwise the very first burst on a cold bucket is going to feel rate-limited even for well-behaved clients.</p></div>
+    <div class="cmt" style="border-left-color:var(--p);margin-top:8px"><div class="who"><span class="av" style="background:var(--p);color:#0d1116">KM</span><b>k. mendoza</b> replied · 2h ago</div><p>Good call. Pushed <code>3b9c</code> with <code>opts.burst ?? opts.rps * 2</code>. Will also add a unit test for the cold-bucket case.</p></div>
+    <div class="ftr"><span>2 of 6 files reviewed · 14 comments (4 unresolved)</span><span class="ok">✓ READY TO MERGE WHEN GREEN</span></div>
+  </div>
+</header>
+
+<section class="sec" id="queue">
+  <div class="head"><span class="ex"><b>EXHIBIT A</b>The queue</span><span class="pg">PG. 02 / 06</span></div>
+  <h2>One screen<em>for the whole team's review backlog.</em></h2>
+  <p class="copy">Lattice keeps a single queue of every PR, sorted by what's blocking the team. <code>lt q</code> in any terminal opens it. <b>"Whose turn is it?"</b> is answered by the row, not by Slack.</p>
+
+  <div class="queue">
+    <div class="row h"><span>#</span><span>— TITLE</span><span>STATUS</span><span>AUTHOR</span><span>± LINES</span><span>OPENED</span></div>
+    <div class="row"><span class="num">1042</span><span class="ttl"><b>refactor: pull rate-limiter into middleware</b><small>feat/rl-mw → main · 6 files</small></span><span class="stat rdy">READY · MERGE</span><span class="who">k.mendoza</span><span class="delt"><span class="a">+128</span> <span class="d">−47</span></span><span class="age">2d</span></div>
+    <div class="row"><span class="num">1041</span><span class="ttl"><b>fix: tz bug in invoice export (DST)</b><small>fix/tz-invoice → main · 2 files</small></span><span class="stat cr">CHANGES · 2</span><span class="who">r.tan</span><span class="delt"><span class="a">+18</span> <span class="d">−12</span></span><span class="age">1d</span></div>
+    <div class="row"><span class="num">1040</span><span class="ttl"><b>feat: parse multi-currency line items</b><small>feat/multi-cur → main · 11 files</small></span><span class="stat r">REVIEW · YOU</span><span class="who">v.iyer</span><span class="delt"><span class="a">+412</span> <span class="d">−98</span></span><span class="age">3h</span></div>
+    <div class="row"><span class="num">1039</span><span class="ttl"><b>chore: bump postgres to 16.2</b><small>chore/pg-16 → main · 1 file</small></span><span class="stat rdy">READY · MERGE</span><span class="who">k.mendoza</span><span class="delt"><span class="a">+1</span> <span class="d">−1</span></span><span class="age">5h</span></div>
+    <div class="row"><span class="num">1038</span><span class="ttl"><b>spike: replace stripe webhook polling</b><small>spike/sw → main · 8 files</small></span><span class="stat dr">DRAFT</span><span class="who">r.tan</span><span class="delt"><span class="a">+260</span> <span class="d">−180</span></span><span class="age">3d</span></div>
+    <div class="row"><span class="num">1037</span><span class="ttl"><b>doc: rewrite onboarding README</b><small>doc/onb → main · 3 files</small></span><span class="stat r">REVIEW · YOU</span><span class="who">v.iyer</span><span class="delt"><span class="a">+184</span> <span class="d">−92</span></span><span class="age">4d</span></div>
+  </div>
+</section>
+
+<section class="buy">
+  <div>
+    <h3><em>One seventy-nine.</em><br/>The whole team.</h3>
+    <p class="copy">Auto-alojado. Sits next to your git server (Forgejo, Gitea, your own gitolite, doesn't matter — any SSH-reachable repo). No per-seat tax. <b>One license per team. Forever.</b></p>
+    <a class="btn-p" href="../contact.html?subject=Lattice">Buy Lattice · $179 once →</a>
+  </div>
+  <div class="price">$179<small>ONCE · UNLIMITED SEATS · SELF-HOSTED</small></div>
+</section>
+
+<nav class="next">
+  <a href="forge.html"><span class="l">— Next tool · 09</span><span class="n">Forge →</span><span class="d">A Postgres GUI that respects your laptop's RAM.</span></a>
+  <a href="quill.html"><span class="l">— O back to</span><span class="n">Quill →</span><span class="d">Long-form writing with revision history.</span></a>
+</nav>
+</main>
+
+<div id="site-foot"></div>
+<div class="grain" aria-hidden="true"></div>
+<script src="../../site.js?v=4.6.0"></script>
+<script src="../../site-shell.js?v=4.6.0"></script>
+<script>(()=>{const c=document.getElementById('clk');if(!c)return;const f=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');c.textContent=`${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`};f();setInterval(f,1000)})();</script>
+</body>
+</html>

@@ -1,0 +1,428 @@
+{
+  "name": "Wiki",
+  "version": "0.1.14",
+  "runtime": "vite_hono",
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "visibility": "public",
+  "description": "Create, edit, and organize a Markdown knowledge base.",
+  "author": "Moldable",
+  "license": "MIT",
+  "icon": "📚",
+  "iconPath": "public/icon.png",
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "category": "reference",
+  "tags": [
+    "markdown",
+    "notes",
+    "wiki",
+    "knowledge-base"
+  ],
+  "moldableDependencies": {
+    "@moldable-ai/editor": "^0.1.57",
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "wiki",
+        "name": "Wiki RPC",
+        "description": "Read, search, edit, and organize the active Markdown wiki vault.",
+        "scopes": [
+          {
+            "id": "wiki.native.read",
+            "risk": "low",
+            "surfaces": [
+              "nativeUI"
+            ],
+            "name": "Read the native wiki",
+            "description": "Return bounded, route-specific wiki library, search, note, and link projections for NativeUI.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "route": {
+                  "type": "string",
+                  "enum": [
+                    "home",
+                    "folder",
+                    "search",
+                    "note",
+                    "related",
+                    "create",
+                    "trash",
+                    "trash-note"
+                  ]
+                },
+                "path": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "query": {
+                  "type": "string",
+                  "maxLength": 160
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 16
+                }
+              },
+              "required": [
+                "route"
+              ]
+            }
+          },
+          {
+            "id": "wiki.native.create",
+            "risk": "important",
+            "surfaces": [
+              "nativeUI"
+            ],
+            "name": "Create a native Wiki page",
+            "description": "Create one page from a bounded server-projected template choice.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "templateChoice": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "blank",
+                      "template-1",
+                      "template-2",
+                      "template-3",
+                      "template-4"
+                    ]
+                  },
+                  "minItems": 1,
+                  "maxItems": 1
+                }
+              },
+              "required": [
+                "title",
+                "content",
+                "templateChoice"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "wiki.daily.open",
+            "risk": "important",
+            "surfaces": [
+              "nativeUI"
+            ],
+            "name": "Open today's daily note",
+            "description": "Open or create today's daily note in the active vault.",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "wiki.trash.restore",
+            "risk": "important",
+            "surfaces": [
+              "nativeUI"
+            ],
+            "name": "Restore a Wiki Trash item",
+            "description": "Restore one page or folder from Wiki Trash to its original path.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "wiki.read",
+            "risk": "low",
+            "name": "Read wiki",
+            "description": "List vault contents, read notes, search, inspect backlinks, health, templates, settings, and properties."
+          },
+          {
+            "id": "wiki.write",
+            "risk": "destructive",
+            "name": "Edit wiki",
+            "description": "Create, update, move, delete, restore, and template notes and folders."
+          },
+          {
+            "id": "wiki.properties",
+            "risk": "destructive",
+            "name": "Edit properties",
+            "description": "Set, delete, rename, reorder, and change types for frontmatter properties."
+          },
+          {
+            "id": "wiki.vaults",
+            "risk": "destructive",
+            "name": "Manage vaults",
+            "description": "Create, switch, update, bootstrap, configure, and delete wiki vaults."
+          }
+        ]
+      },
+      {
+        "id": "wiki.drive",
+        "name": "Wiki UI drive",
+        "description": "Describe, navigate, read, and visibly drive Wiki pages, including programmatic page creation for cross-app workflows.",
+        "scopes": [
+          {
+            "id": "wiki.ui.describe",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Describe Wiki views",
+            "description": "Describe the drivable Wiki page view and explain that page entity ids are Markdown paths from wiki.list or wiki.notes.create.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "id": "wiki.ui.navigate",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Navigate Wiki",
+            "description": "Open a real Markdown page in the running Wiki app. entityId is a page path, validated in the active vault before a per-workspace last-wins UI intent is written.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "page"
+                  ],
+                  "description": "The page view returned by wiki.ui.describe."
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Markdown page path from wiki.list or wiki.notes.create."
+                },
+                "params": {
+                  "type": "object",
+                  "description": "Reserved for page-specific options."
+                }
+              },
+              "required": [
+                "view",
+                "entityId"
+              ]
+            }
+          },
+          {
+            "id": "wiki.ui.openPage",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Open Wiki page",
+            "description": "Open a real Wiki page visibly. pageId is the Markdown path returned by wiki.list or wiki.notes.create.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "pageId": {
+                  "type": "string",
+                  "description": "Markdown page path in the active vault."
+                }
+              },
+              "required": [
+                "pageId"
+              ]
+            }
+          },
+          {
+            "id": "wiki.ui.read",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Read Wiki page",
+            "description": "Return the faithful page model for a requested Markdown path, including complete Markdown content, title, headings, properties, size, word count, and update time. With no entityId, reads the active tab when available.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "page"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Optional Markdown page path; defaults to the active tab."
+                }
+              }
+            }
+          },
+          {
+            "id": "wiki.notes.create",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Create Wiki page",
+            "description": "Create a Markdown page programmatically for cross-app save workflows. This writes a new page in the active vault; supplying an existing path returns that page without overwriting it.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "description": "Page title used to generate a unique Markdown path when path is omitted."
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Complete Markdown page content."
+                },
+                "folder": {
+                  "type": "string",
+                  "description": "Optional folder in the active vault."
+                },
+                "path": {
+                  "type": "string",
+                  "description": "Optional explicit Markdown path."
+                }
+              }
+            }
+          },
+          {
+            "id": "wiki.notes.update",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Update Wiki page",
+            "description": "Update the complete Markdown content of one existing page at an authoritative path without enabling broad vault writes.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "content": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path",
+                "content"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "wiki.notes.delete",
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Move Wiki page to Trash",
+            "description": "Move one existing Markdown page to Wiki Trash. The page remains recoverable until Trash is purged.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      },
+      {
+        "id": "wiki.cards",
+        "name": "Chat cards",
+        "description": "Compact app-owned previews with a fuller view on tap.",
+        "scopes": [
+          {
+            "id": "wiki.cards.present",
+            "name": "Show a Wiki page excerpt and document quick look, bound to its vault.",
+            "description": "Show a Wiki page excerpt and document quick look, bound to its vault.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2048
+                },
+                "vaultId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "wiki.cards.read",
+            "name": "Read the page from its original vault even after switching vaults.",
+            "description": "Read the page from its original vault even after switching vaults.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2048
+                },
+                "vaultId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "path",
+                "vaultId"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "env": [],
+  "tagline": "A linked, local-first Markdown knowledge base"
+}

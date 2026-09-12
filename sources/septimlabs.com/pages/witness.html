@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Septim Witness — agent decision audit log, $79 founding rate</title>
+<meta name="description" content="Witness records every significant choice a Claude Code session makes during a build — which file it touched, what it reasoned, where it got stuck. Durable trail instead of reconstructing from git blame. $79 founding rate, ships June 2026." />
+<meta property="og:title" content="Septim Witness — agent decision audit log" />
+<meta property="og:description" content="Every file touched. Every token spent. Every reasoning step logged. So the next build starts with context instead of blank slate. $79 founding rate, pay once." />
+<meta property="og:url" content="https://septimlabs.com/witness" />
+<meta property="og:image" content="https://septimlabs.com/assets/brand/kit/og-card-v2.png" />
+<meta property="og:type" content="product" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="https://septimlabs.com/assets/brand/kit/og-card-v2.png" />
+<link rel="canonical" href="https://septimlabs.com/witness/" />
+
+<link rel="alternate" hreflang="x-default" href="https://septimlabs.com/witness/" />
+<link rel="alternate" hreflang="en" href="https://septimlabs.com/witness/" />
+<link rel="alternate" hreflang="es" href="https://septimlabs.com/es/witness/" />
+<link rel="alternate" hreflang="zh" href="https://septimlabs.com/zh/witness/" />
+<link rel="alternate" hreflang="hi" href="https://septimlabs.com/hi/witness/" />
+<link rel="alternate" hreflang="pt" href="https://septimlabs.com/pt/witness/" />
+<link rel="alternate" hreflang="de" href="https://septimlabs.com/de/witness/" />
+<link rel="alternate" hreflang="fr" href="https://septimlabs.com/fr/witness/" />
+<link rel="alternate" hreflang="ja" href="https://septimlabs.com/ja/witness/" />
+<link rel="alternate" hreflang="ru" href="https://septimlabs.com/ru/witness/" />
+<link rel="alternate" hreflang="ar" href="https://septimlabs.com/ar/witness/" />
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/kit/apple-touch-icon-180.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../site.css?v=4.6.1">
+
+<style>
+  body[data-page="witness"]{ --p: var(--n-cyan); }
+
+  .w-accent-dim  { background: rgba(34,211,238,0.09); }
+  .w-accent-border { border-color: rgba(34,211,238,0.30); }
+
+  /* ── layout helpers ── */
+  .w-wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── hero ── */
+  .w-hero { padding: 88px 0 52px; text-align: center; }
+  .w-eyebrow {
+    display: inline-block;
+    font-family: var(--mono), monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    color: var(--p);
+    margin-bottom: 20px;
+  }
+  .w-h1 {
+    font-size: clamp(40px, 5.6vw, 68px);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+    margin-bottom: 22px;
+    text-wrap: balance;
+  }
+  .w-h1 em {font-style:normal;color:var(--p)}
+  .w-sub {
+    font-size: 18px;
+    color: var(--ink-2);
+    max-width: 640px;
+    margin: 0 auto 32px;
+    line-height: 1.65;
+    text-wrap: balance;
+  }
+  .w-ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .w-btn-primary {
+    display: inline-block;
+    padding: 14px 28px;
+    background: var(--p);
+    color: #050c10;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: -0.01em;
+  }
+  .w-btn-primary:hover { background: #67e8f9; }
+  .w-btn-ghost {
+    display: inline-block;
+    padding: 13px 22px;
+    border: 1px solid var(--line-2);
+    color: var(--ink);
+    border-radius: 999px;
+    font-weight: 500;
+    font-size: 13px;
+  }
+  .w-btn-ghost:hover { background: var(--shade); }
+
+  /* ── status pill ── */
+  .w-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--mono), monospace;
+    font-size: 11px;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 14px;
+    margin-bottom: 28px;
+  }
+  .w-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--p);
+    box-shadow: 0 0 0 3px rgba(34,211,238,.18);
+    flex-shrink: 0;
+  }
+
+  /* ── section shared ── */
+  .w-section { padding: 56px 0; }
+  .w-section + .w-section { border-top: 1px solid var(--line); }
+  .w-h2 {
+    font-size: clamp(26px, 3.4vw, 36px);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    margin-bottom: 14px;
+    line-height: 1.2;
+  }
+  .w-h2 em {font-style:normal;color:var(--p)}
+  .w-lead {
+    font-size: 16px;
+    color: var(--ink-2);
+    max-width: 680px;
+    margin-bottom: 28px;
+    line-height: 1.7;
+  }
+
+  /* ── what-it-does grid ── */
+  .w-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 28px 0;
+    background: var(--line);
+  }
+  .w-grid-cell {
+    background: var(--bg-1);
+    padding: 24px 22px;
+  }
+  .w-grid-cell-label {
+    font-family: var(--mono), monospace;
+    font-size: 10px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--p);
+    margin-bottom: 10px;
+    display: block;
+  }
+  .w-grid-cell h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+  .w-grid-cell p {
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.65;
+  }
+
+  /* ── log sample ── */
+  .w-log-block {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 24px 20px;
+    margin: 28px 0;
+    overflow-x: auto;
+  }
+  .w-log-block pre {
+    font-family: var(--mono), monospace;
+    font-size: 12.5px;
+    line-height: 1.75;
+    color: var(--ink-2);
+    white-space: pre;
+  }
+  .w-log-block pre .ts  { color: var(--ink-3); }
+  .w-log-block pre .ev  { color: var(--p); font-weight: 600; }
+  .w-log-block pre .f   { color: var(--ink); }
+  .w-log-block pre .tok { color: var(--n-amber, #fbbf24); font-variant-numeric: tabular-nums; }
+
+  /* ── who-it's-for list ── */
+  .w-for-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .w-for-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 15px;
+    color: var(--ink-2);
+    line-height: 1.6;
+  }
+  .w-for-list li::before {
+    content: '→';
+    font-family: var(--mono), monospace;
+    color: var(--p);
+    font-size: 13px;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── price box ── */
+  .w-price-box {
+    background: var(--bg-1);
+    border: 1px solid rgba(34,211,238,0.30);
+    border-radius: 16px;
+    padding: 44px 32px;
+    text-align: center;
+    margin: 32px 0;
+    position: relative;
+  }
+  .w-founding-badge {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--mono), monospace;
+    font-size: 10px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #050c10;
+    background: var(--p);
+    border-radius: 999px;
+    padding: 5px 16px;
+    white-space: nowrap;
+  }
+  .w-price-pair {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 10px;
+  }
+  .w-price-main {
+    font-size: 72px;
+    font-weight: 700;
+    letter-spacing: -0.05em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .w-price-main .curr {
+    font-size: 32px;
+    font-weight: 500;
+    color: var(--ink-2);
+    vertical-align: top;
+    margin-top: 8px;
+    display: inline-block;
+  }
+  .w-price-strike {
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--ink-3);
+    text-decoration: line-through;
+    font-variant-numeric: tabular-nums;
+  }
+  .w-price-note {
+    font-size: 14px;
+    color: var(--ink-2);
+    margin-top: 8px;
+    letter-spacing: -0.01em;
+  }
+  .w-price-includes {
+    margin: 24px auto 0;
+    max-width: 420px;
+    font-size: 13px;
+    color: var(--ink-3);
+    line-height: 1.7;
+  }
+  .w-price-includes strong { color: var(--ink-2); }
+
+  /* ── pre-order form ── */
+  .w-form-wrap {
+    max-width: 520px;
+    margin: 28px auto 0;
+  }
+  .w-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .w-form input[type="email"] {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--bg);
+    border: 1px solid var(--line-2);
+    border-radius: 8px;
+    font-family: var(--sans), -apple-system, sans-serif;
+    font-size: 15px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color .15s;
+  }
+  .w-form input[type="email"]:focus { border-color: var(--p); }
+  .w-form input[type="email"]::placeholder { color: var(--ink-3); }
+  .w-form-note {
+    font-size: 12px;
+    color: var(--ink-3);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  /* ── FAQ ── */
+  .w-faq { display: flex; flex-direction: column; gap: 0; margin: 20px 0; }
+  .w-faq-item {
+    border-bottom: 1px solid var(--line);
+    padding: 20px 0;
+  }
+  .w-faq-item:first-child { border-top: 1px solid var(--line); }
+  .w-faq-q {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 10px;
+    letter-spacing: -0.01em;
+  }
+  .w-faq-a {
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.7;
+  }
+  .w-faq-a code {
+    font-family: var(--mono), monospace;
+    font-size: 12px;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: var(--p);
+  }
+
+  /* ── mobile ── */
+  @media (max-width: 600px) {
+    .w-hero { padding: 56px 0 36px; }
+    .w-section { padding: 40px 0; }
+    .w-price-main { font-size: 56px; }
+    .w-price-box { padding: 36px 20px; }
+  }
+</style>
+
+<!-- 2026-05-11: doctrine cleanup wave 2 — per DOCTRINE_RECON_AUDIT_2026-05-11 (Fix 6 LOW: Witness Schema.org SKU SEPTIM-WITNESS-99 → SEPTIM-WITNESS-79 to match founding-rate framing) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "Septim Witness",
+  "description": "An agent decision audit log that records every significant choice a Claude Code session makes during a build — which file it touched, what it reasoned, where it got stuck. Pay once, you keep it.",
+  "sku": "SEPTIM-WITNESS-79",
+  "brand": { "@type": "Brand", "name": "Septim Labs" },
+  "url": "https://septimlabs.com/witness",
+  "image": "https://septimlabs.com/assets/brand/kit/og-card-v2.png",
+  "offers": {
+    "@type": "Offer",
+    "url": "https://septimlabs.com/witness",
+    "priceCurrency": "USD",
+    "price": "79",
+    "availability": "https://schema.org/PreOrder",
+    "priceValidUntil": "2026-06-30",
+    "seller": { "@type": "Organization", "name": "Septim Labs", "url": "https://septimlabs.com" }
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Septim Labs", "item": "https://septimlabs.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Products", "item": "https://septimlabs.com/products" },
+    { "@type": "ListItem", "position": 3, "name": "Septim Witness", "item": "https://septimlabs.com/witness" }
+  ]
+}
+</script>
+</head>
+<body data-page="witness">
+<div id="site-nav"></div>
+
+<main>
+  <div class="w-wrap">
+
+    <!-- ── HERO ── -->
+    <section class="w-hero">
+      <div class="w-status-pill">
+        <span class="w-status-dot"></span>
+        Pre-order open &mdash; ships June 2026
+      </div>
+      <span class="w-eyebrow">// septim witness · agent decision audit log</span>
+      <h1 class="w-h1">Every choice your agent made, <em>written down.</em></h1>
+      <p class="w-sub">
+        Witness records every significant decision a Claude Code session makes during a build &mdash; which file it touched, what it reasoned, where it got stuck &mdash; so on the next build you have a durable trail instead of reconstructing it from git blame.
+      </p>
+      <div class="w-ctas">
+        <a href="/cdn-cgi/l/email-protection#5237263a333c2312213722263b3f3e3330217c313d3f6d212730383731266f053b263c37212179343d273c363b3c357f20332637792220377f3d2036372074303d362b6f1b77606536793e3b393779263a3779343d273c363b3c357920332637793d3c79013722263b3f79053b263c3721217977606a776066656b77606b7c79023e373321377921373c36793f3779263a37792220377f3d20363720793e3b3c397c" class="w-btn-primary">
+          Claim founding rate &mdash; $79 &rarr;
+        </a>
+        <a href="#how-it-works" class="w-btn-ghost">See what it logs &darr;</a>
+      </div>
+      <p style="font-size:12px;color:var(--ink-3);margin-top:16px;">
+        founding rate, first 10 ship at $79 &mdash; regular price $99 after that.
+      </p>
+    </section>
+
+    <!-- ── THE PROBLEM ── -->
+    <section class="w-section">
+      <span class="w-eyebrow">// the cost you're not tracking</span>
+      <h2 class="w-h2">The March 2026 cache-nerf made this <em>urgent.</em></h2>
+      <p class="w-lead">
+        Anthropic's March 2026 1-hour cache regression cut effective cache windows for long Claude Code sessions. Developers running multi-file builds started seeing token burns they couldn't account for &mdash; the session had reasoned something through 40 minutes ago but by the time it touched file #12, that context was gone and it burned tokens re-reasoning it.
+      </p>
+      <p class="w-lead" style="margin-bottom:0;">
+        Witness solves the downstream problem: even when the cache breaks, you keep the record. The log survives. The next session reads it cold and spends zero tokens re-discovering what the last one already figured out.
+      </p>
+    </section>
+
+    <!-- ── HOW IT WORKS ── -->
+    <section class="w-section" id="how-it-works">
+      <span class="w-eyebrow">// what witness captures</span>
+      <h2 class="w-h2">Three streams. <em>One durable log.</em></h2>
+      <p class="w-lead">
+        Witness attaches to a Claude Code session and writes a structured audit trail as the session runs. No external service. Your Anthropic key. The log stays on your machine.
+      </p>
+
+      <div class="w-grid">
+        <div class="w-grid-cell">
+          <span class="w-grid-cell-label">01 · decisions</span>
+          <h3>Every significant choice</h3>
+          <p>Which file the agent chose to edit first, which it deferred, and the stated reasoning &mdash; captured as a timestamped entry so you can replay the session's mental model.</p>
+        </div>
+        <div class="w-grid-cell">
+          <span class="w-grid-cell-label">02 · file touches</span>
+          <h3>Full file-touch timeline</h3>
+          <p>Every read, write, and skip logged with the agent's reason. When git blame gives you a cryptic diff, the Witness log tells you what the agent was trying to fix when it made that change.</p>
+        </div>
+        <div class="w-grid-cell">
+          <span class="w-grid-cell-label">03 · token ledger</span>
+          <h3>Real-time token accounting</h3>
+          <p>Logs every token spent per session, per agent, per file, in real time. After the March cache regression, knowing where tokens actually went stopped being optional.</p>
+        </div>
+        <div class="w-grid-cell">
+          <span class="w-grid-cell-label">04 · stuck points</span>
+          <h3>Where the agent stalled</h3>
+          <p>Witness flags when a session circled the same file more than twice without writing &mdash; a reliable signal that the agent hit a dead end it didn't surface to you.</p>
+        </div>
+      </div>
+
+      <h3 style="font-size:14px;font-weight:600;color:var(--ink-3);font-family:var(--mono),monospace;letter-spacing:.08em;text-transform:uppercase;margin:32px 0 14px;">// sample log output</h3>
+      <div class="w-log-block">
+        <pre><span class="ts">09:14:02</span>  <span class="ev">SESSION_START</span>   <span class="f">scope: refactor auth module</span>  <span class="tok">0 tok</span>
+<span class="ts">09:14:04</span>  <span class="ev">FILE_READ</span>       <span class="f">src/auth/session.ts</span>           <span class="tok">2,140 tok</span>
+<span class="ts">09:14:09</span>  <span class="ev">DECISION</span>        <span class="f">will touch middleware first; session.ts depends on it</span>
+<span class="ts">09:14:11</span>  <span class="ev">FILE_READ</span>       <span class="f">src/middleware/index.ts</span>        <span class="tok">1,830 tok</span>
+<span class="ts">09:14:19</span>  <span class="ev">FILE_WRITE</span>      <span class="f">src/middleware/index.ts</span>        <span class="tok">3,210 tok</span>
+<span class="ts">09:14:24</span>  <span class="ev">STUCK</span>           <span class="f">src/auth/token.ts — read 3×, no write</span>
+<span class="ts">09:14:31</span>  <span class="ev">DECISION</span>        <span class="f">token.ts type mismatch; deferring to next pass</span>
+<span class="ts">09:15:44</span>  <span class="ev">SESSION_END</span>     <span class="f">files written: 3  skipped: 1</span>   <span class="tok">18,440 tok total</span></pre>
+      </div>
+    </section>
+
+    <!-- ── WHO IT'S FOR ── -->
+    <section class="w-section">
+      <span class="w-eyebrow">// who reads the log</span>
+      <h2 class="w-h2">Built for solo builders who use <em>Claude Code seriously.</em></h2>
+      <p class="w-lead">
+        If you're running Claude Code sessions long enough to forget what happened at the start, Witness is for you.
+      </p>
+      <ul class="w-for-list">
+        <li>Solo founders running multi-day Claude Code builds where context resets between sessions and costs real tokens to reconstruct.</li>
+        <li>Developers whose agent sessions touch 10+ files and need to know which decision caused which downstream diff.</li>
+        <li>Anyone who looked at git blame after a Claude session and had no idea why the agent made the change it made.</li>
+        <li>Teams running parallel sub-agents where each agent's reasoning trail needs to stay legible to the next one.</li>
+        <li>Builders who got burned by the March 2026 cache regression and want a session record that survives it.</li>
+      </ul>
+    </section>
+
+    <!-- ── PRICE / CTA ── -->
+    <section class="w-section" id="pre-order">
+      <span class="w-eyebrow">// founding rate</span>
+      <h2 class="w-h2">Pay once. <em>You keep it.</em></h2>
+      <p class="w-lead">
+        Witness is a private GitHub repo invite, a CLI script that attaches to your Claude Code sessions, and a log format spec. No subscription, no telemetry, your Anthropic key. The first 10 pre-orders ship at $79; after that the price goes to $99.
+      </p>
+
+      <div class="w-price-box">
+        <span class="w-founding-badge">founding rate &mdash; first 10</span>
+        <div class="w-price-pair">
+          <div class="w-price-main"><span class="curr">$</span>79</div>
+          <div class="w-price-strike">$99</div>
+        </div>
+        <div class="w-price-note">pay once, you keep it &mdash; ships June 2026</div>
+        <div class="w-price-includes">
+          Includes: <strong>private GitHub repo invite</strong> &middot; CLI attacher script &middot; log format spec &middot; lifetime updates as the format evolves &middot; no subscription, no telemetry, your Anthropic key
+        </div>
+      </div>
+
+      <div class="w-form-wrap">
+        <p style="font-size:14px;color:var(--ink-2);text-align:center;margin-bottom:18px;line-height:1.6;">
+          Drop your email and I'll send you the pre-order link directly &mdash; with a Stripe checkout, your name on the founding list, and the repo invite the day it ships.
+        </p>
+        <form
+          class="w-form"
+          action="https://formsubmit.co/ethanq@septimlabs.com"
+          method="POST"
+        >
+          <input type="hidden" name="_subject" value="Witness founding-rate pre-order" />
+          <input type="hidden" name="_next" value="https://septimlabs.com/witness/" />
+          <input type="hidden" name="_captcha" value="false" />
+          <input type="hidden" name="_template" value="table" />
+          <input
+            type="email"
+            name="email"
+            placeholder="your@email.com"
+            required
+            autocomplete="email"
+          />
+          <button type="submit" class="w-btn-primary" style="width:100%;padding:15px 28px;border:none;cursor:pointer;font-size:15px;">
+            Reserve founding rate &mdash; $79 &rarr;
+          </button>
+        </form>
+        <p class="w-form-note" style="margin-top:12px;">
+          Or email directly: <a href="/cdn-cgi/l/email-protection#1376677b727d6253607663677a7e7f7271603d707c7e2c606671797670672e447a677d76606038757c667d777a7d743e61726776386361763e7c61777661" style="color:var(--p);"><span class="__cf_email__" data-cfemail="1d7869757c736c5d6e786d697470717c7f6e337e7270">[email&#160;protected]</span></a> &middot; I reply same day.
+        </p>
+      </div>
+    </section>
+
+    <!-- ── FAQ ── -->
+    <section class="w-section">
+      <span class="w-eyebrow">// questions</span>
+      <h2 class="w-h2">FAQ</h2>
+      <div class="w-faq">
+        <div class="w-faq-item">
+          <div class="w-faq-q">Is this available now?</div>
+          <div class="w-faq-a">
+            Not yet. Witness is in final build &mdash; ships June 2026. Pre-ordering now locks the founding rate at $79 and puts your name on the repo-invite list. You pay when Stripe checkout goes live; I'll email you the link the week it ships.
+          </div>
+        </div>
+        <div class="w-faq-item">
+          <div class="w-faq-q">What exactly do I get?</div>
+          <div class="w-faq-a">
+            A private GitHub repo invite containing the Witness CLI script, the log format spec, and example parsers. The script attaches to a Claude Code session process and writes structured <code>.witness.log</code> files to your project root. No cloud sync. The log stays local unless you push it.
+          </div>
+        </div>
+        <div class="w-faq-item">
+          <div class="w-faq-q">Does this use its own API key or mine?</div>
+          <div class="w-faq-a">
+            Yours. Witness reads the same <code>ANTHROPIC_API_KEY</code> environment variable your Claude Code session uses. It observes the session's output stream &mdash; it does not make separate API calls, so it adds zero token cost on top of your normal usage.
+          </div>
+        </div>
+        <div class="w-faq-item">
+          <div class="w-faq-q">What does "lifetime updates" mean for a $79 product?</div>
+          <div class="w-faq-a">
+            The log format spec will evolve as Claude Code's output format changes (Anthropic has changed it three times in the past 12 months). Founding-rate buyers get every update pushed to the same private repo &mdash; no re-purchasing. The repo invite is permanent.
+          </div>
+        </div>
+        <div class="w-faq-item">
+          <div class="w-faq-q">What if it's not right for my workflow?</div>
+          <div class="w-faq-a">
+            Full refund within 14 days of the ship date, no questions asked. Email <a href="/cdn-cgi/l/email-protection#d8bdacb0b9b6a998abbda8acb1b5b4b9baabf6bbb7b5" style="color:var(--p);"><span class="__cf_email__" data-cfemail="f1948599909f80b182948185989c9d909382df929e9c">[email&#160;protected]</span></a>.
+          </div>
+        </div>
+        <div class="w-faq-item">
+          <div class="w-faq-q">Does it work with the March 2026 cache regression?</div>
+          <div class="w-faq-a">
+            That's exactly why this exists. When the 1-hour cache window cuts out, Witness ensures you still have a readable record of what the session decided before the context expired. The next session reads the <code>.witness.log</code> file directly &mdash; a cold read costs a fraction of what it costs to re-derive the same reasoning from source.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── BOTTOM CTA ── -->
+    <section class="w-section" style="text-align:center;">
+      <span class="w-eyebrow">// lock the founding rate</span>
+      <h2 class="w-h2" style="margin-bottom:10px;">First 10. <em>Then $99.</em></h2>
+      <p style="font-size:16px;color:var(--ink-2);max-width:520px;margin:0 auto 28px;line-height:1.65;">
+        Reserve now, pay when the Stripe link goes live in June. private GitHub repo invite ships the same day.
+      </p>
+      <a href="/cdn-cgi/l/email-protection#a1c4d5c9c0cfd0e1d2c4d1d5c8cccdc0c3d28fc2cecc9ed2d4c3cbc4c2d59cf6c8d5cfc4d2d28ac7ced4cfc5c8cfc68cd3c0d5c48ad1d3c48cced3c5c4d387c3cec5d89ce8849396c58acdc8cac48ad5c9c48ac7ced4cfc5c8cfc68ad3c0d5c48acecf8af2c4d1d5c8cc8af6c8d5cfc4d2d28a84939984939596988493988f8af1cdc4c0d2c48ad2c4cfc58accc48ad5c9c48ad1d3c48cced3c5c4d38acdc8cfca8f" class="w-btn-primary" style="font-size:15px;padding:16px 32px;">
+        Reserve founding rate &rarr;
+      </a>
+      <p style="font-size:12px;color:var(--ink-3);margin-top:16px;">
+        no subscription, no telemetry, your Anthropic key &mdash; pay once, yours forever
+      </p>
+    </section>
+
+  </div><!-- /.w-wrap -->
+</main>
+
+<aside style="position:fixed;left:14px;bottom:14px;z-index:40;font-family:var(--mono),ui-monospace,monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);background:rgba(10,10,10,0.84);backdrop-filter:blur(6px);padding:6px 10px;border:1px solid var(--line);border-radius:999px;pointer-events:none;" aria-hidden="true"><span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--p);box-shadow:0 0 0 3px rgba(34,211,238,.18);margin-right:.4rem;vertical-align:middle;"></span>Ships June 2026</aside>
+
+<div id="site-foot"></div>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="../site-shell.js?v=4.6.0"></script>
+<script src="../site.js?v=4.6.0"></script>
+</body>
+</html>

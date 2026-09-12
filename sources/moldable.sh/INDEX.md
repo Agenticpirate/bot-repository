@@ -1,7 +1,8 @@
 # moldable.sh
 
-Compact public snapshot of [Bots for every role](https://moldable.sh/bots), discovered via Agenthunt outbound link `https://moldable.sh`.
-
-scraped_at: `2026-09-12T21:29:58Z`.
-
-Public bot-role listing (Cloud / Pebble / Jelly and related workspace bots). Homepage + `/bots` + sitemap/robots. Not a deep scrape of each bot.
+Public Moldable bots, apps, use-cases, and docs.
+- Last updated: 2026-09-12T22:01:01Z
+- moldable.sh sitemap URLs: **70** (HTML ok=70 fail=0)
+- docs.moldable.sh markdown attempted: **44** (ok=43)
+- robots.txt disallows `/api/` and `/download/`; those were not fetched.
+- Related GitHub packs: moldable-ai/apps, moldable-ai/skills

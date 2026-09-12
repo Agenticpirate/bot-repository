@@ -1,0 +1,632 @@
+{
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "aliases": [
+    "transcripts",
+    "recording"
+  ],
+  "appApi": {
+    "capabilities": [
+      {
+        "description": "Allow approved callers to read meeting metadata, notes, summaries, and transcript text in this workspace.",
+        "id": "meetings.records",
+        "name": "Meeting records",
+        "scopes": [
+          {
+            "description": "Return a bounded recent or searched meeting list with an explicit empty state for the mobile companion.",
+            "id": "meetings.native.list",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "query": {
+                  "type": "string"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 50
+                }
+              },
+              "type": "object",
+              "additionalProperties": false
+            },
+            "name": "Read mobile meeting list"
+          },
+          {
+            "description": "Return one bounded, route-specific meeting detail section for the NativeUI experience.",
+            "id": "meetings.native.detail",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "section": {
+                  "type": "string",
+                  "enum": [
+                    "overview",
+                    "notes",
+                    "enhanced",
+                    "transcript",
+                    "edit",
+                    "editEnhanced"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "section"
+              ],
+              "type": "object",
+              "additionalProperties": false
+            },
+            "name": "Read mobile meeting detail"
+          },
+          {
+            "description": "List recent meetings with metadata, notes, enhanced notes, and a short transcript preview.",
+            "id": "meetings.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {
+                "includeTranscript": {
+                  "description": "Whether to include full transcript text instead of a short preview.",
+                  "type": "boolean"
+                },
+                "limit": {
+                  "description": "Maximum number of meetings to return.",
+                  "maximum": 100,
+                  "minimum": 1,
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "name": "List meetings"
+          },
+          {
+            "description": "Search meeting titles, notes, enhanced notes, and transcripts.",
+            "id": "meetings.search",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {
+                "includeTranscript": {
+                  "description": "Whether to include full transcript text for matches.",
+                  "type": "boolean"
+                },
+                "limit": {
+                  "description": "Maximum number of matching meetings to return.",
+                  "maximum": 100,
+                  "minimum": 1,
+                  "type": "number"
+                },
+                "query": {
+                  "description": "Search text.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "query"
+              ],
+              "type": "object"
+            },
+            "name": "Search meetings"
+          },
+          {
+            "description": "Fetch one meeting by ID, including transcript text.",
+            "id": "meetings.get",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {
+                "id": {
+                  "description": "Meeting ID.",
+                  "type": "string"
+                },
+                "includeTranscript": {
+                  "description": "Whether to include transcript text. Defaults to true.",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "type": "object"
+            },
+            "name": "Get meeting"
+          },
+          {
+            "description": "Summarize meeting counts, total duration, transcript coverage, and enhanced notes coverage.",
+            "id": "meetings.stats",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Meeting stats"
+          },
+          {
+            "description": "Update a meeting title, notes, enhanced notes, or enhanced template id.",
+            "id": "meetings.update",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "enhancedNotes": {
+                  "type": "string"
+                },
+                "enhancedTemplateId": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "notes": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "type": "object"
+            },
+            "name": "Update meeting"
+          },
+          {
+            "description": "Delete a meeting and its saved audio assets.",
+            "id": "meetings.delete",
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "type": "object"
+            },
+            "name": "Delete meeting"
+          },
+          {
+            "description": "List built-in and custom enhanced-note templates.",
+            "id": "meetings.templates.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "List note templates"
+          },
+          {
+            "description": "Get one enhanced-note template by ID.",
+            "id": "meetings.templates.get",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "type": "object"
+            },
+            "name": "Get note template"
+          },
+          {
+            "description": "Create or update a custom enhanced-note template.",
+            "id": "meetings.templates.save",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {
+                "context": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "icon": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "sections": {
+                  "items": {
+                    "properties": {
+                      "format": {
+                        "enum": [
+                          "paragraph",
+                          "list"
+                        ],
+                        "type": "string"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "length": {
+                        "enum": [
+                          "concise",
+                          "standard",
+                          "detailed"
+                        ],
+                        "type": "string"
+                      },
+                      "prompt": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "title": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "prompt"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "writingStyle": {
+                  "enum": [
+                    "direct",
+                    "narrative",
+                    "objective"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "sections"
+              ],
+              "type": "object"
+            },
+            "name": "Save custom note template"
+          },
+          {
+            "description": "Delete a custom enhanced-note template.",
+            "id": "meetings.templates.delete",
+            "risk": "destructive",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "type": "object"
+            },
+            "name": "Delete custom note template"
+          },
+          {
+            "description": "Read transcription and audio-save settings.",
+            "id": "meetings.settings.get",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Get meeting settings"
+          },
+          {
+            "description": "Update transcription and audio-save settings.",
+            "id": "meetings.settings.update",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {
+                "enableDiarization": {
+                  "type": "boolean"
+                },
+                "language": {
+                  "type": "string"
+                },
+                "mipOptOut": {
+                  "type": "boolean"
+                },
+                "model": {
+                  "enum": [
+                    "nova-3",
+                    "nova-3-medical"
+                  ],
+                  "type": "string"
+                },
+                "saveAudio": {
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            },
+            "name": "Update meeting settings"
+          },
+          {
+            "description": "Generate enhanced notes for a meeting, optionally saving them back to the meeting.",
+            "id": "meetings.enhanceNotes",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "save": {
+                  "type": "boolean"
+                },
+                "templateId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "type": "object"
+            },
+            "name": "Enhance meeting notes"
+          }
+        ]
+      },
+      {
+        "description": "Describe, navigate, open, and read the Meetings app UI in this workspace.",
+        "id": "meetings.drive",
+        "name": "Drive Meetings",
+        "scopes": [
+          {
+            "description": "List every navigable Meetings view with model-readable entity guidance.",
+            "id": "meetings.ui.describe",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {},
+              "type": "object"
+            },
+            "name": "Describe Meetings UI"
+          },
+          {
+            "description": "Navigate the open Meetings app to the list or a validated saved meeting. This only changes the visible view.",
+            "id": "meetings.ui.navigate",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "additionalProperties": false,
+              "properties": {
+                "entityId": {
+                  "description": "Required saved meeting id when view is meeting.",
+                  "type": "string"
+                },
+                "params": {
+                  "additionalProperties": false,
+                  "properties": {},
+                  "type": "object"
+                },
+                "view": {
+                  "enum": [
+                    "list",
+                    "meeting"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "view"
+              ],
+              "type": "object"
+            },
+            "name": "Navigate Meetings UI"
+          },
+          {
+            "description": "Open a validated saved meeting in the visible Meetings detail view.",
+            "id": "meetings.ui.openMeeting",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "additionalProperties": false,
+              "properties": {
+                "meetingId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "meetingId"
+              ],
+              "type": "object"
+            },
+            "name": "Open meeting"
+          },
+          {
+            "description": "Return a faithful meeting-library summary or one meeting's notes, enhanced notes, and complete transcript as structured JSON.",
+            "id": "meetings.ui.read",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "additionalProperties": false,
+              "properties": {
+                "entityId": {
+                  "description": "Saved meeting id to read.",
+                  "type": "string"
+                },
+                "view": {
+                  "enum": [
+                    "list",
+                    "meeting"
+                  ],
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "name": "Read Meetings view"
+          }
+        ]
+      },
+      {
+        "id": "meetings.cards",
+        "name": "Chat cards",
+        "description": "Show a meeting title, date and summary; tap for notes, transcript and recording playback.",
+        "scopes": [
+          {
+            "id": "meetings.cards.present",
+            "name": "Present chat card",
+            "description": "Show a meeting title, date and summary; tap for notes, transcript and recording playback.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "meetings.cards.read",
+            "name": "Read chat card",
+            "description": "Show a meeting title, date and summary; tap for notes, transcript and recording playback.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "detail": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ],
+    "version": 1
+  },
+  "author": "Moldable",
+  "category": "productivity",
+  "description": "Record, transcribe, and summarize meetings with real-time transcription",
+  "env": [],
+  "icon": "🎙️",
+  "iconPath": "public/icon.png",
+  "intents": [
+    {
+      "description": "Start a meeting recording when Moldable detects a live call.",
+      "events": {
+        "start": "moldable:meeting-recording-start",
+        "stop": "moldable:meeting-recording-stop"
+      },
+      "id": "meeting.record",
+      "name": "Record meetings"
+    }
+  ],
+  "license": "FSL-1.1-ALv2",
+  "moldableDependencies": {
+    "@moldable-ai/editor": "^0.1.57",
+    "@moldable-ai/storage": "^0.1.8",
+    "@moldable-ai/ui": "^0.2.59"
+  },
+  "name": "Meetings",
+  "repository": "moldable-ai/apps",
+  "routeName": "meetings",
+  "runtime": "vite_hono",
+  "screenshots": [
+    "public/screenshots/1.png"
+  ],
+  "tagline": "Record, transcribe, and summarize every meeting locally",
+  "tags": [
+    "meetings",
+    "transcription",
+    "audio",
+    "recording"
+  ],
+  "vault": [
+    {
+      "capabilities": [
+        "deepgram/auth-grant"
+      ],
+      "description": "Powers real-time speech-to-text transcription",
+      "key": "DEEPGRAM_API_KEY",
+      "name": "Deepgram API Key",
+      "required": true,
+      "url": "https://console.deepgram.com/"
+    }
+  ],
+  "version": "0.1.17",
+  "visibility": "public"
+}

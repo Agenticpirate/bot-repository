@@ -1,0 +1,328 @@
+{
+  "name": "Chess",
+  "version": "0.1.1",
+  "runtime": "vite_hono",
+  "visibility": "public",
+  "description": "Play chess with Moldable or a local Stockfish engine, learn from guided positions, and replay your games.",
+  "author": "Moldable",
+  "license": "AGPL-3.0-or-later",
+  "icon": "♟️",
+  "iconPath": "public/icon.png",
+  "category": "games",
+  "tags": ["chess", "games", "learning", "ai"],
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "env": [],
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "chess.drive",
+        "name": "Drive Chess",
+        "description": "Resume and play ongoing chess games hands-free, observe turns efficiently, and control lessons or replays. Chess owns the board state; the active Voice session explains moves aloud.",
+        "scopes": [
+          {
+            "id": "chess.ui.describe",
+            "name": "Describe Chess controls",
+            "description": "Describe the Chess views and voice-controllable methods.",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "chess.game.resume",
+            "name": "Resume an ongoing game",
+            "description": "Use for vague continuation requests such as “let’s keep playing chess.” Select the active or latest unfinished matching game, open its play board, and return its revisioned position and roles. Never creates a game.",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "opponent": {
+                  "type": "string",
+                  "enum": ["voice", "ai", "any"]
+                }
+              },
+              "additionalProperties": false
+            },
+            "changesState": true
+          },
+          {
+            "id": "chess.game.submitMove",
+            "name": "Play Voice’s move",
+            "description": "Commit one legal UCI move for Voice in an active Voice game and return the updated state for spoken explanation. Use the exact gameId and revision returned by resume or state; Voice can move only its own color.",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "gameId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "expectedRevision": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "move": {
+                  "type": "string",
+                  "minLength": 4,
+                  "maxLength": 5
+                }
+              },
+              "required": ["gameId", "expectedRevision", "move"],
+              "additionalProperties": false
+            },
+            "changesState": true
+          },
+          {
+            "id": "chess.game.state",
+            "name": "Read revisioned game state",
+            "description": "Read bounded structured state for the active or named game. Pass afterRevision to receive a tiny unchanged response when nothing moved.",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "gameId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "afterRevision": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "chess.game.waitForChange",
+            "name": "Wait for the next chess turn",
+            "description": "Efficiently wait up to 15 seconds for a human or app move after a known revision. Use this instead of repeatedly polling while playing hands-free; the active Voice session, not Chess, tutors from the returned state.",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "gameId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "afterRevision": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "timeoutMs": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 15000
+                }
+              },
+              "required": ["gameId", "afterRevision"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "chess.ui.newGame",
+            "name": "Start a new game",
+            "description": "Start and open a new game. For requests such as “play chess with me” or “let’s play chess,” use mode voice so the human plays against the active Voice session. Use resume only when the user explicitly asks to continue, keep playing, or resume an unfinished game.",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "enum": ["ai", "voice", "local"]
+                },
+                "engine": {
+                  "type": "string",
+                  "enum": ["stockfish", "moldable-ai", "dumb"]
+                },
+                "difficulty": {
+                  "type": "string",
+                  "enum": ["friendly", "club", "master"]
+                },
+                "playerColor": {
+                  "type": "string",
+                  "enum": ["white", "black"]
+                }
+              },
+              "additionalProperties": false
+            },
+            "changesState": true
+          },
+          {
+            "id": "chess.ui.navigate",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "name": "Open a Chess view",
+            "description": "Open the play board, AI coach, or game history.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": ["play", "learn", "history"]
+                }
+              },
+              "required": ["view"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "chess.ui.showTutorial",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "name": "Create a guided lesson",
+            "description": "Open the AI chess coach with an optional topic and level.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "topic": {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                "difficulty": {
+                  "type": "string",
+                  "enum": ["friendly", "club", "master"]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "chess.ui.loadGame",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "name": "Load a game replay",
+            "description": "Open one saved game in the replay view.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "gameId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                }
+              },
+              "required": ["gameId"],
+              "additionalProperties": false
+            },
+            "changesState": true
+          },
+          {
+            "id": "chess.ui.replay",
+            "risk": "low",
+            "surfaces": ["voice"],
+            "name": "Control game replay",
+            "description": "Play, pause, restart, or step through the selected past game.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string",
+                  "enum": ["play", "pause", "next", "previous", "restart"]
+                }
+              },
+              "required": ["command"],
+              "additionalProperties": false
+            }
+          }
+        ]
+      },
+      {
+        "id": "chess.cards",
+        "name": "Chat cards",
+        "description": "Live chess board and human move controls in quick look.",
+        "scopes": [
+          {
+            "id": "chess.cards.present",
+            "name": "Show one existing chess game in chat.",
+            "description": "Show one existing chess game in chat.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "gameId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                }
+              },
+              "required": ["gameId"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "chess.cards.read",
+            "name": "Read the selected game without resuming it.",
+            "description": "Read the selected game without resuming it.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "gameId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                }
+              },
+              "required": ["gameId"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "chess.cards.move",
+            "name": "Play an explicit human move with revision validation.",
+            "description": "Play an explicit human move with revision validation.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "gameId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "expectedRevision": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "move": {
+                  "type": "string",
+                  "pattern": "^[a-h][1-8][a-h][1-8][qrbn]?$"
+                }
+              },
+              "required": ["gameId", "expectedRevision", "move"],
+              "additionalProperties": false
+            },
+            "changesState": true
+          }
+        ]
+      }
+    ]
+  },
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "tagline": "Your next move, with Moldable or Stockfish.",
+  "screenshots": ["public/screenshot.png"]
+}

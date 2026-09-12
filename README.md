@@ -8,13 +8,15 @@ This repository is a mirror for research and citation. **Canonical pages live on
 
 | Item | Status |
 | --- | ---: |
-| **catalog.json rows** | **221,940** |
+| **catalog.json rows** | **234,732** |
 | **x.ai marketplace bots** | **71** (refreshed 2026-09-12; 0 new slugs) |
 | **x.ai marketplace plugins** | **27** (Grok Build catalog @ 9963e48) |
 | **skills.sh downloaded** (files + hash) | **19,001** / 19,998 |
-| **skills.sh via GitHub clone** | **15,027** |
-| **skills.sh via API** | **2,794** |
-| **skills.sh remaining** | **2,143** (plus 32 permanent 404s) |
+| **skills.sh via GitHub clone** | **15,032** |
+| **skills.sh via API** | **3,969** |
+| **skills.sh remaining** | **876** (plus 121 permanent 404s) |
+| **vellum.ai skills** | **75** bodies + 88 skill/category pages |
+| **moldable.sh** | **70** sitemap pages + apps/skills GitHub packs |
 
 Resume leftovers: `python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`  
 GitHub bulk fill: `python3 scripts/fill_skills_sh_from_github.py --workers 24`
@@ -38,7 +40,6 @@ GitHub bulk fill: `python3 scripts/fill_skills_sh_from_github.py --workers 24`
 - [grokyard.com](https://www.grokyard.com/) — public browse of shareable Grok Bot templates
 - [grokindex.dev](https://grokindex.dev/) — paginated `/api/bots`
 - [gtemplate.net](https://gtemplate.net/) — sitemap bot + blog pages
-- [Agenthunt](https://agent-hunt.netlify.app/) — personal AI agent launch directory (**58** listings; updates twice daily). Hash `#ezail` highlights [Ezail](https://www.ezail.com/). (`sources/agent-hunt.netlify.app/`, plus `sources/ezail.com/`)
 
 ### GitHub packs (shallow clone, `.git` stripped)
 
@@ -67,6 +68,9 @@ GitHub bulk fill: `python3 scripts/fill_skills_sh_from_github.py --workers 24`
 - [Chat2AnyLLM/awesome-claude-plugins](https://github.com/Chat2AnyLLM/awesome-claude-plugins), [daymade/claude-code-skills](https://github.com/daymade/claude-code-skills), [netresearch/claude-code-marketplace](https://github.com/netresearch/claude-code-marketplace), [ananddtyagi/cc-marketplace](https://github.com/ananddtyagi/cc-marketplace)
 - Cowork starters: [TheCraigHewitt/cowork-starter-pack](https://github.com/TheCraigHewitt/cowork-starter-pack), [jitangupta/cowork-boilerplate](https://github.com/jitangupta/cowork-boilerplate), [helgejo/cowork-template](https://github.com/helgejo/cowork-template), [machine-costas/claude-projects-templates](https://github.com/machine-costas/claude-projects-templates)
 - [khendzel/awesome-agent-skills](https://github.com/khendzel/awesome-agent-skills)
+- [vellum-ai/vellum-assistant](https://github.com/vellum-ai/vellum-assistant) — first-party Vellum skills + plugin marketplace manifest
+- [moldable-ai/apps](https://github.com/moldable-ai/apps), [moldable-ai/skills](https://github.com/moldable-ai/skills) — official Moldable app templates and skills
+- [BankrBot/openclaw-skills](https://github.com/BankrBot/openclaw-skills) — OpenClaw/DeFi skill pack
 - [mergisi/awesome-openclaw-agents](https://github.com/mergisi/awesome-openclaw-agents)
 - [michielhdoteth/awesome-ai-agent-tools](https://github.com/michielhdoteth/awesome-ai-agent-tools)
 - [difyhub/workflows](https://github.com/difyhub/workflows)
@@ -83,6 +87,12 @@ GitHub bulk fill: `python3 scripts/fill_skills_sh_from_github.py --workers 24`
 
 ### Skill / plugin catalogs
 
+- [vellum.ai/skills](https://www.vellum.ai/skills) — **75** installable skills (pages + GitHub bodies + catalog.json) plus plugins marketplace and docs (`sources/vellum.ai/`)
+- [moldable.sh/bots](https://moldable.sh/bots) — sitemap apps/use-cases/bots + [moldable-ai/apps](https://github.com/moldable-ai/apps) + [moldable-ai/skills](https://github.com/moldable-ai/skills)
+- [officialskills.sh](https://officialskills.sh/) — VoltAgent official-vendor skill gallery (741 sitemap pages)
+- [smithery.ai](https://smithery.ai/) — public `GET /skills` dump (**420** uniques; API claims 22,603, 5×100 cap)
+- [clawskills.sh](https://clawskills.sh/) — OpenClaw gallery (5,167 skill hrefs from homepage)
+- [skillsllm.com](https://skillsllm.com/) — public `/skill/` gallery (sitemap 5,576)
 - [skills.sh](https://skills.sh/) — sitemap (~20k URLs) plus full `GET /api/download/{owner}/{repo}/{slug}` file contents where downloaded (API cap: 60/hour; resume via `scripts/download_skills_sh.py`)
 - [claude-skills-latest](sources/claude-skills-latest/) — 60-day Skillselion filter (2026-07-14 → 2026-09-12): **60442** recent metadata, **11049** with files, plus skills.sh `/hot` `/trending`, ClaudSkills SOTD, and maintained Claude skill repos
 - [skillsmp.com](https://skillsmp.com/) — public search API + popular sitemap (**11,213** skill URLs); **1,978** GitHub raw SKILL.md from search hits
@@ -91,7 +101,6 @@ GitHub bulk fill: `python3 scripts/fill_skills_sh_from_github.py --workers 24`
 - [cursor.com/marketplace](https://cursor.com/marketplace) — public plugin/agent/skill listings (index HTML + per-listing metadata)
 - [n8nworkflows.xyz](https://n8nworkflows.xyz/) — **blocked** by Cloudflare from this host (see ERRORS.md)
 - [crewform.tech](https://crewform.tech/) — homepage only; no public catalog/API
-- [vellum.ai/skills](https://www.vellum.ai/skills) — public assistant skills catalog (75 titles; compact snapshot via Agenthunt outbound discovery)
 - [botdirectory.ai](https://botdirectory.ai/) — full `/api/bots.json` (645) + OpenAPI + RSS
 - [botmarket.bot](https://botmarket.bot/) — `/v1/agents` (200) + `/v1/skills` (500); offset ignored
 - [a2a-registry.org](https://www.a2a-registry.org/) — public /browse agents + agent cards
@@ -118,7 +127,7 @@ GitHub bulk fill: `python3 scripts/fill_skills_sh_from_github.py --workers 24`
 - Community workflow packs: scrapernode/zie619 n8n, svcvit Dify, Diflowy, langflow, coze, botpress/solutions
 - Listing HTML: workflows.so, automationflows.io, n8ntemplates.me, theautomation.directory, automationscookbook.com, arahi.ai, beam.ai
 
-Notes and leftovers: [docs/source-candidates.md](docs/source-candidates.md), [docs/source-candidates-batch2.md](docs/source-candidates-batch2.md), [docs/source-candidates-batch3-claude-muse-workflows.md](docs/source-candidates-batch3-claude-muse-workflows.md), [docs/source-candidates-batch4.md](docs/source-candidates-batch4.md), [docs/claude-ecosystem-sources.md](docs/claude-ecosystem-sources.md), [docs/muse-research.md](docs/muse-research.md).
+Notes and leftovers: [docs/source-candidates.md](docs/source-candidates.md), [docs/source-candidates-batch2.md](docs/source-candidates-batch2.md), [docs/source-candidates-batch3-claude-muse-workflows.md](docs/source-candidates-batch3-claude-muse-workflows.md), [docs/source-candidates-batch4.md](docs/source-candidates-batch4.md), [docs/source-candidates-batch5.md](docs/source-candidates-batch5.md), [docs/claude-ecosystem-sources.md](docs/claude-ecosystem-sources.md), [docs/muse-research.md](docs/muse-research.md).
 
 ## Attribution
 
@@ -171,13 +180,15 @@ sources/dev.meta.ai-cookbook/
 sources/muse-thirdparty/
 sources/claude.com-plugins/
 sources/n8n.io-workflows/
-sources/agent-hunt.netlify.app/
-sources/ezail.com/
-sources/vellum.ai/
-sources/moldable.sh/
 sources/agentskill.sh/
 sources/clawhub.ai/
 sources/agensi.io/
+sources/vellum.ai/
+sources/moldable.sh/
+sources/officialskills.sh/
+sources/smithery.ai/
+sources/clawskills.sh/
+sources/skillsllm.com/
 scripts/
 ```
 
@@ -369,18 +380,29 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | bolna.ai | 3 |
 | app.kuchhbhi.in | 2 |
 | nodesphereai | 1 (NXDOMAIN) |
-| agent-hunt.netlify.app | 59 |
-| ezail.com | 7 |
-| vellum.ai | 10 |
-| moldable.sh | 5 |
+| vellum.ai | 88 |
+| moldable.sh | 71 |
+| github/vellum-ai-vellum-assistant | 150 |
+| github/moldable-ai-apps | 313 |
+| github/moldable-ai-skills | 86 |
+| github/BankrBot-openclaw-skills | 819 |
+| github/cloudflare-agent-skills-discovery-rfc | 2 |
+| officialskills.sh | 741 |
+| smithery.ai | 421 |
+| clawskills.sh | 5209 |
+| skillsllm.com | 5034 |
+| agentskills.io | 10 |
+| hivebook.wiki | 401 |
+| septimlabs.com | 401 |
 
 ## Fetch notes
 
-Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`, `scripts/download_skills_sh.py`, `scripts/ingest_priority_a.py`, `scripts/ingest_priority_b.py`, `scripts/ingest_priority_cd.py`, `scripts/ingest_claude_ecosystem.py`, `scripts/ingest_batch3.py`, `scripts/download_n8n_official.py`, `scripts/archive_claude_skills_latest.py`, `scripts/finish_claude_skills_latest.py`, `scripts/ingest_batch4.py`, `scripts/deepen_batch4.py`, `scripts/fast_secondary.py`, `scripts/archive_agent_hunt.py`.
+Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`, `scripts/download_skills_sh.py`, `scripts/ingest_priority_a.py`, `scripts/ingest_priority_b.py`, `scripts/ingest_priority_cd.py`, `scripts/ingest_claude_ecosystem.py`, `scripts/ingest_batch3.py`, `scripts/download_n8n_official.py`, `scripts/archive_claude_skills_latest.py`, `scripts/finish_claude_skills_latest.py`, `scripts/ingest_batch4.py`, `scripts/deepen_batch4.py`, `scripts/fast_secondary.py`, `scripts/ingest_depth_galleries.py`, `scripts/deepen_new_galleries.py`.
 
 ## Caps / failures
 
-- **skills.sh** — **17,773** sitemap ids have `files/` + hash (**15,027** GitHub clone, **2,746** API). **2,193** leftovers are renamed/missing GitHub slugs (exact folder match exhausted); **32** are permanent API 404s. API drip only: `scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog` (60/hour).
+- **skills.sh** — **19,001** sitemap ids have `files/` + hash (**15,032** GitHub clone, **3,969** API). **876** leftovers are renamed/missing GitHub slugs (Trees/raw exact-folder match exhausted this pass, 0 extra); **121** are permanent API 404s. API drip only: `scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog` (60/hour).
+- **smithery.ai** — list API hard-caps at 5 pages × 100 (**420** uniques) despite `totalCount` 22,603; `pageSize>100` is HTTP 400.
 - **souls.directory** — public `GET /api/souls/{handle}/{slug}.md`; **910** SOUL.md on disk. Many remaining API URLs 404/empty.
 - **openclawskills.io** — Next.js gallery; sitemap has no per-skill URLs. `github.com/openclaw/skills` is not a public repo.
 - **claude-skills-latest** — Skillselion `updatedAt` is a reindex stamp, so createdAt **or** updatedAt ≥ 2026-07-14 matches all **60,442** live skills. True `createdAt` in-window: **2,378** (**1,466** with files). Catalog: **62,817** rows, **11,049** `has_content`. skills.sh download API still 60/hour.

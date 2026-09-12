@@ -1,0 +1,994 @@
+{
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "name": "Plants",
+  "version": "0.1.10",
+  "aliases": [
+    "houseplants",
+    "garden"
+  ],
+  "runtime": "vite_hono",
+  "visibility": "public",
+  "description": "Keep plants alive, identify them, follow watering and care guidance, and save future plants to a wishlist.",
+  "author": "",
+  "license": "FSL-1.1-ALv2",
+  "icon": "🪴",
+  "iconPath": "public/icon.png",
+  "category": "lifestyle",
+  "tags": [],
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "plants.plants",
+        "name": "Plants",
+        "description": "Read and manage the user's house plants, their watering schedules, and AI care profiles in this workspace.",
+        "scopes": [
+          {
+            "id": "plants.native.read",
+            "name": "Read the mobile Plants experience",
+            "description": "Return a route-specific, bounded NativeUI projection for the home, collection, plant, care, or journal screen.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "route": {
+                  "type": "string",
+                  "enum": [
+                    "home",
+                    "collection",
+                    "plant",
+                    "care",
+                    "journal"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "favorites",
+                    "needswater",
+                    "wishlist",
+                    "memorials",
+                    "unplaced",
+                    "room",
+                    "search"
+                  ]
+                },
+                "room": {
+                  "type": "string"
+                },
+                "query": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 16
+                }
+              },
+              "required": [
+                "route"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "plants.native.mutate",
+            "name": "Update one plant from mobile",
+            "description": "Perform a low-risk water or favorite action and return only a bounded mutation receipt.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "water",
+                    "favorite"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "at": {
+                  "type": "string"
+                },
+                "isFavorite": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "action",
+                "id"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "changesState": true
+          },
+          {
+            "id": "plants.native.acquire",
+            "name": "Add a wishlist plant to the owned collection",
+            "description": "Move one existing wishlist plant into the active collection and return a bounded NativeUI receipt.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "plants.native.generateCare",
+            "name": "Generate a mobile plant care guide",
+            "description": "Generate or refresh one plant's care guide and return a bounded NativeUI receipt.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "plants.native.create",
+            "name": "Create a plant from mobile",
+            "description": "Create one manually named owned or future plant and return a bounded NativeUI receipt.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "commonName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "ownershipStatus": {
+                  "type": "string",
+                  "enum": [
+                    "owned",
+                    "wishlist"
+                  ]
+                },
+                "scientificName": {
+                  "type": "string",
+                  "maxLength": 160
+                },
+                "room": {
+                  "type": "string",
+                  "maxLength": 120
+                }
+              },
+              "required": [
+                "commonName",
+                "ownershipStatus"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "plants.native.update",
+            "name": "Edit a plant from mobile",
+            "description": "Save bounded identity, placement, notes, and watering-cadence fields for one plant.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "commonName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "scientificName": {
+                  "type": "string",
+                  "maxLength": 160
+                },
+                "room": {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                "location": {
+                  "type": "string",
+                  "maxLength": 160
+                },
+                "notes": {
+                  "type": "string",
+                  "maxLength": 12000
+                },
+                "waterIntervalDays": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 365
+                }
+              },
+              "required": [
+                "id",
+                "commonName",
+                "waterIntervalDays"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "plants.native.snooze",
+            "name": "Delay a watering reminder from mobile",
+            "description": "Mark one due plant as still moist and move its reminder by a bounded number of days.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "days": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 14
+                }
+              },
+              "required": [
+                "id",
+                "days"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "plants.native.setHero",
+            "name": "Choose a plant portrait from mobile",
+            "description": "Use an existing verified journal image as the plant portrait.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                }
+              },
+              "required": [
+                "id",
+                "path"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "changesState": true
+          },
+          {
+            "id": "plants.native.confirmIdentification",
+            "name": "Confirm a plant identification from mobile",
+            "description": "Confirm the current machine identification or one of its bounded candidates.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "scientificName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "commonName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                }
+              },
+              "required": [
+                "id",
+                "scientificName"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "plants.native.delete",
+            "name": "Delete a plant from mobile",
+            "description": "Soft-delete one plant after the NativeUI host presents explicit destructive confirmation.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "plants.list",
+            "name": "List plants",
+            "description": "List plants with optional filters for room, text query, favorites, due-for-water, and deleted state.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "room": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "owned",
+                    "wishlist"
+                  ],
+                  "description": "Filter by collection status."
+                },
+                "lifeStatus": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "deceased"
+                  ],
+                  "description": "Filter active plants or plants preserved in the memorial collection."
+                },
+                "query": {
+                  "type": "string"
+                },
+                "favoriteOnly": {
+                  "type": "boolean"
+                },
+                "dueOnly": {
+                  "type": "boolean",
+                  "description": "Only plants that are due or overdue for water."
+                },
+                "includeDeleted": {
+                  "type": "boolean"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 200
+                }
+              }
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "plants.get",
+            "name": "Get plant",
+            "description": "Get one plant by ID.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "plants.create",
+            "name": "Create plant",
+            "description": "Create a plant from a partial body. If `care` is omitted, an AI care profile (including a watering interval) is generated server-side. `heroImagePath` maps to the plant's hero image.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "commonName": {
+                  "type": "string"
+                },
+                "ownershipStatus": {
+                  "type": "string",
+                  "enum": [
+                    "owned",
+                    "wishlist"
+                  ],
+                  "description": "Save as an owned plant or a future-plant wishlist entry."
+                },
+                "scientificName": {
+                  "type": "string"
+                },
+                "family": {
+                  "type": "string"
+                },
+                "nickname": {
+                  "type": "string"
+                },
+                "room": {
+                  "type": "string",
+                  "description": "Location grouping, e.g. \"Living room\"."
+                },
+                "location": {
+                  "type": "string",
+                  "description": "Free-text micro-location, e.g. \"south-facing window\"."
+                },
+                "notes": {
+                  "type": "string"
+                },
+                "light": {
+                  "type": "string"
+                },
+                "heroImagePath": {
+                  "type": "string",
+                  "description": "Workspace-relative assets path for the hero image."
+                },
+                "waterIntervalDays": {
+                  "type": "number"
+                },
+                "identification": {
+                  "type": "object"
+                },
+                "care": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "commonName"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "plants.identifyAndCreate",
+            "name": "Identify and create plant",
+            "description": "Convenience for the desktop chat (vision): create a plant with identification source 'chat' and auto-generate its care profile. Pass `heroImagePath` (workspace-relative assets path) of the uploaded photo.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "commonName": {
+                  "type": "string"
+                },
+                "scientificName": {
+                  "type": "string"
+                },
+                "ownershipStatus": {
+                  "type": "string",
+                  "enum": [
+                    "owned",
+                    "wishlist"
+                  ],
+                  "description": "Save as an owned plant or a future-plant wishlist entry."
+                },
+                "confidence": {
+                  "type": "number",
+                  "description": "Identification confidence, 0..1."
+                },
+                "candidates": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "commonName": {
+                        "type": "string"
+                      },
+                      "confidence": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "name"
+                    ]
+                  }
+                },
+                "heroImagePath": {
+                  "type": "string"
+                },
+                "room": {
+                  "type": "string"
+                },
+                "location": {
+                  "type": "string"
+                },
+                "notes": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "commonName"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "plants.update",
+            "name": "Update plant",
+            "description": "Update plant fields, including moving a deceased plant into the reversible In memory of… collection.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "commonName": {
+                  "type": "string"
+                },
+                "ownershipStatus": {
+                  "type": "string",
+                  "enum": [
+                    "owned",
+                    "wishlist"
+                  ],
+                  "description": "Save as an owned plant or a future-plant wishlist entry."
+                },
+                "lifeStatus": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "deceased"
+                  ],
+                  "description": "Use deceased to preserve this plant in In memory of… and pause care reminders; use active to restore it."
+                },
+                "deceasedAt": {
+                  "type": "string",
+                  "description": "Optional ISO timestamp for when the plant was marked deceased."
+                },
+                "memorialNote": {
+                  "type": "string",
+                  "description": "Optional short remembrance."
+                },
+                "scientificName": {
+                  "type": "string"
+                },
+                "family": {
+                  "type": "string"
+                },
+                "nickname": {
+                  "type": "string"
+                },
+                "heroImageUrl": {
+                  "type": "string"
+                },
+                "room": {
+                  "type": "string"
+                },
+                "location": {
+                  "type": "string"
+                },
+                "notes": {
+                  "type": "string"
+                },
+                "light": {
+                  "type": "string"
+                },
+                "care": {
+                  "type": "object"
+                },
+                "waterIntervalDays": {
+                  "type": "number"
+                },
+                "lastWateredAt": {
+                  "type": "string"
+                },
+                "identification": {
+                  "type": "object"
+                },
+                "isFavorite": {
+                  "type": "boolean"
+                },
+                "isDeleted": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "plants.water",
+            "name": "Water plant",
+            "description": "Mark a plant as watered now (or at the optional ISO timestamp `at`). Sets lastWateredAt and appends to watering history.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "at": {
+                  "type": "string",
+                  "description": "Optional ISO timestamp. Defaults to now."
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "changesState": true
+          },
+          {
+            "id": "plants.generateCare",
+            "name": "Generate care",
+            "description": "Regenerate the AI care profile (watering schedule, needs, care guide) for a plant via the host LLM.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "plants.favorite",
+            "name": "Favorite plant",
+            "description": "Set a plant's favorite state.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "isFavorite": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "isFavorite"
+              ]
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "changesState": true
+          },
+          {
+            "id": "plants.delete",
+            "name": "Delete plant",
+            "description": "Move one plant to deleted state.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "destructive",
+            "surfaces": [
+              "voice"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "plants.drive",
+        "name": "Drive the Plants UI",
+        "description": "Describe, navigate, and narrate the running Plants UI so an assistant can visibly drive the app (open views, show a plant's photo) and read what is on screen as speakable text. All of these are non-destructive: they only change what is displayed or read data.",
+        "scopes": [
+          {
+            "id": "plants.ui.describe",
+            "name": "Describe UI views",
+            "description": "List every navigable view in the Plants UI. Returns { views: [{ id, name, description, params? }] } explaining what each view shows and what entityId/params mean for it. Call this before plants.ui.navigate when unsure which view id to target.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "plants.ui.navigate",
+            "name": "Navigate the UI",
+            "description": "Navigate the open Plants UI to a view. The running client applies the change visibly; nothing is modified. view is a view id from plants.ui.describe. entityId is the plant id and is required when view is \"plant\". params carries view-specific options: { room } for \"room\", { query } for \"search\", { fullscreen } for \"plant\". Returns { ok: true, intentId }.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "home",
+                    "all",
+                    "favorites",
+                    "needswater",
+                    "wishlist",
+                    "memorials",
+                    "unplaced",
+                    "room",
+                    "search",
+                    "plant"
+                  ],
+                  "description": "View id from plants.ui.describe."
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Plant id (from plants.list or plants.get). Required when view is \"plant\"."
+                },
+                "params": {
+                  "type": "object",
+                  "description": "View-specific options: { room: string } for \"room\", { query: string } for \"search\", { fullscreen: boolean } for \"plant\"."
+                }
+              },
+              "required": [
+                "view"
+              ]
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "plants.ui.showPlant",
+            "name": "Show a plant",
+            "description": "Open one plant's detail page with its photo prominent. plantId comes from plants.list or plants.get. When fullscreen is true, the client additionally opens a full-screen, photo-focused presentation of the plant's photo on top of the detail page. Purely visual navigation; nothing is modified. Returns { ok: true, intentId }.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "plantId": {
+                  "type": "string",
+                  "description": "Id of the plant to show."
+                },
+                "fullscreen": {
+                  "type": "boolean",
+                  "description": "When true, present the plant's photo full-screen."
+                }
+              },
+              "required": [
+                "plantId"
+              ]
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "plants.ui.showGallery",
+            "name": "Show the gallery",
+            "description": "Open the photo gallery grid of the whole plant collection (the All plants view). Takes no parameters. Purely visual navigation; nothing is modified. Returns { ok: true, intentId }.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "plants.ui.read",
+            "name": "Read a view aloud",
+            "description": "Read the current or a target Plants view as clean speakable prose for voice narration. Returns { text } with no markdown or HTML. With entityId set to a plant id, returns that plant's name, species, care summary, and watering status. With a gallery view id (or no params at all), returns a summary of the collection. For view \"room\", pass the room name as entityId.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "home",
+                    "all",
+                    "favorites",
+                    "needswater",
+                    "wishlist",
+                    "memorials",
+                    "unplaced",
+                    "room",
+                    "search",
+                    "plant"
+                  ],
+                  "description": "Optional view id to read. Defaults to the collection summary."
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Optional plant id to read (or the room name when view is \"room\")."
+                }
+              }
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "plants.cards",
+        "name": "Chat cards",
+        "description": "App-owned plant views in conversations.",
+        "scopes": [
+          {
+            "id": "plants.cards.present",
+            "name": "Present plants in chat",
+            "description": "Display these exact plants as an inline app-owned card. Read plant IDs first, then pass 1–8 plantIds. Returns an appCard that the chat host renders on Mac and iPhone. This does not water plants.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "plantIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1,
+                  "maxItems": 8
+                }
+              },
+              "required": [
+                "plantIds"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "plants.cards.read",
+            "name": "Read a plant card",
+            "description": "Hydrate the selected plant card from current app records.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "plantIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1,
+                  "maxItems": 8
+                }
+              },
+              "required": [
+                "plantIds"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "plants.cards.water",
+            "name": "Mark a card plant watered",
+            "description": "After an explicit user tap, record watering for a selected card plant with its exact updatedAt revision.",
+            "risk": "important",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "plantIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1,
+                  "maxItems": 8
+                },
+                "plantId": {
+                  "type": "string"
+                },
+                "expectedUpdatedAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "plantIds",
+                "plantId",
+                "expectedUpdatedAt"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "env": [],
+  "nativeCapabilities": [
+    "notifications"
+  ],
+  "routeName": "plants"
+}

@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="canonical" href="https://septimlabs.com/es/tools/dock.html" />
+<meta property="og:locale" content="es_ES" />
+
+<!-- SEPTIM-I18N-HREFLANG -->
+<link rel="alternate" hreflang="x-default" href="https://septimlabs.com/tools/dock.html" />
+<link rel="alternate" hreflang="en" href="https://septimlabs.com/tools/dock.html" />
+<link rel="alternate" hreflang="es" href="https://septimlabs.com/es/tools/dock.html" />
+<link rel="alternate" hreflang="zh" href="https://septimlabs.com/zh/tools/dock.html" />
+<link rel="alternate" hreflang="hi" href="https://septimlabs.com/hi/tools/dock.html" />
+<link rel="alternate" hreflang="pt" href="https://septimlabs.com/pt/tools/dock.html" />
+<link rel="alternate" hreflang="de" href="https://septimlabs.com/de/tools/dock.html" />
+<link rel="alternate" hreflang="fr" href="https://septimlabs.com/fr/tools/dock.html" />
+<link rel="alternate" hreflang="ja" href="https://septimlabs.com/ja/tools/dock.html" />
+<link rel="alternate" hreflang="ru" href="https://septimlabs.com/ru/tools/dock.html" />
+<link rel="alternate" hreflang="ar" href="https://septimlabs.com/ar/tools/dock.html" />
+<!-- /SEPTIM-I18N-HREFLANG -->
+
+<title>Dock — Septim Labs</title>
+    <!-- Open Graph + Twitter Card (auto-injected by inject_og_meta.py) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://septimlabs.com/es/tools/dock" />
+    <meta property="og:title" content="Dock — Septim Labs" />
+    <meta property="og:description" content="Septim Labs — pay-once developer tools, custom SMB software builds. You buy once, you keep it." />
+    <meta property="og:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Septim Labs" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Dock — Septim Labs" />
+    <meta name="twitter:description" content="Septim Labs — pay-once developer tools, custom SMB software builds. You buy once, you keep it." />
+    <meta name="twitter:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../site.css?v=4.6.1" />
+<style>
+/* DOCK — property management. Metaphor: a building's mailboxes / a unit roster.
+   Type: bold sans, ledger-precise. Color: warm amber on cream. */
+:root[data-theme="dark"] .dk-page{
+  --paper:var(--bg);--paper-2:var(--bg);--paper-3:#141414;
+  --ink-a:#f0f0f0;--ink2-a:#9aa0aa;--ink3-a:#5a606a;
+  --rule-a:var(--line);--rule2-a:var(--line-2);
+  --field-a:var(--bg);--field2-a:#141414;
+  --p:#ffa83d;--p-soft:rgba(255,168,61,.14);--p-deep:#a87528;
+  --ok:#5fc587;--warn:#e6a14a;--err:#e96c6c;
+}
+:root[data-theme="light"] .dk-page{
+  --paper:var(--ink);--paper-2:#f5f5f5;--paper-3:#e8e8e8;
+  --ink-a:var(--bg);--ink2-a:#454852;--ink3-a:#7a7e88;
+  --rule-a:rgba(0,0,0,.10);--rule2-a:rgba(0,0,0,.22);
+  --field-a:#f5f5f5;--field2-a:#e8e8e8;
+  --p:#a87528;--p-soft:rgba(168,117,40,.10);--p-deep:#7a5520;
+  --ok:#2a7e4f;--warn:#a06820;--err:#a02818;
+}
+body{background:var(--paper)}
+.dk-page{background:var(--paper);color:var(--ink-a);font-family:var(--sans);line-height:1.5}
+.hud{position:sticky;top:0;z-index:40;display:grid;grid-template-columns:auto 1fr auto auto auto;align-items:center;background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--rule2-a);font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3-a)}
+.hud > *{padding:11px 18px;border-right:1px solid var(--rule-a)}.hud > *:last-child{border-right:none}
+.hud .file{color:var(--p);font-weight:700}.hud .file::before{content:"⌑";margin-right:8px;color:var(--p)}
+.hud .clock{font-variant-numeric:tabular-nums;color:var(--ink-a);min-width:130px;text-align:center}
+@media(max-width:780px){.hud{grid-template-columns:auto 1fr auto}.hud .build{display:none}}
+
+.hero{padding:80px clamp(20px,5vw,80px) 60px;border-bottom:1px solid var(--rule2-a);display:grid;grid-template-columns:1fr 1.2fr;gap:60px;align-items:start}
+.crumb{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3-a);display:flex;gap:14px;align-items:center;margin-bottom:32px}
+.crumb a{color:var(--ink2-a);text-decoration:none}.crumb b{color:var(--p);font-weight:600}
+.hero h1{font-size:clamp(56px,8vw,128px);font-weight:800;letter-spacing:-.045em;line-height:.92;margin:0 0 28px;color:var(--ink-a)}
+.hero h1 em{font-style:normal;font-weight:700;color:var(--p)}
+.hero .blurb{font-size:18px;line-height:1.6;color:var(--ink2-a);max-width:54ch;margin:0 0 32px}
+.hero .blurb b{color:var(--ink-a);font-weight:700;background:var(--p-soft);padding:1px 6px}
+.hero .blurb em{font-style:normal;color:var(--ink-a);font-weight:500}
+.hero .meta{display:grid;grid-template-columns:repeat(4,auto);border:1px solid var(--rule2-a);background:var(--paper-2);width:fit-content;font-family:var(--mono)}
+.hero .meta > div{padding:14px 22px;border-right:1px solid var(--rule-a)}.hero .meta > div:last-child{border-right:none}
+.hero .meta .k{color:var(--ink3-a);letter-spacing:.16em;text-transform:uppercase;font-size:10px;margin-bottom:6px}
+.hero .meta .v{color:var(--ink-a);font-size:18px;font-weight:700}.hero .meta .v.price{color:var(--p);font-size:24px}
+.hero .actions{margin-top:32px;display:flex;gap:14px;flex-wrap:wrap}
+.btn-p{display:inline-flex;align-items:center;gap:10px;padding:14px 24px;background:var(--p);color:#1f1810;text-decoration:none;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;border-radius:3px}
+.btn-g{display:inline-flex;align-items:center;gap:10px;padding:14px 24px;border:1px solid var(--rule2-a);color:var(--ink-a);text-decoration:none;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;border-radius:3px}
+
+/* THE BUILDING — unit roster as mailbox grid */
+.building{background:var(--paper-2);border:1px solid var(--rule2-a);font-family:var(--mono);overflow:hidden;box-shadow:6px 6px 0 var(--rule-a)}
+.building .bh{display:flex;justify-content:space-between;padding:14px 18px;border-bottom:2px solid var(--ink-a);background:var(--ink-a);color:var(--paper);font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700}
+.building .bh b{color:var(--p)}
+.building .stats{display:grid;grid-template-columns:repeat(4,1fr);background:var(--paper);border-bottom:1px solid var(--rule2-a)}
+.building .stats > div{padding:14px 16px;border-right:1px solid var(--rule-a);text-align:center}
+.building .stats > div:last-child{border-right:none}
+.building .stats .k{font-size:10px;color:var(--ink3-a);letter-spacing:.18em;text-transform:uppercase;margin-bottom:6px}
+.building .stats .v{font-family:var(--sans);font-size:24px;font-weight:800;color:var(--ink-a);letter-spacing:-.02em}
+.building .stats .v.ok{color:var(--ok)}.building .stats .v.warn{color:var(--err)}
+.building .floors{padding:18px}
+.building .floor{display:grid;grid-template-columns:60px repeat(6,1fr);gap:6px;margin-bottom:8px;align-items:stretch}
+.building .floor .fl{background:var(--paper-3);padding:10px 8px;font-size:10px;color:var(--ink2-a);letter-spacing:.14em;text-transform:uppercase;text-align:center;border:1px solid var(--rule-a);font-weight:700;display:flex;flex-direction:column;justify-content:center}
+.building .floor .fl small{display:block;font-size:9px;color:var(--ink3-a);font-weight:400;margin-top:2px}
+.unit{background:var(--paper);border:1px solid var(--rule-a);padding:8px 10px;font-size:10.5px;display:flex;flex-direction:column;justify-content:space-between;min-height:64px;position:relative}
+.unit::before{content:"";position:absolute;top:0;left:0;width:3px;height:100%;background:var(--ok)}
+.unit.late::before{background:var(--err)}
+.unit.vacant::before{background:var(--ink3-a)}
+.unit.notice::before{background:var(--warn)}
+.unit b{font-family:var(--sans);font-weight:700;color:var(--ink-a);font-size:11.5px;letter-spacing:-.005em}
+.unit small{color:var(--ink3-a);letter-spacing:.04em;font-size:9.5px}
+.unit .rent{font-family:var(--sans);font-weight:700;color:var(--ok);font-size:11px;font-variant-numeric:tabular-nums;text-align:right;margin-top:2px}
+.unit.late .rent{color:var(--err)}.unit.vacant .rent{color:var(--ink3-a)}.unit.notice .rent{color:var(--warn)}
+@media(max-width:980px){.hero{grid-template-columns:1fr}.building .floor{grid-template-columns:60px repeat(3,1fr)}}
+
+.sec{padding:90px clamp(20px,5vw,80px);border-bottom:1px solid var(--rule2-a)}
+.sec .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:48px;border-bottom:1px solid var(--rule-a);padding-bottom:14px}
+.sec .head .ex{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-a);font-weight:700}
+.sec .head .ex b{background:var(--ink-a);color:var(--paper);padding:3px 9px;margin-right:10px}
+.sec .head .pg{font-family:var(--mono);font-size:10px;color:var(--ink3-a);letter-spacing:.14em;text-transform:uppercase}
+.sec h2{font-size:clamp(34px,4.5vw,68px);font-weight:800;letter-spacing:-.035em;line-height:1.04;margin:0 0 24px;max-width:20ch;color:var(--ink-a)}
+.sec h2 em{font-style:normal;font-weight:700;color:var(--p)}
+.sec .copy{font-size:16px;line-height:1.65;color:var(--ink2-a);max-width:60ch;margin:0 0 16px}
+.sec .copy b{color:var(--ink-a);font-weight:700;background:var(--p-soft);padding:1px 5px}
+
+/* LEDGER */
+.ledger{margin-top:24px;background:var(--paper-2);border:1px solid var(--rule2-a);font-family:var(--mono);overflow:hidden}
+.ledger .lh{padding:18px 20px;background:var(--ink-a);color:var(--paper);display:flex;justify-content:space-between;font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:700}
+.ledger .lh b{color:var(--p)}
+.ledger .row{display:grid;grid-template-columns:90px 1fr 110px 90px 110px 110px;font-size:12px;border-bottom:1px solid var(--rule-a);align-items:center}
+.ledger .row > *{padding:12px 16px;border-right:1px solid var(--rule-a)}
+.ledger .row > *:last-child{border-right:none}
+.ledger .row.h{background:var(--paper-3);font-size:10.5px;color:var(--ink2-a);letter-spacing:.16em;text-transform:uppercase;font-weight:700}
+.ledger .row .date{color:var(--ink3-a)}
+.ledger .row .desc b{font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink-a);display:block;letter-spacing:-.005em}
+.ledger .row .desc small{color:var(--ink3-a);font-size:10.5px;letter-spacing:.04em}
+.ledger .row .meth{font-size:10px;letter-spacing:.06em;color:var(--ink2-a);text-transform:uppercase}
+.ledger .row .amt{text-align:right;font-variant-numeric:tabular-nums;color:var(--ok);font-weight:700;font-size:13px}
+.ledger .row .amt.out{color:var(--err)}
+.ledger .row .bal{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-a);font-weight:600}
+.ledger .tot{display:grid;grid-template-columns:1fr 110px;background:var(--ink-a);color:var(--paper)}
+.ledger .tot > *{padding:16px 20px;border-right:1px solid var(--line-2)}.ledger .tot > *:last-child{border-right:none}
+.ledger .tot .lbl{text-align:right;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--line-3);font-weight:700}
+.ledger .tot .v{text-align:right;font-family:var(--sans);font-size:24px;font-weight:800;color:var(--p);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+@media(max-width:780px){.ledger .row{grid-template-columns:80px 1fr 100px}.ledger .row .meth,.ledger .row .amt,.ledger .row .bal{display:none}.ledger .row .desc small{display:block}}
+
+/* MAINTENANCE */
+.tickets{margin-top:24px;display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.ticket{background:var(--paper-2);border:1px solid var(--rule2-a);padding:22px;border-left:4px solid var(--p)}
+.ticket.urgent{border-left-color:var(--err)}.ticket.done{border-left-color:var(--ok);opacity:.85}
+.ticket .row1{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.ticket .num{font-family:var(--mono);font-size:11px;color:var(--p);font-weight:700;letter-spacing:.14em}
+.ticket .stat{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;padding:3px 9px;background:var(--paper-3);color:var(--ink-a)}
+.ticket .stat.urgent{background:var(--err);color:var(--ink)}
+.ticket .stat.done{background:var(--ok);color:var(--ink)}
+.ticket b{display:block;font-size:18px;font-weight:700;color:var(--ink-a);letter-spacing:-.015em;line-height:1.25;margin-bottom:6px}
+.ticket .where{font-family:var(--mono);font-size:11px;color:var(--ink2-a);letter-spacing:.06em;margin-bottom:10px;text-transform:uppercase}
+.ticket .body{font-size:14px;line-height:1.5;color:var(--ink2-a);margin:0 0 14px}
+.ticket .body em{font-style:normal;color:var(--ink-a)}
+.ticket .meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--ink3-a);letter-spacing:.06em;border-top:1px dotted var(--rule-a);padding-top:10px}
+.ticket .meta b{color:var(--ink-a);font-family:var(--sans);font-size:12px;font-weight:600}
+@media(max-width:780px){.tickets{grid-template-columns:1fr}}
+
+/* BUY */
+.buy{padding:120px clamp(20px,5vw,80px);background:var(--paper-2);border-top:1px solid var(--rule2-a);display:grid;grid-template-columns:1.4fr 1fr;gap:48px;align-items:center}
+.buy h3{font-size:clamp(36px,4.5vw,72px);font-weight:800;letter-spacing:-.035em;margin:0 0 16px;line-height:1.04;color:var(--ink-a)}
+.buy h3 em{font-style:normal;font-weight:700;color:var(--p)}
+.buy .copy{font-size:16px;line-height:1.6;color:var(--ink2-a);max-width:48ch;margin:0 0 28px}
+.buy .price{font-size:140px;font-weight:800;letter-spacing:-.04em;line-height:.95;color:var(--p)}
+.buy .price small{display:block;font-family:var(--mono);font-size:11px;color:var(--ink3-a);letter-spacing:.14em;font-weight:500;margin-top:14px;text-transform:uppercase}
+@media(max-width:780px){.buy{grid-template-columns:1fr}}
+
+.next{padding:0;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule2-a);border-top:1px solid var(--rule2-a)}
+.next a{padding:36px 28px;text-decoration:none;background:var(--paper);display:flex;flex-direction:column;gap:6px;color:inherit}
+.next a:hover{background:var(--paper-2)}
+.next a .l{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ink3-a);text-transform:uppercase}
+.next a .n{font-size:28px;font-weight:800;letter-spacing:-.02em;color:var(--ink-a)}
+.next a .d{font-size:13px;color:var(--ink2-a);line-height:1.5;margin-top:4px}
+@media(max-width:780px){.next{grid-template-columns:1fr}}
+</style>
+<!-- TOKEN-CONVERT-V4-APPLIED -->
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/kit/apple-touch-icon-180.png" />
+</head>
+<body data-page="tools">
+<div id="site-nav"></div>
+
+<main class="dk-page">
+
+<div class="hud">
+  <span class="file">DOCK/06 · UNIT ROSTER</span>
+  <span style="color:var(--ink2-a);overflow:hidden;white-space:nowrap;text-overflow:ellipsis"># 24 units · 21 occupied · 1 on notice · 2 vacant · rent roll $42,180/mo · 3 tickets open</span>
+  <span class="clock" id="clk">--:--:-- UTC</span>
+  <span style="color:var(--ink3-a)">v2.0.6</span>
+  <span style="color:var(--ok)">● MTM</span>
+</div>
+
+<header class="hero">
+  <div>
+    <div class="crumb"><a href="../tools.html">/ tools</a><span>›</span><b>06 · dock</b><span>·</span><span>property</span></div>
+    <h1>Property,<br/><em>by the unit.</em></h1>
+    <p class="blurb">Tenant ledgers, lease docs, maintenance tickets — for landlords with <b>five to fifty units</b>. Keeps a tidy book on every door. Doesn't hide your data behind an "owner portal" subscription.</p>
+    <div class="meta">
+      <div><div class="k">Units</div><div class="v">unlimited</div></div>
+      <div><div class="k">Owners</div><div class="v">unlimited</div></div>
+      <div><div class="k">e-sign</div><div class="v">included</div></div>
+      <div><div class="k">Price</div><div class="v price">$199</div></div>
+    </div>
+    <div class="actions">
+      <a class="btn-p" href="../contact.html?subject=Dock">Buy · $199 once →</a>
+      <a class="btn-g" href="#building">See the building</a>
+    </div>
+  </div>
+
+  <div class="building" id="building">
+    <div class="bh"><span>2147 ASHBY · 24 UNITS · 1934</span><span><b>96%</b> OCC · ROLL $42,180</span></div>
+    <div class="stats">
+      <div><div class="k">Occupied</div><div class="v ok">21</div></div>
+      <div><div class="k">On notice</div><div class="v">1</div></div>
+      <div><div class="k">Vacant</div><div class="v">2</div></div>
+      <div><div class="k">Late · 5d+</div><div class="v warn">2</div></div>
+    </div>
+    <div class="floors">
+      <div class="floor"><div class="fl">FL 4<small>penthouse</small></div>
+        <div class="unit"><b>4A</b><small>R. Petrov · 14 mo</small><div class="rent">$2,420</div></div>
+        <div class="unit"><b>4B</b><small>L. Okafor · 8 mo</small><div class="rent">$2,420</div></div>
+        <div class="unit late"><b>4C</b><small>M. Velez · 3 mo · <span style="color:var(--err)">12d late</span></small><div class="rent">$2,420</div></div>
+        <div class="unit notice"><b>4D</b><small>V. Iyer · notice 30 Mayo</small><div class="rent">$2,420</div></div>
+        <div class="unit"><b>4E</b><small>F. Caron · 22 mo</small><div class="rent">$2,420</div></div>
+        <div class="unit"><b>4F</b><small>S. Holm · 6 mo</small><div class="rent">$2,420</div></div>
+      </div>
+      <div class="floor"><div class="fl">FL 3</div>
+        <div class="unit"><b>3A</b><small>D. Mensah · 4 yr</small><div class="rent">$1,820</div></div>
+        <div class="unit"><b>3B</b><small>I. Nazari · 2 yr</small><div class="rent">$1,820</div></div>
+        <div class="unit"><b>3C</b><small>K. Dunn · 11 mo</small><div class="rent">$1,820</div></div>
+        <div class="unit late"><b>3D</b><small>P. Ostrov · 18 mo · <span style="color:var(--err)">8d late</span></small><div class="rent">$1,820</div></div>
+        <div class="unit"><b>3E</b><small>R. Aoki · 7 mo</small><div class="rent">$1,820</div></div>
+        <div class="unit"><b>3F</b><small>O. Tham · 14 mo</small><div class="rent">$1,820</div></div>
+      </div>
+      <div class="floor"><div class="fl">FL 2</div>
+        <div class="unit"><b>2A</b><small>A. Rios · 26 mo</small><div class="rent">$1,640</div></div>
+        <div class="unit"><b>2B</b><small>J. Park · 9 mo</small><div class="rent">$1,640</div></div>
+        <div class="unit"><b>2C</b><small>T. Bell · 16 mo</small><div class="rent">$1,640</div></div>
+        <div class="unit"><b>2D</b><small>L. Mendes · 4 mo</small><div class="rent">$1,640</div></div>
+        <div class="unit vacant"><b>2E</b><small>VACANT · listed 7d</small><div class="rent">$1,640</div></div>
+        <div class="unit"><b>2F</b><small>N. Suárez · 31 mo</small><div class="rent">$1,640</div></div>
+      </div>
+      <div class="floor"><div class="fl">FL 1<small>street</small></div>
+        <div class="unit"><b>1A</b><small>K. Lo · 4 yr</small><div class="rent">$1,520</div></div>
+        <div class="unit"><b>1B</b><small>E. Tate · 2 yr</small><div class="rent">$1,520</div></div>
+        <div class="unit"><b>1C</b><small>P. Singh · 18 mo</small><div class="rent">$1,520</div></div>
+        <div class="unit"><b>1D</b><small>R. Hyun · 7 mo</small><div class="rent">$1,520</div></div>
+        <div class="unit vacant"><b>1E</b><small>VACANT · turnover</small><div class="rent">$1,520</div></div>
+        <div class="unit"><b>1F</b><small>M. Fink · 14 mo</small><div class="rent">$1,520</div></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- LEDGER -->
+<section class="sec">
+  <div class="head"><span class="ex"><b>EXHIBIT A</b>Tenant ledger · 4C</span><span class="pg">PG. 02 / 06</span></div>
+  <h2>Every dollar, dated.<em>One row per event.</em></h2>
+  <p class="copy">Dock keeps a per-unit ledger that walks itself: rent posts on the first, late fees post automatically, deposits sit on a separate line. <b>If a tenant disputes a charge, the answer is in the ledger.</b></p>
+
+  <div class="ledger">
+    <div class="lh"><span>UNIT 4C · M. VELEZ · LEASE 14 MAR 2025</span><span><b>BAL · −$2,512</b></span></div>
+    <div class="row h"><span>DATE</span><span>— DESCRIPTION</span><span>METHOD</span><span>REF</span><span>AMOUNT</span><span>BALANCE</span></div>
+    <div class="row"><span class="date">14 Mar</span><span class="desc"><b>Move-in deposit</b><small>Held in escrow · refundable</small></span><span class="meth">Wire</span><span>D-0142</span><span class="amt">−$2,420</span><span class="bal">$0</span></div>
+    <div class="row"><span class="date">14 Mar</span><span class="desc"><b>First month rent</b><small>Pro-rated · 18 days</small></span><span class="meth">ACH</span><span>R-0871</span><span class="amt">$1,455</span><span class="bal">−$1,455</span></div>
+    <div class="row"><span class="date">01 Apr</span><span class="desc"><b>Abril rent</b><small>Auto-post · 1st of month</small></span><span class="meth">ACH</span><span>R-0892</span><span class="amt">$2,420</span><span class="bal">−$2,420</span></div>
+    <div class="row"><span class="date">01 Apr</span><span class="desc"><b>Rent received · cleared</b><small>Tenant ACH from Chase</small></span><span class="meth">ACH</span><span>P-0301</span><span class="amt out">−$2,420</span><span class="bal">$0</span></div>
+    <div class="row"><span class="date">01 Mayo</span><span class="desc"><b>Mayo rent</b><small>Auto-post · 1st of month</small></span><span class="meth">ACH</span><span>R-0918</span><span class="amt">$2,420</span><span class="bal">−$2,420</span></div>
+    <div class="row"><span class="date">06 Mayo</span><span class="desc"><b>Late fee · 5d grace</b><small>Auto-post · per lease ¶ 4.2</small></span><span class="meth">SYS</span><span>F-0042</span><span class="amt">$92</span><span class="bal">−$2,512</span></div>
+    <div class="row"><span class="date">12 Mayo</span><span class="desc"><b>Reminder sent · 7-day notice</b><small>Email + paper, certified</small></span><span class="meth">SYS</span><span>N-0019</span><span class="amt">—</span><span class="bal">−$2,512</span></div>
+    <div class="tot"><span class="lbl">CURRENT BALANCE · 14 Mayo</span><span class="v">−$2,512</span></div>
+  </div>
+</section>
+
+<!-- TICKETS -->
+<section class="sec">
+  <div class="head"><span class="ex"><b>EXHIBIT B</b>Maintenance tickets</span><span class="pg">PG. 04 / 06</span></div>
+  <h2>One queue, one number,<em>one paper trail.</em></h2>
+  <p class="copy">Tickets come in by SMS, email, or web form — they all land in the same queue, addressed to the unit. The contractor sees the ticket, the photo, and the access code. The owner sees the bill.</p>
+
+  <div class="tickets">
+    <div class="ticket urgent">
+      <div class="row1"><span class="num">TKT-0421</span><span class="stat urgent">URGENT · 2H</span></div>
+      <b>Water shut off in 3D, kitchen sink</b>
+      <div class="where">UNIT 3D · P. OSTROV · OPENED 09:14 BY TENANT (SMS)</div>
+      <p class="body"><em>"Cabinet under sink is wet, I shut the valve. Can someone come look today, I'm WFH all day."</em></p>
+      <div class="meta"><span>ASSIGNED · <b>Apex Plumbing</b></span><span>ETA <b>11:30</b></span><span><b>$120 est</b></span></div>
+    </div>
+    <div class="ticket">
+      <div class="row1"><span class="num">TKT-0420</span><span class="stat">SCHEDULED</span></div>
+      <b>Living room window won't latch</b>
+      <div class="where">UNIT 4A · R. PETROV · OPENED 13 MAY (WEB)</div>
+      <p class="body">Pulley on the upper sash is shot. Have spare in supply closet. Tenant will be home Wed afternoon.</p>
+      <div class="meta"><span>ASSIGNED · <b>Maintenance</b></span><span>WED <b>14:00</b></span><span><b>$0 in-house</b></span></div>
+    </div>
+    <div class="ticket done">
+      <div class="row1"><span class="num">TKT-0419</span><span class="stat done">DONE · INVOICED</span></div>
+      <b>Boiler ran rough overnight, 1F</b>
+      <div class="where">UNIT 1F · M. FINK · OPENED 10 MAY (EMAIL)</div>
+      <p class="body">Replaced igniter, bled the line. <em>Photo of new part on file. Tenant signed.</em></p>
+      <div class="meta"><span>BY · <b>Apex HVAC</b></span><span>CLOSED <b>11 MAY</b></span><span><b>$340 paid</b></span></div>
+    </div>
+    <div class="ticket">
+      <div class="row1"><span class="num">TKT-0418</span><span class="stat">AWAITING PARTS</span></div>
+      <b>Garbage disposal humming, won't turn</b>
+      <div class="where">UNIT 2C · T. BELL · OPENED 09 MAY (SMS)</div>
+      <p class="body">Motor seized. Replacement Insinkerator on order from Grainger.</p>
+      <div class="meta"><span>VENDOR · <b>Grainger</b></span><span>ARR <b>16 MAY</b></span><span><b>$184 part</b></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- BUY -->
+<section class="buy">
+  <div>
+    <h3>One ninety-nine.<em>The whole portfolio.</em></h3>
+    <p class="copy">Buy it once, manage as many doors as you have. We do not have a per-unit fee. We do not have an owner-portal upcharge. We do not bill for the eSign. Lease templates for all 50 states ship with it.</p>
+    <a class="btn-p" href="../contact.html?subject=Dock">Buy Dock · $199 once →</a>
+  </div>
+  <div class="price">$199<small>ONCE · UNLIMITED UNITS · NO PER-DOOR FEE</small></div>
+</section>
+
+<nav class="next">
+  <a href="quill.html"><span class="l">— Next tool · 07</span><span class="n">Quill →</span><span class="d">Long-form writing tool with versioning. Ulysses meets Git.</span></a>
+  <a href="chair.html"><span class="l">— O back to</span><span class="n">Chair →</span><span class="d">Salon and clinic scheduling.</span></a>
+</nav>
+</main>
+
+<div id="site-foot"></div>
+<div class="grain" aria-hidden="true"></div>
+<script src="../../site.js?v=4.6.0"></script>
+<script src="../../site-shell.js?v=4.6.0"></script>
+<script>(()=>{const c=document.getElementById('clk');if(!c)return;const f=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');c.textContent=`${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`};f();setInterval(f,1000)})();</script>
+</body>
+</html>

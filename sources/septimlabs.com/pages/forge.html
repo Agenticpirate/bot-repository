@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<!-- 2026-05-11: Forge SUITE landing built into main site per founder ruling. Subdomain plan retired. -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Septim Forge — the suite of free client-side dev tools</title>
+<meta name="description" content="Septim Forge is a suite of free client-side developer tools — JSON inspector, JWKS viewer, MCP config generator, .env template, token counter, freelance rate, and more. Runs in your browser. No server. No signup. Open-source where applicable." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://septimlabs.com/forge/" />
+<meta property="og:title" content="Septim Forge — free client-side dev tools" />
+<meta property="og:description" content="The Septim suite of free client-side dev tools. No server, no telemetry, no signup. Open DevTools and verify." />
+<meta property="og:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Septim Forge — free client-side dev tools" />
+<meta name="twitter:description" content="Free client-side dev tools. No server. No signup. Open-source where applicable." />
+<meta name="twitter:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+<link rel="canonical" href="https://septimlabs.com/forge/" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../site.css?v=4.6.1" />
+<style>
+body[data-page="forge-suite"]{ --p: var(--n-indigo, #6366f1); }
+
+.fHero{padding:120px clamp(20px,5vw,80px) 60px;border-bottom:1px solid var(--line);text-align:center}
+.fHero .eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.18em;text-transform:uppercase;margin-bottom:24px}
+.fHero .eyebrow .dot{display:inline-block;width:6px;height:6px;background:var(--p);border-radius:50%;box-shadow:0 0 8px var(--p)}
+.fHero h1{font-size:clamp(48px,7vw,96px);font-weight:600;letter-spacing:-.04em;line-height:.96;margin:0 0 24px;color:var(--ink)}
+.fHero h1 em{font-style:normal;color:var(--p);font-weight:600}
+.fHero p.lead{font-size:18px;line-height:1.6;color:var(--ink-2);max-width:680px;margin:0 auto 28px}
+.fHero p.lead code{font-family:var(--mono);font-size:.92em;background:var(--bg-1);padding:1px 6px;border-radius:4px;color:var(--ink-2)}
+.fHero .stats{display:flex;justify-content:center;gap:36px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.14em;text-transform:uppercase}
+.fHero .stats b{color:var(--ink);font-weight:600;font-size:13px;letter-spacing:.06em;display:block;margin-top:4px}
+
+.fTabs{position:sticky;top:60px;z-index:10;background:var(--bg);border-bottom:1px solid var(--line);padding:0 clamp(20px,5vw,80px)}
+.fTabsInner{display:flex;gap:4px;overflow-x:auto;max-width:1200px;margin:0 auto}
+.fTab{display:inline-flex;align-items:center;gap:8px;padding:18px 22px;font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;text-decoration:none;border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s,border-color .15s;cursor:pointer;background:none;border-top:0;border-left:0;border-right:0;font-weight:500}
+.fTab:hover{color:var(--ink-2)}
+.fTab.active{color:var(--ink);border-bottom-color:var(--p)}
+.fTab .count{color:var(--ink-3);font-size:10px;font-weight:400}
+.fTab.active .count{color:var(--p)}
+
+.fSec{padding:60px clamp(20px,5vw,80px)}
+.fSec.hidden{display:none}
+.fSecHead{margin-bottom:32px;max-width:1200px;margin-left:auto;margin-right:auto}
+.fSecHead h2{font-size:clamp(28px,3.6vw,42px);font-weight:600;letter-spacing:-.02em;line-height:1.1;margin:0 0 12px;color:var(--ink)}
+.fSecHead h2 em{font-style:normal;color:var(--p)}
+.fSecHead p{font-size:15px;color:var(--ink-2);max-width:62ch;margin:0;line-height:1.6}
+
+.fGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:1200px;margin:0 auto}
+@media(max-width:980px){.fGrid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.fGrid{grid-template-columns:1fr}}
+
+.fCard{position:relative;display:flex;flex-direction:column;padding:24px 24px 26px;background:var(--bg-1);border:1px solid var(--line);border-radius:8px;text-decoration:none;color:inherit;transition:border-color .2s,transform .2s,background .2s;overflow:hidden;min-height:220px}
+.fCard:hover{border-color:var(--accent);transform:translateY(-2px);background:var(--bg)}
+.fCard .fcBar{position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
+.fCard .fcLabel{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px}
+.fCard .fcLabel .free{color:var(--accent);font-weight:700;background:var(--accent-soft);padding:3px 8px;border-radius:99px}
+.fCard .fcLabel .pro{color:#fff;font-weight:700;background:var(--p);padding:3px 8px;border-radius:99px}
+.fCard h3{font-family:var(--sans);font-size:19px;font-weight:600;letter-spacing:-.01em;margin:0 0 10px;color:var(--ink);line-height:1.3}
+.fCard p{font-size:13.5px;line-height:1.6;color:var(--ink-2);margin:0;flex:1}
+.fCard .fcArrow{position:absolute;right:20px;bottom:20px;font-size:14px;color:var(--accent);opacity:.5;transition:opacity .2s,transform .2s}
+.fCard:hover .fcArrow{opacity:1;transform:translate(2px,-2px)}
+.fCard.c-cyan{--accent:#22d3ee;--accent-soft:rgba(34,211,238,.10)}
+.fCard.c-purple{--accent:#a78bfa;--accent-soft:rgba(167,139,250,.10)}
+.fCard.c-blue{--accent:#60a5fa;--accent-soft:rgba(96,165,250,.10)}
+.fCard.c-amber{--accent:#fbbf24;--accent-soft:rgba(251,191,36,.10)}
+.fCard.c-mint{--accent:#5eead4;--accent-soft:rgba(94,234,212,.10)}
+.fCard.c-pink{--accent:#f472b6;--accent-soft:rgba(244,114,182,.10)}
+.fCard.c-indigo{--accent:#818cf8;--accent-soft:rgba(129,140,248,.10)}
+.fCard.c-orange{--accent:#fb923c;--accent-soft:rgba(251,146,60,.10)}
+
+.fPro{padding:60px clamp(20px,5vw,80px);border-top:1px solid var(--line);text-align:center;background:var(--bg-1)}
+.fPro h3{font-size:clamp(24px,3vw,32px);font-weight:600;letter-spacing:-.02em;margin:0 0 12px;color:var(--ink)}
+.fPro p{font-size:15px;color:var(--ink-2);max-width:620px;margin:0 auto 24px;line-height:1.6}
+.fPro a.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 26px;background:var(--p);color:#fff;text-decoration:none;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;border-radius:8px}
+.fPro .fine{margin-top:16px;font-size:13px;color:var(--ink-3);font-family:var(--mono)}
+.fPro .fine a{color:var(--p);text-decoration:none}
+</style>
+</head>
+<body data-page="forge-suite">
+<div id="site-nav"></div>
+
+<main>
+<section class="fHero">
+  <div class="eyebrow"><span class="dot"></span>SEPTIM FORGE · CLIENT-SIDE · ZERO-SERVER</div>
+  <h1>Forge is the <em>suite of free dev tools.</em></h1>
+  <p class="lead">JSON inspector, JWKS viewer, MCP config generator, <code>.env</code> template, token counter, freelance rate, and more. Every tool runs entirely in your browser. No server. No telemetry. No signup. Open-source where applicable. Open DevTools and verify zero outbound calls.</p>
+  <div class="stats">
+    <span>tools<b>25+</b></span>
+    <span>server<b>none</b></span>
+    <span>signup<b>none</b></span>
+    <span>cost<b>$0</b></span>
+  </div>
+</section>
+
+<nav class="fTabs">
+  <div class="fTabsInner">
+    <button class="fTab active" data-tab="dev">For developers <span class="count">15</span></button>
+    <button class="fTab" data-tab="crypto">For crypto <span class="count">4</span></button>
+    <button class="fTab" data-tab="everyone">For everyone <span class="count">4</span></button>
+    <button class="fTab" data-tab="waitlist">On the bench <span class="count">3</span></button>
+  </div>
+</nav>
+
+<!-- DEVELOPERS -->
+<section class="fSec" id="tab-dev">
+  <div class="fSecHead">
+    <h2>For <em>developers.</em></h2>
+    <p>JWT decoding, MCP config, pgvector queries, signature verification, token counting, webhook debugging, secret templates, cron, hashing, base64, UUID, JSON, and Claude Code helpers. Every tool runs in your browser — DevTools will show zero outbound requests.</p>
+  </div>
+  <div class="fGrid">
+    <a href="/tools/jwt-inspector/" class="fCard c-cyan">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// JWT INSPECTOR</span><span class="free">FREE</span></div>
+      <h3>JWT Inspector</h3>
+      <p>Decode any JWT, see every claim, never leave the browser. Verify signatures with WebCrypto. Built explicitly because jwt.io sends your token to their server.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/jwks-viewer/" class="fCard c-cyan">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// JWKS VIEWER</span><span class="free">FREE</span></div>
+      <h3>JWKS Viewer</h3>
+      <p>Decode any JWKS endpoint or pasted JSON. Renders kid, alg, use, key length, x5c chain. Browser-side only.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/mcp-config-gen/" class="fCard c-purple">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// MCP CONFIG GEN</span><span class="free">FREE</span></div>
+      <h3>MCP Config Generator</h3>
+      <p>Build <code>claude_desktop_config.json</code> from a form. Filesystem, GitHub, Postgres presets one click. No JSON editing by hand.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/token-count/" class="fCard c-amber">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// TOKEN COUNTER</span><span class="free">FREE</span></div>
+      <h3>Token Counter</h3>
+      <p>Count tokens for Claude, GPT-4, and Gemini before you spend on them. Cost estimates per model with editable rates.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/pgvector-qb/" class="fCard c-blue">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// PGVECTOR QB</span><span class="free">FREE</span></div>
+      <h3>pgvector Query Builder</h3>
+      <p>Generate similarity-search SQL for cosine, L2, and inner-product distance metrics. IVFFlat / HNSW DDL included.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/ed25519-verify/" class="fCard c-purple">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// ED25519 VERIFIER</span><span class="free">FREE</span></div>
+      <h3>Ed25519 Signature Verifier</h3>
+      <p>Paste message, public key, signature. Auto-detects PEM, JWK, hex, base64. Strictly verify-only — no key generation.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/webhook-inspect/" class="fCard c-blue">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// WEBHOOK INSPECT</span><span class="free">FREE</span></div>
+      <h3>Webhook Payload Inspector</h3>
+      <p>Diff two webhook payloads, verify HMAC signatures (Stripe, GitHub, Slack). Debug raw bytes that look identical to humans.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/env-template/" class="fCard c-amber">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// ENV TEMPLATE</span><span class="free">FREE</span></div>
+      <h3>.env Template Generator</h3>
+      <p>Sanitize a <code>.env</code> into a shareable template. Outputs docker-compose <code>env_file</code> plus GitHub Actions secrets list.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/cron-builder/" class="fCard c-cyan">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// CRON BUILDER</span><span class="free">FREE</span></div>
+      <h3>Cron Expression Builder</h3>
+      <p>Type a cron, get plain-English plus the next 10 actual fire times in your local timezone. Validates 5-field syntax, lists/ranges/steps.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/json-formatter/" class="fCard c-mint">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// JSON FORMATTER</span><span class="free">FREE</span></div>
+      <h3>JSON Formatter (no adware)</h3>
+      <p>Format, validate, minify, sort-keys any JSON in your browser. The popular Chrome extension was reported to inject ads + track URLs after an auto-update. This one runs in this tab and does not.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/uuid-generator/" class="fCard c-amber">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// UUID GENERATOR</span><span class="free">FREE</span></div>
+      <h3>UUID Generator (v4 / v7)</h3>
+      <p>Generate v4 random or v7 timestamp-ordered UUIDs in bulk. Validate any UUID + decode version, variant, and embedded timestamp.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/hash-generator/" class="fCard c-orange">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// HASH GENERATOR</span><span class="free">FREE</span></div>
+      <h3>Hash Generator (MD5 / SHA family)</h3>
+      <p>MD5, SHA-1, SHA-256, SHA-384, SHA-512 of any text or file. WebCrypto for SHA, RFC 1321 for MD5. Files read into memory and never uploaded.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/base64-coder/" class="fCard c-indigo">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// BASE64 CODER</span><span class="free">FREE</span></div>
+      <h3>Base64 Encoder / Decoder</h3>
+      <p>Encode/decode any text or file as base64, base64url, or URL-encoded. Roundtrip verification, paste from clipboard, drag-drop files.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/git-audit/" class="fCard c-mint">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// GIT AUDIT</span><span class="free">FREE</span></div>
+      <h3>Git Repo Audit</h3>
+      <p>Paste a public repo URL, get a quick read on commit cadence, contributor concentration, and obvious red flags before you depend on it.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/claude-md-analyzer/" class="fCard c-indigo">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// CLAUDE.MD ANALYZER</span><span class="free">FREE</span></div>
+      <h3>CLAUDE.md Analyzer</h3>
+      <p>Drop your <code>CLAUDE.md</code>, get a structural read — section coverage, contradiction flags, token weight, doctrine gaps. Browser-side only.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+  </div>
+</section>
+
+<!-- CRYPTO -->
+<section class="fSec hidden" id="tab-crypto">
+  <div class="fSecHead">
+    <h2>For <em>crypto.</em></h2>
+    <p>Read-only, decode-only, verify-only. No wallet connection, no key generation, no custody. Public-RPC reads only — and the network tab will confirm exactly what does and doesn't fire.</p>
+  </div>
+  <div class="fGrid">
+    <a href="/tools/gas-estimator/" class="fCard c-blue">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// GAS ESTIMATOR</span><span class="free">FREE</span></div>
+      <h3>Ethereum Gas Estimator</h3>
+      <p>Compare L1 vs L2 transaction costs side-by-side. Live gas price from public Cloudflare RPC, cached 30 seconds. No wallet, no API key.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/keccak256/" class="fCard c-purple">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// KECCAK-256</span><span class="free">FREE</span></div>
+      <h3>Keccak-256 Hasher</h3>
+      <p>The hash Ethereum actually uses (not FIPS SHA-3). Function selector display built in. Catches the common bug of using SHA-3 library where you wanted Keccak.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/holder-concentration/" class="fCard c-purple">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// HOLDER CONCENTRATION</span><span class="free">FREE</span></div>
+      <h3>Holder Concentration</h3>
+      <p>Top-20 SPL token holders + concentration index from public Solana RPC. Replaces a paywalled Photon/GMGN feature. No wallet, no API key.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/pumpfun-bonding/" class="fCard c-purple">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// PUMP.FUN SIM</span><span class="free">FREE</span></div>
+      <h3>Pump.fun Bonding Curve Simulator</h3>
+      <p>Punch in a SOL amount, see exactly what you'd receive on a fresh launch &mdash; tokens, avg price, slippage, post-buy market cap, graduation distance.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+  </div>
+</section>
+
+<!-- EVERYONE -->
+<section class="fSec hidden" id="tab-everyone">
+  <div class="fSecHead">
+    <h2>For <em>everyone.</em></h2>
+    <p>Tools that don't require code or crypto knowledge. Plain language, browser-only, no email captured. The "no email" piece is a factual claim — not a marketing line.</p>
+  </div>
+  <div class="fGrid">
+    <a href="/tools/freelance-rate/" class="fCard c-mint">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// FREELANCE RATE</span><span class="free">FREE</span></div>
+      <h3>Freelance Rate Calculator</h3>
+      <p>What you actually need to charge to take home what you want. Includes self-employment tax, benefits, billable hours. The math salary&divide;2080 gets wrong by $3,000-$8,000 a year.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/wedding-budget/" class="fCard c-pink">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// WEDDING BUDGET</span><span class="free">FREE</span></div>
+      <h3>Wedding Budget Calculator</h3>
+      <p>Auto-allocate your total across 12 categories. Adjust sliders, download as PDF. No email captured. The Knot and Zola gate this — Septim doesn't.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/pdf-redactor/" class="fCard c-amber">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// PDF REDACTOR</span><span class="free">FREE</span></div>
+      <h3>PDF Redactor</h3>
+      <p>Black-box sensitive parts of any PDF. Nothing uploaded, ever. Output PDF has the redactions burned in as bitmap — text underneath isn't selectable from the saved file.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/palette/" class="fCard c-pink">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// PALETTE</span><span class="free">FREE</span></div>
+      <h3>Color Palette Builder</h3>
+      <p>Pick a base color, get a full palette — tints, shades, complementary, triadic. Copy as hex, hsl, oklch, or Tailwind config. Browser-side.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+  </div>
+</section>
+
+<!-- WAITLIST -->
+<section class="fSec hidden" id="tab-waitlist">
+  <div class="fSecHead">
+    <h2>On the <em>bench.</em></h2>
+    <p>Tools we're working on or scoping. Join a waitlist, get pinged when one ships. Same Forge rules apply: browser-side, no server requirement, no subscription.</p>
+  </div>
+  <div class="fGrid">
+    <a href="/tools/septim-meter-waitlist/" class="fCard c-amber" style="border-style:dashed">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// SEPTIM METER</span><span class="pro">SOON</span></div>
+      <h3>Claude Quota Meter</h3>
+      <p>Claude Code v2.1.100+ injects ~20K invisible <code>cache_creation_input_tokens</code> per request — counting against your daily limit with no native audit surface. GitHub #46917 open. Meter surfaces the overhead, version by version. Join the waitlist.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/septim-mark-waitlist/" class="fCard c-indigo" style="border-style:dashed">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// SEPTIM MARK</span><span class="pro">SOON</span></div>
+      <h3>Septim Mark</h3>
+      <p>Watermarking + provenance helper for Claude Code outputs. Browser-side. Join the waitlist for early-access details.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+    <a href="/tools/worktree-guard-waitlist/" class="fCard c-cyan" style="border-style:dashed">
+      <div class="fcBar"></div>
+      <div class="fcLabel"><span>// WORKTREE GUARD</span><span class="pro">SOON</span></div>
+      <h3>Worktree Guard</h3>
+      <p>A pre-commit hook that catches the classic "you're in the wrong worktree" mistake before it lands in main. Join the waitlist.</p>
+      <span class="fcArrow">&#8599;</span>
+    </a>
+  </div>
+</section>
+
+<section class="fPro">
+  <h3>Forge Pro &mdash; coming soon.</h3>
+  <p>Pay-once unlock for Pro features across the Forge suite. $9 lifetime. No subscription. No account. We'll list exact Pro features here once they're locked. Open-source where applicable; commercial-friendly where it isn't.</p>
+  <p class="fine">Need more than a free tool? Septim ships <a href="/products/">pay-once developer products</a>, <a href="/audit">a 48-hour product audit</a>, and <a href="/for-small-business">custom SMB software builds</a>. No subscriptions, ever. &mdash; Something broken? <a href="/support/">Get help &rarr;</a></p>
+</section>
+</main>
+
+<div id="site-foot"></div>
+<script src="../site-shell.js?v=4.6.0"></script>
+<script src="../site.js?v=4.6.0"></script>
+<script>
+// Tab switching
+document.querySelectorAll('.fTab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('.fTab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.fSec').forEach(s => s.classList.toggle('hidden', s.id !== 'tab-' + tab));
+    history.replaceState(null, '', '#' + tab);
+  });
+});
+const hash = window.location.hash.slice(1);
+if (hash && ['dev','crypto','everyone','waitlist'].includes(hash)) {
+  document.querySelector(`.fTab[data-tab="${hash}"]`)?.click();
+}
+</script>
+</body>
+</html>

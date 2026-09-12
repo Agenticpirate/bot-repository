@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="canonical" href="https://septimlabs.com/es/tools/audit.html" />
+<meta property="og:locale" content="es_ES" />
+
+<!-- SEPTIM-I18N-HREFLANG -->
+<link rel="alternate" hreflang="x-default" href="https://septimlabs.com/tools/audit.html" />
+<link rel="alternate" hreflang="en" href="https://septimlabs.com/tools/audit.html" />
+<link rel="alternate" hreflang="es" href="https://septimlabs.com/es/tools/audit.html" />
+<link rel="alternate" hreflang="zh" href="https://septimlabs.com/zh/tools/audit.html" />
+<link rel="alternate" hreflang="hi" href="https://septimlabs.com/hi/tools/audit.html" />
+<link rel="alternate" hreflang="pt" href="https://septimlabs.com/pt/tools/audit.html" />
+<link rel="alternate" hreflang="de" href="https://septimlabs.com/de/tools/audit.html" />
+<link rel="alternate" hreflang="fr" href="https://septimlabs.com/fr/tools/audit.html" />
+<link rel="alternate" hreflang="ja" href="https://septimlabs.com/ja/tools/audit.html" />
+<link rel="alternate" hreflang="ru" href="https://septimlabs.com/ru/tools/audit.html" />
+<link rel="alternate" hreflang="ar" href="https://septimlabs.com/ar/tools/audit.html" />
+<!-- /SEPTIM-I18N-HREFLANG -->
+
+<title>Audit — Septim Labs</title>
+    <!-- Open Graph + Twitter Card (auto-injected by inject_og_meta.py) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://septimlabs.com/es/tools/audit" />
+    <meta property="og:title" content="Audit — Septim Labs" />
+    <meta property="og:description" content="Septim Labs — pay-once developer tools, custom SMB software builds. You buy once, you keep it." />
+    <meta property="og:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Septim Labs" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Audit — Septim Labs" />
+    <meta name="twitter:description" content="Septim Labs — pay-once developer tools, custom SMB software builds. You buy once, you keep it." />
+    <meta name="twitter:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../site.css?v=4.6.1" />
+<style>
+  /* AUDIT — Forensic teardown of a software bill. Amber accent.
+     Same chassis as agents/atlas/etc. Dark default, sans-only, neon. */
+  :root[data-theme="dark"] .au-page{
+  --paper:var(--bg);--paper-2:var(--bg);--paper-3:#141414;
+  --ink-a:#f0f0f0;--ink2-a:#9aa0aa;--ink3-a:#5a606a;
+  --rule-a:var(--line);--rule2-a:var(--line-2);
+  --field-a:var(--bg);--field2-a:#141414;
+  --p:var(--p);--p-soft:rgba(255,176,32,.14);--p-deep:#a06820;
+  --ok:#5fc587;--warn:#e6a14a;--err:#e96c6c;
+}
+  :root[data-theme="light"] .au-page{
+  --paper:var(--ink);--paper-2:#f5f5f5;--paper-3:#e8e8e8;
+  --ink-a:var(--bg);--ink2-a:#454852;--ink3-a:#7a7e88;
+  --rule-a:rgba(0,0,0,.10);--rule2-a:rgba(0,0,0,.22);
+  --field-a:#f5f5f5;--field2-a:#e8e8e8;
+  --p:#a06820;--p-soft:rgba(160,104,32,.10);--p-deep:#7a4f18;
+  --ok:#2a7e4f;--warn:#a06820;--err:#a02818;
+}
+  body{background:var(--paper)}
+  .au-page{background:var(--paper);color:var(--ink-a);font-family:var(--mono);line-height:1.5}
+
+  /* HUD */
+  .hud{position:sticky;top:0;z-index:40;display:grid;grid-template-columns:auto 1fr auto auto auto;
+    align-items:center;padding:0;border-bottom:1px solid var(--rule2-a);
+    background:color-mix(in srgb,var(--paper) 90%,transparent);
+    backdrop-filter:blur(14px);font-family:var(--mono);font-size:10.5px;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--ink3-a)}
+  .hud > *{padding:10px 18px;border-right:1px solid var(--rule-a)}
+  .hud > *:last-child{border-right:none}
+  .hud .file{color:var(--p);font-weight:600;display:flex;align-items:center;gap:10px}
+  .hud .file::before{content:"";width:7px;height:7px;background:var(--p);
+    box-shadow:0 0 10px var(--p);border-radius:50%;animation:hp 2s infinite ease-in-out}
+  @keyframes hp{0%,100%{opacity:1}50%{opacity:.35}}
+  .hud .ticker{color:var(--ink2-a);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .hud .clock{font-variant-numeric:tabular-nums;min-width:130px;text-align:center;color:var(--ink-a)}
+  @media(max-width:780px){.hud{grid-template-columns:auto 1fr auto}.hud .build,.hud .ok{display:none}}
+
+  /* HERO */
+  .hero{padding:80px clamp(20px,5vw,80px) 60px;display:grid;grid-template-columns:1.05fr 1fr;
+    gap:60px;border-bottom:1px solid var(--rule2-a);position:relative}
+  .hero::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(900px 480px at 90% 0%,var(--p-soft),transparent 60%)}
+  .hero > *{position:relative;z-index:1}
+  .crumb{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3-a);
+    display:flex;gap:14px;align-items:center;margin-bottom:36px}
+  .crumb a{color:var(--ink2-a);text-decoration:none}
+  .crumb b{color:var(--p);font-weight:600}
+  .hero h1{font-family:var(--sans);font-size:clamp(56px,8vw,128px);font-weight:700;
+    letter-spacing:-.045em;line-height:.92;margin:0 0 28px;color:var(--ink-a)}
+  .hero h1 em{font-style:normal;font-weight:700;color:var(--p)}
+  .hero .blurb{font-family:var(--sans);font-size:18px;line-height:1.55;color:var(--ink2-a);max-width:54ch;margin:0 0 36px}
+  .hero .blurb em{font-style:normal;color:var(--ink-a);font-weight:500}
+  .hero .blurb b{font-weight:500;background:var(--p-soft);color:var(--ink-a);padding:1px 6px}
+  .hero .meta{display:grid;grid-template-columns:repeat(4,auto);border:1px solid var(--rule2-a);background:var(--paper-2);width:fit-content;font-size:11px}
+  .hero .meta > div{padding:14px 22px;border-right:1px solid var(--rule-a)}
+  .hero .meta > div:last-child{border-right:none}
+  .hero .meta .k{color:var(--ink3-a);letter-spacing:.16em;text-transform:uppercase;font-size:10px;margin-bottom:6px}
+  .hero .meta .v{color:var(--ink-a);font-size:18px;font-weight:600;letter-spacing:-.01em}
+  .hero .meta .v.price{color:var(--p);font-size:24px;font-weight:700}
+  .hero .actions{margin-top:32px;display:flex;gap:14px;flex-wrap:wrap}
+  .btn-p{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;background:var(--p);color:var(--bg);
+    text-decoration:none;font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;border-radius:3px}
+  .btn-g{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border:1px solid var(--rule2-a);color:var(--ink-a);
+    text-decoration:none;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+  .btn-g:hover{border-color:var(--ink-a)}
+
+  /* HERO PANEL — sample bill summary card with redactions */
+  .billcard{background:var(--paper-2);border:1px solid var(--rule2-a);border-radius:6px;
+    overflow:hidden;font-size:13px;color:var(--ink-a);min-height:480px;display:flex;flex-direction:column}
+  .billcard .tbar{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--rule-a);background:var(--paper-3);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3-a)}
+  .billcard .tbar .stamp{margin-left:auto;color:var(--kill);border:1px solid var(--kill);padding:2px 8px;letter-spacing:.18em}
+  .billcard .body{padding:18px 22px;flex:1;display:flex;flex-direction:column;gap:0}
+  .billcard .ttl{font-family:var(--sans);font-size:18px;font-weight:600;letter-spacing:-.015em;color:var(--ink-a);margin-bottom:2px}
+  .billcard .sub{font-size:11px;color:var(--ink3-a);letter-spacing:.06em;margin-bottom:18px}
+  .billcard .row{display:grid;grid-template-columns:1fr 80px 90px;gap:12px;padding:9px 0;border-bottom:1px dotted var(--rule-a);font-size:12px;align-items:center;font-variant-numeric:tabular-nums}
+  .billcard .row:last-of-type{border-bottom:none}
+  .billcard .row .v{color:var(--ink-a);display:flex;align-items:center;gap:8px}
+  .billcard .row .v .red{background:var(--ink2-a);color:transparent;user-select:none;padding:0 6px;border-radius:1px;font-weight:600;letter-spacing:.04em}
+  .billcard .row .v small{color:var(--ink3-a);font-size:10.5px}
+  .billcard .row .a{text-align:right;color:var(--ink-a)}
+  .billcard .row .verd{font-size:10px;letter-spacing:.12em;font-weight:700;text-align:right;text-transform:uppercase}
+  .billcard .row .verd.kill{color:var(--kill)}
+  .billcard .row .verd.keep{color:var(--ok)}
+  .billcard .row .verd.merge{color:var(--p)}
+  .billcard .totals{margin-top:14px;padding-top:14px;border-top:1px dashed var(--rule2-a);display:grid;grid-template-columns:1fr auto;gap:6px;font-size:11px;color:var(--ink3-a);letter-spacing:.06em;text-transform:uppercase}
+  .billcard .totals b{color:var(--ink-a);font-family:var(--sans);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em;text-transform:none;font-size:15px}
+  .billcard .saved{margin-top:18px;padding:18px;border:1px solid var(--p);background:var(--p-soft);display:flex;justify-content:space-between;align-items:baseline;border-radius:3px}
+  .billcard .saved .lab{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink2-a)}
+  .billcard .saved .num{font-family:var(--sans);font-size:38px;font-weight:800;color:var(--p);letter-spacing:-.035em;line-height:1}
+  @media(max-width:980px){.hero{grid-template-columns:1fr}.billcard{min-height:auto}}
+
+  /* Section system */
+  .sec{padding:90px clamp(20px,5vw,80px);border-bottom:1px solid var(--rule2-a)}
+  .sec .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:48px;border-bottom:1px solid var(--rule-a);padding-bottom:14px}
+  .sec .head .ex{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-a)}
+  .sec .head .ex b{background:var(--ink-a);color:var(--paper);padding:3px 9px;margin-right:10px;font-weight:600}
+  .sec .head .pg{font-size:10px;color:var(--ink3-a);letter-spacing:.14em;text-transform:uppercase}
+  .sec h2{font-family:var(--sans);font-size:clamp(34px,4.5vw,64px);font-weight:700;letter-spacing:-.035em;line-height:1.04;margin:0 0 24px;max-width:20ch;color:var(--ink-a)}
+  .sec h2 em{font-style:normal;font-weight:700;color:var(--p)}
+  .sec .copy{font-family:var(--sans);font-size:16px;line-height:1.65;color:var(--ink2-a);max-width:60ch;margin:0 0 16px}
+  .sec .copy b{color:var(--ink-a);font-weight:600;background:var(--p-soft);padding:1px 5px}
+
+  /* EXHIBIT A — full redacted bill table */
+  .bill-full{margin-top:32px;border:1px solid var(--rule2-a);background:var(--paper-2);overflow:hidden}
+  .bill-full .bh{display:flex;justify-content:space-between;align-items:baseline;padding:18px 24px;border-bottom:1px solid var(--rule2-a);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-a)}
+  .bill-full .bh b{font-family:var(--sans);font-size:18px;letter-spacing:-.01em;text-transform:none;font-weight:700;color:var(--ink-a)}
+  .bill-full .bh .stamp{color:var(--kill);border:1px solid var(--kill);padding:3px 10px}
+  .bill-full .br{display:grid;grid-template-columns:160px 1fr 80px 110px 130px;gap:16px;padding:14px 24px;border-bottom:1px dotted var(--rule-a);font-size:13px;align-items:center;font-variant-numeric:tabular-nums}
+  .bill-full .br:last-of-type{border-bottom:none}
+  .bill-full .br .vendor{color:var(--ink-a)}
+  .bill-full .br .vendor .red{background:var(--ink2-a);color:transparent;user-select:none;padding:0 6px;border-radius:1px;font-weight:600;letter-spacing:.04em}
+  .bill-full .br .desc{color:var(--ink2-a);font-size:12px;line-height:1.5}
+  .bill-full .br .freq{color:var(--ink3-a);font-size:10.5px;text-transform:uppercase;letter-spacing:.12em}
+  .bill-full .br .amt{text-align:right;color:var(--ink-a);font-weight:600}
+  .bill-full .br .verdict{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;text-align:right;padding:4px 10px;border:1px solid currentColor;justify-self:end}
+  .bill-full .br .verdict.kill{color:var(--kill)}
+  .bill-full .br .verdict.keep{color:var(--ok)}
+  .bill-full .br .verdict.merge{color:var(--p)}
+  .bill-full .br.notes{font-size:11.5px;color:var(--ink3-a);border-bottom:1px solid var(--rule-a);display:block;padding:0 24px 16px;padding-left:200px;margin-top:-6px}
+  .bill-full .br.notes::before{content:"— ";color:var(--ink3-a)}
+  .bill-full .total-row{display:grid;grid-template-columns:1fr 110px 130px;gap:16px;padding:18px 24px;background:var(--paper-3);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-a);border-top:1px solid var(--rule2-a)}
+  .bill-full .total-row .amt{text-align:right;font-variant-numeric:tabular-nums;font-size:15px;letter-spacing:0}
+  .bill-full .verdict-final{padding:24px;border-top:1px solid var(--rule2-a);background:color-mix(in srgb,var(--p) 6%,var(--paper-2));display:flex;justify-content:space-between;align-items:center}
+  .bill-full .verdict-final .lbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink2-a)}
+  .bill-full .verdict-final .num{font-family:var(--sans);font-size:48px;font-weight:800;color:var(--p);letter-spacing:-.04em;line-height:1}
+  @media(max-width:880px){.bill-full .br{grid-template-columns:1fr 1fr}.bill-full .br .desc,.bill-full .br .freq{display:none}.bill-full .br.notes{padding-left:24px}}
+
+  /* METHODOLOGY — 4 steps */
+  .methods{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;margin-top:32px}
+  .method{background:var(--paper-2);border:1px solid var(--rule-a);border-left:3px solid var(--p);padding:28px;position:relative}
+  .method .step{font-size:10px;letter-spacing:.2em;color:var(--ink3-a);text-transform:uppercase;display:block;margin-bottom:14px}
+  .method .step b{color:var(--p);font-weight:600;margin-right:8px}
+  .method h3{font-family:var(--sans);font-size:22px;font-weight:600;line-height:1.2;letter-spacing:-.02em;margin:0 0 10px;color:var(--ink-a)}
+  .method p{font-family:var(--sans);font-size:14px;line-height:1.6;color:var(--ink2-a);margin:0}
+  @media(max-width:780px){.methods{grid-template-columns:1fr}}
+
+  /* FINDINGS — 5 patterns */
+  .findings{margin-top:32px;border:1px solid var(--rule2-a);background:var(--paper-2)}
+  .findings .ftop{padding:18px 24px;border-bottom:1px solid var(--rule2-a);display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-a)}
+  .findings .ftop b{background:var(--kill);color:var(--bg);padding:4px 10px;font-weight:700;letter-spacing:.12em}
+  .findings .frow{display:grid;grid-template-columns:60px 1fr 160px 140px;gap:24px;padding:22px 24px;border-bottom:1px dotted var(--rule-a);align-items:center}
+  .findings .frow:last-child{border-bottom:none}
+  .findings .frow .n{font-family:var(--sans);font-size:36px;color:var(--p);font-weight:800;line-height:1;letter-spacing:-.04em}
+  .findings .frow .body{font-family:var(--sans);font-size:15px;line-height:1.55;color:var(--ink-a)}
+  .findings .frow .body em{font-style:normal;font-weight:700;color:var(--p)}
+  .findings .frow .body small{display:block;color:var(--ink2-a);font-size:13px;margin-top:4px;font-weight:400}
+  .findings .frow .severity{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;text-align:right;font-weight:600}
+  .findings .frow .severity .pip{display:inline-block;width:8px;height:8px;background:currentColor;margin-right:6px;border-radius:50%;box-shadow:0 0 8px currentColor}
+  .findings .frow .savings{text-align:right;font-family:var(--sans);font-size:24px;color:var(--ok);font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  @media(max-width:880px){.findings .frow{grid-template-columns:40px 1fr;gap:14px}.findings .frow .severity,.findings .frow .savings{grid-column:2;text-align:left;font-size:14px}}
+
+  /* INVOICE / PRICING */
+  .buy{padding:120px clamp(20px,5vw,80px);background:var(--paper-2);border-top:1px solid var(--rule2-a)}
+  .buy h2{font-family:var(--sans);font-size:clamp(36px,4.5vw,72px);font-weight:700;letter-spacing:-.04em;line-height:1.04;margin:0 auto 36px;text-align:center;max-width:20ch;color:var(--ink-a)}
+  .buy h2 em{font-style:normal;color:var(--p);font-weight:700}
+  .invoice{margin:32px auto 0;border:1px solid var(--rule2-a);padding:36px;background:var(--paper);max-width:720px;position:relative}
+  .invoice::before{content:"INVOICE · #0048";position:absolute;top:-11px;left:32px;background:var(--paper-2);padding:0 14px;font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--ink3-a)}
+  .invoice .it{display:flex;justify-content:space-between;align-items:baseline;padding:14px 0;border-bottom:1px dotted var(--rule-a);font-family:var(--sans);font-size:15px;color:var(--ink-a)}
+  .invoice .it .lbl{display:flex;flex-direction:column;gap:2px;font-weight:500}
+  .invoice .it .lbl small{font-size:11.5px;color:var(--ink3-a);font-weight:400}
+  .invoice .it .amt{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600}
+  .invoice .it.crossed{color:var(--ink3-a)}
+  .invoice .it.crossed .amt{text-decoration:line-through}
+  .invoice .it.crossed .lbl{color:var(--ink3-a)}
+  .invoice .total{display:flex;justify-content:space-between;align-items:baseline;margin-top:18px;padding-top:18px;border-top:2px solid var(--ink-a)}
+  .invoice .total .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--ink-a);text-transform:uppercase;font-weight:600}
+  .invoice .total .amt{font-family:var(--sans);font-weight:800;font-size:64px;color:var(--p);letter-spacing:-.045em;line-height:1}
+  .invoice .note{margin-top:18px;padding-top:18px;border-top:1px solid var(--rule-a);font-family:var(--sans);font-size:13px;color:var(--ink2-a);line-height:1.6}
+  .buy .order{display:inline-flex;align-items:center;gap:18px;padding:18px 32px;background:var(--p);color:var(--bg);text-decoration:none;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;margin-top:32px;border-radius:3px;transition:transform .25s}
+  .buy .order:hover{transform:translateY(-2px)}
+  .buy .order .price{font-family:var(--sans);font-size:18px;letter-spacing:-.01em;text-transform:none;color:var(--bg);font-weight:800}
+  .buy .center{text-align:center}
+  .buy .fine{margin-top:20px;font-family:var(--mono);font-size:11px;color:var(--ink3-a);letter-spacing:.06em}
+
+  /* NEXT */
+  .next{padding:0;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule2-a);border-top:1px solid var(--rule2-a)}
+  .next a{padding:36px 28px;text-decoration:none;background:var(--paper);display:flex;flex-direction:column;gap:6px;color:inherit}
+  .next a:hover{background:var(--paper-2)}
+  .next a .l{font-size:10px;letter-spacing:.18em;color:var(--ink3-a);text-transform:uppercase}
+  .next a .n{font-family:var(--sans);font-size:28px;font-weight:600;letter-spacing:-.02em;color:var(--ink-a)}
+  .next a .d{font-family:var(--sans);font-size:13px;color:var(--ink2-a);line-height:1.5;margin-top:4px}
+  @media(max-width:780px){.next{grid-template-columns:1fr}}
+</style>
+<!-- TOKEN-CONVERT-V4-APPLIED -->
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/kit/apple-touch-icon-180.png" />
+</head>
+<body data-page="tools">
+<div id="site-nav"></div>
+
+<main class="au-page">
+
+  <!-- HUD -->
+  <div class="hud">
+    <span class="file">FORENSIC/AUDIT-V3.1</span>
+    <span class="ticker"><span id="tick"># 47 audits closed · avg recovered $11,400/yr · last delivery 2 days ago</span></span>
+    <span class="clock" id="clk">--:--:-- UTC</span>
+    <span class="build">9-PG REPORT</span>
+    <span class="ok" style="color:var(--ok)">● BOOKED</span>
+  </div>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div>
+      <div class="crumb"><a href="../tools.html">/ tools</a><span>›</span><b>01 · audit</b><span>·</span><span>operations</span></div>
+      <h1>A forensic teardown<br/>of your <em>software bill.</em></h1>
+      <p class="blurb">A 9-page redacted report walks every line of your monthly subscription bill and tells you which ones are <b>fraud, duplication, or upsell</b>. We've recovered an average of <b>$11,400/year</b> across 47 audits.</p>
+      <div class="meta">
+        <div><div class="k">Format</div><div class="v">PDF · 9pp</div></div>
+        <div><div class="k">Turnaround</div><div class="v">72 hrs</div></div>
+        <div><div class="k">Audits</div><div class="v">47</div></div>
+        <div><div class="k">Price</div><div class="v price">$149</div></div>
+      </div>
+      <div class="actions">
+        <a class="btn-p" href="../contact.html?subject=Audit">Order audit · $149 once <span>→</span></a>
+        <a class="btn-g" href="#sample">See a sample</a>
+      </div>
+    </div>
+
+    <!-- Hero panel: redacted bill summary -->
+    <div class="billcard">
+      <div class="tbar"><span>CLIENT 0042 · NOV REVIEW</span><span class="stamp">REDACTED</span></div>
+      <div class="body">
+        <div class="ttl">Bill of Subscriptions</div>
+        <div class="sub">12-MONTH AVERAGE · 7 LINE ITEMS SHOWN</div>
+        <div class="row"><span class="v"><span class="red">XXXXXXXXXX</span><small>"all-in-one" CRM suite</small></span><span class="a">$840</span><span class="verd kill">⨯ KILL</span></div>
+        <div class="row"><span class="v"><span class="red">XXXXXXX</span><small>email marketing</small></span><span class="a">$219</span><span class="verd kill">⨯ KILL</span></div>
+        <div class="row"><span class="v"><span class="red">XXXXXX</span><small>booking widget</small></span><span class="a">$78</span><span class="verd merge">⇄ MERGE</span></div>
+        <div class="row"><span class="v"><span class="red">XXXXXXXX</span><small>document signing</small></span><span class="a">$45</span><span class="verd keep">✓ KEEP</span></div>
+        <div class="row"><span class="v"><span class="red">XXXXXXXXX</span><small>project mgmt · 8 seats</small></span><span class="a">$192</span><span class="verd kill">⨯ KILL</span></div>
+        <div class="row"><span class="v"><span class="red">XXXX</span><small>"insights" BI add-on</small></span><span class="a">$340</span><span class="verd kill">⨯ KILL</span></div>
+        <div class="row"><span class="v"><span class="red">XXXXXXXX</span><small>file storage · enterprise</small></span><span class="a">$120</span><span class="verd merge">⇄ DOWNGRADE</span></div>
+        <div class="totals"><span>Monthly · before</span><b>$1,834</b></div>
+        <div class="totals"><span>Monthly · after</span><b style="color:var(--p)">$248</b></div>
+        <div class="saved"><span class="lab">Annual recovery</span><span class="num">$19,032</span></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- EXHIBIT A — sample bill -->
+  <section class="sec" id="sample">
+    <div class="head"><span class="ex"><b>EXHIBIT A</b>Sample bill, redacted</span><span class="pg">PG. 02 / 09</span></div>
+    <h2>What an audit <em>actually looks like.</em></h2>
+    <p class="copy">Below is a real client's monthly bill, lightly redacted. Vendor names are blacked out for confidentiality. The verdict column on the right is what you receive — every line, every month.</p>
+
+    <div class="bill-full">
+      <div class="bh"><b>Bill of Subscriptions — Noviembre</b><span class="stamp">REDACTED · CLIENT 0042</span></div>
+
+      <div class="br"><span class="vendor"><span class="red">XXXXXXXXXX</span></span><span class="desc">"All-in-one" CRM, marketing, helpdesk suite</span><span class="freq">/mo</span><span class="amt">$840.00</span><span class="verdict kill">⨯ Kill</span></div>
+      <div class="br notes">Replaced 3 standalone tools client liked better. Vendor's roadmap is now 90% AI features client doesn't use.</div>
+
+      <div class="br"><span class="vendor"><span class="red">XXXXXXX</span></span><span class="desc">Email marketing, 12k contacts, 2 sends/mo</span><span class="freq">/mo</span><span class="amt">$219.00</span><span class="verdict kill">⨯ Kill</span></div>
+      <div class="br notes">Client uses 1.7% of feature surface. Recommend: Listmonk on $5/mo VPS.</div>
+
+      <div class="br"><span class="vendor"><span class="red">XXXXXX</span></span><span class="desc">Booking widget on marketing site</span><span class="freq">/mo</span><span class="amt">$78.00</span><span class="verdict merge">⇄ Merge</span></div>
+      <div class="br notes">Functionality already inside the kill-target above. Migrate &amp; cancel separately.</div>
+
+      <div class="br"><span class="vendor"><span class="red">XXXXXXXX</span></span><span class="desc">Cloud document signing</span><span class="freq">/mo</span><span class="amt">$45.00</span><span class="verdict keep">✓ Keep</span></div>
+      <div class="br notes">Legitimate. Used 4×/week. No equivalent free tool meets compliance.</div>
+
+      <div class="br"><span class="vendor"><span class="red">XXXXXXXXX</span></span><span class="desc">Project management, 8 seats</span><span class="freq">/mo</span><span class="amt">$192.00</span><span class="verdict kill">⨯ Kill</span></div>
+      <div class="br notes">Last team activity: 47 days ago. Recommend: a markdown file.</div>
+
+      <div class="br"><span class="vendor"><span class="red">XXXX</span></span><span class="desc">"Insights" dashboard, BI add-on</span><span class="freq">/mo</span><span class="amt">$340.00</span><span class="verdict kill">⨯ Kill</span></div>
+      <div class="br notes">Three saved dashboards. Two have not been opened since onboarding. One we rebuilt in Metabase ($0) in 90 minutes.</div>
+
+      <div class="br"><span class="vendor"><span class="red">XXXXXXXX</span></span><span class="desc">File storage &amp; sharing, "Business Plus"</span><span class="freq">/mo</span><span class="amt">$120.00</span><span class="verdict merge">⇄ Downgrade</span></div>
+      <div class="br notes">Sized for 200-person org. Client has 8 seats. Step down to "Standard" — saves $84/mo, no functionality lost.</div>
+
+      <div class="total-row"><span>Monthly total · before audit</span><span class="amt">$1,834</span><span></span></div>
+      <div class="verdict-final"><span class="lbl">After our recommendations · projected monthly</span><span class="num">$248</span></div>
+    </div>
+  </section>
+
+  <!-- METHODOLOGY -->
+  <section class="sec">
+    <div class="head"><span class="ex"><b>EXHIBIT B</b>Methodology</span><span class="pg">PG. 04 / 09</span></div>
+    <h2>How the audit is <em>conducted.</em></h2>
+    <p class="copy">Once you place the order, you receive a single intake form. Upload the past six months of statements from each card or account that pays for software. <b>We do the rest.</b> No login credentials. No connectors. No surprises.</p>
+
+    <div class="methods">
+      <div class="method">
+        <span class="step"><b>STEP 01</b>INTAKE</span>
+        <h3>You upload your statements.</h3>
+        <p>Six months. Any format — CSV, PDF, screenshots from a banking app. We accept all. We do not need login credentials. We do not connect to any of your accounts.</p>
+      </div>
+      <div class="method">
+        <span class="step"><b>STEP 02</b>CLASSIFICATION</span>
+        <h3>Every charge is categorized by hand.</h3>
+        <p>A human (one of three on staff) reads every line. Each subscription is classified — vendor, function, billing frequency, contract type, and whether the vendor has materially changed in the last 12 months.</p>
+      </div>
+      <div class="method">
+        <span class="step"><b>STEP 03</b>INVESTIGATION</span>
+        <h3>We use the tool the way you do.</h3>
+        <p>Where login allows, we sign into your account (with your supervised consent) and examine actual usage. Most "essential" subscriptions are touched fewer than four times a quarter.</p>
+      </div>
+      <div class="method">
+        <span class="step"><b>STEP 04</b>VERDICT</span>
+        <h3>You receive a 9-page document.</h3>
+        <p>One verdict per line. Keep, Kill, Merge, or Downgrade. Each verdict carries a one-sentence justification, a recommended replacement, and the dollar amount you save by acting on it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FINDINGS -->
+  <section class="sec">
+    <div class="head"><span class="ex"><b>EXHIBIT C</b>Common findings</span><span class="pg">PG. 06 / 09</span></div>
+    <h2>What we keep <em>finding, over and over.</em></h2>
+    <p class="copy">Across forty-seven audits, the same five patterns account for <b>87% of recoverable spend.</b></p>
+
+    <div class="findings">
+      <div class="ftop"><span>FINDING · FREQUENCY · AVG. ANNUAL RECOVERY</span><b>SEVERITY · CRITICAL</b></div>
+
+      <div class="frow">
+        <span class="n">01</span>
+        <div class="body"><em>Zombie subscriptions.</em> <small>A trial that auto-billed for nineteen months because the credit card never declined. Found in 38 of 47 audits.</small></div>
+        <span class="severity" style="color:var(--kill)"><span class="pip"></span>CRITICAL</span>
+        <span class="savings">$2,800/yr</span>
+      </div>
+      <div class="frow">
+        <span class="n">02</span>
+        <div class="body"><em>The "all-in-one" trap.</em> <small>A consolidated suite charging $800+/mo that replaced four tools — three of which the team still uses on a side card. Found in 24 of 47.</small></div>
+        <span class="severity" style="color:var(--kill)"><span class="pip"></span>CRITICAL</span>
+        <span class="savings">$5,200/yr</span>
+      </div>
+      <div class="frow">
+        <span class="n">03</span>
+        <div class="body"><em>Tier-creep.</em> <small>Started on Standard, was upsold to Enterprise during a six-month "trial," never stepped back down. Average overpay: $84/mo.</small></div>
+        <span class="severity" style="color:var(--p)"><span class="pip"></span>HIGH</span>
+        <span class="savings">$1,008/yr</span>
+      </div>
+      <div class="frow">
+        <span class="n">04</span>
+        <div class="body"><em>Seat ghosts.</em> <small>Paying per-seat for users who left the company. We've seen 12 ghost seats on a 14-seat plan. Average: 31% of seats unused.</small></div>
+        <span class="severity" style="color:var(--p)"><span class="pip"></span>HIGH</span>
+        <span class="savings">$1,640/yr</span>
+      </div>
+      <div class="frow">
+        <span class="n">05</span>
+        <div class="body"><em>The premium add-on for one report.</em> <small>Paying $200/mo for a BI tier to access one PDF export. Always rebuildable in an afternoon.</small></div>
+        <span class="severity" style="color:var(--ink2-a)"><span class="pip"></span>MEDIUM</span>
+        <span class="savings">$760/yr</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- BUY / INVOICE -->
+  <section class="buy">
+    <h2>One line item, replaces <em>twelve.</em></h2>
+
+    <div class="invoice">
+      <div class="it"><div class="lbl">Audit · 9-page report<small>One time. PDF + signed cover letter.</small></div><div class="amt">$149.00</div></div>
+      <div class="it crossed"><div class="lbl">Subscription tier 2<small>You won't need it.</small></div><div class="amt">—</div></div>
+      <div class="it crossed"><div class="lbl">"Premium" support<small>You won't need it.</small></div><div class="amt">—</div></div>
+      <div class="it crossed"><div class="lbl">Annual renewal<small>It's a document. It doesn't expire.</small></div><div class="amt">—</div></div>
+      <div class="total"><span class="lbl">Due now</span><span class="amt">$149</span></div>
+      <div class="note">— Garantía de devolución de dinero if we cannot identify at least <b style="color:var(--ink-a);font-weight:600">$1,000/yr</b> in recoverable spend on your bill. We have refunded twice.</div>
+    </div>
+
+    <div class="center">
+      <a class="order" href="../contact.html?subject=Audit"><span>Order the audit</span><span class="price">$149</span></a>
+      <div class="fine">— Average client recovers $11,400/yr. ROI: ~76× in year one.</div>
+    </div>
+  </section>
+
+  <!-- NEXT -->
+  <nav class="next">
+    <a href="agents.html"><span class="l">— Next tool · 02</span><span class="n">Agents →</span><span class="d">A pre-wired Claude Code roster: triage, research, ship.</span></a>
+    <a href="ledger.html"><span class="l">— Or, related</span><span class="n">Ledger →</span><span class="d">Pay-once bookkeeping. The other half of the recovery.</span></a>
+  </nav>
+</main>
+
+<div id="site-foot"></div>
+<div class="grain" aria-hidden="true"></div>
+<script src="../../site.js?v=4.6.0"></script>
+<script src="../../site-shell.js?v=4.6.0"></script>
+<script>
+(()=>{const c=document.getElementById('clk');if(!c)return;const f=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');c.textContent=`${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`};f();setInterval(f,1000)})();
+(()=>{const t=document.getElementById('tick');if(!t)return;const msgs=['# 47 audits closed · avg recovered $11,400/yr · last delivery 2 days ago','# 38 of 47 audits found zombie subs · avg recovery $2,800/yr','# Currently auditing client 0061 · 14 line items · 4 KILL verdicts','# Money-back if we cannot find $1,000/yr in recoverable spend'];let i=0;setInterval(()=>{i=(i+1)%msgs.length;t.textContent=msgs[i]},4500)})();
+</script>
+</body>
+</html>
+</content>
+</invoke>

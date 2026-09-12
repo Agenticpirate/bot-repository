@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Septim Vault &mdash; Bóveda de secretos de desarrollo del lado del cliente</title>
+  <meta name="description" content="Bóveda cifrada en el navegador para secretos de desarrollo: claves de API, tokens, valores .env. AES-256-GCM, nunca transmitidos. Propietaria, $29 de por vida." />
+  <meta property="og:title" content="Septim Vault — bóveda de secretos cifrada del lado del cliente, $29" />
+  <meta property="og:description" content="Tus claves de API y tokens, cifrados con AES-256-GCM, procesados enteramente en tu navegador. Sin servidor. Exporta cuando quieras." />
+  <meta property="og:url" content="https://septimlabs.com/es/vault" />
+  <meta property="og:image" content="https://septimlabs.com/assets/brand/kit/og-card-v2.png" />
+  <meta property="og:type" content="product" />
+  <meta property="og:locale" content="es_ES" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://septimlabs.com/assets/brand/kit/og-card-v2.png" />
+  <link rel="canonical" href="https://septimlabs.com/es/vault/" />
+
+<!-- SEPTIM-I18N-HREFLANG -->
+<link rel="alternate" hreflang="x-default" href="https://septimlabs.com/vault/" />
+<link rel="alternate" hreflang="en" href="https://septimlabs.com/vault/" />
+<link rel="alternate" hreflang="es" href="https://septimlabs.com/es/vault/" />
+<link rel="alternate" hreflang="zh" href="https://septimlabs.com/zh/vault/" />
+<link rel="alternate" hreflang="hi" href="https://septimlabs.com/hi/vault/" />
+<link rel="alternate" hreflang="pt" href="https://septimlabs.com/pt/vault/" />
+<link rel="alternate" hreflang="de" href="https://septimlabs.com/de/vault/" />
+<link rel="alternate" hreflang="fr" href="https://septimlabs.com/fr/vault/" />
+<link rel="alternate" hreflang="ja" href="https://septimlabs.com/ja/vault/" />
+<link rel="alternate" hreflang="ru" href="https://septimlabs.com/ru/vault/" />
+<link rel="alternate" hreflang="ar" href="https://septimlabs.com/ar/vault/" />
+<!-- /SEPTIM-I18N-HREFLANG -->
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/kit/apple-touch-icon-180.png" />
+
+
+
+  <style>
+    :root {
+      --bg: var(--bg);
+      --bg-2: var(--bg-1);
+      --bg-3: #161616;
+      --bg-hover: var(--shade);
+      --border: var(--line);
+      --border-2: var(--line-2);
+      --text: var(--ink);
+      --muted: var(--ink-2);
+      --subtle: var(--ink-3);
+      --accent: var(--p);
+      --accent-dim: rgba(61,191,138,0.12);
+      --accent-border: rgba(61,191,138,0.35);
+      --danger: var(--p);
+      --danger-dim: rgba(248,113,113,0.1);
+      --danger-border: rgba(248,113,113,0.35);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--sans), -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    input, textarea { font-family: inherit; background: var(--bg-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 14px; width: 100%; outline: none; transition: border-color .15s; }
+    input:focus, textarea:focus { border-color: var(--accent); }
+    .mono { font-family: var(--mono), monospace; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+
+    /* NAV */
+    nav { position: sticky; top: 0; z-index: 50; background: rgba(10,10,10,0.9); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
+    nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+    nav .brand { font-weight: 700; font-size: 16px; letter-spacing: -0.02em; }
+    nav .brand .accent { color: var(--accent); }
+    nav .nav-actions { display: flex; gap: 12px; align-items: center; }
+    nav .state-chip { font-family: var(--mono), monospace; font-size: 11px; color: var(--muted); padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; }
+    nav .state-chip.locked { color: var(--danger); border-color: var(--danger-border); }
+    nav .state-chip.unlocked { color: var(--accent); border-color: var(--accent-border); }
+
+    /* BTN */
+    .btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 13px; transition: background .15s, border-color .15s; display: inline-flex; align-items: center; gap: 8px; }
+    .btn-primary { background: var(--accent); color: #042114; }
+    .btn-primary:hover { background: #5cd19f; }
+    .btn-ghost { border: 1px solid var(--border-2); color: var(--text); background: transparent; }
+    .btn-ghost:hover { background: var(--bg-hover); }
+    .btn-danger { border: 1px solid var(--danger-border); color: var(--danger); background: transparent; }
+    .btn-danger:hover { background: var(--danger-dim); }
+    .btn-sm { padding: 6px 12px; font-size: 11px; }
+
+    /* HERO / LOCKSCREEN */
+    .pane { padding: 60px 0; }
+    .pane h1 { font-size: clamp(32px, 4.5vw, 48px); line-height: 1.06; letter-spacing: -0.03em; font-weight: 700; margin-bottom: 16px; }
+    .pane h1 em {font-style:normal;color:var(--p)}
+    .pane .lead { font-size: 17px; color: var(--muted); max-width: 640px; margin-bottom: 32px; line-height: 1.6; }
+    .pane .section-label { font-family: var(--mono), monospace; color: var(--accent); font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em; margin-bottom: 12px; }
+
+    /* CARDS */
+    .card { border: 1px solid var(--border); background: var(--bg-2); border-radius: 14px; padding: 28px; margin-bottom: 18px; }
+    .card h3 { font-size: 16px; margin-bottom: 6px; font-weight: 600; }
+    .card p { font-size: 14px; color: var(--muted); line-height: 1.65; margin-bottom: 14px; }
+    .card p:last-child { margin-bottom: 0; }
+
+    .form-row { margin-bottom: 14px; }
+    .form-row label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+    .form-row .hint { font-size: 11px; color: var(--subtle); margin-top: 4px; }
+
+    .warn-box { border: 1px solid var(--danger-border); background: var(--danger-dim); border-radius: 10px; padding: 14px 16px; margin: 16px 0; font-size: 13px; color: var(--text); }
+    .warn-box strong { color: var(--danger); }
+
+    /* SECRET LIST */
+    .secret-list { margin-top: 16px; }
+    .secret-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; background: var(--bg-2); transition: border-color .15s; }
+    .secret-row:hover { border-color: var(--accent-border); }
+    .secret-row .name { flex: 1; font-weight: 500; font-size: 14px; color: var(--text); }
+    .secret-row .type { font-family: var(--mono), monospace; font-size: 10px; padding: 3px 8px; background: var(--accent-dim); color: var(--accent); border-radius: 999px; text-transform: uppercase; letter-spacing: 0.1em; }
+    .secret-row .actions { display: flex; gap: 6px; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-state h3 { color: var(--text); margin-bottom: 8px; font-size: 18px; }
+
+    /* MODAL */
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: var(--bg-2); border: 1px solid var(--border); border-radius: 14px; padding: 28px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
+    .modal h3 { font-size: 18px; margin-bottom: 8px; }
+    .modal .subtitle { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+    .modal .revealed-value { background: var(--bg-3); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: var(--mono), monospace; font-size: 13px; word-break: break-all; color: var(--accent); margin: 12px 0; min-height: 44px; }
+    .modal .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; flex-wrap: wrap; }
+
+    /* TOAST */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--accent); color: #042114; padding: 10px 20px; border-radius: 999px; font-weight: 600; font-size: 13px; transition: transform .25s; z-index: 200; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.danger { background: var(--danger); color: #230a0a; }
+
+    /* UNLOCKED HEADER */
+    .vault-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 12px; }
+    .vault-header h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+    .vault-header .count { font-size: 12px; color: var(--subtle); margin-left: 8px; }
+
+    /* SECTIONS */
+    .section-divider { border-top: 1px solid var(--border); margin: 40px 0 24px; padding-top: 24px; }
+
+    /* SETTINGS GRID */
+    .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 12px; }
+    .settings-grid .btn { justify-content: center; }
+
+    /* HIDDEN */
+    [hidden] { display: none !important; }
+
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); padding: 40px 0; margin-top: 80px; font-size: 12px; color: var(--subtle); }
+    footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    footer a { color: var(--muted); }
+  </style>
+<!-- SEO-R2-PRODUCT-SCHEMA -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Product","name":"Septim Vault","description":"Bóveda de credenciales con cifrado local. Una contraseña maestra desbloquea todo lo demás — claves de API, tokens OAuth, valores .env. Cifrado de grado bancario, se ejecuta en tu navegador. Nada llega a los servidores de Septim.","sku":"SEPTIM-VAULT-29","brand":{"@type":"Brand","name":"Septim Labs"},"url":"https://septimlabs.com/es/vault","image":"https://septimlabs.com/assets/brand/kit/og-card-v2.png","offers":{"@type":"Offer","url":"https://septimlabs.com/es/vault","priceCurrency":"USD","price":"29","availability":"https://schema.org/InStock","priceValidUntil":"2026-12-31","seller":{"@type":"Organization","name":"Septim Labs","url":"https://septimlabs.com"}}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Septim Labs","item":"https://septimlabs.com/"},{"@type":"ListItem","position":2,"name":"Productos","item":"https://septimlabs.com/products"},{"@type":"ListItem","position":3,"name":"Septim Vault","item":"https://septimlabs.com/es/vault"}]}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../site.css?v=4.6.1">
+<style>
+  body[data-page="vault"]{ --p: var(--n-yellow); }
+</style>
+<!-- RETROFIT-V4-APPLIED -->
+<!-- TOKEN-CONVERT-V4-APPLIED -->
+</head>
+<body data-page="vault">
+<div id="site-nav"></div>
+
+
+
+<!-- LOCKSCREEN: no vault -->
+<section id="viewCreate" class="pane wrap" hidden>
+  <div class="section-label">// nueva bóveda</div>
+  <h1>Deja de guardar tus claves de API en una nota adhesiva. <em>Guárdalas bajo bóveda.</em></h1>
+  <p class="lead">Una contraseña maestra. Todo lo demás &mdash; claves de API, tokens OAuth, valores .env &mdash; cerrado en tu navegador con cifrado de grado bancario. Nada llega a nuestros servidores. Nunca.</p>
+  <p class="lead" style="margin-top:.4rem;font-size:.85rem;opacity:.7;"><strong style="color:var(--accent);">Tarifa fundadora:</strong> 20 % de descuento con el código <code style="background:var(--line);padding:2px 8px;border-radius:5px;">FOUNDINGRATE24</code> &mdash; 50 cupos, ventana de 48 horas.</p>
+
+  <div class="card">
+    <h3>Crea tu bóveda</h3>
+    <p>Elige una contraseña maestra fuerte. Es la única manera de descifrar tu bóveda &mdash; si la olvidas, tus datos son irrecuperables. No hay flujo de restablecimiento, porque no tenemos forma de llegar a tus datos.</p>
+
+    <div class="form-row">
+      <label for="createPass">Contraseña maestra</label>
+      <input id="createPass" type="password" placeholder="Usa una frase larga, o una entrada de tu gestor de contraseñas" autocomplete="new-password" />
+      <div class="hint">Mínimo 12 caracteres. Más larga es mejor. Usa una frase que recuerdes.</div>
+    </div>
+    <div class="form-row">
+      <label for="createPassConfirm">Confirma la contraseña maestra</label>
+      <input id="createPassConfirm" type="password" placeholder="Escríbela de nuevo" autocomplete="new-password" />
+    </div>
+
+    <div class="warn-box">
+      <strong>Lee antes de continuar:</strong> esta bóveda se cifra localmente y se almacena en el localStorage de tu navegador. Si limpias los datos del sitio, cambias de navegador o pierdes tu contraseña maestra, tus datos se pierden permanentemente. No podemos recuperarlos. Haz una copia de seguridad en un archivo cifrado al menos cada semana.
+    </div>
+
+    <button id="createBtn" class="btn btn-primary">Crear bóveda &rarr;</button>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <div class="section-label">// ¿tienes una copia de seguridad?</div>
+  <div class="card">
+    <h3>Importar una copia de seguridad cifrada</h3>
+    <p>Si has exportado una bóveda desde otro navegador o dispositivo, puedes importar el archivo cifrado aquí. Necesitarás la contraseña maestra usada al crearla.</p>
+    <input id="importFileCreate" type="file" accept="application/json,.json" />
+  </div>
+</section>
+
+<!-- LOCKSCREEN: vault exists, locked -->
+<section id="viewUnlock" class="pane wrap" hidden>
+  <div class="section-label">// desbloquear bóveda</div>
+  <h1>Bienvenido de vuelta. <em>Desbloquea</em> tu bóveda.</h1>
+  <p class="lead">Tu bóveda cifrada está cargada. Introduce tu contraseña maestra para descifrar en esta sesión del navegador.</p>
+
+  <div class="card">
+    <h3>Contraseña maestra</h3>
+    <div class="form-row">
+      <input id="unlockPass" type="password" placeholder="Tu contraseña maestra" autocomplete="current-password" />
+      <div class="hint">Si la contraseña es incorrecta, el descifrado falla en silencio y no se revela nada. Tres intentos fallidos no se bloquean &mdash; no hay servidor que lo imponga.</div>
+    </div>
+    <button id="unlockBtn" class="btn btn-primary">Desbloquear &rarr;</button>
+  </div>
+
+  <div class="section-divider"></div>
+  <div class="section-label">// gestión de la bóveda</div>
+  <div class="card">
+    <h3>¿Olvidaste tu contraseña maestra?</h3>
+    <p>No hay recuperación. Septim Vault no tiene forma de restablecer tu contraseña &mdash; la contraseña maestra es la que deriva la clave de cifrado, y nosotros nunca la vemos. Tus únicas opciones son restaurar desde un archivo de respaldo (si tienes uno) o destruir esta bóveda y empezar de nuevo.</p>
+    <div class="settings-grid">
+      <button id="destroyVaultBtnLocked" class="btn btn-danger">Destruir esta bóveda</button>
+      <label class="btn btn-ghost"><input id="importFileUnlock" type="file" accept="application/json,.json" hidden /> Importar desde respaldo</label>
+    </div>
+  </div>
+</section>
+
+<!-- UNLOCKED -->
+<section id="viewMain" class="pane wrap" hidden>
+  <div class="vault-header">
+    <h2>Bóveda <span id="secretCount" class="count">0 entradas</span></h2>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button id="addBtn" class="btn btn-primary">+ Nuevo secreto</button>
+      <button id="exportBtn" class="btn btn-ghost">Exportar respaldo</button>
+      <label class="btn btn-ghost"><input id="importFileMain" type="file" accept="application/json,.json" hidden /> Importar</label>
+      <button id="settingsBtn" class="btn btn-ghost">Ajustes</button>
+    </div>
+  </div>
+
+  <div id="secretList" class="secret-list"></div>
+
+  <div id="emptyState" class="empty-state" hidden>
+    <h3>Aún no hay secretos</h3>
+    <p>Añade tu primera clave de API o token para empezar.</p>
+  </div>
+</section>
+
+<!-- MODAL: add/edit secret -->
+<div id="modalEdit" class="modal-backdrop">
+  <div class="modal">
+    <h3 id="modalEditTitle">Añadir un nuevo secreto</h3>
+    <p class="subtitle">Dale un nombre que reconozcas. El valor se cifra individualmente al guardarlo.</p>
+    <div class="form-row">
+      <label for="secretName">Nombre</label>
+      <input id="secretName" type="text" placeholder="p. ej. Clave de API de OpenAI (producción)" autocomplete="off" />
+    </div>
+    <div class="form-row">
+      <label for="secretType">Tipo (opcional)</label>
+      <input id="secretType" type="text" placeholder="api-key, token, db-url, .env, etc." autocomplete="off" />
+    </div>
+    <div class="form-row">
+      <label for="secretValue">Valor del secreto</label>
+      <textarea id="secretValue" rows="4" placeholder="sk-..., whsec_..., postgres://... o cualquier valor multilínea" autocomplete="off"></textarea>
+    </div>
+    <div class="form-row">
+      <label for="secretNotes">Notas (opcional)</label>
+      <textarea id="secretNotes" rows="2" placeholder="Dónde se usa, fecha de rotación, etc." autocomplete="off"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" data-close>Cancelar</button>
+      <button id="saveSecretBtn" class="btn btn-primary">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: reveal secret -->
+<div id="modalReveal" class="modal-backdrop">
+  <div class="modal">
+    <h3 id="revealTitle">Secreto</h3>
+    <p class="subtitle" id="revealType"></p>
+    <div class="revealed-value" id="revealedValue">—</div>
+    <p id="revealNotes" style="font-size:13px;color:var(--muted);margin-bottom:12px;"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" data-close>Cerrar</button>
+      <button id="copyBtn" class="btn btn-primary">Copiar al portapapeles</button>
+      <button id="editSecretBtn" class="btn btn-ghost">Editar</button>
+      <button id="deleteSecretBtn" class="btn btn-danger">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: settings -->
+<div id="modalSettings" class="modal-backdrop">
+  <div class="modal">
+    <h3>Ajustes</h3>
+    <p class="subtitle">Las acciones aquí son permanentes. Asegúrate de tener una copia de seguridad antes de destruir nada.</p>
+    <div class="settings-grid">
+      <button id="changePassBtn" class="btn btn-ghost">Cambiar contraseña maestra</button>
+      <button id="destroyVaultBtn" class="btn btn-danger">Destruir esta bóveda</button>
+    </div>
+    <div class="warn-box" style="margin-top:20px;">
+      <strong>Tus datos nunca salen de tu navegador.</strong> Esta bóveda se cifra con AES-256-GCM usando una clave derivada de tu contraseña maestra mediante PBKDF2 (600.000 iteraciones). Septim Labs no tiene acceso a tus datos y no puede recuperarlos si pierdes tu contraseña.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" data-close>Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: change password -->
+<div id="modalChangePass" class="modal-backdrop">
+  <div class="modal">
+    <h3>Cambiar contraseña maestra</h3>
+    <p class="subtitle">Volveremos a cifrar cada secreto de tu bóveda con una clave nueva. Esto sucede enteramente en tu navegador.</p>
+    <div class="form-row">
+      <label for="currentPass">Contraseña maestra actual</label>
+      <input id="currentPass" type="password" autocomplete="current-password" />
+    </div>
+    <div class="form-row">
+      <label for="newPass">Nueva contraseña maestra</label>
+      <input id="newPass" type="password" autocomplete="new-password" />
+    </div>
+    <div class="form-row">
+      <label for="newPassConfirm">Confirma la nueva contraseña maestra</label>
+      <input id="newPassConfirm" type="password" autocomplete="new-password" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" data-close>Cancelar</button>
+      <button id="confirmChangePassBtn" class="btn btn-primary">Cambiar contraseña</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: paywall -->
+<div id="modalPaywall" class="modal-backdrop">
+  <div class="modal">
+    <h3>Desbloquea Septim Vault &mdash; $29 de por vida</h3>
+    <p class="subtitle">El nivel gratuito tiene un tope de 3 secretos y no permite exportar. La licencia de por vida elimina ambos límites y te incluye todas las actualizaciones futuras.</p>
+
+    <div style="background:var(--bg-3);border:1px solid var(--border);border-radius:10px;padding:16px;margin:16px 0;">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Con la licencia de $29 de por vida obtienes:</div>
+      <ul style="padding-left:20px;font-size:14px;color:var(--text);line-height:1.9;">
+        <li>Secretos ilimitados (sin tope de 3)</li>
+        <li>Exportación e importación de respaldo cifrado</li>
+        <li>Cambiar la contraseña maestra y recifrar in situ</li>
+        <li>Todas las actualizaciones futuras de Vault, gratis, para siempre</li>
+        <li>Reembolso completo de 14 días si no es lo que querías</li>
+      </ul>
+    </div>
+
+    <a id="buyVaultBtn" class="btn btn-primary" href="https://buy.stripe.com/00w7sE4Wy1Q05mEe1ocjS0l?utm_source=vault" style="width:100%;justify-content:center;text-decoration:none;padding:14px;margin-bottom:14px;">Comprar Septim Vault &mdash; $29 una vez &rarr;</a>
+
+    <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:16px;">
+      <div class="form-row">
+        <label for="licenseInput">¿Ya compraste? Ingresa tu ID de sesión de Stripe</label>
+        <input id="licenseInput" type="text" placeholder="cs_live_XXXXXXXXXX..." autocomplete="off" />
+        <div class="hint">Lo encontrarás en tu correo de recibo de Stripe. Empieza con <span class="mono">cs_live_</span> o <span class="mono">cs_test_</span>. Tu licencia se queda en este navegador &mdash; no necesitas cuenta.</div>
+      </div>
+      <button id="activateLicenseBtn" class="btn btn-ghost" style="width:100%;justify-content:center;">Activar licencia</button>
+    </div>
+
+    <div class="modal-actions" style="justify-content:center;">
+      <button class="btn btn-ghost btn-sm" data-close>Seguir con el nivel gratuito</button>
+    </div>
+  </div>
+</div>
+
+<!-- License banner (top of main view) -->
+<div id="licenseBanner" class="wrap" style="background:linear-gradient(135deg,var(--accent-dim),transparent);border:1px solid var(--accent-border);border-radius:10px;padding:12px 18px;margin:12px auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:13px;" hidden>
+  <span>Nivel gratuito: 3 secretos, sin exportación. Desbloquea todo por $29 una vez.</span>
+  <a href="#" onclick="document.getElementById('modalPaywall').classList.add('open');return false;" class="btn btn-primary btn-sm" style="text-decoration:none;">Desbloquear &mdash; $29</a>
+</div>
+
+<div id="toast" class="toast"></div>
+
+
+
+<script>
+(() => {
+  'use strict';
+
+  const STORAGE_KEY = 'septim-vault-v1';
+  const LICENSE_KEY = 'septim-vault-license';
+  const IDLE_LOCK_MS = 10 * 60 * 1000;
+  const PBKDF2_ITERS = 600000;
+  const FREE_TIER_MAX = 3;
+  const STRIPE_LINK = 'https://buy.stripe.com/00w7sE4Wy1Q05mEe1ocjS0l?utm_source=vault';
+
+  function licensed() {
+    const sid = localStorage.getItem(LICENSE_KEY) || '';
+    return /^cs_(live|test)_[A-Za-z0-9]{20,}/.test(sid);
+  }
+  function setLicense(sid) { localStorage.setItem(LICENSE_KEY, sid); }
+
+  const b64e = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+  const b64d = (str) => Uint8Array.from(atob(str), c => c.charCodeAt(0));
+  const enc = new TextEncoder();
+  const dec = new TextDecoder();
+
+  const state = {
+    vault: null,         // { version, salt, entries }
+    key: null,           // CryptoKey
+    unlockedAt: 0,
+    editingId: null,
+    revealingId: null,
+    idleTimer: null,
+  };
+
+  function saveVault() {
+    if (!state.vault) return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.vault));
+  }
+  function loadVault() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch { return null; }
+  }
+  function clearVault() { localStorage.removeItem(STORAGE_KEY); }
+
+  async function deriveKey(password, saltBytes) {
+    const material = await crypto.subtle.importKey(
+      'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
+    );
+    return crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: saltBytes, iterations: PBKDF2_ITERS, hash: 'SHA-256' },
+      material,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  }
+  async function encryptEntry(key, plainObj) {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      enc.encode(JSON.stringify(plainObj))
+    );
+    return { iv: b64e(iv), ciphertext: b64e(ct) };
+  }
+  async function decryptEntry(key, ivB64, ctB64) {
+    const plain = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: b64d(ivB64) },
+      key,
+      b64d(ctB64)
+    );
+    return JSON.parse(dec.decode(plain));
+  }
+
+  // --- views ---
+  const views = {
+    create: document.getElementById('viewCreate'),
+    unlock: document.getElementById('viewUnlock'),
+    main: document.getElementById('viewMain'),
+  };
+  function showView(name) {
+    for (const [k, el] of Object.entries(views)) {
+      el.hidden = (k !== name);
+    }
+    const chip = document.getElementById('stateChip');
+    if (name === 'main') {
+      chip.textContent = 'desbloqueada';
+      chip.className = 'state-chip unlocked';
+      document.getElementById('lockBtn').hidden = false;
+    } else if (name === 'unlock') {
+      chip.textContent = 'bloqueada';
+      chip.className = 'state-chip locked';
+      document.getElementById('lockBtn').hidden = true;
+    } else {
+      chip.textContent = 'sin bóveda';
+      chip.className = 'state-chip';
+      document.getElementById('lockBtn').hidden = true;
+    }
+  }
+
+  // --- toast ---
+  let toastTimer = null;
+  function toast(msg, kind) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast show' + (kind === 'danger' ? ' danger' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.className = 'toast' + (kind === 'danger' ? ' danger' : ''); }, 2400);
+  }
+
+  // --- idle lock ---
+  function resetIdle() {
+    clearTimeout(state.idleTimer);
+    if (state.key) {
+      state.idleTimer = setTimeout(lock, IDLE_LOCK_MS);
+    }
+  }
+  ['mousemove','keydown','click','touchstart'].forEach(ev => {
+    document.addEventListener(ev, resetIdle, { passive: true });
+  });
+
+  function lock() {
+    state.key = null;
+    state.unlockedAt = 0;
+    clearTimeout(state.idleTimer);
+    render();
+  }
+
+  // --- render ---
+  function render() {
+    if (!state.vault) { showView('create'); return; }
+    if (!state.key) { showView('unlock'); return; }
+    showView('main');
+    renderSecrets();
+  }
+  function renderSecrets() {
+    const list = document.getElementById('secretList');
+    const empty = document.getElementById('emptyState');
+    const count = document.getElementById('secretCount');
+    const entries = state.vault.entries || [];
+    count.textContent = `${entries.length} ${entries.length === 1 ? 'entrada' : 'entradas'}`;
+    if (entries.length === 0) {
+      list.innerHTML = '';
+      empty.hidden = false;
+      return;
+    }
+    empty.hidden = true;
+    list.innerHTML = entries.map(e => `
+      <div class="secret-row" data-id="${e.id}">
+        <div class="name">${escapeHtml(e.name)}</div>
+        ${e.type ? `<div class="type">${escapeHtml(e.type)}</div>` : ''}
+        <div class="actions">
+          <button class="btn btn-ghost btn-sm" data-action="reveal">Revelar</button>
+        </div>
+      </div>
+    `).join('');
+    list.querySelectorAll('.secret-row').forEach(row => {
+      const id = row.dataset.id;
+      row.querySelector('[data-action="reveal"]').addEventListener('click', () => reveal(id));
+    });
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // --- create vault ---
+  document.getElementById('createBtn').addEventListener('click', async () => {
+    const p1 = document.getElementById('createPass').value;
+    const p2 = document.getElementById('createPassConfirm').value;
+    if (p1.length < 12) return toast('La contraseña debe tener al menos 12 caracteres', 'danger');
+    if (p1 !== p2) return toast('Las contraseñas no coinciden', 'danger');
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    try {
+      state.key = await deriveKey(p1, salt);
+    } catch (e) { return toast('Falló la derivación de la clave', 'danger'); }
+    // Write a canary entry so unlock can verify the password even when vault has no real entries.
+    // Fixes BUG-V1: otherwise an empty vault accepts any password, leading to data loss on next real session.
+    const canary = await encryptEntry(state.key, { canary: 'septim-vault-v1' });
+    state.vault = { version: 1, salt: b64e(salt), canary, entries: [] };
+    saveVault();
+    document.getElementById('createPass').value = '';
+    document.getElementById('createPassConfirm').value = '';
+    resetIdle();
+    render();
+    toast('Bóveda creada');
+  });
+
+  // --- unlock vault ---
+  async function doUnlock() {
+    const pass = document.getElementById('unlockPass').value;
+    if (!pass) return toast('Introduce tu contraseña maestra', 'danger');
+    try {
+      const key = await deriveKey(pass, b64d(state.vault.salt));
+      // Verify the password by decrypting either the canary (preferred) or the first real entry.
+      // BUG-V1 fix: we MUST verify against something encrypted by the correct key;
+      // accepting any password on an empty vault leads to data loss.
+      if (state.vault.canary) {
+        const c = state.vault.canary;
+        const plain = await decryptEntry(key, c.iv, c.ciphertext);
+        if (!plain || plain.canary !== 'septim-vault-v1') throw new Error('canary mismatch');
+      } else if (state.vault.entries.length > 0) {
+        // Legacy vaults created before the canary was added — verify against first entry.
+        const e = state.vault.entries[0];
+        await decryptEntry(key, e.iv, e.ciphertext);
+      } else {
+        // Legacy empty vault with no canary: back-fill a canary with this password so future unlocks are verifiable.
+        // This is safe because a legitimate owner is the only one who could have made an empty vault in this state.
+        const canary = await encryptEntry(key, { canary: 'septim-vault-v1' });
+        state.vault.canary = canary;
+        saveVault();
+      }
+      state.key = key;
+      state.unlockedAt = Date.now();
+      document.getElementById('unlockPass').value = '';
+      resetIdle();
+      render();
+      toast('Desbloqueada');
+    } catch (e) {
+      toast('Contraseña incorrecta', 'danger');
+    }
+  }
+  document.getElementById('unlockBtn').addEventListener('click', doUnlock);
+  document.getElementById('unlockPass').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') doUnlock();
+  });
+
+  // --- lock button ---
+  document.getElementById('lockBtn').addEventListener('click', lock);
+
+  // --- add/edit secret modal ---
+  const modalEdit = document.getElementById('modalEdit');
+  function openAdd() {
+    state.editingId = null;
+    document.getElementById('modalEditTitle').textContent = 'Añadir un nuevo secreto';
+    ['secretName','secretType','secretValue','secretNotes'].forEach(id => document.getElementById(id).value = '');
+    modalEdit.classList.add('open');
+    setTimeout(() => document.getElementById('secretName').focus(), 50);
+  }
+  async function openEdit(id) {
+    const entry = state.vault.entries.find(e => e.id === id);
+    if (!entry) return;
+    try {
+      const plain = await decryptEntry(state.key, entry.iv, entry.ciphertext);
+      state.editingId = id;
+      document.getElementById('modalEditTitle').textContent = 'Editar secreto';
+      document.getElementById('secretName').value = entry.name;
+      document.getElementById('secretType').value = entry.type || '';
+      document.getElementById('secretValue').value = plain.value || '';
+      document.getElementById('secretNotes').value = plain.notes || '';
+      modalEdit.classList.add('open');
+    } catch (e) { toast('No se pudo descifrar la entrada', 'danger'); }
+  }
+  document.getElementById('addBtn').addEventListener('click', openAdd);
+  document.getElementById('saveSecretBtn').addEventListener('click', async () => {
+    const name = document.getElementById('secretName').value.trim();
+    const type = document.getElementById('secretType').value.trim();
+    const value = document.getElementById('secretValue').value;
+    const notes = document.getElementById('secretNotes').value.trim();
+    if (!name) return toast('El nombre es obligatorio', 'danger');
+    if (!value) return toast('El valor del secreto es obligatorio', 'danger');
+
+    // Paywall: free tier caps at FREE_TIER_MAX entries
+    const isNew = !state.editingId;
+    if (isNew && !licensed() && state.vault.entries.length >= FREE_TIER_MAX) {
+      modalEdit.classList.remove('open');
+      document.getElementById('modalPaywall').classList.add('open');
+      return;
+    }
+
+    const encrypted = await encryptEntry(state.key, { value, notes });
+    if (state.editingId) {
+      const idx = state.vault.entries.findIndex(e => e.id === state.editingId);
+      if (idx >= 0) {
+        state.vault.entries[idx] = { ...state.vault.entries[idx], name, type, iv: encrypted.iv, ciphertext: encrypted.ciphertext };
+      }
+    } else {
+      state.vault.entries.push({
+        id: crypto.randomUUID(),
+        name, type,
+        iv: encrypted.iv,
+        ciphertext: encrypted.ciphertext,
+        createdAt: new Date().toISOString(),
+      });
+    }
+    saveVault();
+    modalEdit.classList.remove('open');
+    renderSecrets();
+    toast('Guardado');
+  });
+
+  // --- reveal modal ---
+  const modalReveal = document.getElementById('modalReveal');
+  async function reveal(id) {
+    const entry = state.vault.entries.find(e => e.id === id);
+    if (!entry) return;
+    try {
+      const plain = await decryptEntry(state.key, entry.iv, entry.ciphertext);
+      state.revealingId = id;
+      document.getElementById('revealTitle').textContent = entry.name;
+      document.getElementById('revealType').textContent = entry.type || '';
+      document.getElementById('revealedValue').textContent = plain.value;
+      document.getElementById('revealNotes').textContent = plain.notes ? `Notas: ${plain.notes}` : '';
+      modalReveal.classList.add('open');
+    } catch (e) { toast('No se pudo descifrar', 'danger'); }
+  }
+  document.getElementById('copyBtn').addEventListener('click', async () => {
+    const val = document.getElementById('revealedValue').textContent;
+    try {
+      await navigator.clipboard.writeText(val);
+      toast('Copiado al portapapeles');
+      setTimeout(() => {
+        navigator.clipboard.writeText(' ').catch(() => {});
+      }, 30000);
+    } catch { toast('Falló la copia', 'danger'); }
+  });
+  document.getElementById('editSecretBtn').addEventListener('click', () => {
+    modalReveal.classList.remove('open');
+    if (state.revealingId) openEdit(state.revealingId);
+  });
+  document.getElementById('deleteSecretBtn').addEventListener('click', () => {
+    if (!state.revealingId) return;
+    if (!confirm('¿Eliminar este secreto? Esto no se puede deshacer.')) return;
+    state.vault.entries = state.vault.entries.filter(e => e.id !== state.revealingId);
+    saveVault();
+    modalReveal.classList.remove('open');
+    renderSecrets();
+    toast('Eliminado');
+  });
+
+  // --- modal close ---
+  document.querySelectorAll('[data-close]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.closest('.modal-backdrop').classList.remove('open');
+    });
+  });
+  document.querySelectorAll('.modal-backdrop').forEach(bd => {
+    bd.addEventListener('click', (e) => {
+      if (e.target === bd) bd.classList.remove('open');
+    });
+  });
+
+  // --- export (paywalled) ---
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    if (!licensed()) {
+      document.getElementById('modalPaywall').classList.add('open');
+      return;
+    }
+    const blob = new Blob([JSON.stringify(state.vault, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `septim-vault-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Respaldo exportado');
+  });
+
+  // --- import ---
+  function handleImport(fileInput) {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        if (!parsed.version || !parsed.salt || !Array.isArray(parsed.entries)) {
+          throw new Error('invalid vault file');
+        }
+        if (state.vault && !confirm('¿Reemplazar tu bóveda actual con el respaldo importado? Esto no se puede deshacer.')) return;
+        state.vault = parsed;
+        state.key = null;
+        saveVault();
+        render();
+        toast('Respaldo importado. Introduce la contraseña para desbloquear.');
+      } catch (err) {
+        toast('Falló la importación: archivo de bóveda no válido', 'danger');
+      }
+    };
+    reader.readAsText(file);
+    fileInput.value = '';
+  }
+  ['importFileCreate','importFileUnlock','importFileMain'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', () => handleImport(el));
+  });
+
+  // --- settings ---
+  document.getElementById('settingsBtn').addEventListener('click', () => {
+    document.getElementById('modalSettings').classList.add('open');
+  });
+  document.getElementById('destroyVaultBtn').addEventListener('click', () => {
+    if (!confirm('¿Destruir esta bóveda permanentemente? Todos los secretos se perderán. Esto no se puede deshacer.')) return;
+    clearVault();
+    state.vault = null; state.key = null;
+    document.getElementById('modalSettings').classList.remove('open');
+    render();
+    toast('Bóveda destruida');
+  });
+  document.getElementById('destroyVaultBtnLocked').addEventListener('click', () => {
+    if (!confirm('¿Destruir esta bóveda permanentemente? Todos los secretos se perderán. Esto no se puede deshacer.')) return;
+    clearVault();
+    state.vault = null; state.key = null;
+    render();
+    toast('Bóveda destruida');
+  });
+
+  // --- change password ---
+  document.getElementById('changePassBtn').addEventListener('click', () => {
+    document.getElementById('modalSettings').classList.remove('open');
+    document.getElementById('modalChangePass').classList.add('open');
+    ['currentPass','newPass','newPassConfirm'].forEach(id => document.getElementById(id).value = '');
+  });
+  document.getElementById('confirmChangePassBtn').addEventListener('click', async () => {
+    const current = document.getElementById('currentPass').value;
+    const nw = document.getElementById('newPass').value;
+    const nwc = document.getElementById('newPassConfirm').value;
+    if (nw.length < 12) return toast('La nueva contraseña debe tener al menos 12 caracteres', 'danger');
+    if (nw !== nwc) return toast('Las nuevas contraseñas no coinciden', 'danger');
+
+    try {
+      const oldKey = await deriveKey(current, b64d(state.vault.salt));
+      // verify via round-trip
+      if (state.vault.entries.length > 0) {
+        await decryptEntry(oldKey, state.vault.entries[0].iv, state.vault.entries[0].ciphertext);
+      }
+      // re-encrypt every entry with new key (new salt too)
+      const newSalt = crypto.getRandomValues(new Uint8Array(16));
+      const newKey = await deriveKey(nw, newSalt);
+      const newEntries = [];
+      for (const e of state.vault.entries) {
+        const plain = await decryptEntry(oldKey, e.iv, e.ciphertext);
+        const fresh = await encryptEntry(newKey, plain);
+        newEntries.push({ ...e, iv: fresh.iv, ciphertext: fresh.ciphertext });
+      }
+      state.vault.salt = b64e(newSalt);
+      state.vault.entries = newEntries;
+      state.key = newKey;
+      saveVault();
+      document.getElementById('modalChangePass').classList.remove('open');
+      toast('Contraseña maestra cambiada');
+    } catch (e) {
+      toast('La contraseña actual es incorrecta', 'danger');
+    }
+  });
+
+  // --- license unlock via URL param or manual entry ---
+  function tryUnlockFromUrl() {
+    const url = new URL(window.location.href);
+    const sid = url.searchParams.get('session_id') || url.searchParams.get('s');
+    if (sid && /^cs_(live|test)_[A-Za-z0-9]{20,}/.test(sid)) {
+      setLicense(sid);
+      toast('Licencia activada — gracias por comprar Septim Vault');
+      url.searchParams.delete('session_id');
+      url.searchParams.delete('s');
+      window.history.replaceState({}, '', url.toString());
+      renderLicenseState();
+    }
+  }
+  function renderLicenseState() {
+    const banner = document.getElementById('licenseBanner');
+    const count = document.getElementById('secretCount');
+    if (licensed()) {
+      banner.hidden = true;
+      if (state.vault) {
+        const n = state.vault.entries.length;
+        count.textContent = `${n} ${n === 1 ? 'entrada' : 'entradas'} · desbloqueada`;
+      }
+    } else {
+      banner.hidden = false;
+      if (state.vault) {
+        const n = state.vault.entries.length;
+        count.textContent = `${n}/${FREE_TIER_MAX} entradas del nivel gratuito`;
+      }
+    }
+  }
+
+  document.getElementById('activateLicenseBtn').addEventListener('click', () => {
+    const input = document.getElementById('licenseInput').value.trim();
+    if (!/^cs_(live|test)_[A-Za-z0-9]{20,}/.test(input)) {
+      return toast('Eso no parece un ID de sesión de Stripe válido (empieza con cs_live_ o cs_test_)', 'danger');
+    }
+    setLicense(input);
+    document.getElementById('modalPaywall').classList.remove('open');
+    toast('Licencia activada — gracias por comprar Septim Vault');
+    renderLicenseState();
+  });
+
+  // --- boot ---
+  state.vault = loadVault();
+  tryUnlockFromUrl();
+  render();
+  renderLicenseState();
+})();
+</script>
+
+<!-- SEO-R2-LAST-UPDATED -->
+<aside style="position:fixed;left:14px;bottom:14px;z-index:40;font-family:var(--mono),ui-monospace,monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);background:rgba(10,10,10,0.84);backdrop-filter:blur(6px);padding:6px 10px;border:1px solid var(--line);border-radius:999px;pointer-events:none;mix-blend-mode:normal;" aria-hidden="false"><span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#00ff88;box-shadow:0 0 0 3px rgba(0,255,136,.18);margin-right:.4rem;vertical-align:middle;"></span>Última actualización · 26 de abril de 2026</aside>
+<!-- SEO-R3-RELATED-FOOTER -->
+<aside aria-label="Productos relacionados de Septim" style="max-width:1100px;margin:60px auto 40px;padding:32px 24px;border-top:1px solid var(--line);font-family:var(--sans),-apple-system,sans-serif"><div style="font-family:var(--mono),monospace;font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:.7rem">// También podrías necesitar</div><h3 style="font-size:1.4rem;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin-bottom:1.4rem;line-height:1.2">Productos relacionados de Septim Labs</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.7rem"><a href="/tether" style="display:flex;flex-direction:column;gap:.2rem;padding:.85rem 1rem;background:var(--shade);border:1px solid var(--line);border-radius:10px;color:var(--ink);text-decoration:none;transition:border-color .2s, background .2s;min-width:0;" onmouseover="this.style.borderColor='rgba(0,217,255,0.3)';this.style.background='rgba(0,217,255,0.04)'" onmouseout="this.style.borderColor='var(--line)';this.style.background='var(--shade)'"><span style="font-family:var(--mono),monospace;font-size:.55rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2)">$19 &middot; chequeos pre-commit</span><strong style="font-size:.95rem;font-weight:700;letter-spacing:-.01em">Septim Tether</strong></a><a href="/agents" style="display:flex;flex-direction:column;gap:.2rem;padding:.85rem 1rem;background:var(--shade);border:1px solid var(--line);border-radius:10px;color:var(--ink);text-decoration:none;transition:border-color .2s, background .2s;min-width:0;" onmouseover="this.style.borderColor='rgba(0,217,255,0.3)';this.style.background='rgba(0,217,255,0.04)'" onmouseout="this.style.borderColor='var(--line)';this.style.background='var(--shade)'"><span style="font-family:var(--mono),monospace;font-size:.55rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2)">$49 &middot; 10 especialistas de IA</span><strong style="font-size:.95rem;font-weight:700;letter-spacing:-.01em">Septim Agents Pack</strong></a><a href="/septim-starter" style="display:flex;flex-direction:column;gap:.2rem;padding:.85rem 1rem;background:var(--shade);border:1px solid var(--line);border-radius:10px;color:var(--ink);text-decoration:none;transition:border-color .2s, background .2s;min-width:0;" onmouseover="this.style.borderColor='rgba(0,217,255,0.3)';this.style.background='rgba(0,217,255,0.04)'" onmouseout="this.style.borderColor='var(--line)';this.style.background='var(--shade)'"><span style="font-family:var(--mono),monospace;font-size:.55rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2)">$9 &middot; plantilla CLAUDE.md</span><strong style="font-size:.95rem;font-weight:700;letter-spacing:-.01em">Septim Starter</strong></a></div><div style="margin-top:1.6rem;font-size:.85rem;color:var(--ink-2)">O <a href="/compare" style="color:var(--p);text-decoration:underline">compara cada producto</a> &middot; <a href="/find" style="color:var(--p);text-decoration:underline">haz el cuestionario de 30 segundos</a> y obtén una recomendación.</div></aside>
+
+<div id="site-foot"></div>
+<script src="../../site-shell.js?v=4.6.0"></script>
+<script src="../../site.js?v=4.6.0"></script>
+</body>
+</html>

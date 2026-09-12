@@ -1,0 +1,552 @@
+{
+  "name": "Podcasts",
+  "version": "0.1.0",
+  "description": "Turn your curiosity into personal podcasts. Create narrated episodes and listen in chat.",
+  "tagline": "Anything you’re curious about. Made into a podcast.",
+  "icon": "🎙️",
+  "iconPath": "public/icon.png",
+  "category": "entertainment",
+  "tags": ["podcasts", "audio", "learning", "narration"],
+  "aliases": ["podcast", "episodes", "audio briefings"],
+  "runtime": "vite_hono",
+  "routeName": "podcasts",
+  "visibility": "public",
+  "author": "Moldable",
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "env": [],
+  "vault": [
+    {
+      "key": "OPENAI_API_KEY",
+      "name": "OpenAI API Key",
+      "description": "Creates podcast narration with OpenAI TTS and episode artwork with GPT Image 2 when Moldable image authentication is unavailable. API usage is billed separately from ChatGPT or Codex subscriptions. Your key stays in aivault.",
+      "url": "https://platform.openai.com/api-keys",
+      "required": true,
+      "capabilities": ["openai/speech", "openai/image-generation"]
+    }
+  ],
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "podcasts.episodes",
+        "name": "Personal podcasts",
+        "description": "Create and listen to private, on-demand podcasts. Use episodes.generate to turn a topic and requested length into a script, narration and artwork asynchronously. The app writes through Moldable’s LLM service and uses one OpenAI narrator. For researched content, the conversation agent can research and supply its own complete script to episodes.create. In-app writing has no live research tools. No RSS, publishing or sharing. Both creation methods immediately return a status card. Playback appears only after audio is saved. Never claim completion or an exact duration until episodes.get reports ready. Present existing episodes without regenerating them.",
+        "scopes": [
+          {
+            "id": "podcasts.queue.get",
+            "name": "Read generation queue",
+            "description": "Read active episodes and generation failures for this workspace, independent of library search or archive filters.",
+            "risk": "low",
+            "changesState": false,
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "podcasts.settings.get",
+            "name": "Read podcast preferences",
+            "description": "Read the narration voice and default episode length saved for this workspace. Length defaults to 5 minutes.",
+            "risk": "low",
+            "changesState": false,
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "podcasts.settings.update",
+            "name": "Save podcast preferences",
+            "description": "Update narration voice or default length (5, 10 or 20 minutes) for this workspace. Omitted preferences are preserved. Existing episodes keep their original choices.",
+            "risk": "low",
+            "changesState": true,
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "voice": {
+                  "type": "string",
+                  "enum": [
+                    "marin",
+                    "cedar",
+                    "coral",
+                    "ash",
+                    "sage",
+                    "verse",
+                    "alloy",
+                    "nova",
+                    "onyx"
+                  ]
+                },
+                "minutes": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "const": 5
+                    },
+                    {
+                      "type": "number",
+                      "const": 10
+                    },
+                    {
+                      "type": "number",
+                      "const": 20
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "podcasts.episodes.generate",
+            "name": "Generate a podcast from a topic",
+            "description": "Save a topic and desired length (5, 10 or 20 minutes), then write and narrate sections concurrently in the background. The requested length becomes the default for subsequent generations. Uses the workspace’s saved voice unless voice is supplied; an explicit voice becomes the preference for subsequent generations. Returns an episode ID and live appCard immediately. Completed audio is playable while later sections generate; the player waits and resumes if it catches up. Use a stable requestId for transport retries. Writing uses Moldable’s LLM service without live web research. Use episodes.create with your researched script when current facts or verified sources are needed. Do not wait inside the RPC or claim full completion until episodes.get reports ready.",
+            "risk": "important",
+            "changesState": true,
+            "inputSchema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "requestId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                },
+                "topic": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4000
+                },
+                "minutes": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "const": 5
+                    },
+                    {
+                      "type": "number",
+                      "const": 10
+                    },
+                    {
+                      "type": "number",
+                      "const": 20
+                    }
+                  ]
+                },
+                "voice": {
+                  "type": "string",
+                  "enum": [
+                    "marin",
+                    "cedar",
+                    "coral",
+                    "ash",
+                    "sage",
+                    "verse",
+                    "alloy",
+                    "nova",
+                    "onyx"
+                  ]
+                }
+              },
+              "required": ["requestId", "topic", "minutes"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "podcasts.episodes.list",
+            "name": "Find episodes",
+            "description": "List and search saved episodes. Results are paged, newest first. Does not generate audio.",
+            "risk": "low",
+            "changesState": false,
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "query": {
+                  "default": "",
+                  "type": "string",
+                  "maxLength": 200
+                },
+                "archived": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "limit": {
+                  "default": 30,
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 50
+                },
+                "offset": {
+                  "default": 0,
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "podcasts.episodes.get",
+            "name": "Read episode",
+            "description": "Read current status, measured duration, script, sources and audio asset references. Poll until ready when waiting for generation. Never sends binary audio in chat.",
+            "risk": "low",
+            "changesState": false,
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                }
+              },
+              "required": ["id"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "podcasts.episodes.create",
+            "name": "Create a podcast episode",
+            "description": "Save a complete spoken script and queue paid OpenAI narration. Supply a stable requestId and reuse it for transport retries; the same ID and content return the existing episode. Exactly one speaker, 50,000 narration characters total. Do not include stage directions, speaker labels or markdown in spoken text. Suggested voice: marin. Returns an appCard immediately; it updates as audio is generated. Include source URLs for factual research. A 10-minute episode needs roughly 1,500 spoken words. All input text is sent to OpenAI. After narration, a square thumbnail is generated automatically from the title and description using the same image service as Images. Artwork failure does not discard audio.",
+            "risk": "important",
+            "changesState": true,
+            "inputSchema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "requestId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 180
+                },
+                "description": {
+                  "default": "",
+                  "description": "A podcast blurb for listeners: one or two inviting sentences about the subject or story. Omit word counts, planned duration, narrator setup, AI/provider names and writing-process details.",
+                  "type": "string",
+                  "maxLength": 1600
+                },
+                "accent": {
+                  "default": "blue",
+                  "type": "string",
+                  "enum": ["blue", "amber", "violet", "teal", "rose"]
+                },
+                "speakers": {
+                  "minItems": 1,
+                  "maxItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 60
+                      },
+                      "voice": {
+                        "type": "string",
+                        "enum": [
+                          "marin",
+                          "cedar",
+                          "coral",
+                          "ash",
+                          "sage",
+                          "verse",
+                          "alloy",
+                          "nova",
+                          "onyx"
+                        ]
+                      },
+                      "instructions": {
+                        "default": "Speak naturally, like a warm, curious podcast host. Use conversational pacing and clear pronunciation.",
+                        "type": "string",
+                        "maxLength": 600
+                      }
+                    },
+                    "required": ["id", "name", "voice"],
+                    "additionalProperties": false
+                  }
+                },
+                "script": {
+                  "minItems": 1,
+                  "maxItems": 120,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "speakerId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                      },
+                      "text": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 5000
+                      }
+                    },
+                    "required": ["speakerId", "text"],
+                    "additionalProperties": false
+                  }
+                },
+                "sources": {
+                  "default": [],
+                  "maxItems": 12,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 180
+                      },
+                      "url": {
+                        "type": "string",
+                        "maxLength": 2048,
+                        "format": "uri"
+                      }
+                    },
+                    "required": ["title", "url"],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": ["requestId", "title", "speakers", "script"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "podcasts.cards.present",
+            "name": "Show an episode player in chat",
+            "description": "Present a compact player with play/pause, seeking, 15-second skips and speed. Expanded view shows transcript and sources. Does not generate or automatically play audio.",
+            "risk": "low",
+            "changesState": false,
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                }
+              },
+              "required": ["id"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "podcasts.cards.read",
+            "name": "Read a podcast card",
+            "description": "Read the selected episode and its current audio asset references without changing it.",
+            "risk": "low",
+            "changesState": false,
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                }
+              },
+              "required": ["id"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "podcasts.playback.update",
+            "name": "Save listening progress",
+            "description": "Record a user playback interaction and resume position. Actual playback belongs to the observer; this never starts another client’s audio.",
+            "risk": "low",
+            "changesState": true,
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                },
+                "positionSeconds": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 14400
+                },
+                "speed": {
+                  "type": "number",
+                  "minimum": 0.5,
+                  "maximum": 2
+                },
+                "event": {
+                  "type": "string",
+                  "enum": ["play", "pause", "seek", "speed", "ended"]
+                }
+              },
+              "required": ["id", "positionSeconds", "speed", "event"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "podcasts.episodes.retry",
+            "name": "Retry unfinished generation",
+            "description": "Explicitly retry a failed or cancelled episode using its current revision. Resumes from its saved outline, completed written sections and completed audio. An interrupted provider request may be charged again. Never retry automatically.",
+            "risk": "important",
+            "changesState": true,
+            "inputSchema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                },
+                "expectedRevision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": ["id", "expectedRevision"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "podcasts.episodes.retryArtwork",
+            "name": "Retry episode artwork",
+            "description": "Generate missing or failed artwork for a completed episode. Reuses all saved audio. An interrupted image request may be charged again. Never retry automatically.",
+            "risk": "important",
+            "changesState": true,
+            "inputSchema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                },
+                "expectedRevision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": ["id", "expectedRevision"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "podcasts.episodes.cancel",
+            "name": "Stop generation",
+            "description": "Stop queued or running generation. Finished audio remains available. An in-flight request may already have been billed.",
+            "risk": "low",
+            "changesState": true,
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                },
+                "expectedRevision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": ["id", "expectedRevision"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "podcasts.episodes.delete",
+            "name": "Delete an archived episode",
+            "description": "Permanently delete an archived episode, including its transcript, audio and artwork. Requires explicit user intent and the current revision. Existing cards become unavailable; active generation stops.",
+            "risk": "important",
+            "changesState": true,
+            "inputSchema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                },
+                "expectedRevision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": ["id", "expectedRevision"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "podcasts.episodes.archive",
+            "name": "Archive or restore an episode",
+            "description": "Hide an episode from the library or restore it. Audio and existing chat cards are preserved.",
+            "risk": "low",
+            "changesState": true,
+            "surfaces": ["voice"],
+            "inputSchema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                },
+                "expectedRevision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "archived": {
+                  "type": "boolean"
+                }
+              },
+              "required": ["id", "expectedRevision", "archived"],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

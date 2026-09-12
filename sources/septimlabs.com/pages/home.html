@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Agents — Septim Labs</title>
+    <!-- Open Graph + Twitter Card (auto-injected by inject_og_meta.py) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://septimlabs.com/tools/agents" />
+    <meta property="og:title" content="Agents — Septim Labs" />
+    <meta property="og:description" content="Septim Labs — pay-once developer tools, custom SMB software builds. You buy once, you keep it." />
+    <meta property="og:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Septim Labs" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Agents — Septim Labs" />
+    <meta name="twitter:description" content="Septim Labs — pay-once developer tools, custom SMB software builds. You buy once, you keep it." />
+    <meta name="twitter:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../site.css?v=4.6.1" />
+<style>
+  /* AGENTS — A roll-call of twelve specialists. The visual metaphor is a dispatch
+     board crossed with a unit roster. Mono everywhere, terminal in the hero,
+     each agent gets a service record. */
+  :root[data-theme="dark"] .ag-page{
+  --paper:var(--bg);--paper-2:var(--bg);--paper-3:#141414;
+  --ink-a:#f0f0f0;--ink2-a:#9aa0aa;--ink3-a:#5a606a;
+  --rule-a:var(--line);--rule2-a:var(--line-2);
+  --field-a:var(--bg);--field2-a:#141414;
+  --p:#5c8aff;--p-soft:rgba(92,138,255,.14);--p-deep:#3a5fcf;
+  --ok:#5fc587;--warn:#e6a14a;--err:#e96c6c;
+}
+  :root[data-theme="light"] .ag-page{
+  --paper:var(--ink);--paper-2:#f5f5f5;--paper-3:#e8e8e8;
+  --ink-a:var(--bg);--ink2-a:#454852;--ink3-a:#7a7e88;
+  --rule-a:rgba(0,0,0,.10);--rule2-a:rgba(0,0,0,.22);
+  --field-a:#f5f5f5;--field2-a:#e8e8e8;
+  --p:#3a5fcf;--p-soft:rgba(58,95,207,.10);--p-deep:#2a47a0;
+  --ok:#2a7e4f;--warn:#a06820;--err:#a02818;
+}
+  body{background:var(--paper)}
+  .ag-page{background:var(--paper);color:var(--ink-a);font-family:var(--mono);line-height:1.5}
+
+  /* HUD — persistent dispatch strip */
+  .hud{position:sticky;top:0;z-index:40;display:grid;grid-template-columns:auto 1fr auto auto auto;
+    align-items:center;padding:0;border-bottom:1px solid var(--rule2-a);
+    background:color-mix(in srgb,var(--paper) 90%,transparent);
+    backdrop-filter:blur(14px);font-family:var(--mono);font-size:10.5px;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--ink3-a)}
+  .hud > *{padding:10px 18px;border-right:1px solid var(--rule-a)}
+  .hud > *:last-child{border-right:none}
+  .hud .file{color:var(--p);font-weight:600;display:flex;align-items:center;gap:10px}
+  .hud .file::before{content:"";width:7px;height:7px;background:var(--p);
+    box-shadow:0 0 10px var(--p);border-radius:50%;animation:hp 2s infinite ease-in-out}
+  @keyframes hp{0%,100%{opacity:1}50%{opacity:.35}}
+  .hud .ticker{color:var(--ink2-a);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .hud .clock{font-variant-numeric:tabular-nums;min-width:130px;text-align:center;color:var(--ink-a)}
+  @media(max-width:780px){.hud{grid-template-columns:auto 1fr auto}.hud .build{display:none}}
+
+  /* HERO */
+  .hero{padding:80px clamp(20px,5vw,80px) 60px;display:grid;grid-template-columns:1.05fr 1fr;
+    gap:60px;border-bottom:1px solid var(--rule2-a);position:relative}
+  .hero::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(900px 480px at 90% 0%,var(--p-soft),transparent 60%)}
+  .hero > *{position:relative;z-index:1}
+  .crumb{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3-a);
+    display:flex;gap:14px;align-items:center;margin-bottom:36px}
+  .crumb a{color:var(--ink2-a);text-decoration:none}
+  .crumb b{color:var(--p);font-weight:600}
+  .hero h1{font-family:var(--sans);font-size:clamp(56px,8vw,128px);font-weight:700;
+    letter-spacing:-.045em;line-height:.92;margin:0 0 28px;color:var(--ink-a)}
+  .hero h1 em{font-style:normal;font-weight:700;
+    color:color-mix(in srgb,var(--ink-a) 76%,var(--p))}
+  .hero .blurb{font-family:var(--sans);font-size:18px;line-height:1.55;color:var(--ink2-a);max-width:54ch;margin:0 0 36px}
+  .hero .blurb em{font-style:normal;color:var(--ink-a);font-weight:500}
+  .hero .blurb b{font-weight:500;background:var(--p-soft);color:var(--ink-a);padding:1px 6px}
+  .hero .meta{display:grid;grid-template-columns:repeat(4,auto);border:1px solid var(--rule2-a);background:var(--paper-2);width:fit-content;font-size:11px}
+  .hero .meta > div{padding:14px 22px;border-right:1px solid var(--rule-a)}
+  .hero .meta > div:last-child{border-right:none}
+  .hero .meta .k{color:var(--ink3-a);letter-spacing:.16em;text-transform:uppercase;font-size:10px;margin-bottom:6px}
+  .hero .meta .v{color:var(--ink-a);font-size:18px;font-weight:600;letter-spacing:-.01em}
+  .hero .meta .v.price{color:var(--p);font-size:24px}
+  .hero .actions{margin-top:32px;display:flex;gap:14px;flex-wrap:wrap}
+  .btn-p{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;background:var(--p);color:var(--ink);
+    text-decoration:none;font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;border-radius:3px}
+  .btn-g{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border:1px solid var(--rule2-a);color:var(--ink-a);
+    text-decoration:none;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+  .btn-g:hover{border-color:var(--ink-a)}
+
+  /* Terminal in hero */
+  .term{background:var(--term-bg);border:1px solid var(--rule2-a);border-radius:6px;
+    overflow:hidden;font-size:13px;color:var(--term-ink);min-height:480px;display:flex;flex-direction:column}
+  .term .tbar{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--line);background:var(--shade)}
+  .term .tbar .dot{width:11px;height:11px;border-radius:50%;background:#3a3d44}
+  .term .tbar .dot.r{background:#ff6058}.term .tbar .dot.y{background:#ffbe2f}.term .tbar .dot.g{background:#28c93f}
+  .term .tbar .ttl{font-size:11px;color:var(--term-dim);letter-spacing:.1em;margin-left:10px;flex:1;text-align:center;text-transform:uppercase}
+  .term .body{padding:18px 20px;flex:1;line-height:1.55}
+  .term .ln{display:block;white-space:pre-wrap;word-break:break-word;color:var(--term-ink);margin-bottom:2px}
+  .term .ln .pr{color:var(--p);font-weight:600;margin-right:8px}
+  .term .ln .ag{color:var(--warn);font-weight:500}
+  .term .ln .ok{color:var(--ok)}
+  .term .ln .er{color:var(--err)}
+  .term .ln .dim{color:var(--term-dim)}
+  .term .ln .info{color:#7ab7ff}
+  .term .cur{display:inline-block;width:8px;height:14px;background:var(--p);vertical-align:-2px;animation:cb .9s infinite step-end;margin-left:4px}
+  @keyframes cb{50%{opacity:0}}
+  @media(max-width:980px){.hero{grid-template-columns:1fr}.term{min-height:420px}}
+
+  /* Section system */
+  .sec{padding:90px clamp(20px,5vw,80px);border-bottom:1px solid var(--rule2-a)}
+  .sec .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:48px;border-bottom:1px solid var(--rule-a);padding-bottom:14px}
+  .sec .head .ex{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-a)}
+  .sec .head .ex b{background:var(--ink-a);color:var(--paper);padding:3px 9px;margin-right:10px;font-weight:600}
+  .sec .head .pg{font-size:10px;color:var(--ink3-a);letter-spacing:.14em;text-transform:uppercase}
+  .sec h2{font-family:var(--sans);font-size:clamp(34px,4.5vw,64px);font-weight:700;letter-spacing:-.035em;line-height:1.04;margin:0 0 24px;max-width:20ch;color:var(--ink-a)}
+  .sec h2 em{font-style:normal;font-weight:700;color:color-mix(in srgb,var(--ink-a) 76%,var(--p))}
+  .sec .copy{font-family:var(--sans);font-size:16px;line-height:1.65;color:var(--ink2-a);max-width:60ch;margin:0 0 16px}
+  .sec .copy b{color:var(--ink-a);font-weight:600;background:var(--p-soft);padding:1px 5px}
+
+  /* THE ROSTER — twelve agent service records */
+  .roster{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:32px;border:1px solid var(--rule2-a);background:var(--rule-a)}
+  .agent{background:var(--paper);padding:24px;display:flex;flex-direction:column;gap:10px;position:relative;min-height:240px}
+  .agent .badge{display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3-a);border-bottom:1px solid var(--rule-a);padding-bottom:10px;margin-bottom:6px}
+  .agent .badge .id{color:var(--p);font-weight:600}
+  .agent .badge .st{display:inline-flex;align-items:center;gap:6px}
+  .agent .badge .st::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .agent .badge .st.standby::before{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+  .agent .glyph{font-family:var(--sans);font-weight:800;font-size:42px;letter-spacing:-.04em;color:var(--ink-a);line-height:1;margin-bottom:2px}
+  .agent .glyph small{font-family:var(--mono);font-size:10px;color:var(--ink3-a);letter-spacing:.14em;text-transform:uppercase;display:block;margin-top:4px;font-weight:400}
+  .agent .desc{font-family:var(--sans);font-size:13.5px;line-height:1.55;color:var(--ink2-a);margin:8px 0 0}
+  .agent .stats{margin-top:auto;padding-top:14px;border-top:1px dotted var(--rule2-a);display:flex;justify-content:space-between;font-size:10.5px;letter-spacing:.04em;color:var(--ink3-a)}
+  .agent .stats b{color:var(--ink-a);font-weight:600}
+  .agent::after{content:"";position:absolute;left:0;top:0;width:3px;height:100%;background:var(--p);transform:scaleY(0);transform-origin:top;transition:transform .4s}
+  .agent:hover::after{transform:scaleY(1)}
+  @media(max-width:980px){.roster{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:600px){.roster{grid-template-columns:1fr}}
+
+  /* INSTALL PROCESS — three steps */
+  .install{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:32px}
+  .step{background:var(--paper-2);border:1px solid var(--rule-a);padding:28px;position:relative}
+  .step .n{font-family:var(--sans);font-size:64px;font-weight:700;color:var(--p);line-height:1;letter-spacing:-.04em;margin-bottom:12px;opacity:.85}
+  .step h3{font-family:var(--sans);font-size:22px;font-weight:600;margin:0 0 10px;color:var(--ink-a);letter-spacing:-.02em}
+  .step p{font-family:var(--sans);font-size:14px;line-height:1.55;color:var(--ink2-a);margin:0 0 14px}
+  .step pre{margin:0;background:var(--term-bg);color:var(--term-ink);padding:12px 14px;border-radius:4px;font-size:11.5px;overflow-x:auto;border:1px solid var(--line)}
+  .step pre .pr{color:var(--p)}.step pre .ag{color:var(--warn)}.step pre .ok{color:var(--ok)}
+  @media(max-width:880px){.install{grid-template-columns:1fr}}
+
+  /* FLOW — interactive agent invocation diagram */
+  .flow{margin-top:32px;border:1px solid var(--rule2-a);background:var(--paper-2);padding:32px;display:grid;grid-template-columns:1fr 1.2fr;gap:36px;align-items:stretch}
+  .flow-graph{position:relative;background:var(--paper);border:1px solid var(--rule-a);border-radius:4px;padding:24px;min-height:380px}
+  .flow-graph .node{position:absolute;background:var(--paper-2);border:1px solid var(--rule2-a);padding:10px 14px;font-size:11px;letter-spacing:.04em;color:var(--ink-a);border-radius:3px;text-align:center;min-width:96px}
+  .flow-graph .node b{display:block;font-size:13px;font-weight:600;letter-spacing:-.01em;margin-bottom:2px}
+  .flow-graph .node small{display:block;font-size:9.5px;color:var(--ink3-a);letter-spacing:.12em;text-transform:uppercase}
+  .flow-graph .node.you{top:24px;left:50%;transform:translateX(-50%);border-color:var(--p);color:var(--p);background:var(--p-soft)}
+  .flow-graph .node.disp{top:50%;left:50%;transform:translate(-50%,-50%);border-color:var(--ink-a);background:var(--ink-a);color:var(--paper)}
+  .flow-graph .node.disp b{color:var(--paper)}
+  .flow-graph .node.disp small{color:var(--line-3)}
+  .flow-graph .node.a1{bottom:24px;left:6%}
+  .flow-graph .node.a2{bottom:24px;left:30%}
+  .flow-graph .node.a3{bottom:24px;left:54%}
+  .flow-graph .node.a4{bottom:24px;left:78%}
+  .flow-graph .wires{position:absolute;inset:0;pointer-events:none;z-index:0}
+  .flow-graph .wire{position:absolute;background:linear-gradient(to bottom,transparent 0,var(--p) 12px,var(--p) calc(100% - 12px),transparent 100%);width:1px;opacity:.55}
+  .flow-graph .wire::before{content:"";position:absolute;left:-2px;top:0;bottom:0;width:5px;background:repeating-linear-gradient(to bottom,var(--p) 0 4px,transparent 4px 8px);opacity:.6;animation:wflow 1.4s linear infinite}
+  @keyframes wflow{to{transform:translateY(8px)}}
+  .flow-graph .node{z-index:2}
+  .flow-log{background:var(--term-bg);border:1px solid var(--rule-a);border-radius:4px;padding:18px 20px;color:var(--term-ink);font-size:12px;line-height:1.7;overflow:hidden}
+  .flow-log .hdr{font-size:10px;letter-spacing:.18em;color:var(--term-dim);text-transform:uppercase;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px}
+  .flow-log .l{display:block;margin-bottom:4px}
+  .flow-log .l .t{color:var(--term-dim);margin-right:10px}
+  .flow-log .l .ag{color:var(--warn)}
+  .flow-log .l .ok{color:var(--ok)}
+  .flow-log .l .info{color:#7ab7ff}
+  @media(max-width:980px){.flow{grid-template-columns:1fr}.flow-graph{min-height:320px}}
+
+  /* RECEIPTS — quotes from users */
+  .receipts{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;margin-top:32px}
+  .rec{background:var(--paper-2);border:1px solid var(--rule-a);padding:28px;border-left:3px solid var(--p)}
+  .rec .q{font-style:normal;font-weight:600;font-size:20px;line-height:1.5;color:var(--ink-a);margin:0 0 18px}
+  .rec .who{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.06em;color:var(--ink3-a)}
+  .rec .who b{color:var(--ink-a);font-weight:600;text-transform:none;letter-spacing:0}
+  @media(max-width:780px){.receipts{grid-template-columns:1fr}}
+
+  /* PRICING SLAB */
+  .buy{padding:120px clamp(20px,5vw,80px);background:var(--paper-2);border-top:1px solid var(--rule2-a);
+    display:grid;grid-template-columns:1.4fr 1fr;gap:48px;align-items:center}
+  .buy h3{font-family:var(--sans);font-size:clamp(36px,4.5vw,72px);font-weight:700;letter-spacing:-.035em;margin:0 0 16px;line-height:1.04;color:var(--ink-a)}
+  .buy h3 em{font-style:normal;font-weight:700;color:var(--p)}
+  .buy .copy{font-family:var(--sans);font-size:16px;line-height:1.6;color:var(--ink2-a);max-width:48ch;margin:0 0 28px}
+  .buy .price{font-family:var(--sans);font-size:120px;font-weight:700;letter-spacing:-.04em;line-height:.95;color:var(--p)}
+  .buy .price small{display:block;font-family:var(--mono);font-size:11px;color:var(--ink3-a);letter-spacing:.14em;font-weight:500;margin-top:14px;text-transform:uppercase}
+  @media(max-width:780px){.buy{grid-template-columns:1fr}}
+
+  /* NEXT — cross-link strip */
+  .next{padding:0;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule2-a);border-top:1px solid var(--rule2-a)}
+  .next a{padding:36px 28px;text-decoration:none;background:var(--paper);display:flex;flex-direction:column;gap:6px;color:inherit}
+  .next a:hover{background:var(--paper-2)}
+  .next a .l{font-size:10px;letter-spacing:.18em;color:var(--ink3-a);text-transform:uppercase}
+  .next a .n{font-family:var(--sans);font-size:28px;font-weight:600;letter-spacing:-.02em;color:var(--ink-a)}
+  .next a .d{font-family:var(--sans);font-size:13px;color:var(--ink2-a);line-height:1.5;margin-top:4px}
+  @media(max-width:780px){.next{grid-template-columns:1fr}}
+</style>
+<!-- TOKEN-CONVERT-V4-APPLIED -->
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/kit/apple-touch-icon-180.png" />
+<!-- SEPTIM-I18N-HREFLANG -->
+<link rel="alternate" hreflang="x-default" href="https://septimlabs.com/tools/agents.html" />
+<link rel="alternate" hreflang="en" href="https://septimlabs.com/tools/agents.html" />
+<link rel="alternate" hreflang="es" href="https://septimlabs.com/es/tools/agents.html" />
+<link rel="alternate" hreflang="zh" href="https://septimlabs.com/zh/tools/agents.html" />
+<link rel="alternate" hreflang="hi" href="https://septimlabs.com/hi/tools/agents.html" />
+<link rel="alternate" hreflang="pt" href="https://septimlabs.com/pt/tools/agents.html" />
+<link rel="alternate" hreflang="de" href="https://septimlabs.com/de/tools/agents.html" />
+<link rel="alternate" hreflang="fr" href="https://septimlabs.com/fr/tools/agents.html" />
+<link rel="alternate" hreflang="ja" href="https://septimlabs.com/ja/tools/agents.html" />
+<link rel="alternate" hreflang="ru" href="https://septimlabs.com/ru/tools/agents.html" />
+<link rel="alternate" hreflang="ar" href="https://septimlabs.com/ar/tools/agents.html" />
+<!-- /SEPTIM-I18N-HREFLANG -->
+</head>
+<body data-page="tools">
+<div id="site-nav"></div>
+
+<main class="ag-page">
+
+  <!-- HUD: live dispatch strip -->
+  <div class="hud">
+    <span class="file">DISPATCH/AGENTS-V2.4</span>
+    <span class="ticker"><span id="tick"># 12 agents online · last invocation 14s ago · 8,402 jobs completed lifetime</span></span>
+    <span class="clock" id="clk">--:--:-- UTC</span>
+    <span class="build">BUILD 2.4.7</span>
+    <span style="color:var(--ok)">● UP</span>
+  </div>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div>
+      <div class="crumb"><a href="../tools.html">/ tools</a><span>›</span><b>02 · agents</b><span>·</span><span>developer</span></div>
+      <h1>Twelve agents.<br/><em>One indie founder.</em></h1>
+      <p class="blurb">A pre-wired Claude Code roster: <em>triage, research, ship.</em> Each agent is a markdown file you can read, edit, and version. No platform, no console, no <b>$200/seat/mo</b>. Drop the folder into <em>~/.claude/agents/</em> and call them by name.</p>
+      <div class="meta">
+        <div><div class="k">Format</div><div class="v">.md folder</div></div>
+        <div><div class="k">Agents</div><div class="v">12</div></div>
+        <div><div class="k">Runtime</div><div class="v">Claude Code</div></div>
+        <div><div class="k">Price</div><div class="v price">$49</div></div>
+      </div>
+      <div class="actions">
+        <a class="btn-p" href="../contact.html?subject=Agents">Buy · $49 once <span>→</span></a>
+        <a class="btn-g" href="#roster">See the roster</a>
+      </div>
+    </div>
+
+    <!-- live terminal -->
+    <div class="term">
+      <div class="tbar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="ttl">~/work/saas-app — claude</span></div>
+      <div class="body" id="termBody"></div>
+    </div>
+  </header>
+
+  <!-- THE ROSTER -->
+  <section class="sec" id="roster">
+    <div class="head"><span class="ex"><b>EXHIBIT A</b>The roster</span><span class="pg">PG. 02 / 06</span></div>
+    <h2>Twelve specialists, one founder.<em>No standing meetings.</em></h2>
+    <p class="copy">Each agent is a single markdown file: <b>system prompt + tool whitelist + cost limit</b>. They can be read in plain text. They can be edited in plain text. They version-control like any other file.</p>
+
+    <div class="roster">
+      <div class="agent"><div class="badge"><span class="id">A-01</span><span class="st">ACTIVE</span></div><div class="glyph">Triage<small>Inbox · 3 tools</small></div><p class="desc">Reads new GitHub issues, drafts a reply, sets labels, files them in the right project.</p><div class="stats"><span><b>1,402</b> jobs</span><span>avg <b>14s</b></span></div></div>
+      <div class="agent"><div class="badge"><span class="id">A-02</span><span class="st">ACTIVE</span></div><div class="glyph">Sweep<small>Codebase · 6 tools</small></div><p class="desc">Walks the repo, surfaces dead code, unused exports, and missing tests in a markdown report.</p><div class="stats"><span><b>946</b> jobs</span><span>avg <b>2m 8s</b></span></div></div>
+      <div class="agent"><div class="badge"><span class="id">A-03</span><span class="st">ACTIVE</span></div><div class="glyph">Patch<small>Diff · 4 tools</small></div><p class="desc">Picks up an issue, opens a branch, writes the fix and the test, opens the PR, tags you.</p><div class="stats"><span><b>2,180</b> jobs</span><span>avg <b>4m 21s</b></span></div></div>
+      <div class="agent"><div class="badge"><span class="id">A-04</span><span class="st">ACTIVE</span></div><div class="glyph">Brief<small>Research · 3 tools</small></div><p class="desc">Reads the docs you point at, outputs a one-page summary with citations and open questions.</p><div class="stats"><span><b>638</b> jobs</span><span>avg <b>1m 02s</b></span></div></div>
+      <div class="agent"><div class="badge"><span class="id">A-05</span><span class="st">ACTIVE</span></div><div class="glyph">Recall<small>Notes · 2 tools</small></div><p class="desc">Searches your obsidian vault, returns a stitched answer with file paths and line refs.</p><div class="stats"><span><b>1,802</b> jobs</span><span>avg <b>11s</b></span></div></div>
+      <div class="agent"><div class="badge"><span class="id">A-06</span><span class="st standby">STANDBY</span></div><div class="glyph">Forge<small>Migrate · 5 tools</small></div><p class="desc">Writes safe Postgres migrations, dry-runs them on a clone, posts the diff, waits for approval.</p><div class="stats"><span><b>312</b> jobs</span><span>avg <b>6m 40s</b></span></div></div>
+      <div class="agent"><div class="badge"><span class="id">A-07</span><span class="st">ACTIVE</span></div><div class="glyph">Reply<small>Support · 3 tools</small></div><p class="desc">Drafts customer support replies in your voice. Always opens a draft — never sends.</p><div class="stats"><span><b>2,940</b> jobs</span><span>avg <b>22s</b></span></div></div>
+      <div class="agent"><div class="badge"><span class="id">A-08</span><span class="st">ACTIVE</span></div><div class="glyph">Receipt<small>Spend · 4 tools</small></div><p class="desc">Watches a CSV folder, classifies expenses, flags anything that looks like a duplicate charge.</p><div class="stats"><span><b>418</b> jobs</span><span>avg <b>34s</b></span></div></div>
+      <div class="agent"><div class="badge"><span class="id">A-09</span><span class="st">ACTIVE</span></div><div class="glyph">Cinder<small>Newsletter · 3 tools</small></div><p class="desc">Ingests last week's writing, drafts a newsletter, slots in three quotes from your inbox.</p><div class="stats"><span><b>92</b> jobs</span><span>avg <b>3m 12s</b></span></div></div>
+      <div class="agent"><div class="badge"><span class="id">A-10</span><span class="st">ACTIVE</span></div><div class="glyph">Beacon<small>Outreach · 4 tools</small></div><p class="desc">Researches a list of prospects, drafts custom plain-text emails, never auto-sends.</p><div class="stats"><span><b>284</b> jobs</span><span>avg <b>2m 04s</b></span></div></div>
+      <div class="agent"><div class="badge"><span class="id">A-11</span><span class="st">ACTIVE</span></div><div class="glyph">Stand-up<small>Daily · 2 tools</small></div><p class="desc">Reads your git log + ticket activity, writes the standup you'd write if you had time.</p><div class="stats"><span><b>1,206</b> jobs</span><span>avg <b>9s</b></span></div></div>
+      <div class="agent"><div class="badge"><span class="id">A-12</span><span class="st standby">STANDBY</span></div><div class="glyph">Bench<small>Plan · 3 tools</small></div><p class="desc">Takes a list of features, sequences them, drops them on the Bench tracker with estimates.</p><div class="stats"><span><b>148</b> jobs</span><span>avg <b>1m 38s</b></span></div></div>
+    </div>
+  </section>
+
+  <!-- INSTALL -->
+  <section class="sec">
+    <div class="head"><span class="ex"><b>EXHIBIT B</b>Installation</span><span class="pg">PG. 03 / 06</span></div>
+    <h2>Three commands.<em>One folder.</em></h2>
+    <p class="copy">There is no "platform". The agents are markdown files. They live in a folder. Claude Code already knows where to find them.</p>
+
+    <div class="install">
+      <div class="step"><div class="n">01</div><h3>Unzip into your home directory.</h3><p>Drop the folder into <code style="background:var(--paper-3);padding:1px 6px;border-radius:2px">~/.claude/agents/</code>. That's the install. There is no log-in, no SSO, no env file.</p><pre><span class="pr">$</span> unzip septim-agents.zip -d ~/.claude/<br/><span class="ok">  ✓ 12 agents installed</span></pre></div>
+      <div class="step"><div class="n">02</div><h3>Verify with one command.</h3><p>Claude Code reads the folder on next launch. Confirm with <code style="background:var(--paper-3);padding:1px 6px;border-radius:2px">/agents</code> from any session.</p><pre><span class="pr">$</span> claude /agents<br/><span class="ag">  triage, sweep, patch, brief,</span><br/><span class="ag">  recall, forge, reply, receipt,</span><br/><span class="ag">  cinder, beacon, standup, bench</span></pre></div>
+      <div class="step"><div class="n">03</div><h3>Call any agent by name.</h3><p>Mention the agent in your prompt — Claude Code dispatches the right one. They run in parallel when it makes sense. They share context when it doesn't.</p><pre><span class="pr">$</span> <span class="ag">@triage</span> handle issue #404<br/><span class="ok">  ✓ labeled · drafted · assigned</span></pre></div>
+    </div>
+  </section>
+
+  <!-- DISPATCH FLOW -->
+  <section class="sec">
+    <div class="head"><span class="ex"><b>EXHIBIT C</b>How a job runs</span><span class="pg">PG. 04 / 06</span></div>
+    <h2>One prompt becomes <em>four agents.</em></h2>
+    <p class="copy">When you mention a job that crosses domains, the dispatcher fans it out. Each agent does its piece, returns a structured result. The orchestrator stitches them. <b>You see one answer.</b></p>
+
+    <div class="flow">
+      <div class="flow-graph">
+        <div class="node you"><b>YOU</b><small>prompt</small></div>
+        <div class="node disp"><b>Dispatcher</b><small>routing</small></div>
+        <div class="node a1"><b>Triage</b><small>A-01</small></div>
+        <div class="node a2"><b>Sweep</b><small>A-02</small></div>
+        <div class="node a3"><b>Patch</b><small>A-03</small></div>
+        <div class="node a4"><b>Recall</b><small>A-05</small></div>
+        <div class="wires">
+          <!-- center vertical wire from YOU to DISPATCHER -->
+          <div class="wire" style="left:50%;top:54px;height:120px;transform-origin:top center"></div>
+          <!-- four splayed wires from DISPATCHER to agents (rendered using rotated thin bars) -->
+          <div class="wire" style="left:50%;top:50%;width:1px;height:160px;transform-origin:top center;transform:rotate(50deg) translateX(-50%)"></div>
+          <div class="wire" style="left:50%;top:50%;width:1px;height:160px;transform-origin:top center;transform:rotate(20deg) translateX(-50%)"></div>
+          <div class="wire" style="left:50%;top:50%;width:1px;height:160px;transform-origin:top center;transform:rotate(-20deg) translateX(-50%)"></div>
+          <div class="wire" style="left:50%;top:50%;width:1px;height:160px;transform-origin:top center;transform:rotate(-50deg) translateX(-50%)"></div>
+        </div>
+      </div>
+      <div class="flow-log">
+        <div class="hdr">DISPATCH LOG · #4892</div>
+        <div class="l"><span class="t">14:02:17</span><span class="info">prompt</span> "issue 404, broken signup, email me a fix plan"</div>
+        <div class="l"><span class="t">14:02:18</span><span class="ag">@triage</span> read issue · 8 comments · 2 reproductions</div>
+        <div class="l"><span class="t">14:02:19</span><span class="ag">@recall</span> "signup" → 3 prior bugs found</div>
+        <div class="l"><span class="t">14:02:21</span><span class="ag">@sweep</span> grepping auth/* · 14 files</div>
+        <div class="l"><span class="t">14:02:24</span><span class="ag">@patch</span> reproduces locally · 1 broken regex</div>
+        <div class="l"><span class="t">14:02:31</span><span class="ag">@patch</span> fix branch <code>fix/404-signup</code> · 4 lines</div>
+        <div class="l"><span class="t">14:02:33</span><span class="ag">@patch</span> tests added · suite green</div>
+        <div class="l"><span class="t">14:02:34</span><span class="ok">✓ pr #621 opened</span> — awaiting review</div>
+        <div class="l"><span class="t">14:02:35</span><span class="info">total</span> 18s · $0.07 · 4 agents</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RECEIPTS -->
+  <section class="sec">
+    <div class="head"><span class="ex"><b>EXHIBIT D</b>From the field</span><span class="pg">PG. 05 / 06</span></div>
+    <h2>Real founders. Real <em>calendars.</em></h2>
+    <div class="receipts">
+      <div class="rec"><p class="q">"I shipped four features last week and answered every customer email. There is one of me. The agents handle the connective tissue I used to do at 11pm."</p><div class="who"><b>Mara V.</b><span>Solo SaaS · MRR $14k</span></div></div>
+      <div class="rec"><p class="q">"@triage replaced a virtual assistant I was paying $1,800/mo. The agents file is forty kilobytes. I read it on the plane."</p><div class="who"><b>Devon J.</b><span>Two-person studio · Brooklyn</span></div></div>
+      <div class="rec"><p class="q">"The thing nobody tells you about LLM agents is that 90% of the value is good prompts. These are good prompts. The wrapper around them is forty lines."</p><div class="who"><b>Ash K.</b><span>Indie dev · Lisbon</span></div></div>
+      <div class="rec"><p class="q">"I edit them. I add to them. They live in my dotfiles repo. That is what I wanted from agent infrastructure all along."</p><div class="who"><b>Tomás R.</b><span>Founder · Bench customer</span></div></div>
+    </div>
+  </section>
+
+  <!-- BUY -->
+  <section class="buy">
+    <div>
+      <h3>Forty-nine dollars.<br/><em>Yours forever.</em></h3>
+      <p class="copy">Twelve markdown files. Source you can read. No subscription. No telemetry. No login. Updates are optional and free for the first year.</p>
+      <a class="btn-p" href="../contact.html?subject=Agents" style="font-size:13px;padding:18px 28px">Buy Agents · $49 once <span>→</span></a>
+    </div>
+    <div class="price">$49<small>ONCE · NO SEAT TAX · MIT-LIKE LICENSE</small></div>
+  </section>
+
+  <!-- NEXT -->
+  <nav class="next">
+    <a href="bench.html"><span class="l">— Next tool · 03</span><span class="n">Bench →</span><span class="d">A pay-once project tracker that won't sell your data.</span></a>
+    <a href="audit.html"><span class="l">— Or, the bestseller</span><span class="n">Audit →</span><span class="d">Forensic teardown of your software stack.</span></a>
+  </nav>
+
+<div class="buy-bar">
+  <div>
+    <div class="bar-name">Agents</div>
+    <div class="bar-price">$49</div>
+  </div>
+  <a class="btn-primary" href="../contact.html?subject=Agents">Buy · $49 once →</a>
+</div>
+</main>
+
+<div id="site-foot"></div>
+<div class="grain" aria-hidden="true"></div>
+<script src="../site.js?v=4.6.0"></script>
+<script src="../site-shell.js?v=4.6.0"></script>
+<script>
+// HUD clock
+(()=>{const c=document.getElementById('clk');if(!c)return;const f=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');c.textContent=`${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`};f();setInterval(f,1000)})();
+
+// Terminal typer — types a sequence of agent invocations, then loops
+(()=>{
+  const body=document.getElementById('termBody');if(!body)return;
+  const lines=[
+    {t:'cmd',c:'<span class="pr">$</span> claude'},
+    {t:'sys',c:'<span class="dim">claude code v2.4.7 · 12 agents loaded · ready</span>'},
+    {t:'sys',c:''},
+    {t:'cmd',c:'<span class="pr">›</span> <span class="ag">@triage</span> handle issue 404, signup is broken'},
+    {t:'sys',c:'<span class="dim">  → reading github... 8 comments, 2 repros</span>'},
+    {t:'sys',c:'<span class="dim">  → routing to <span class="ag">@patch</span></span>'},
+    {t:'sys',c:'<span class="dim">  → branch fix/404-signup · 4 lines · tests green</span>'},
+    {t:'sys',c:'<span class="ok">  ✓ PR #621 opened · awaiting your review</span>'},
+    {t:'sys',c:''},
+    {t:'cmd',c:'<span class="pr">›</span> <span class="ag">@brief</span> the new cron docs, one page'},
+    {t:'sys',c:'<span class="dim">  → fetching docs.cron.com · 14 pages</span>'},
+    {t:'sys',c:'<span class="dim">  → ./brief-cron.md (842 words, 6 citations)</span>'},
+    {t:'sys',c:'<span class="ok">  ✓ done · 1m 12s · $0.04</span>'},
+    {t:'sys',c:''},
+    {t:'cmd',c:'<span class="pr">›</span> <span class="ag">@standup</span>'},
+    {t:'sys',c:'<span class="info">  Yesterday: 3 commits, 1 PR merged, 2 issues closed</span>'},
+    {t:'sys',c:'<span class="info">  Today: review PR #621, ship onboarding refresh</span>'},
+    {t:'sys',c:'<span class="info">  Blocked: nothing</span>'},
+    {t:'sys',c:''},
+    {t:'cmd',c:'<span class="pr">›</span> <span class="cur"></span>'}
+  ];
+  let li=0,ci=0;
+  const tick=()=>{
+    if(li>=lines.length){setTimeout(()=>{body.innerHTML='';li=0;ci=0;tick()},5000);return}
+    const ln=lines[li];
+    let nodes=body.querySelectorAll('.ln');
+    if(nodes.length<=li){const el=document.createElement('span');el.className='ln';body.appendChild(el)}
+    const target=body.querySelectorAll('.ln')[li];
+    if(ln.t==='cmd'||ln.t==='sys'){
+      // type char by char for cmd lines, instant for sys lines
+      if(ln.t==='cmd'){
+        const html=ln.c;target.innerHTML=html.slice(0,ci+1)+'<span class="cur"></span>';ci++;
+        if(ci>=html.length){target.innerHTML=html;ci=0;li++;setTimeout(tick,180)}
+        else setTimeout(tick,8+Math.random()*16)
+      } else {
+        target.innerHTML=ln.c;li++;setTimeout(tick,200+Math.random()*100)
+      }
+    }
+    body.scrollTop=body.scrollHeight;
+  };
+  tick();
+})();
+
+// Tick counter in HUD
+(()=>{const t=document.getElementById('tick');if(!t)return;let n=8402;setInterval(()=>{n+=Math.floor(Math.random()*3);t.innerHTML=`# 12 agents online · last invocation ${Math.floor(Math.random()*40)+2}s ago · ${n.toLocaleString()} jobs completed lifetime`},2400)})();
+</script>
+</body>
+</html>

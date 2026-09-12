@@ -1,0 +1,31 @@
+import { resolveStaticFilePath } from './static'
+import path from 'node:path'
+import { describe, expect, it } from 'vitest'
+
+describe('resolveStaticFilePath', () => {
+  it('resolves built asset paths under dist', () => {
+    const filePath = resolveStaticFilePath('/assets/index-abc123.js')
+    const expectedPath = path.join(
+      process.cwd(),
+      'dist',
+      'assets/index-abc123.js',
+    )
+
+    expect(filePath).toBe(expectedPath)
+    expect(path.relative(path.join(process.cwd(), 'dist'), filePath)).toBe(
+      'assets/index-abc123.js',
+    )
+  })
+
+  it('resolves unknown client routes to the SPA index entry', () => {
+    expect(resolveStaticFilePath('/settings')).toBe(
+      path.join(process.cwd(), 'dist', 'index.html'),
+    )
+  })
+
+  it('does not resolve asset traversal paths outside dist', () => {
+    expect(resolveStaticFilePath('/assets/../../package.json')).toBe(
+      path.join(process.cwd(), 'dist', 'index.html'),
+    )
+  })
+})

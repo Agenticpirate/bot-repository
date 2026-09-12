@@ -1,0 +1,289 @@
+@import 'tailwindcss';
+@import '@moldable-ai/ui/styles';
+@source './**/*.{js,jsx,ts,tsx}';
+@source '../../node_modules/@moldable-ai/ui/dist/**/*.{js,jsx,ts,tsx}';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-serif:
+    'New York', 'Cambria', 'Palatino', Georgia, 'Times New Roman', serif;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    overflow: hidden;
+  }
+}
+
+@layer components {
+  .piano-serif {
+    font-family: var(--font-serif);
+    letter-spacing: -0.01em;
+  }
+
+  .piano-mono {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  .piano-card-tone {
+    background:
+      radial-gradient(
+        120% 90% at 0% 0%,
+        color-mix(in oklch, var(--card-tone, var(--primary)) 38%, transparent)
+          0%,
+        transparent 55%
+      ),
+      radial-gradient(
+        120% 90% at 100% 100%,
+        color-mix(in oklch, var(--card-tone, var(--primary)) 22%, transparent)
+          0%,
+        transparent 55%
+      ),
+      linear-gradient(
+        180deg,
+        color-mix(
+          in oklch,
+          var(--card) 92%,
+          var(--card-tone, var(--primary)) 8%
+        ),
+        var(--card)
+      );
+  }
+
+  .piano-scrollbar::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+  }
+  .piano-scrollbar::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklch, var(--foreground) 14%, transparent);
+    border-radius: 999px;
+  }
+  .piano-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklch, var(--foreground) 24%, transparent);
+  }
+  .piano-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .piano-no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .piano-no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* App-owned desktop windows publish the traffic-light clearance through the
+   shared frame contract. Keep this local guard so Piano's animated/absolute
+   top bars cannot regress underneath the native controls if their positioning
+   classes change. The shared Toolbar rule remains the primary implementation. */
+:root[data-moldable-display-mode='window'][data-moldable-window-titlebar='app']
+  [data-slot='toolbar'][data-position='top']:not([data-window-inset='none']) {
+  padding-inline-start: max(
+    var(--density-control-padding-inline, 0.625rem),
+    var(--window-control-inset-inline-start, 0px)
+  );
+}
+
+@keyframes piano-view-forward {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes piano-view-back {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -6px, 0) scale(1.015);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes piano-card-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes piano-chrome-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes piano-key-glow {
+  0% {
+    box-shadow:
+      0 0 0 0
+        color-mix(in oklch, var(--key-tone, var(--primary)) 65%, transparent),
+      0 4px 14px
+        color-mix(in oklch, var(--key-tone, var(--primary)) 45%, transparent);
+  }
+  60% {
+    box-shadow:
+      0 0 0 4px
+        color-mix(in oklch, var(--key-tone, var(--primary)) 0%, transparent),
+      0 6px 18px
+        color-mix(in oklch, var(--key-tone, var(--primary)) 30%, transparent);
+  }
+  100% {
+    box-shadow:
+      0 0 0 0
+        color-mix(in oklch, var(--key-tone, var(--primary)) 0%, transparent),
+      0 4px 14px
+        color-mix(in oklch, var(--key-tone, var(--primary)) 35%, transparent);
+  }
+}
+
+@keyframes piano-hit-pulse {
+  0% {
+    opacity: 0.55;
+    transform: scaleX(1);
+  }
+  60% {
+    opacity: 0.15;
+    transform: scaleX(1.04);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes piano-mini-drift {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.animate-piano-view-forward {
+  animation: piano-view-forward 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes piano-tutorial-swap {
+  0% {
+    opacity: 0;
+    transform: translate3d(56px, 0, 0);
+    filter: blur(6px);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0);
+  }
+}
+
+.animate-piano-tutorial-swap {
+  animation: piano-tutorial-swap 540ms cubic-bezier(0.2, 0.85, 0.2, 1) both;
+  will-change: transform, opacity, filter;
+}
+
+@keyframes piano-notes-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(-48px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-piano-notes-reveal {
+  animation: piano-notes-reveal 720ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* CSS transforms apply to SVG <g> in modern browsers; this gives the
+     note bars a soft drop-in while the grid stays still. */
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.piano-falling-note-track {
+  transform-box: view-box;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+@keyframes piano-section-expand {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-piano-section-expand {
+  animation: piano-section-expand 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-piano-view-back {
+  animation: piano-view-back 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-piano-card-in {
+  animation: piano-card-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-piano-chrome-in {
+  animation: piano-chrome-in 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-piano-mini-drift {
+  animation: piano-mini-drift 4.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-piano-view-forward,
+  .animate-piano-view-back,
+  .animate-piano-card-in,
+  .animate-piano-chrome-in,
+  .animate-piano-mini-drift,
+  .animate-piano-tutorial-swap,
+  .animate-piano-notes-reveal,
+  .animate-piano-section-expand {
+    animation: none;
+  }
+}

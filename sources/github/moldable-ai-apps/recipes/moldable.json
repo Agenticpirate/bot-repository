@@ -1,0 +1,851 @@
+{
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "name": "Recipes",
+  "version": "0.1.14",
+  "aliases": [
+    "cooking",
+    "meals"
+  ],
+  "runtime": "vite_hono",
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "visibility": "public",
+  "description": "A photo-centric recipes app with beautiful cards, folders, rich Markdown steps, and a hands-free cook mode.",
+  "author": "",
+  "license": "FSL-1.1-ALv2",
+  "icon": "🍳",
+  "iconPath": "public/icon.png",
+  "category": "lifestyle",
+  "tags": [],
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59"
+  },
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "recipes.library",
+        "name": "Recipes",
+        "description": "Read and manage saved recipes in this workspace.",
+        "scopes": [
+          {
+            "id": "recipes.native.read",
+            "name": "Read the mobile Recipes experience",
+            "description": "Return one route-specific, bounded NativeUI projection for the cookbook, a collection, recipe detail, ingredients, or one cook-mode step.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "route": {
+                  "type": "string",
+                  "enum": [
+                    "library",
+                    "collection",
+                    "recipe",
+                    "ingredients",
+                    "cook-step",
+                    "edit",
+                    "new"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "favorites",
+                    "folder"
+                  ]
+                },
+                "stepIndex": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 99
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 16
+                }
+              },
+              "required": [
+                "route"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "recipes.native.mutate",
+            "name": "Update a mobile recipe preference",
+            "description": "Set favorite state for one recipe and return a bounded mutation receipt.",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "favorite"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "favorite": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "action",
+                "id",
+                "favorite"
+              ],
+              "additionalProperties": false
+            },
+            "changesState": true
+          },
+          {
+            "id": "recipes.native.search",
+            "name": "Search mobile recipes",
+            "description": "Search live recipes by title, ingredients, category, and tags.",
+            "risk": "low",
+            "surfaces": [
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                }
+              },
+              "required": [
+                "query"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "recipes.native.manage",
+            "name": "Organize mobile recipes",
+            "description": "Create or rename a collection, or move one recipe.",
+            "risk": "important",
+            "surfaces": [
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "create-folder",
+                    "rename-folder",
+                    "move-recipe"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "folderId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "recipes.native.update",
+            "name": "Edit a mobile recipe",
+            "description": "Update bounded editable recipe fields while preserving its verified photo.",
+            "risk": "important",
+            "surfaces": [
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string"
+                },
+                "servings": {
+                  "type": "string"
+                },
+                "prepTime": {
+                  "type": "string"
+                },
+                "cookingTime": {
+                  "type": "string"
+                },
+                "difficulty": {
+                  "type": "string",
+                  "enum": [
+                    "Easy",
+                    "Medium",
+                    "Hard"
+                  ]
+                },
+                "ingredientsText": {
+                  "type": "string"
+                },
+                "instructions": {
+                  "type": "string"
+                },
+                "tagsText": {
+                  "type": "string"
+                },
+                "sourceUrl": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "description",
+                "category",
+                "servings",
+                "prepTime",
+                "cookingTime",
+                "difficulty",
+                "ingredientsText",
+                "instructions",
+                "tagsText",
+                "sourceUrl"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "recipes.native.create",
+            "name": "Create a mobile recipe",
+            "description": "Create a text recipe in the authoritative workspace library.",
+            "risk": "important",
+            "surfaces": [
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string"
+                },
+                "servings": {
+                  "type": "string"
+                },
+                "prepTime": {
+                  "type": "string"
+                },
+                "cookingTime": {
+                  "type": "string"
+                },
+                "difficulty": {
+                  "type": "string",
+                  "enum": [
+                    "Easy",
+                    "Medium",
+                    "Hard"
+                  ]
+                },
+                "ingredientsText": {
+                  "type": "string"
+                },
+                "instructions": {
+                  "type": "string"
+                },
+                "tagsText": {
+                  "type": "string"
+                },
+                "sourceUrl": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "title",
+                "description",
+                "category",
+                "servings",
+                "prepTime",
+                "cookingTime",
+                "difficulty",
+                "ingredientsText",
+                "instructions",
+                "tagsText",
+                "sourceUrl"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "recipes.native.delete",
+            "name": "Delete a mobile recipe item",
+            "description": "Delete one recipe or collection after host confirmation.",
+            "risk": "destructive",
+            "surfaces": [
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "delete-recipe",
+                    "delete-folder"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "folderId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "action"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "recipes.list",
+            "name": "List recipes",
+            "description": "List recipes with optional filters for text, category, difficulty, favorites, and deleted state. Locally stored or bundled recipe photos include imageAssetPath; on iOS the trusted host projects them as safe nativeUIAssets aliases.",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string"
+                },
+                "difficulty": {
+                  "type": "string",
+                  "enum": [
+                    "Easy",
+                    "Medium",
+                    "Hard"
+                  ]
+                },
+                "favoriteOnly": {
+                  "type": "boolean"
+                },
+                "includeDeleted": {
+                  "type": "boolean"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 200
+                }
+              }
+            }
+          },
+          {
+            "id": "recipes.search",
+            "name": "Search recipes",
+            "description": "Search recipe titles, descriptions, categories, ingredients, and instructions.",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 200
+                }
+              }
+            }
+          },
+          {
+            "id": "recipes.get",
+            "name": "Get recipe",
+            "description": "Get one recipe by ID, including imageAssetPath when its photo can be securely exported; on iOS the trusted host returns a safe nativeUIAssets alias.",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "recipes.create",
+            "name": "Create recipe",
+            "description": "Create a new recipe. `instructions` accepts Markdown (use a numbered list for steps — each item becomes a Cook Mode step); `ingredients` is one item per array entry; `servings`, `prepTime`, `cookingTime`, `sourceUrl`, and `tags` are optional.",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "imageUrl": {
+                  "type": "string"
+                },
+                "ingredients": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "instructions": {
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string"
+                },
+                "cookingTime": {
+                  "type": "string"
+                },
+                "prepTime": {
+                  "type": "string"
+                },
+                "servings": {
+                  "type": "string"
+                },
+                "sourceUrl": {
+                  "type": "string"
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "difficulty": {
+                  "type": "string",
+                  "enum": [
+                    "Easy",
+                    "Medium",
+                    "Hard"
+                  ]
+                },
+                "isFavorite": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "title"
+              ]
+            }
+          },
+          {
+            "id": "recipes.update",
+            "name": "Update recipe",
+            "description": "Update recipe fields.",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "imageUrl": {
+                  "type": "string"
+                },
+                "ingredients": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "instructions": {
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string"
+                },
+                "cookingTime": {
+                  "type": "string"
+                },
+                "prepTime": {
+                  "type": "string"
+                },
+                "servings": {
+                  "type": "string"
+                },
+                "sourceUrl": {
+                  "type": "string"
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "difficulty": {
+                  "type": "string",
+                  "enum": [
+                    "Easy",
+                    "Medium",
+                    "Hard"
+                  ]
+                },
+                "isFavorite": {
+                  "type": "boolean"
+                },
+                "isDeleted": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "recipes.plan",
+            "name": "Plan recipe for a week",
+            "description": "Mark a saved recipe as planned for a week, or clear that plan. Omit weekStart to use the current Monday in Montréal.",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "planned": {
+                  "type": "boolean"
+                },
+                "weekStart": {
+                  "type": "string",
+                  "description": "Optional Monday ISO date (YYYY-MM-DD)."
+                }
+              },
+              "required": [
+                "id",
+                "planned"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "recipes.cook",
+            "name": "Record a cooked recipe",
+            "description": "Add one calendar date to a recipe’s cooking history. Omit date to record today in Montréal.",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string",
+                  "description": "Optional ISO calendar date (YYYY-MM-DD)."
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "recipes.favorite",
+            "name": "Favorite recipe",
+            "description": "Set a recipe favorite state.",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "isFavorite": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "isFavorite"
+              ]
+            }
+          },
+          {
+            "id": "recipes.delete",
+            "name": "Delete recipe",
+            "description": "Move one recipe to deleted state.",
+            "risk": "destructive",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "recipes.drive",
+        "name": "Drive Recipes",
+        "description": "Navigate recipe views, open recipes and cook mode, and read structured ingredients and steps.",
+        "scopes": [
+          {
+            "id": "recipes.ui.describe",
+            "name": "Describe Recipes views",
+            "description": "List Recipes' navigable views, required entity ids, and supported navigation parameters.",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "recipes.ui.navigate",
+            "name": "Navigate Recipes",
+            "description": "Show the recipe library, favorites, a saved folder, or a saved recipe, optionally in cook mode.",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "library",
+                    "favorites",
+                    "folder",
+                    "recipe"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Required folder id or recipe id for entity views."
+                },
+                "params": {
+                  "type": "object",
+                  "properties": {
+                    "cookMode": {
+                      "type": "boolean",
+                      "description": "For recipe view, open the hands-free step interface."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "view"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "recipes.ui.read",
+            "name": "Read Recipes content",
+            "description": "Return faithful structured content for a recipe view, including its shareable imageAssetPath, clean ingredients, and numbered cooking steps, or data for a library, favorites, or folder view. On iOS the trusted host projects imageAssetPath as a safe nativeUIAssets alias.",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "library",
+                    "favorites",
+                    "folder",
+                    "recipe"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Required folder id or recipe id for entity views."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "recipes.ui.openRecipe",
+            "name": "Open a recipe",
+            "description": "Open a saved recipe and optionally enter its hands-free cook mode.",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "recipeId": {
+                  "type": "string"
+                },
+                "cookMode": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "recipeId"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      },
+      {
+        "id": "recipes.cards",
+        "name": "Chat cards",
+        "description": "Show selected recipes as a horizontal photo strip; tap for ingredients and instructions.",
+        "scopes": [
+          {
+            "id": "recipes.cards.present",
+            "name": "Present chat card",
+            "description": "Show selected recipes as a horizontal photo strip; tap for ingredients and instructions.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "minItems": 1,
+                  "maxItems": 8
+                }
+              },
+              "required": [
+                "ids"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "recipes.cards.read",
+            "name": "Read chat card",
+            "description": "Show selected recipes as a horizontal photo strip; tap for ingredients and instructions.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "minItems": 1,
+                  "maxItems": 8
+                },
+                "detailId": {
+                  "type": "string",
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "ids"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "env": [],
+  "routeName": "recipes"
+}

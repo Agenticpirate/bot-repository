@@ -1,0 +1,592 @@
+{
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "name": "Time Tracker",
+  "version": "0.1.15",
+  "aliases": [
+    "timer",
+    "timesheet"
+  ],
+  "visibility": "public",
+  "description": "Track time for work projects with weekly views and export",
+  "runtime": "vite_hono",
+  "author": "Moldable",
+  "license": "FSL-1.1-ALv2",
+  "icon": "⏱️",
+  "iconPath": "public/icon.png",
+  "category": "productivity",
+  "tags": [],
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "time-tracker.time",
+        "name": "Time tracking",
+        "description": "Read and manage time tracker projects, entries, timer state, and summaries.",
+        "scopes": [
+          {
+            "id": "time-tracker.native.read",
+            "name": "Read a mobile Time Tracker view",
+            "description": "Return bounded timer, entry, summary, or project list/detail data with explicit mobile empty states and editable drafts.",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "view"
+              ],
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "dashboard",
+                    "timer",
+                    "entries",
+                    "entry",
+                    "summary",
+                    "projects",
+                    "archived-projects",
+                    "project",
+                    "project-draft"
+                  ]
+                },
+                "entryId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              }
+            }
+          },
+          {
+            "id": "time-tracker.projects.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "List projects",
+            "description": "List time tracking projects.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string"
+                },
+                "includeArchived": {
+                  "type": "boolean"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 500
+                }
+              }
+            }
+          },
+          {
+            "id": "time-tracker.projects.create",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Create project",
+            "description": "Create a time tracking project.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name"
+              ]
+            }
+          },
+          {
+            "id": "time-tracker.projects.update",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Update project",
+            "description": "Update a project name, color, or archived state.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                },
+                "archived": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "time-tracker.entries.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "List entries",
+            "description": "List time entries filtered by date range, project, or text.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "startDate": {
+                  "type": "string",
+                  "description": "YYYY-MM-DD"
+                },
+                "endDate": {
+                  "type": "string",
+                  "description": "YYYY-MM-DD"
+                },
+                "projectId": {
+                  "type": "string"
+                },
+                "query": {
+                  "type": "string"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 500
+                }
+              }
+            }
+          },
+          {
+            "id": "time-tracker.entries.create",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Create entry",
+            "description": "Create a manual time entry.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "startTime": {
+                  "type": "string",
+                  "description": "ISO datetime"
+                },
+                "endTime": {
+                  "type": "string",
+                  "description": "ISO datetime"
+                },
+                "duration": {
+                  "type": "number",
+                  "description": "Duration in seconds."
+                }
+              },
+              "required": [
+                "projectId",
+                "startTime"
+              ]
+            }
+          },
+          {
+            "id": "time-tracker.entries.update",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Update entry",
+            "description": "Update a time entry.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "projectId": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "startTime": {
+                  "type": "string"
+                },
+                "endTime": {
+                  "type": "string"
+                },
+                "duration": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "time-tracker.entries.delete",
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Delete entry",
+            "description": "Delete a time entry.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "time-tracker.timer.get",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Get timer",
+            "description": "Get current timer state."
+          },
+          {
+            "id": "time-tracker.timer.startByProjectId",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Start timer",
+            "description": "Start the active timer.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "projectId"
+              ]
+            }
+          },
+          {
+            "id": "time-tracker.timer.update",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Update timer",
+            "description": "Update running timer project or description.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "id": "time-tracker.timer.stopAndSave",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Stop timer",
+            "description": "Stop the active timer and create a time entry."
+          },
+          {
+            "id": "time-tracker.summary",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Time summary",
+            "description": "Summarize tracked time by project over an optional date range.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "startDate": {
+                  "type": "string",
+                  "description": "YYYY-MM-DD"
+                },
+                "endDate": {
+                  "type": "string",
+                  "description": "YYYY-MM-DD"
+                },
+                "projectId": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "time-tracker.drive",
+        "name": "Drive Time Tracker",
+        "description": "Model-facing controls for driving the Time Tracker UI: describe and navigate its views, read the current state as speakable text, and start or stop the timer by project name.",
+        "scopes": [
+          {
+            "id": "time-tracker.ui.describe",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Describe views",
+            "description": "List every navigable view of the Time Tracker UI with an explanation of what each view shows and what entityId and params mean for it. Call this before time-tracker.ui.navigate when unsure which views exist.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "id": "time-tracker.ui.navigate",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Navigate UI",
+            "description": "Navigate the open Time Tracker window to a view: 'list' (weekly entry list), 'calendar' (week calendar with a selectable day), or 'projects' (manage-projects sheet). For 'list' and 'calendar', an optional YYYY-MM-DD date in params.date (or entityId for 'calendar') jumps to that day's week. The change is applied by the running client and is visible to the user.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "list",
+                    "calendar",
+                    "projects"
+                  ],
+                  "description": "The view to open."
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Optional. For 'calendar', a YYYY-MM-DD date to select."
+                },
+                "params": {
+                  "type": "object",
+                  "description": "Optional view parameters. 'list' and 'calendar' accept { \"date\": \"YYYY-MM-DD\" }.",
+                  "properties": {
+                    "date": {
+                      "type": "string",
+                      "description": "YYYY-MM-DD date to navigate to."
+                    }
+                  }
+                }
+              },
+              "required": [
+                "view"
+              ]
+            }
+          },
+          {
+            "id": "time-tracker.ui.read",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Read UI as speech",
+            "description": "Return clean speakable text (no markdown, no HTML) describing the current timer state and today's tracked total, suitable for a voice model to narrate. Optional view 'projects' also lists active project names; an optional YYYY-MM-DD entityId reads that day's total instead of today's.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "list",
+                    "calendar",
+                    "projects"
+                  ],
+                  "description": "Optional view to read. 'projects' includes the active project list."
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Optional YYYY-MM-DD date to summarize instead of today."
+                }
+              }
+            }
+          },
+          {
+            "id": "time-tracker.timer.start",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Start timer (signature)",
+            "description": "Start tracking time. Resolve the project by projectId, or by projectName matched case-insensitively against existing projects; if no project with that name exists, a new project is created automatically. With neither given, the most recently used project is resumed. If a timer is already running it is stopped first and its time is saved as a completed entry (no time is lost) before the new timer starts.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "description": "Exact project id to track against."
+                },
+                "projectName": {
+                  "type": "string",
+                  "description": "Project name, matched case-insensitively. Creates the project if it does not exist."
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Optional note describing what is being worked on."
+                }
+              }
+            }
+          },
+          {
+            "id": "time-tracker.timer.stop",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Stop timer (signature)",
+            "description": "Stop the running timer and save the tracked time as a completed entry. Returns a summary of the completed entry including project name, duration, and a speakable sentence. Fails with timer_not_running if no timer is active.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ]
+      },
+      {
+        "id": "time-tracker.cards",
+        "name": "Chat cards",
+        "description": "Show the live current timer, or total tracked time for a date range with a project breakdown on tap.",
+        "scopes": [
+          {
+            "id": "time-tracker.cards.present",
+            "name": "Present chat card",
+            "description": "Show the live current timer, or total tracked time for a date range with a project breakdown on tap.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "timer",
+                    "summary"
+                  ]
+                },
+                "startDate": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                "endDate": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "view"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "time-tracker.cards.read",
+            "name": "Read chat card",
+            "description": "Show the live current timer, or total tracked time for a date range with a project breakdown on tap.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "timer",
+                    "summary"
+                  ]
+                },
+                "startDate": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                "endDate": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "view"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "env": [],
+  "routeName": "time-tracker",
+  "screenshots": [
+    "public/screenshots/1.png"
+  ],
+  "tagline": "One-click time tracking with weekly views and export"
+}

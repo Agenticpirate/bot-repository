@@ -1,7 +1,11 @@
 # vellum.ai
 
-Compact public snapshot of the [Vellum skills catalog](https://www.vellum.ai/skills), discovered via Agenthunt outbound link `https://www.vellum.ai/`.
-
-scraped_at: `2026-09-12T21:29:58Z`.
-
-Public **AI Assistant Skills Catalog** — page claims **75** installable skills (Gmail, Slack, calendar, voice, …). Homepage + `/skills` + `/llms.txt` + sitemap. Not a deep scrape of each skill page.
+Public Vellum assistant skills gallery + docs.
+- Last updated: 2026-09-12T22:01:01Z
+- Sitemap URLs: **416**
+- Skill/category pages: **88**
+- Skill bodies copied from vellum-ai/vellum-assistant/skills: **75**
+- Marketplace plugins in marketplace.json: **43**
+- Docs markdown attempted: **353** (ok=310)
+- Feeds: sitemap, robots, llms.txt, docs.vellum.ai/llms.txt, catalog.json, marketplace.json
+- Canonical skill bodies: https://github.com/vellum-ai/vellum-assistant

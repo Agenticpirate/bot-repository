@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="canonical" href="https://septimlabs.com/es/tools/bench.html" />
+<meta property="og:locale" content="es_ES" />
+
+<!-- SEPTIM-I18N-HREFLANG -->
+<link rel="alternate" hreflang="x-default" href="https://septimlabs.com/tools/bench.html" />
+<link rel="alternate" hreflang="en" href="https://septimlabs.com/tools/bench.html" />
+<link rel="alternate" hreflang="es" href="https://septimlabs.com/es/tools/bench.html" />
+<link rel="alternate" hreflang="zh" href="https://septimlabs.com/zh/tools/bench.html" />
+<link rel="alternate" hreflang="hi" href="https://septimlabs.com/hi/tools/bench.html" />
+<link rel="alternate" hreflang="pt" href="https://septimlabs.com/pt/tools/bench.html" />
+<link rel="alternate" hreflang="de" href="https://septimlabs.com/de/tools/bench.html" />
+<link rel="alternate" hreflang="fr" href="https://septimlabs.com/fr/tools/bench.html" />
+<link rel="alternate" hreflang="ja" href="https://septimlabs.com/ja/tools/bench.html" />
+<link rel="alternate" hreflang="ru" href="https://septimlabs.com/ru/tools/bench.html" />
+<link rel="alternate" hreflang="ar" href="https://septimlabs.com/ar/tools/bench.html" />
+<!-- /SEPTIM-I18N-HREFLANG -->
+
+<title>Bench — Septim Labs</title>
+    <!-- Open Graph + Twitter Card (auto-injected by inject_og_meta.py) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://septimlabs.com/es/tools/bench" />
+    <meta property="og:title" content="Bench — Septim Labs" />
+    <meta property="og:description" content="Septim Labs — pay-once developer tools, custom SMB software builds. You buy once, you keep it." />
+    <meta property="og:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Septim Labs" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Bench — Septim Labs" />
+    <meta name="twitter:description" content="Septim Labs — pay-once developer tools, custom SMB software builds. You buy once, you keep it." />
+    <meta name="twitter:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../site.css?v=4.6.1" />
+<style>
+  /* BENCH — A workshop ledger. The metaphor is a carpenter's bench: tasks are cards
+     pinned in tracks, time is a wood-grain Gantt rule, the tool feels physical and analog. */
+  :root[data-theme="dark"] .bn-page{
+  --paper:var(--bg);--paper-2:var(--bg);--paper-3:#141414;
+  --ink-a:#f0f0f0;--ink2-a:#9aa0aa;--ink3-a:#5a606a;
+  --rule-a:var(--line);--rule2-a:var(--line-2);
+  --field-a:var(--bg);--field2-a:#141414;
+  --p:#5fe09a;--p-soft:rgba(95,224,154,.14);--p-deep:#2a7a52;
+  --ok:#5fc587;--warn:#e6a14a;--err:#e96c6c;
+}
+  :root[data-theme="light"] .bn-page{
+  --paper:var(--ink);--paper-2:#f5f5f5;--paper-3:#e8e8e8;
+  --ink-a:var(--bg);--ink2-a:#454852;--ink3-a:#7a7e88;
+  --rule-a:rgba(0,0,0,.10);--rule2-a:rgba(0,0,0,.22);
+  --field-a:#f5f5f5;--field2-a:#e8e8e8;
+  --p:#2a7a52;--p-soft:rgba(42,122,82,.10);--p-deep:#1a5a3a;
+  --ok:#2a7e4f;--warn:#a06820;--err:#a02818;
+}
+  body{background:var(--paper)}
+  .bn-page{background:var(--paper);color:var(--ink-a);font-family:var(--sans);line-height:1.5;
+    background-image:repeating-linear-gradient(90deg,transparent 0 80px,var(--grain-c) 80px 81px),repeating-linear-gradient(0deg,transparent 0 12px,var(--grain-c) 12px 13px)}
+
+  /* Workshop HUD */
+  .hud{position:sticky;top:0;z-index:40;display:grid;grid-template-columns:auto 1fr auto auto auto;
+    align-items:center;background:color-mix(in srgb,var(--paper) 92%,transparent);
+    backdrop-filter:blur(12px);border-bottom:2px solid var(--ink-a);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2-a)}
+  .hud > *{padding:11px 18px;border-right:1px solid var(--rule-a)}
+  .hud > *:last-child{border-right:none}
+  .hud .file{color:var(--ink-a);font-weight:700;letter-spacing:.18em}
+  .hud .file::before{content:"§";color:var(--p);margin-right:8px;font-weight:900}
+  .hud .clock{font-variant-numeric:tabular-nums;color:var(--ink-a);min-width:130px;text-align:center}
+  @media(max-width:780px){.hud{grid-template-columns:auto 1fr auto}.hud .build,.hud .stat{display:none}}
+
+  /* Hero */
+  .hero{padding:72px clamp(20px,5vw,80px) 60px;border-bottom:2px solid var(--ink-a);position:relative;
+    display:grid;grid-template-columns:1fr 1.1fr;gap:60px;align-items:start}
+  .crumb{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3-a);
+    display:flex;gap:14px;align-items:center;margin-bottom:36px}
+  .crumb a{color:var(--ink2-a);text-decoration:none}
+  .crumb b{color:var(--p);font-weight:600}
+  .hero h1{font-size:clamp(56px,8vw,128px);font-weight:700;letter-spacing:-.045em;line-height:.92;margin:0 0 28px;color:var(--ink-a)}
+  .hero h1 em{font-style:normal;font-weight:700;color:var(--p)}
+  .hero .blurb{font-size:18px;line-height:1.55;color:var(--ink2-a);max-width:54ch;margin:0 0 32px}
+  .hero .blurb b{color:var(--ink-a);font-weight:600;background:var(--p-soft);padding:1px 6px}
+  .hero .blurb em{font-style:normal;color:var(--ink-a);font-weight:500}
+  .hero .meta{display:grid;grid-template-columns:repeat(4,auto);gap:0;border:2px solid var(--ink-a);background:var(--plate);width:fit-content;font-family:var(--mono);font-size:11px}
+  .hero .meta > div{padding:14px 22px;border-right:1px solid var(--ink-a)}
+  .hero .meta > div:last-child{border-right:none}
+  .hero .meta .k{color:var(--ink3-a);letter-spacing:.16em;text-transform:uppercase;font-size:10px;margin-bottom:6px}
+  .hero .meta .v{color:var(--ink-a);font-size:18px;font-weight:700;letter-spacing:-.01em}
+  .hero .meta .v.price{color:var(--p);font-size:24px}
+  .hero .actions{margin-top:32px;display:flex;gap:14px;flex-wrap:wrap}
+  .btn-p{display:inline-flex;align-items:center;gap:10px;padding:14px 24px;background:var(--ink-a);color:var(--paper);text-decoration:none;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+  .btn-p:hover{background:var(--p)}
+  .btn-g{display:inline-flex;align-items:center;gap:10px;padding:14px 24px;border:2px solid var(--ink-a);color:var(--ink-a);text-decoration:none;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+
+  /* GANTT — the centerpiece */
+  .gantt{background:var(--plate);border:2px solid var(--ink-a);position:relative;overflow:hidden;font-family:var(--mono);box-shadow:6px 6px 0 var(--rule2-a)}
+  .gantt .gh{display:flex;justify-content:space-between;padding:14px 18px;border-bottom:2px solid var(--ink-a);background:var(--paper-2);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-a);font-weight:600}
+  .gantt .gh .now{color:var(--p);display:inline-flex;align-items:center;gap:6px}
+  .gantt .gh .now::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--p);box-shadow:0 0 8px var(--p);animation:bp 2s infinite}
+  @keyframes bp{50%{opacity:.3}}
+  .gantt .scale{display:grid;grid-template-columns:140px 1fr;border-bottom:1px solid var(--rule2-a);background:var(--paper)}
+  .gantt .scale .lbl{padding:10px 14px;font-size:10px;color:var(--ink3-a);letter-spacing:.14em;text-transform:uppercase;border-right:1px solid var(--rule-a)}
+  .gantt .scale .days{display:grid;grid-template-columns:repeat(14,1fr);font-size:10px;color:var(--ink3-a)}
+  .gantt .scale .days span{padding:10px 0;text-align:center;border-right:1px solid var(--rule-a);letter-spacing:.06em}
+  .gantt .scale .days span.wknd{background:var(--rule-a)}
+  .gantt .scale .days span.today{color:var(--p);font-weight:700;background:var(--p-soft)}
+  .gantt .row{display:grid;grid-template-columns:140px 1fr;border-bottom:1px solid var(--rule-a);min-height:46px;align-items:stretch}
+  .gantt .row:last-child{border-bottom:none}
+  .gantt .row .who{padding:12px 14px;border-right:1px solid var(--rule-a);background:var(--paper-2);display:flex;flex-direction:column;justify-content:center;font-size:11px}
+  .gantt .row .who b{color:var(--ink-a);font-weight:700;font-size:12.5px;letter-spacing:-.005em}
+  .gantt .row .who small{color:var(--ink3-a);letter-spacing:.06em;text-transform:uppercase;font-size:9.5px}
+  .gantt .row .track{position:relative;background:var(--paper);background-image:linear-gradient(to right,var(--rule-a) 1px,transparent 1px);background-size:calc(100%/14) 100%}
+  .gantt .row .track .wknd{position:absolute;top:0;bottom:0;background:var(--rule-a);pointer-events:none}
+  .gantt .bar{position:absolute;top:8px;height:30px;background:var(--ink-a);color:var(--paper);font-size:10.5px;display:flex;align-items:center;padding:0 10px;font-weight:600;letter-spacing:.02em;border-radius:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .gantt .bar.p{background:var(--p);color:var(--ink)}
+  .gantt .bar.warn{background:var(--warn);color:#1a1810}
+  .gantt .bar.dim{background:var(--paper-3);color:var(--ink2-a);border:1px dashed var(--rule2-a)}
+  .gantt .bar .pct{position:absolute;left:0;top:0;bottom:0;background:var(--line-2);pointer-events:none}
+  .gantt .now-line{position:absolute;top:0;bottom:0;width:2px;background:var(--p);box-shadow:0 0 8px var(--p);z-index:5}
+  .gantt .now-line::before{content:"";position:absolute;top:-4px;left:-4px;width:10px;height:10px;background:var(--p);border-radius:50%}
+
+  @media(max-width:980px){.hero{grid-template-columns:1fr}.gantt .scale .days{grid-template-columns:repeat(7,1fr)}.gantt .scale .days span:nth-child(n+8){display:none}}
+
+  /* Section system */
+  .sec{padding:90px clamp(20px,5vw,80px);border-bottom:2px solid var(--ink-a);position:relative}
+  .sec .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:48px;border-bottom:1px solid var(--ink-a);padding-bottom:14px}
+  .sec .head .ex{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-a);font-weight:700}
+  .sec .head .ex b{background:var(--ink-a);color:var(--paper);padding:3px 9px;margin-right:10px}
+  .sec .head .pg{font-family:var(--mono);font-size:10px;color:var(--ink3-a);letter-spacing:.14em;text-transform:uppercase}
+  .sec h2{font-size:clamp(34px,4.5vw,64px);font-weight:700;letter-spacing:-.035em;line-height:1.04;margin:0 0 24px;max-width:20ch;color:var(--ink-a)}
+  .sec h2 em{font-style:normal;font-weight:700;color:var(--p)}
+  .sec .copy{font-size:16px;line-height:1.65;color:var(--ink2-a);max-width:60ch;margin:0 0 16px}
+  .sec .copy b{color:var(--ink-a);font-weight:600;background:var(--p-soft);padding:1px 5px}
+
+  /* CARDS — the bench tasks */
+  .cards-demo{margin-top:24px;border:2px solid var(--ink-a);background:var(--plate);padding:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;font-family:var(--mono)}
+  .cards-demo .col{display:flex;flex-direction:column;gap:10px;min-height:480px}
+  .cards-demo .col .ch{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3-a);padding-bottom:8px;border-bottom:1px solid var(--rule-a);display:flex;justify-content:space-between;align-items:center}
+  .cards-demo .col .ch b{color:var(--ink-a);font-weight:700}
+  .cards-demo .col .ch .ct{color:var(--ink2-a);font-weight:400}
+  .card{background:var(--paper);border:1px solid var(--rule2-a);border-left:3px solid var(--p);padding:12px 14px;font-family:var(--sans);box-shadow:2px 2px 0 var(--rule-a)}
+  .card.warn{border-left-color:var(--warn)}
+  .card.err{border-left-color:var(--err)}
+  .card.dim{border-left-color:var(--ink3-a);opacity:.7}
+  .card .tag{font-family:var(--mono);font-size:9.5px;color:var(--ink3-a);letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px}
+  .card .ttl{font-size:13.5px;font-weight:600;color:var(--ink-a);line-height:1.35;letter-spacing:-.005em;margin-bottom:8px}
+  .card .row{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:10px;color:var(--ink3-a);margin-top:6px}
+  .card .av{display:inline-block;width:18px;height:18px;border-radius:50%;background:var(--p);color:var(--ink);font-size:9px;text-align:center;line-height:18px;font-weight:700}
+  .card .av.b{background:var(--warn);color:#1a1810}
+  .card .av.c{background:var(--err)}
+  @media(max-width:980px){.cards-demo{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:600px){.cards-demo{grid-template-columns:1fr}}
+
+  /* Compare table */
+  .compare{margin-top:32px;border:2px solid var(--ink-a);background:var(--plate);font-family:var(--mono);font-size:13px}
+  .compare .row{display:grid;grid-template-columns:1.5fr 1fr 1fr;border-bottom:1px solid var(--rule-a)}
+  .compare .row:last-child{border-bottom:none}
+  .compare .row > *{padding:18px 24px;border-right:1px solid var(--rule-a)}
+  .compare .row > *:last-child{border-right:none}
+  .compare .row.h{background:var(--paper-2);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-a);font-weight:700}
+  .compare .row.h .you{color:var(--p)}
+  .compare .row .lbl{color:var(--ink-a);font-weight:600}
+  .compare .row .them{color:var(--ink3-a);text-decoration:line-through}
+  .compare .row .you{color:var(--p);font-weight:600}
+  .compare .row.tot{background:var(--ink-a);color:var(--paper);font-weight:700;font-size:15px}
+  .compare .row.tot .them{color:var(--line-3);text-decoration:line-through}
+  .compare .row.tot .you{color:var(--paper);font-weight:700}
+
+  /* BUY */
+  .buy{padding:120px clamp(20px,5vw,80px);background:var(--paper-2);border-top:2px solid var(--ink-a);
+    display:grid;grid-template-columns:1.4fr 1fr;gap:48px;align-items:center}
+  .buy h3{font-size:clamp(36px,4.5vw,72px);font-weight:700;letter-spacing:-.035em;margin:0 0 16px;line-height:1.04;color:var(--ink-a)}
+  .buy h3 em{font-style:normal;font-weight:700;color:var(--p)}
+  .buy .copy{font-size:16px;line-height:1.6;color:var(--ink2-a);max-width:48ch;margin:0 0 28px}
+  .buy .price{font-size:140px;font-weight:700;letter-spacing:-.04em;line-height:.95;color:var(--p)}
+  .buy .price small{display:block;font-family:var(--mono);font-size:11px;color:var(--ink3-a);letter-spacing:.14em;font-weight:500;margin-top:14px;text-transform:uppercase}
+  @media(max-width:780px){.buy{grid-template-columns:1fr}}
+
+  /* NEXT strip */
+  .next{padding:0;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--ink-a);border-top:2px solid var(--ink-a)}
+  .next a{padding:36px 28px;text-decoration:none;background:var(--paper);display:flex;flex-direction:column;gap:6px;color:inherit}
+  .next a:hover{background:var(--paper-2)}
+  .next a .l{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ink3-a);text-transform:uppercase}
+  .next a .n{font-size:28px;font-weight:700;letter-spacing:-.02em;color:var(--ink-a)}
+  .next a .d{font-size:13px;color:var(--ink2-a);line-height:1.5;margin-top:4px}
+  @media(max-width:780px){.next{grid-template-columns:1fr}}
+</style>
+<!-- TOKEN-CONVERT-V4-APPLIED -->
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/kit/apple-touch-icon-180.png" />
+</head>
+<body data-page="tools">
+<div id="site-nav"></div>
+
+<main class="bn-page">
+
+  <div class="hud">
+    <span class="file">BENCH/03 · WORKSHOP LEDGER</span>
+    <span style="color:var(--ink2-a);overflow:hidden;white-space:nowrap;text-overflow:ellipsis"># 4 active projects · 23 in flight · 2 blocked · 1 shipping today</span>
+    <span class="clock" id="clk">--:--:-- UTC</span>
+    <span class="build">v3.1.4</span>
+    <span style="color:var(--ok)">● ON BENCH</span>
+  </div>
+
+  <header class="hero">
+    <div>
+      <div class="crumb"><a href="../tools.html">/ tools</a><span>›</span><b>03 · bench</b><span>·</span><span>operations</span></div>
+      <h1>Project tracking,<br/><em>that won't audit you.</em></h1>
+      <p class="blurb">A pay-once project tracker for teams who are tired of <b>SOC-2 onboarding modals</b>. Tasks, Gantt, sprints, <em>retrospectives.</em> Hosted on your laptop or your VPS. Your data is yours; we'd rather not see it.</p>
+      <div class="meta">
+        <div><div class="k">Format</div><div class="v">Web app</div></div>
+        <div><div class="k">Seats</div><div class="v">unlimited</div></div>
+        <div><div class="k">Hosting</div><div class="v">self · or us</div></div>
+        <div><div class="k">Price</div><div class="v price">$79</div></div>
+      </div>
+      <div class="actions">
+        <a class="btn-p" href="../contact.html?subject=Bench">Buy · $79 once →</a>
+        <a class="btn-g" href="#gantt">See the bench</a>
+      </div>
+    </div>
+
+    <!-- GANTT centerpiece -->
+    <div class="gantt" id="gantt">
+      <div class="gh"><span>SPRINT 24 · WEEK 2 OF 2</span><span class="now">LIVE · 14 ACTIVE TASKS</span></div>
+      <div class="scale">
+        <div class="lbl">— Track</div>
+        <div class="days">
+          <span>M·14</span><span>T·15</span><span>W·16</span><span class="today">T·17</span><span>F·18</span><span class="wknd">S·19</span><span class="wknd">S·20</span>
+          <span>M·21</span><span>T·22</span><span>W·23</span><span>T·24</span><span>F·25</span><span class="wknd">S·26</span><span class="wknd">S·27</span>
+        </div>
+      </div>
+      <div class="row"><div class="who"><b>Mara V.</b><small>Founder · 2 in flight</small></div><div class="track">
+        <div class="wknd" style="left:35.7%;width:14.3%"></div><div class="wknd" style="left:85.7%;width:14.3%"></div>
+        <div class="bar p" style="left:0%;width:21%">Onboarding flow refresh<span class="pct" style="width:80%"></span></div>
+        <div class="bar warn" style="left:28%;width:28%">Stripe migration<span class="pct" style="width:35%"></span></div>
+      </div></div>
+      <div class="row"><div class="who"><b>Devon J.</b><small>Engineer · 3 in flight</small></div><div class="track">
+        <div class="wknd" style="left:35.7%;width:14.3%"></div><div class="wknd" style="left:85.7%;width:14.3%"></div>
+        <div class="bar" style="left:0%;width:14%">PR review backlog<span class="pct" style="width:100%"></span></div>
+        <div class="bar p" style="left:14%;width:35%">Auth refactor<span class="pct" style="width:55%"></span></div>
+        <div class="bar warn" style="left:57%;width:28%">404 pages<span class="pct" style="width:0%"></span></div>
+      </div></div>
+      <div class="row"><div class="who"><b>Ash K.</b><small>Design · 1 in flight</small></div><div class="track">
+        <div class="wknd" style="left:35.7%;width:14.3%"></div><div class="wknd" style="left:85.7%;width:14.3%"></div>
+        <div class="bar p" style="left:7%;width:42%">Design system v3<span class="pct" style="width:65%"></span></div>
+        <div class="bar dim" style="left:64%;width:21%">Marketing site update</div>
+      </div></div>
+      <div class="row"><div class="who"><b>Tomás R.</b><small>Backend · 2 in flight</small></div><div class="track">
+        <div class="wknd" style="left:35.7%;width:14.3%"></div><div class="wknd" style="left:85.7%;width:14.3%"></div>
+        <div class="bar" style="left:0%;width:7%">Pg vacuum<span class="pct" style="width:100%"></span></div>
+        <div class="bar p" style="left:7%;width:21%">Webhook retries<span class="pct" style="width:75%"></span></div>
+        <div class="bar warn" style="left:42%;width:21%">Audit logs<span class="pct" style="width:20%"></span></div>
+        <div class="bar dim" style="left:71%;width:21%">Analytics rollup</div>
+      </div></div>
+      <div class="row"><div class="who"><b>Lin H.</b><small>Support · 1 in flight</small></div><div class="track">
+        <div class="wknd" style="left:35.7%;width:14.3%"></div><div class="wknd" style="left:85.7%;width:14.3%"></div>
+        <div class="bar p" style="left:0%;width:100%">Customer correspondence<span class="pct" style="width:48%"></span></div>
+      </div></div>
+      <div class="row"><div class="who"><b>Unassigned</b><small>Backlog · 6 items</small></div><div class="track">
+        <div class="wknd" style="left:35.7%;width:14.3%"></div><div class="wknd" style="left:85.7%;width:14.3%"></div>
+        <div class="bar dim" style="left:21%;width:14%">SDK refresh</div>
+        <div class="bar dim" style="left:50%;width:21%">Precios page A/B</div>
+        <div class="bar dim" style="left:78%;width:14%">i18n pass</div>
+      </div></div>
+      <!-- live now-line at "today" -->
+      <div class="now-line" style="left:calc(140px + (100% - 140px) * 0.265)"></div>
+    </div>
+  </header>
+
+  <!-- KANBAN demo -->
+  <section class="sec">
+    <div class="head"><span class="ex"><b>EXHIBIT A</b>The bench, kanban view</span><span class="pg">PG. 02 / 06</span></div>
+    <h2>Cards on a board.<em>O rows on a list.</em><br/>O a Gantt. Same data.</h2>
+    <p class="copy">Bench has the same four views every project tool has — <b>kanban, list, Gantt, calendar</b> — but the database is one SQLite file. Drag a card and it moves on every view. Close the tab and the file is still there.</p>
+
+    <div class="cards-demo">
+      <div class="col">
+        <div class="ch"><b>BACKLOG</b><span class="ct">8</span></div>
+        <div class="card dim"><div class="tag">DESIGN · L</div><div class="ttl">Onboarding empty-state illustrations</div><div class="row"><span>EST 2d</span><span class="av">AK</span></div></div>
+        <div class="card dim"><div class="tag">FEAT · M</div><div class="ttl">Dark mode for billing screens</div><div class="row"><span>EST 1d</span><span class="av b">DJ</span></div></div>
+        <div class="card dim"><div class="tag">CHORE · S</div><div class="ttl">Bump Postgres to 16.4</div><div class="row"><span>EST 4h</span><span class="av c">TR</span></div></div>
+      </div>
+      <div class="col">
+        <div class="ch"><b>IN PROGRESS</b><span class="ct">5</span></div>
+        <div class="card"><div class="tag">FEAT · L · 65%</div><div class="ttl">Auth refactor — JWT to session</div><div class="row"><span>3d in</span><span class="av b">DJ</span></div></div>
+        <div class="card warn"><div class="tag">BUG · M · 35%</div><div class="ttl">Stripe webhook double-charge</div><div class="row"><span>1d in</span><span class="av">MV</span></div></div>
+        <div class="card"><div class="tag">DESIGN · L · 80%</div><div class="ttl">Onboarding flow refresh</div><div class="row"><span>4d in</span><span class="av">MV</span></div></div>
+        <div class="card"><div class="tag">FEAT · M · 75%</div><div class="ttl">Webhook retry logic</div><div class="row"><span>2d in</span><span class="av c">TR</span></div></div>
+      </div>
+      <div class="col">
+        <div class="ch"><b>REVIEW</b><span class="ct">3</span></div>
+        <div class="card"><div class="tag">PR #621 · L</div><div class="ttl">404 signup fix + tests</div><div class="row"><span>opened 14m</span><span class="av">MV</span></div></div>
+        <div class="card"><div class="tag">PR #620 · S</div><div class="ttl">Drop unused tailwind classes</div><div class="row"><span>opened 1h</span><span class="av b">DJ</span></div></div>
+        <div class="card warn"><div class="tag">DESIGN · L</div><div class="ttl">Precios page mocks v4</div><div class="row"><span>3d waiting</span><span class="av">AK</span></div></div>
+      </div>
+      <div class="col">
+        <div class="ch"><b>SHIPPED</b><span class="ct">14</span></div>
+        <div class="card dim"><div class="tag">FEAT · 6d ago</div><div class="ttl">Two-factor auth ground-up</div><div class="row"><span>shipped</span><span class="av c">TR</span></div></div>
+        <div class="card dim"><div class="tag">BUG · 8d ago</div><div class="ttl">Mobile nav contrast</div><div class="row"><span>shipped</span><span class="av">AK</span></div></div>
+        <div class="card dim"><div class="tag">FEAT · 11d ago</div><div class="ttl">CSV import for billing</div><div class="row"><span>shipped</span><span class="av b">DJ</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARE — what you replace -->
+  <section class="sec">
+    <div class="head"><span class="ex"><b>EXHIBIT B</b>What it replaces</span><span class="pg">PG. 04 / 06</span></div>
+    <h2>One line item.<em>Replaces three.</em></h2>
+    <p class="copy">A real customer's actual replaced bill. Bench is one SQLite file and a static binary. The competitors charge per seat per month, in perpetuity, and they will never let you stop.</p>
+
+    <div class="compare">
+      <div class="row h"><span>— Tool</span><span>— Before</span><span class="you">— With Bench</span></div>
+      <div class="row"><span class="lbl">Project tracker · 8 seats</span><span class="them">$192 / mo</span><span class="you">— included</span></div>
+      <div class="row"><span class="lbl">Sprint planning add-on</span><span class="them">$48 / mo</span><span class="you">— included</span></div>
+      <div class="row"><span class="lbl">Time tracking integration</span><span class="them">$72 / mo</span><span class="you">— included</span></div>
+      <div class="row"><span class="lbl">Reports / analytics tier</span><span class="them">$95 / mo</span><span class="you">— included</span></div>
+      <div class="row"><span class="lbl">"Enterprise" SSO</span><span class="them">$140 / mo</span><span class="you">— SSO comes free</span></div>
+      <div class="row tot"><span>— TWELVE-MONTH TOTAL</span><span class="them">$6,564</span><span class="you">$79 once</span></div>
+    </div>
+  </section>
+
+  <!-- BUY -->
+  <section class="buy">
+    <div>
+      <h3>Seventy-nine dollars.<br/><em>Pay it. Move on.</em></h3>
+      <p class="copy">A single binary, a single SQLite file. Run it on your laptop, your VPS, your homelab. Ten seats or ten thousand — the price doesn't move. We do not have a sales team to invent reasons it should.</p>
+      <a class="btn-p" href="../contact.html?subject=Bench">Buy Bench · $79 once →</a>
+    </div>
+    <div class="price">$79<small>ONCE · UNLIMITED SEATS · MIT-LIKE</small></div>
+  </section>
+
+  <nav class="next">
+    <a href="yard.html"><span class="l">— Next tool · 04</span><span class="n">Yard →</span><span class="d">Estimating + dispatch for trades. Replaces a $400/mo CRM.</span></a>
+    <a href="agents.html"><span class="l">— O back to</span><span class="n">Agents →</span><span class="d">Twelve Claude Code agents wired for indie founders.</span></a>
+  </nav>
+</main>
+
+<div id="site-foot"></div>
+<div class="grain" aria-hidden="true"></div>
+<script src="../../site.js?v=4.6.0"></script>
+<script src="../../site-shell.js?v=4.6.0"></script>
+<script>
+(()=>{const c=document.getElementById('clk');if(!c)return;const f=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');c.textContent=`${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`};f();setInterval(f,1000)})();
+</script>
+</body>
+</html>

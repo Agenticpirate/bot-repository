@@ -1,0 +1,385 @@
+{
+  "aliases": [
+    "calc",
+    "convert",
+    "converter"
+  ],
+  "appApi": {
+    "capabilities": [
+      {
+        "description": "Allow approved apps to evaluate math expressions and convert units or currency using Calculator.",
+        "id": "calculator.compute",
+        "name": "Calculator compute",
+        "scopes": [
+          {
+            "description": "Evaluate an arithmetic or scientific math expression and return the numeric result. Records the calculation to history.",
+            "id": "calculator.compute.evaluate",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "angleMode": {
+                  "description": "Angle unit for trigonometric functions. Defaults to deg.",
+                  "enum": [
+                    "deg",
+                    "rad"
+                  ],
+                  "type": "string"
+                },
+                "expression": {
+                  "description": "Math expression, e.g. \"2 * (3 + 4)\" or \"sin(45) + sqrt(2)\".",
+                  "type": "string"
+                },
+                "record": {
+                  "description": "Whether to save this calculation to history. Defaults to true.",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "expression"
+              ],
+              "type": "object"
+            },
+            "name": "Evaluate an expression"
+          },
+          {
+            "description": "Convert a value between units in a category (length, mass, temperature, volume, area, speed, data, time) or between currencies.",
+            "id": "calculator.convert.units",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "category": {
+                  "description": "Optional conversion category. Inferred from the units when omitted.",
+                  "enum": [
+                    "length",
+                    "mass",
+                    "temperature",
+                    "volume",
+                    "area",
+                    "speed",
+                    "data",
+                    "time",
+                    "currency"
+                  ],
+                  "type": "string"
+                },
+                "from": {
+                  "description": "Source unit/currency code, e.g. \"km\" or \"USD\".",
+                  "type": "string"
+                },
+                "record": {
+                  "description": "Whether to save this conversion to history. Defaults to true.",
+                  "type": "boolean"
+                },
+                "to": {
+                  "description": "Target unit/currency code, e.g. \"mi\" or \"EUR\".",
+                  "type": "string"
+                },
+                "value": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "value",
+                "from",
+                "to"
+              ],
+              "type": "object"
+            },
+            "name": "Convert units or currency"
+          }
+        ]
+      },
+      {
+        "description": "Allow approved apps to read and search past calculations in this workspace.",
+        "id": "calculator.history",
+        "name": "Calculator history",
+        "scopes": [
+          {
+            "description": "Read the most recent calculations and conversions for this workspace.",
+            "id": "calculator.history.recent",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {
+                "limit": {
+                  "maximum": 500,
+                  "minimum": 1,
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "name": "Recent calculations"
+          },
+          {
+            "description": "Search past calculations and conversions by expression or result.",
+            "id": "calculator.history.search",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {
+                "limit": {
+                  "maximum": 500,
+                  "minimum": 1,
+                  "type": "number"
+                },
+                "query": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "query"
+              ],
+              "type": "object"
+            },
+            "name": "Search calculations"
+          },
+          {
+            "description": "Delete one saved calculation or conversion from this workspace by id.",
+            "id": "calculator.history.delete",
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "type": "object"
+            },
+            "name": "Delete calculation"
+          },
+          {
+            "description": "Delete all saved calculations and conversions for this workspace.",
+            "id": "calculator.history.clear",
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {},
+              "type": "object"
+            },
+            "name": "Clear calculation history"
+          }
+        ]
+      },
+      {
+        "description": "Allow approved apps and the assistant to drive the running Calculator UI: list its views, navigate between them, open the history panel, and read the calculation history as structured data. These scopes only change what is displayed or read saved data; they never modify calculations.",
+        "id": "calculator.drive",
+        "name": "Drive the Calculator UI",
+        "scopes": [
+          {
+            "description": "List every navigable view in the Calculator UI. Returns { views: [{ id, name, description, params? }] } explaining what each view shows and which entityId/params it accepts. Call this before calculator.ui.navigate when unsure which view id to target.",
+            "id": "calculator.ui.describe",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {},
+              "type": "object"
+            },
+            "name": "Describe UI views"
+          },
+          {
+            "description": "Navigate the open Calculator UI to a view; the running client applies the change visibly and nothing is modified. view is a view id from calculator.ui.describe: \"calc\" (the keypad), \"convert\" (unit/currency conversion), or \"history\" (the past-calculations panel). Optional entityId is a history entry id (from calculator.ui.read or calculator.history.recent); with view \"calc\" it loads that past calculation into the keypad. params carries view-specific options: { expression } for \"calc\", { category } for \"convert\", { query } for \"history\". Returns { ok: true, intentId }.",
+            "id": "calculator.ui.navigate",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {
+                "entityId": {
+                  "description": "Optional history entry id (from calculator.ui.read or calculator.history.recent). With view \"calc\", loads that entry into the keypad.",
+                  "type": "string"
+                },
+                "params": {
+                  "description": "View-specific options: { expression: string } for \"calc\" (prefill the keypad), { category: string } for \"convert\" (one of length, mass, temperature, volume, area, speed, data, time, currency), { query: string } for \"history\" (prefill the history search box).",
+                  "type": "object"
+                },
+                "view": {
+                  "description": "View id from calculator.ui.describe.",
+                  "enum": [
+                    "calc",
+                    "convert",
+                    "history"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "view"
+              ],
+              "type": "object"
+            },
+            "name": "Navigate the UI"
+          },
+          {
+            "description": "Read the content behind the Calculator UI as structured JSON. Without parameters, returns every saved calculation and conversion newest first. With entityId, returns one history entry. With query, filters history by expression or result. view optionally labels or shapes the calc, convert, or history projection. Read-only.",
+            "id": "calculator.ui.read",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "entityId": {
+                  "description": "Optional history entry id to read on its own.",
+                  "type": "string"
+                },
+                "query": {
+                  "description": "Optional expression or result substring used to filter history.",
+                  "type": "string"
+                },
+                "view": {
+                  "description": "Optional view id (calc, convert, or history) to label the response with.",
+                  "enum": [
+                    "calc",
+                    "convert",
+                    "history"
+                  ],
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "name": "Read the history"
+          },
+          {
+            "description": "Open the History panel in the running Calculator UI so the user can see their past calculations and conversions. Takes no parameters. Purely visual navigation; nothing is modified. Returns { ok: true, intentId }.",
+            "id": "calculator.ui.showHistory",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {},
+              "type": "object"
+            },
+            "name": "Show the history panel"
+          }
+        ]
+      },
+      {
+        "id": "calculator.cards",
+        "name": "Chat cards",
+        "description": "Show an expression and its calculated result. Reads never add duplicate history entries.",
+        "scopes": [
+          {
+            "id": "calculator.cards.present",
+            "name": "Present chat card",
+            "description": "Show an expression and its calculated result. Reads never add duplicate history entries.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "expression": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000
+                },
+                "angleMode": {
+                  "type": "string",
+                  "enum": [
+                    "deg",
+                    "rad"
+                  ]
+                }
+              },
+              "required": [
+                "expression"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "calculator.cards.read",
+            "name": "Read chat card",
+            "description": "Show an expression and its calculated result. Reads never add duplicate history entries.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "expression": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000
+                },
+                "angleMode": {
+                  "type": "string",
+                  "enum": [
+                    "deg",
+                    "rad"
+                  ]
+                }
+              },
+              "required": [
+                "expression"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ],
+    "version": 1
+  },
+  "author": "Moldable",
+  "category": "utilities",
+  "description": "Everyday, scientific, and unit/currency calculator with history",
+  "env": [],
+  "icon": "🧮",
+  "iconPath": "public/icon.png",
+  "license": "FSL-1.1-ALv2",
+  "moldableDependencies": {
+    "@moldable-ai/storage": "^0.1.8",
+    "@moldable-ai/ui": "^0.2.59"
+  },
+  "name": "Calculator",
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "repository": "moldable-ai/apps",
+  "routeName": "calculator",
+  "runtime": "vite_hono",
+  "tagline": "Everyday, scientific, and unit/currency math — with history",
+  "tags": [
+    "calculator",
+    "math",
+    "scientific",
+    "convert",
+    "currency",
+    "units"
+  ],
+  "version": "0.1.12",
+  "visibility": "public",
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  }
+}

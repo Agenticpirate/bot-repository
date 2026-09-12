@@ -1,0 +1,645 @@
+{
+  "name": "Reader",
+  "version": "0.1.10",
+  "runtime": "vite_hono",
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "visibility": "public",
+  "description": "A local-first ebook reader. Open EPUB and text files, organize a library into folders, read with fully configurable typography and themes, or speed-read with an RSVP word-by-word mode.",
+  "author": "Moldable",
+  "license": "FSL-1.1-ALv2",
+  "icon": "📖",
+  "iconPath": "public/icon.png",
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "category": "reference",
+  "tags": [
+    "reading",
+    "books",
+    "epub",
+    "library"
+  ],
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "env": [],
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "reader.library",
+        "name": "Reader library",
+        "description": "Read and import books in the Reader library for the active workspace.",
+        "scopes": [
+          {
+            "id": "reader.native.read",
+            "name": "Read the mobile Reader experience",
+            "description": "Return a route-specific, bounded NativeUI projection for the library, chapter list, reading page, metadata, or reading status screen.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "route": {
+                  "type": "string",
+                  "enum": [
+                    "library",
+                    "folders",
+                    "library-search",
+                    "move-book",
+                    "chapters",
+                    "read",
+                    "speed",
+                    "metadata",
+                    "status"
+                  ]
+                },
+                "bookId": {
+                  "type": "string"
+                },
+                "folderId": {
+                  "type": "string"
+                },
+                "query": {
+                  "type": "string"
+                },
+                "chapterIndex": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "page": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "wordIndex": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "limit": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 16
+                }
+              },
+              "required": [
+                "route"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "reader.native.mutate",
+            "name": "Save a mobile reading position",
+            "description": "Persist one explicit page-level reading position and return a bounded receipt.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "savePosition"
+                  ]
+                },
+                "bookId": {
+                  "type": "string"
+                },
+                "chapterIndex": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "wordIndex": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "readerMode": {
+                  "type": "string",
+                  "enum": [
+                    "standard",
+                    "speed"
+                  ]
+                }
+              },
+              "required": [
+                "action",
+                "bookId",
+                "chapterIndex",
+                "wordIndex"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "changesState": true
+          },
+          {
+            "id": "reader.native.moveBook",
+            "name": "Move a book",
+            "description": "Move one installed book into a bounded existing folder or back to the main library.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "bookId": {
+                  "type": "string"
+                },
+                "folderId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "bookId",
+                "folderId"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "changesState": true
+          },
+          {
+            "id": "reader.books.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "List books",
+            "description": "List books in the library with summary metadata.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "id": "reader.books.delete",
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Remove book",
+            "description": "Permanently remove an installed book and its saved reading progress from this workspace.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "bookId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "bookId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "reader.books.import",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Import a book",
+            "description": "Import a local .epub or .txt file into the library.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "filePath": {
+                  "type": "string",
+                  "description": "Absolute local path to an existing .epub or .txt file."
+                },
+                "folderName": {
+                  "type": "string",
+                  "description": "Optional existing folder name to place the imported book in."
+                },
+                "createFolder": {
+                  "type": "boolean",
+                  "description": "Create folderName if it does not already exist. Defaults to false."
+                }
+              },
+              "required": [
+                "filePath"
+              ]
+            }
+          },
+          {
+            "id": "reader.folders.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "List folders",
+            "description": "List library folders and their book IDs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "id": "reader.store.search",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Search the book store",
+            "description": "Search direct-download public ebook catalogs for books to install.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "description": "Title or author to search for."
+                },
+                "page": {
+                  "type": "number",
+                  "description": "Zero-based page index."
+                }
+              },
+              "required": [
+                "query"
+              ]
+            }
+          },
+          {
+            "id": "reader.store.install",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Install a book from the store",
+            "description": "Download, verify, and install a direct-download EPUB into the library.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": [
+                    "string",
+                    "number"
+                  ],
+                  "description": "Store install key returned by reader.store.search, such as gutenberg:84 or open-library:identifier. Numeric Gutenberg ids are still accepted."
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "reader.debug.speedReaderSnapshot",
+            "risk": "low",
+            "name": "Latest speed reader debug snapshot",
+            "description": "Return the latest browser-captured Speed Read debug snapshot for comparing rendered page words with speed-reader token order.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "id": "reader.debug.speedReaderTextByPage",
+            "risk": "low",
+            "name": "Speed reader text by page",
+            "description": "Return the latest browser-captured paginated page map, including rendered page words and the matching speed-reader tokens for each page.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ]
+      },
+      {
+        "id": "reader.drive",
+        "name": "Drive Reader",
+        "description": "Navigate Reader, open books, choose chapters, and read clean book content in the active workspace.",
+        "scopes": [
+          {
+            "id": "reader.ui.describe",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Describe Reader views",
+            "description": "List Reader's navigable views, required entity ids, and supported navigation parameters.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "reader.ui.navigate",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Navigate Reader",
+            "description": "Show the library or open an installed book, optionally at a zero-based chapter index.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "library",
+                    "reader"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Required book id for the reader view."
+                },
+                "params": {
+                  "type": "object",
+                  "properties": {
+                    "chapterIndex": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Optional zero-based chapter index."
+                    }
+                  }
+                }
+              },
+              "required": [
+                "view"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "reader.ui.read",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Read Reader content",
+            "description": "Return faithful structured library data or an installed book's current persisted chapter, including its complete clean text for narration.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "library",
+                    "reader"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Required book id when reading the reader view."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "reader.ui.openBook",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Open a book",
+            "description": "Open an installed book at its persisted reading position.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "bookId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "bookId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "reader.ui.goToChapter",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Go to a chapter",
+            "description": "Open an installed book at a zero-based chapter index and persist that chapter as its reading position.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "bookId": {
+                  "type": "string"
+                },
+                "chapter": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Zero-based chapter index."
+                }
+              },
+              "required": [
+                "bookId",
+                "chapter"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "reader.reading.resume",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Resume a named book",
+            "description": "Resolve an installed book by a natural title or alias, open it at the saved position, and return the next bounded speakable passage without advancing. Use for requests such as “continue reading me <book>”, “read <book> to me”, or “resume <book>”, even when the person does not name this app.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "book": {
+                  "type": "string",
+                  "description": "Natural book title, distinctive title fragment, alias, or installed book id."
+                },
+                "maxWords": {
+                  "type": "integer",
+                  "minimum": 30,
+                  "maximum": 180,
+                  "description": "Optional maximum passage size. Defaults to 90 words and prefers a sentence boundary."
+                }
+              },
+              "required": [
+                "book"
+              ],
+              "additionalProperties": false
+            },
+            "changesState": true
+          },
+          {
+            "id": "reader.reading.currentPassage",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Read the current bounded passage",
+            "description": "Return the bounded speakable passage at a book's persisted cursor without moving the cursor or changing the visible reading position.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "bookId": {
+                  "type": "string",
+                  "description": "Installed book id returned by resume or the library."
+                },
+                "maxWords": {
+                  "type": "integer",
+                  "minimum": 30,
+                  "maximum": 180,
+                  "description": "Optional maximum passage size. Defaults to 90 words."
+                }
+              },
+              "required": [
+                "bookId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "reader.reading.currentPages",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Read visible pages",
+            "description": "Return the complete rendered text of the visible page and the following page, using Reader's current typography and window layout. Reader must be open in paginated mode.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "bookId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "bookId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "reader.reading.advancePage",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Turn and preload a visible page",
+            "description": "Turn Reader from the specified visible page to its next rendered page, persist the exact position, and return the new page plus the following page for uninterrupted narration.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "bookId": {
+                  "type": "string"
+                },
+                "pageIndex": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "bookId",
+                "pageIndex"
+              ],
+              "additionalProperties": false
+            },
+            "changesState": true
+          },
+          {
+            "id": "reader.reading.advance",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Acknowledge and advance a passage",
+            "description": "Acknowledge a previously returned passage only after it has been consumed, persist its next cursor, mirror that position in the open reading view, and return the next bounded passage. Retrying the same passage id is idempotent and never advances twice.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "passageId": {
+                  "type": "string",
+                  "description": "Opaque passage id returned by reader.reading.resume or reader.reading.currentPassage."
+                }
+              },
+              "required": [
+                "passageId"
+              ],
+              "additionalProperties": false
+            },
+            "changesState": true
+          }
+        ]
+      },
+      {
+        "id": "reader.cards",
+        "name": "Chat cards",
+        "description": "Show a book cover, progress and chapter excerpt. Tap to read a chapter preview without moving the reading cursor. Omit chapterIndex to bind the current chapter.",
+        "scopes": [
+          {
+            "id": "reader.cards.present",
+            "name": "Present chat card",
+            "description": "Show a book cover, progress and chapter excerpt. Tap to read a chapter preview without moving the reading cursor. Omit chapterIndex to bind the current chapter.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "bookId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "chapterIndex": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "bookId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "reader.cards.read",
+            "name": "Read chat card",
+            "description": "Show a book cover, progress and chapter excerpt. Tap to read a chapter preview without moving the reading cursor. Omit chapterIndex to bind the current chapter.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "bookId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "chapterIndex": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "bookId"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "tagline": "Read EPUBs your way, or speed-read them"
+}

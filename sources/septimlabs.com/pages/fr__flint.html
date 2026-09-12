@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Workflow GitHub Actions de relecture de code — automatique, 29 $ à vie</title>
+<meta name="description" content="5 GitHub Actions prêts à l'emploi qui relisent automatiquement chaque modification de code avant son envoi. Aucun serveur, aucune base de données, aucun frais mensuel. 29 $ une fois. Auto-hébergé." />
+<meta property="og:title" content="Relecture auto de chaque pull request avec Claude — 5 GitHub Actions, 29 $" />
+<meta property="og:description" content="Déposez 5 workflows GitHub Actions qui vérifient votre code automatiquement à chaque soumission. Aucun outil supplémentaire, aucun abonnement. 29 $ forfaitaire. Vous avez déjà Drills ? C'est gratuit." />
+<meta property="og:url" content="https://septimlabs.com/fr/flint" />
+<meta property="og:type" content="product" />
+<meta property="og:site_name" content="Septim Labs" />
+<meta property="og:image" content="https://septimlabs.com/assets/brand/kit/og-card-v2.png" />
+<meta property="og:locale" content="fr_FR" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="5 GitHub Actions qui relisent votre code automatiquement — 29 $ une fois" />
+<meta name="twitter:description" content="5 GitHub Actions qui relisent votre code automatiquement avant son envoi. 29 $ une fois, aucun serveur requis." />
+<meta name="twitter:image" content="https://septimlabs.com/assets/brand/kit/og-card-v2.png" />
+<link rel="canonical" href="https://septimlabs.com/fr/flint" />
+
+<!-- SEPTIM-I18N-HREFLANG -->
+<link rel="alternate" hreflang="x-default" href="https://septimlabs.com/flint/" />
+<link rel="alternate" hreflang="en" href="https://septimlabs.com/flint/" />
+<link rel="alternate" hreflang="es" href="https://septimlabs.com/es/flint/" />
+<link rel="alternate" hreflang="zh" href="https://septimlabs.com/zh/flint/" />
+<link rel="alternate" hreflang="hi" href="https://septimlabs.com/hi/flint/" />
+<link rel="alternate" hreflang="pt" href="https://septimlabs.com/pt/flint/" />
+<link rel="alternate" hreflang="de" href="https://septimlabs.com/de/flint/" />
+<link rel="alternate" hreflang="fr" href="https://septimlabs.com/fr/flint/" />
+<link rel="alternate" hreflang="ja" href="https://septimlabs.com/ja/flint/" />
+<link rel="alternate" hreflang="ru" href="https://septimlabs.com/ru/flint/" />
+<link rel="alternate" hreflang="ar" href="https://septimlabs.com/ar/flint/" />
+<!-- /SEPTIM-I18N-HREFLANG -->
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/kit/apple-touch-icon-180.png" />
+
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: var(--bg); --bg-2: var(--bg-1); --bg-3: var(--bg-2);
+    --border: var(--line); --border-2: var(--line-2);
+    --text: var(--ink); --muted: var(--ink-2); --subtle: var(--ink-3);
+    --accent: var(--p); --accent-dim: rgba(255,140,66,0.12); --accent-border: rgba(255,140,66,0.35);
+    --drills: var(--p);
+  }
+  body { font-family: var(--sans), -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  .mono { font-family: var(--mono), monospace; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+
+  nav { position: sticky; top: 0; z-index: 50; background: rgba(10,10,10,0.9); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+  nav .brand { font-weight: 700; font-size: 16px; color: var(--text); }
+  nav .brand .accent { color: var(--accent); }
+  nav .links { display: flex; gap: 18px; align-items: center; font-size: 13px; }
+  nav .links a { color: var(--muted); }
+  nav .links a:hover { color: var(--text); }
+
+  .hero { padding: 80px 0 40px; text-align: center; }
+  .coming-soon-badge { display: inline-block; font-family: var(--mono), monospace; font-size: 11px; color: var(--accent); padding: 5px 14px; border: 1px solid var(--accent-border); border-radius: 999px; margin-bottom: 20px; letter-spacing: 0.12em; text-transform: uppercase; }
+  h1 { font-size: clamp(40px, 5.5vw, 64px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.06; margin-bottom: 18px; }
+  h1 em {font-style:normal;color:var(--p)}
+  .sub { font-size: 18px; color: var(--muted); max-width: 680px; margin: 0 auto 26px; line-height: 1.6; }
+  .ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+  .btn-primary { padding: 14px 26px; background: var(--accent); color: #100; border-radius: 999px; font-weight: 700; font-size: 14px; }
+  .btn-primary:hover { background: #ffa05f; }
+  .btn-ghost { padding: 13px 22px; border: 1px solid var(--border-2); color: var(--text); border-radius: 999px; font-weight: 500; font-size: 13px; }
+  .btn-ghost:hover { background: var(--line); }
+
+  section.block { padding: 50px 0; }
+  h2 { font-size: clamp(26px, 3.5vw, 38px); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 14px; }
+  h2 em {font-style:normal;color:var(--p)}
+  .lead { font-size: 16px; color: var(--muted); max-width: 680px; margin-bottom: 30px; line-height: 1.65; }
+
+  .workflow-table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 20px 0; background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .workflow-table thead th { padding: 14px 18px; text-align: left; font-size: 13px; font-weight: 700; background: var(--bg-3); border-bottom: 1px solid var(--border); color: var(--text); }
+  .workflow-table tbody td { padding: 12px 18px; font-size: 13px; border-bottom: 1px solid var(--line); color: var(--muted); vertical-align: top; }
+  .workflow-table tbody tr:last-child td { border-bottom: none; }
+  .workflow-table .wf { font-family: var(--mono), monospace; color: var(--accent); font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .workflow-table .status.done { color: var(--p); font-size: 11px; font-weight: 700; }
+  .workflow-table .status.todo { color: var(--subtle); font-size: 11px; font-weight: 700; }
+
+  .install-block { background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px; padding: 26px; margin: 30px 0; }
+  .install-block h3 { font-size: 16px; margin-bottom: 14px; color: var(--text); }
+  .install-block pre { font-family: var(--mono), monospace; font-size: 13px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; color: var(--text); line-height: 1.7; overflow-x: auto; }
+  .install-block pre .c { color: var(--subtle); }
+  .install-block pre .a { color: var(--accent); }
+
+  .upgrade-box { background: linear-gradient(135deg, var(--accent-dim), var(--bg-2)); border: 1px solid var(--accent-border); border-radius: 14px; padding: 30px; margin: 30px 0; text-align: center; }
+  .upgrade-box h3 { font-size: 20px; color: var(--text); margin-bottom: 8px; }
+  .upgrade-box p { font-size: 14px; color: var(--muted); max-width: 540px; margin: 0 auto 18px; }
+
+  .form { max-width: 420px; margin: 20px auto; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .form input { flex: 1; min-width: 200px; padding: 12px 16px; background: var(--bg); color: var(--text); border: 1px solid var(--border-2); border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; }
+  .form input:focus { border-color: var(--accent); }
+  .form button { padding: 12px 22px; background: var(--accent); color: #100; border: none; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit; }
+
+  .price-box { background: var(--bg-2); border: 1px solid var(--accent-border); border-radius: 14px; padding: 40px 30px; text-align: center; margin: 40px 0; }
+  .price-box .price { font-size: 64px; font-weight: 700; letter-spacing: -0.04em; color: var(--text); }
+  .price-box .price .currency { font-size: 30px; font-weight: 500; color: var(--muted); vertical-align: top; margin-right: 4px; }
+  .price-box .price-note { font-size: 14px; color: var(--muted); margin-top: 6px; }
+  .price-box .note { font-size: 13px; color: var(--subtle); margin-top: 18px; }
+
+  footer { border-top: 1px solid var(--border); padding: 30px 0; margin-top: 60px; font-size: 12px; color: var(--subtle); }
+  footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  footer a { color: var(--muted); }
+</style>
+<!-- SEO-R2-PRODUCT-SCHEMA -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Product","name":"Septim Flint","description":"5 workflows GitHub Actions auto-hébergés qui exécutent une relecture automatique du code par Claude sur chaque pull request. Utilise votre clé API Anthropic. Aucun serveur, aucune base de données, aucun frais mensuel. Les acquéreurs Drills obtiennent Flint gratuitement.","sku":"SEPTIM-FLINT-29","brand":{"@type":"Brand","name":"Septim Labs"},"url":"https://septimlabs.com/fr/flint","image":"https://septimlabs.com/assets/brand/kit/og-card-v2.png","offers":{"@type":"Offer","url":"https://septimlabs.com/fr/flint","priceCurrency":"USD","price":"29","availability":"https://schema.org/InStock","priceValidUntil":"2026-12-31","seller":{"@type":"Organization","name":"Septim Labs","url":"https://septimlabs.com"}}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Septim Labs","item":"https://septimlabs.com/fr/"},{"@type":"ListItem","position":2,"name":"Produits","item":"https://septimlabs.com/fr/products"},{"@type":"ListItem","position":3,"name":"Septim Flint","item":"https://septimlabs.com/fr/flint"}]}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../site.css?v=4.6.1">
+<style>
+  body[data-page="flint"]{ --p: var(--n-orange); }
+</style>
+</head>
+<body data-page="flint">
+<div id="site-nav"></div>
+
+<div class="wrap">
+
+  <section class="hero">
+    <div class="coming-soon-badge">Premier workflow en ligne &middot; 4 autres livrés sous 7 jours</div>
+    <h1>Claude relit chaque modification de code. <em>Automatique.</em> Personne n'a besoin d'y penser.</h1>
+    <p class="sub">Cinq contrôles automatiques qui s'exécutent à chaque soumission de code par votre développeur. Déposez un seul fichier. <span style="display:block;margin-top:8px;font-size:13px;color:var(--muted);">S'exécute sur votre propre compte GitHub. Votre code va directement à Anthropic via votre propre clé API &mdash; pas via nous. Rien à maintenir une fois installé.</span></p>
+    <p class="coupon-tag" style="margin-top:8px;font-size:13px;color:var(--muted);">
+      <strong style="color:var(--accent);">Tarif fondateur :</strong> 20 % de réduction avec le code <span class="mono" style="background:rgba(124,95,255,0.10);padding:2px 8px;border-radius:6px;color:var(--accent);font-weight:700;">FOUNDINGRATE24</span> &mdash; 50 places, fenêtre de 48 heures.
+    </p>
+
+    <div class="ctas">
+      <a href="https://buy.stripe.com/7sY28k9cO8eo4iA7D0cjS0o?utm_source=flint" class="btn-primary">Acheter Flint &mdash; 29 $ une fois &rarr;</a>
+      <a href="https://github.com/septimlabs-code/septim-flint" class="btn-ghost">Voir le premier workflow sur GitHub &rarr;</a>
+    </div>
+    <p style="font-size:12px;color:var(--subtle);margin-top:14px;">Achetez aujourd'hui, recevez le premier workflow immédiatement. Les 4 restants arrivent sous 7 jours &mdash; vous les obtenez automatiquement dans le même dépôt privé. Remboursement intégral sous 14 jours si cela ne vous convient pas. J'ai construit ceci parce que j'en avais assez de voir du code cassé passer à travers. Achetez-le si vous aussi.</p>
+  </section>
+
+  <section class="block">
+    <h2>Ce qui est livré dans <em>Flint.</em></h2>
+    <p class="lead">Chaque workflow est un fichier YAML unique. Python intégré (stdlib seulement, pas de pip install). S'exécute sur les runners hébergés par GitHub au coût du palier gratuit. Vous possédez chaque octet.</p>
+
+    <table class="workflow-table">
+      <thead>
+        <tr>
+          <th>Workflow</th>
+          <th>Ce qu'il fait</th>
+          <th>Déclencheur</th>
+          <th>Statut</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="wf">flint-pr-review.yml</td>
+          <td>Relecture PR à 7 angles : dérive d'intention, logique, tests, sécurité, performance, surface API, rollback. Publie des constats structurés sur la PR.</td>
+          <td>chaque PR ouverte / mise à jour</td>
+          <td class="status done">✓ En ligne</td>
+        </tr>
+        <tr>
+          <td class="wf">flint-security-triage.yml</td>
+          <td>Scan de sensibilisation OWASP top-10 sur le diff. Niveau heuristique, ne remplace pas un SAST dédié. Constats cités fichier:ligne avec sévérité.</td>
+          <td>PRs touchant <span class="mono">src/api</span>, <span class="mono">src/auth</span>, <span class="mono">src/webhooks</span></td>
+          <td class="status todo">En cours</td>
+        </tr>
+        <tr>
+          <td class="wf">flint-migration-safety.yml</td>
+          <td>Audit de migration BDD : risque de verrou, DDL en ligne, sûreté du rollback. Bloque le merge sur les constats de sévérité bloquante.</td>
+          <td>PRs touchant <span class="mono">migrations/</span>, <span class="mono">prisma/migrations/</span></td>
+          <td class="status todo">En cours</td>
+        </tr>
+        <tr>
+          <td class="wf">flint-test-gaps.yml</td>
+          <td>Trouve les fonctions ajoutées sans couverture de test. Publie une liste classée de ce qu'il faut tester ensuite.</td>
+          <td>PRs touchant <span class="mono">*.ts</span> / <span class="mono">*.js</span> / <span class="mono">*.py</span> hors <span class="mono">*.test.*</span></td>
+          <td class="status todo">En cours</td>
+        </tr>
+        <tr>
+          <td class="wf">flint-dependency-triage.yml</td>
+          <td>Note les nouvelles dépendances par impact sur le bundle, ancienneté, CVE connues. Signale les nouvelles dépendances qui se remplacent trivialement.</td>
+          <td>PRs touchant <span class="mono">package.json</span>, lockfiles, <span class="mono">requirements.txt</span></td>
+          <td class="status todo">En cours</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="block">
+    <h2>Installation (après le lancement)</h2>
+    <div class="install-block">
+      <pre><span class="c"># 1. Cloner le dépôt privé (vous y êtes invité après l'achat)</span>
+<span class="a">git clone</span> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="adcac4d9edcac4d9c5d8cf83cec2c0">[email&#160;protected]</a>:septimlabs-code/septim-flint.git
+
+<span class="c"># 2. Copier les workflows dans votre dépôt</span>
+<span class="a">cp</span> septim-flint/.github/workflows/* ~/your-repo/.github/workflows/
+
+<span class="c"># 3. Ajouter ANTHROPIC_API_KEY aux secrets de votre dépôt</span>
+<span class="c">#    Settings → Secrets and variables → Actions → New repository secret</span>
+
+<span class="c"># Ouvrez une PR. Sous 60s vous verrez les commentaires Flint.</span></pre>
+    </div>
+  </section>
+
+  <section class="block" id="signup">
+    <div class="upgrade-box">
+      <h3>Déjà acquéreur de Septim Drills ? Flint est gratuit.</h3>
+      <p>Les détenteurs de Drills obtiennent Flint sans frais supplémentaires lors du lancement. Envoyez-nous votre reçu Stripe Drills et nous vous inviterons au dépôt Flint privé le jour de la mise en ligne.</p>
+      <form class="form" action="https://formsubmit.co/ethanq@septimlabs.com" method="POST">
+        <input type="hidden" name="_subject" value="Septim Flint — inscription accès anticipé" />
+        <input type="hidden" name="_captcha" value="false" />
+        <input type="hidden" name="_next" value="https://septimlabs.com/fr/flint?signed=1" />
+        <input type="email" name="email" placeholder="vous@entreprise.com" required />
+        <input type="text" name="drills_receipt" placeholder="ID de session Stripe Drills (optionnel)" />
+        <button type="submit">Prévenez-moi au lancement</button>
+      </form>
+      <p style="font-size:12px;color:var(--subtle);margin-top:14px;">Pas de spam. Un seul e-mail le jour du lancement. Le reçu Drills est optionnel ; incluez-le si vous voulez la mise à niveau gratuite.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>Prix</h2>
+    <div class="price-box">
+      <div class="price"><span class="currency">$</span>29</div>
+      <div class="price-note">Paiement unique, mises à jour à vie, aucun serveur</div>
+      <div class="note">Premier workflow en ligne maintenant. Quatre autres livrés sous 7 jours. Les détenteurs de Drills passent gratuitement à la version supérieure. Tout autre acquéreur : 29 $ une fois, invitation au dépôt privé, mises à jour gratuites à vie. Remboursement intégral sous 14 jours, sans questions.</div>
+    </div>
+  </section>
+
+</div>
+
+<!-- SEO-R2-LAST-UPDATED -->
+<aside style="position:fixed;left:14px;bottom:14px;z-index:40;font-family:var(--mono),ui-monospace,monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);background:rgba(10,10,10,0.84);backdrop-filter:blur(6px);padding:6px 10px;border:1px solid var(--line);border-radius:999px;pointer-events:none;mix-blend-mode:normal;" aria-hidden="false"><span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#00ff88;box-shadow:0 0 0 3px rgba(0,255,136,.18);margin-right:.4rem;vertical-align:middle;"></span>Mis à jour · 26 avril 2026</aside>
+<!-- SEO-R3-RELATED-FOOTER -->
+<aside aria-label="Produits Septim associés" style="max-width:1100px;margin:60px auto 40px;padding:32px 24px;border-top:1px solid var(--line);font-family:var(--sans),-apple-system,sans-serif"><div style="font-family:var(--mono),monospace;font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:.7rem">// Vous pourriez aussi avoir besoin de</div><h3 style="font-size:1.4rem;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin-bottom:1.4rem;line-height:1.2">Produits Septim Labs associés</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.7rem"><a href="/fr/drills" style="display:flex;flex-direction:column;gap:.2rem;padding:.85rem 1rem;background:var(--shade);border:1px solid var(--line);border-radius:10px;color:var(--ink);text-decoration:none;transition:border-color .2s, background .2s;min-width:0;"><span style="font-family:var(--mono),monospace;font-size:.55rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2)">29 $ &middot; 25 instructions Claude</span><strong style="font-size:.95rem;font-weight:700;letter-spacing:-.01em">Septim Drills</strong></a><a href="/fr/tether" style="display:flex;flex-direction:column;gap:.2rem;padding:.85rem 1rem;background:var(--shade);border:1px solid var(--line);border-radius:10px;color:var(--ink);text-decoration:none;transition:border-color .2s, background .2s;min-width:0;"><span style="font-family:var(--mono),monospace;font-size:.55rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2)">19 $ &middot; contrôles pré-commit</span><strong style="font-size:.95rem;font-weight:700;letter-spacing:-.01em">Septim Tether</strong></a><a href="/fr/septim-sift" style="display:flex;flex-direction:column;gap:.2rem;padding:.85rem 1rem;background:var(--shade);border:1px solid var(--line);border-radius:10px;color:var(--ink);text-decoration:none;transition:border-color .2s, background .2s;min-width:0;"><span style="font-family:var(--mono),monospace;font-size:.55rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2)">199 $ &middot; relecture asynchrone</span><strong style="font-size:.95rem;font-weight:700;letter-spacing:-.01em">Septim Sift</strong></a><a href="/fr/review-stack" style="display:flex;flex-direction:column;gap:.2rem;padding:.85rem 1rem;background:var(--shade);border:1px solid var(--line);border-radius:10px;color:var(--ink);text-decoration:none;transition:border-color .2s, background .2s;min-width:0;"><span style="font-family:var(--mono),monospace;font-size:.55rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2)">59 $ &middot; Drills + Flint + Tether</span><strong style="font-size:.95rem;font-weight:700;letter-spacing:-.01em">Septim Review Stack</strong></a></div><div style="margin-top:1.6rem;font-size:.85rem;color:var(--ink-2)">Ou <a href="/fr/compare" style="color:var(--p);text-decoration:underline">comparez tous les produits</a> &middot; <a href="/fr/find" style="color:var(--p);text-decoration:underline">faites le quiz de 30 secondes</a> pour obtenir une recommandation unique.</div></aside>
+
+<div id="site-foot"></div>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="../../site-shell.js?v=4.6.0"></script>
+<script src="../../site.js?v=4.6.0"></script>
+</body>
+</html>

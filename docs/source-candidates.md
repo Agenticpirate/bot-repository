@@ -49,7 +49,12 @@ Do not invent serials or scrape private data.
 | [dev.meta.ai cookbooks](https://dev.meta.ai/docs/cookbook) | HTML + MD + llms.txt | Muse Spark / Muse Code recipes; no plugin store. |
 | [edheltzel/Muse](https://github.com/edheltzel/Muse) | GitHub shallow clone | Single Muse-branded skill. |
 | Muse third-party listings | `sources/muse-thirdparty/` | AgentForge 200; ClaudeMarket 429. |
-| [Agenthunt](https://agent-hunt.netlify.app/) | `/agents.json` (58) | Updates twice daily. Per-agent `meta.json` + `agent.md`. `#ezail` → [Ezail](https://www.ezail.com/) (`sources/ezail.com/`). Outbound discovery archived [Vellum skills](https://www.vellum.ai/skills) + [Moldable bots](https://moldable.sh/bots). |
+| [vellum.ai/skills](https://www.vellum.ai/skills) | sitemap + GitHub skill bodies | **75** bodies, 88 pages, marketplace.json. See batch5. |
+| [moldable.sh](https://moldable.sh/bots) | sitemap + docs + GitHub packs | 70 site URLs; apps/skills clones. |
+| [officialskills.sh](https://officialskills.sh/) | sitemap 741 | Official vendor skill pages. |
+| [smithery.ai](https://smithery.ai/) | `GET /skills` | 420 uniques; 5×100 cap. |
+| [clawskills.sh](https://clawskills.sh/) | homepage hrefs | 5167 skill slugs; 2000 pages fetched. |
+| [skillsllm.com](https://skillsllm.com/) | sitemap `/skill/` | 5033 skill HTML pages. |
 
 ## Possible later
 
@@ -63,6 +68,6 @@ Do not invent serials or scrape private data.
 | Arahi / AI Hive | Mentioned as optional | Skipped; no clean public feed found this pass. |
 | crewform.tech catalog | Visual orchestration product | No public listing API. |
 
-See [source-candidates-batch2.md](source-candidates-batch2.md) for Priority A–D of the second ingest.
+See [source-candidates-batch2.md](source-candidates-batch2.md) for Priority A–D of the second ingest, [source-candidates-batch5.md](source-candidates-batch5.md) for Vellum / Moldable / officialskills / Smithery / ClawSkills / SkillsLLM.
 
 Add a row under Confirmed when a new `sources/` tree lands.

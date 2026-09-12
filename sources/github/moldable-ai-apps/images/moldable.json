@@ -1,0 +1,686 @@
+{
+  "name": "Images",
+  "version": "0.1.13",
+  "aliases": [
+    "image generation",
+    "pictures",
+    "art"
+  ],
+  "runtime": "vite_hono",
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "visibility": "public",
+  "description": "Generate and iterate images with GPT Image 2",
+  "author": "Moldable",
+  "license": "MIT",
+  "icon": "🖼️",
+  "iconPath": "public/icon.png",
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "category": "graphics-design",
+  "tags": [
+    "images",
+    "generation",
+    "openai",
+    "gpt-image-2"
+  ],
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "images.images",
+        "name": "Images",
+        "description": "Generate, edit, inspect, and manage GPT Image 2 image threads in the active workspace.",
+        "scopes": [
+          {
+            "id": "images.native.read",
+            "risk": "low",
+            "surfaces": [
+              "nativeUI"
+            ],
+            "name": "Read the native image library",
+            "description": "Return a bounded, route-specific image gallery or thread projection with verified app assets.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "route": {
+                  "type": "string",
+                  "enum": [
+                    "gallery",
+                    "thread",
+                    "iteration"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "iterationId": {
+                  "type": "string"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 16
+                }
+              },
+              "required": [
+                "route"
+              ]
+            }
+          },
+          {
+            "id": "images.list",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "List images",
+            "description": "List image threads with their latest iteration metadata.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              }
+            }
+          },
+          {
+            "id": "images.get",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Get image thread",
+            "description": "Get one image thread including all iteration metadata.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "images.generate",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Generate image",
+            "description": "Generate a new image thread using gpt-image-2.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "prompt": {
+                  "type": "string"
+                },
+                "aspectRatio": {
+                  "type": "string",
+                  "enum": [
+                    "square",
+                    "portrait",
+                    "story",
+                    "landscape",
+                    "widescreen"
+                  ]
+                },
+                "quality": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high",
+                    "auto"
+                  ]
+                }
+              },
+              "required": [
+                "prompt"
+              ]
+            }
+          },
+          {
+            "id": "images.retry",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Retry image",
+            "description": "Retry a failed new image generation thread with its original prompt and aspect ratio.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "quality": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high",
+                    "auto"
+                  ]
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "images.cancel",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Cancel pending image work",
+            "description": "Cancel and clear a pending generation or edit for an image thread. Pending edits keep the last completed image; empty pending generation threads are deleted by default.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "deleteEmptyThread": {
+                  "type": "boolean",
+                  "description": "When true or omitted, delete a pending generation thread that has no completed iterations. When false, keep it as failed."
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "images.deleteThread",
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Delete image thread",
+            "description": "Delete an image thread and all image files owned by that thread in the active workspace.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "images.deleteIteration",
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Delete image iteration",
+            "description": "Delete one or more image iterations from a thread. If all images are deleted, the thread is deleted too.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "iterationId": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1,
+                  "description": "Array of iteration IDs to delete from the thread."
+                }
+              },
+              "required": [
+                "id",
+                "iterationId"
+              ]
+            }
+          },
+          {
+            "id": "images.edit",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Edit image",
+            "description": "Create a new iteration in an image thread using gpt-image-2 image edits.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "baseIterationId": {
+                  "type": "string"
+                },
+                "prompt": {
+                  "type": "string"
+                },
+                "aspectRatio": {
+                  "type": "string",
+                  "enum": [
+                    "square",
+                    "portrait",
+                    "story",
+                    "landscape",
+                    "widescreen"
+                  ]
+                },
+                "quality": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high",
+                    "auto"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "prompt"
+              ]
+            }
+          },
+          {
+            "id": "images.generateFromReference",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Generate from reference",
+            "description": "Use an existing image iteration as visual reference while adding a distinct new root image to the same image thread.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "baseIterationId": {
+                  "type": "string"
+                },
+                "prompt": {
+                  "type": "string"
+                },
+                "aspectRatio": {
+                  "type": "string",
+                  "enum": [
+                    "square",
+                    "portrait",
+                    "story",
+                    "landscape",
+                    "widescreen"
+                  ]
+                },
+                "quality": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high",
+                    "auto"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "prompt"
+              ]
+            }
+          },
+          {
+            "id": "images.importGenerated",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Save generated image",
+            "description": "Copy a locally generated image file into an existing image thread or create a new image thread when no id is provided.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Existing image thread id. Omit to create a new thread."
+                },
+                "imagePath": {
+                  "type": "string",
+                  "description": "Absolute local path to the image file to save."
+                },
+                "prompt": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "aspectRatio": {
+                  "type": "string",
+                  "enum": [
+                    "square",
+                    "portrait",
+                    "story",
+                    "landscape",
+                    "widescreen"
+                  ]
+                },
+                "quality": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high",
+                    "auto"
+                  ]
+                }
+              },
+              "required": [
+                "imagePath"
+              ]
+            }
+          },
+          {
+            "id": "images.setAspectRatio",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Set aspect ratio",
+            "description": "Regenerate the selected thread as a new iteration with a different aspect ratio.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "baseIterationId": {
+                  "type": "string"
+                },
+                "aspectRatio": {
+                  "type": "string",
+                  "enum": [
+                    "square",
+                    "portrait",
+                    "story",
+                    "landscape",
+                    "widescreen"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "aspectRatio"
+              ]
+            }
+          },
+          {
+            "id": "images.removeBackground",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Remove background",
+            "description": "Remove the background from an image iteration using remove.bg and save the transparent PNG as a new iteration in the same image thread.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "iterationId": {
+                  "type": "string",
+                  "description": "Existing iteration id to process. Omit to process the thread's displayed image."
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "images.drive",
+        "name": "Drive Images",
+        "description": "Describe, navigate, display, and read the Images app UI in the active workspace.",
+        "scopes": [
+          {
+            "id": "images.ui.describe",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Describe Images UI",
+            "description": "List every navigable Images view with model-readable entity and parameter guidance.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "id": "images.ui.navigate",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Navigate Images UI",
+            "description": "Navigate the open Images app to the gallery or a validated image thread. This only changes the visible view.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "gallery",
+                    "image"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Required image thread id when view is image."
+                },
+                "params": {
+                  "type": "object",
+                  "properties": {
+                    "iterationId": {
+                      "type": "string"
+                    },
+                    "fullscreen": {
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "view"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "images.ui.showImage",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Show image",
+            "description": "Open a real image or image thread in the Images viewer, optionally in a full-window overlay. imageId may be a thread id or an iteration id.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "imageId": {
+                  "type": "string"
+                },
+                "fullscreen": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "imageId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "images.ui.showGallery",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Show gallery",
+            "description": "Show the workspace image gallery. This only changes the visible view.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "id": "images.ui.read",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Read Images view",
+            "description": "Return faithful image metadata plus a collection summary for the gallery or a requested image thread.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "gallery",
+                    "image"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Image thread id to read."
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        ]
+      },
+      {
+        "id": "images.cards",
+        "name": "Chat cards",
+        "description": "Show selected images as a horizontal collection; tap for the full image and recent variants. Uses existing image asset routes.",
+        "scopes": [
+          {
+            "id": "images.cards.present",
+            "name": "Present chat card",
+            "description": "Show selected images as a horizontal collection; tap for the full image and recent variants. Uses existing image asset routes.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "minItems": 1,
+                  "maxItems": 8
+                }
+              },
+              "required": [
+                "ids"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "images.cards.read",
+            "name": "Read chat card",
+            "description": "Show selected images as a horizontal collection; tap for the full image and recent variants. Uses existing image asset routes.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "minItems": 1,
+                  "maxItems": 8
+                },
+                "detailId": {
+                  "type": "string",
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "ids"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "env": [],
+  "vault": [
+    {
+      "key": "OPENAI_API_KEY",
+      "name": "OpenAI API Key",
+      "description": "Fallback for GPT Image 2 generation and image edits when Codex CLI auth is unavailable.",
+      "url": "https://platform.openai.com/api-keys",
+      "required": true,
+      "capabilities": [
+        "openai/image-generation"
+      ]
+    },
+    {
+      "key": "REMOVE_BG_API_KEY",
+      "name": "Remove.bg API Key",
+      "description": "Optional. Enables one-click background removal for the current image.",
+      "url": "https://www.remove.bg/api",
+      "required": false,
+      "capabilities": [
+        "remove-bg/background-removal"
+      ]
+    }
+  ],
+  "routeName": "images",
+  "tagline": "Generate, edit, and branch images with GPT Image 2"
+}

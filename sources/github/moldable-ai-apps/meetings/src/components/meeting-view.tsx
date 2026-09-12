@@ -1,0 +1,1234 @@
+'use client'
+
+import {
+  ArrowLeft,
+  Calendar as CalendarIcon,
+  Captions,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  List,
+  Loader2,
+  type LucideIcon,
+  MoreHorizontal,
+  Replace,
+  Search,
+  Sparkles,
+  Trash2,
+  Users,
+  X,
+} from 'lucide-react'
+import {
+  type KeyboardEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
+import { MarkdownEditor, type MarkdownEditorHandle } from '@moldable-ai/editor'
+import {
+  AppHeader,
+  Button,
+  Calendar as DatePickerCalendar,
+  DesktopOnly,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Input,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  Toolbar,
+  ToolbarActions,
+  ToolbarButton,
+  cn,
+  useWorkspace,
+} from '@moldable-ai/ui'
+import { formatRelativeTime } from '@/lib/format'
+import { normalizeGeneratedMarkdown } from '@/lib/markdown'
+import {
+  DEFAULT_MEETING_TEMPLATE_ID,
+  MEETING_TEMPLATES,
+  type MeetingTemplate,
+  getTemplateById,
+} from '@/lib/templates'
+import { EnhancingEditor } from './enhancing-editor'
+import { AllTemplatesModal } from './template-selector/all-templates-modal'
+import { TemplateDropdownMenu } from './template-selector/template-dropdown-menu'
+import {
+  createTemplateCopy,
+  createUntitledTemplate,
+  deleteCustomTemplate,
+  loadCustomTemplates,
+  saveCustomTemplate,
+} from './template-selector/template-storage'
+import { TranscriptView } from './transcript-view'
+import type {
+  Meeting,
+  MeetingCalendarContext,
+  MeetingParticipant,
+} from '@/types'
+
+export type MeetingViewMode = 'manual' | 'enhanced' | 'transcript'
+
+export interface EnhancementStatus {
+  meetingId: string
+  content: string
+  isEnhancing: boolean
+}
+
+interface MeetingViewProps {
+  meeting: Meeting
+  isActive?: boolean
+  enhancement?: EnhancementStatus | null
+  currentInterim?: string | null
+  currentRecordingSessionId?: string | null
+  isPaused?: boolean
+  preferredView?: MeetingViewMode
+  onUpdateMeeting?: (meeting: Meeting) => void
+  onMoveToTrash?: () => void
+  onBack?: () => void
+  backDisabled?: boolean
+  onResumeRecording?: () => void
+  onPauseRecording?: () => void
+}
+
+function hasGeneratedEnhancedDraft(meeting: Meeting) {
+  return Boolean(meeting.enhancedAt || meeting.enhancedTemplateId)
+}
+
+function getInitialView(meeting: Meeting): MeetingViewMode {
+  if (hasGeneratedEnhancedDraft(meeting)) return 'enhanced'
+  return 'manual'
+}
+
+function formatMeetingDay(date: Date) {
+  return date.toLocaleDateString([], {
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
+function getPrimaryParticipant(title: string) {
+  const parts = title
+    .split(/\s+(?:and|&)\s+/i)
+    .map((part) => part.trim())
+    .filter(Boolean)
+
+  return parts.length > 1 ? parts.at(-1) : null
+}
+
+function participantDisplayName(participant: MeetingParticipant) {
+  return participant.name || participant.email || ''
+}
+
+function getCalendarParticipantsLabel(
+  calendarContext: MeetingCalendarContext | undefined,
+) {
+  if (!calendarContext) return null
+
+  const attendees =
+    calendarContext.attendees
+      ?.filter(
+        (participant) =>
+          !participant.self &&
+          participant.responseStatus !== 'declined' &&
+          Boolean(participantDisplayName(participant)),
+      )
+      .map(participantDisplayName) ?? []
+
+  const organizer = calendarContext.organizer
+  const organizerName =
+    organizer && !organizer.self ? participantDisplayName(organizer) : ''
+  const names = Array.from(
+    new Set([organizerName, ...attendees].filter(Boolean)),
+  )
+
+  if (names.length === 0) return null
+  if (names.length <= 2) return names.join(', ')
+  return `${names.slice(0, 2).join(', ')} +${names.length - 2}`
+}
+
+function formatCalendarContextTime(
+  calendarContext: MeetingCalendarContext | undefined,
+) {
+  if (calendarContext?.isAllDay) return 'All day'
+  if (!calendarContext?.start) return null
+  const start = new Date(calendarContext.start)
+  if (Number.isNaN(start.getTime())) return null
+
+  const startText = start.toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+
+  if (!calendarContext.end) return startText
+
+  const end = new Date(calendarContext.end)
+  if (Number.isNaN(end.getTime())) return startText
+
+  return `${startText} - ${end.toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
+  })}`
+}
+
+export function MeetingView({
+  meeting,
+  isActive = false,
+  enhancement,
+  currentInterim,
+  currentRecordingSessionId,
+  isPaused,
+  preferredView,
+  onUpdateMeeting,
+  onMoveToTrash,
+  onBack,
+  backDisabled = false,
+  onResumeRecording,
+  onPauseRecording,
+}: MeetingViewProps) {
+  const { fetchWithWorkspace } = useWorkspace()
+  const [activeView, setActiveView] = useState<MeetingViewMode>(() =>
+    getInitialView(meeting),
+  )
+  const [manualNotes, setManualNotes] = useState(meeting.notes || '')
+  const [enhancedNotes, setEnhancedNotes] = useState(
+    normalizeGeneratedMarkdown(meeting.enhancedNotes || ''),
+  )
+  const [titleDraft, setTitleDraft] = useState(meeting.title || '')
+  const [isSaving, setIsSaving] = useState(false)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false)
+  const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false)
+  const [isFindReplaceOpen, setIsFindReplaceOpen] = useState(false)
+  const [findQuery, setFindQuery] = useState('')
+  const [replaceQuery, setReplaceQuery] = useState('')
+  const [findMatchCount, setFindMatchCount] = useState(0)
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0)
+  const [customTemplates, setCustomTemplates] = useState<MeetingTemplate[]>([])
+  const [selectedTemplateId, setSelectedTemplateId] = useState(
+    meeting.enhancedTemplateId ?? DEFAULT_MEETING_TEMPLATE_ID,
+  )
+  const [generatingTemplateId, setGeneratingTemplateId] = useState<
+    string | null
+  >(null)
+  const [localEnhancement, setLocalEnhancement] =
+    useState<EnhancementStatus | null>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const manualEditorRef = useRef<MarkdownEditorHandle>(null)
+  const enhancedEditorRef = useRef<MarkdownEditorHandle>(null)
+  const previousMeetingIdRef = useRef(meeting.id)
+  const wasEnhancingRef = useRef(false)
+
+  const templates = useMemo(
+    () => [...customTemplates, ...MEETING_TEMPLATES],
+    [customTemplates],
+  )
+  const selectedTemplate = getTemplateById(selectedTemplateId, templates)
+  const hasGeneratedEnhancedNotes = hasGeneratedEnhancedDraft(meeting)
+
+  const activeEnhancement =
+    localEnhancement && localEnhancement.meetingId === meeting.id
+      ? localEnhancement
+      : enhancement && enhancement.meetingId === meeting.id
+        ? enhancement
+        : null
+
+  useEffect(() => {
+    if (preferredView) {
+      setActiveView(preferredView)
+    }
+  }, [preferredView])
+
+  useEffect(() => {
+    if (previousMeetingIdRef.current !== meeting.id) {
+      previousMeetingIdRef.current = meeting.id
+      setActiveView(getInitialView(meeting))
+      setLastSaved(null)
+      setLocalEnhancement(null)
+      setIsFindReplaceOpen(false)
+      setFindMatchCount(0)
+      setCurrentMatchIndex(0)
+    }
+
+    setManualNotes(meeting.notes || '')
+    setEnhancedNotes(normalizeGeneratedMarkdown(meeting.enhancedNotes || ''))
+    setTitleDraft(meeting.title || '')
+    setSelectedTemplateId(
+      meeting.enhancedTemplateId ?? DEFAULT_MEETING_TEMPLATE_ID,
+    )
+  }, [meeting])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadTemplates() {
+      try {
+        const templates = await loadCustomTemplates(fetchWithWorkspace)
+        if (cancelled) return
+        setCustomTemplates(templates)
+      } catch (error) {
+        console.error('Failed to load custom templates:', error)
+        if (!cancelled) setCustomTemplates([])
+      }
+    }
+
+    void loadTemplates()
+
+    return () => {
+      cancelled = true
+    }
+  }, [fetchWithWorkspace])
+
+  useEffect(() => {
+    if (activeEnhancement?.isEnhancing) {
+      wasEnhancingRef.current = true
+      setActiveView('enhanced')
+      return
+    }
+
+    if (wasEnhancingRef.current && hasGeneratedEnhancedNotes) {
+      wasEnhancingRef.current = false
+      setActiveView('enhanced')
+    }
+  }, [activeEnhancement?.isEnhancing, hasGeneratedEnhancedNotes])
+
+  useEffect(() => {
+    if (findMatchCount === 0) {
+      if (currentMatchIndex !== 0) setCurrentMatchIndex(0)
+      return
+    }
+
+    if (currentMatchIndex > findMatchCount - 1) {
+      setCurrentMatchIndex(findMatchCount - 1)
+    }
+  }, [currentMatchIndex, findMatchCount])
+
+  const persistMeeting = useCallback(
+    async (updatedMeeting: Meeting) => {
+      setIsSaving(true)
+      if (onUpdateMeeting) {
+        onUpdateMeeting(updatedMeeting)
+      } else {
+        await fetchWithWorkspace('/api/meetings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedMeeting),
+        })
+      }
+      setLastSaved(new Date())
+      setIsSaving(false)
+    },
+    [fetchWithWorkspace, onUpdateMeeting],
+  )
+
+  const handleManualNotesChange = useCallback(
+    (newNotes: string) => {
+      setManualNotes(newNotes)
+      void persistMeeting({
+        ...meeting,
+        notes: newNotes,
+        updatedAt: new Date(),
+      })
+    },
+    [meeting, persistMeeting],
+  )
+
+  const handleEnhancedNotesChange = useCallback(
+    (newNotes: string) => {
+      setEnhancedNotes(newNotes)
+      void persistMeeting({
+        ...meeting,
+        enhancedNotes: newNotes,
+        enhancedAt: meeting.enhancedAt ?? new Date(),
+        updatedAt: new Date(),
+      })
+    },
+    [meeting, persistMeeting],
+  )
+
+  const handleFindQueryChange = useCallback((value: string) => {
+    setFindQuery(value)
+    setCurrentMatchIndex(0)
+  }, [])
+
+  const handleFindMatchCountChange = useCallback((count: number) => {
+    setFindMatchCount((current) => (current === count ? current : count))
+  }, [])
+
+  const handleNextMatch = useCallback(() => {
+    setCurrentMatchIndex((current) => {
+      if (findMatchCount === 0) return 0
+      return (current + 1) % findMatchCount
+    })
+  }, [findMatchCount])
+
+  const handlePreviousMatch = useCallback(() => {
+    setCurrentMatchIndex((current) => {
+      if (findMatchCount === 0) return 0
+      return (current - 1 + findMatchCount) % findMatchCount
+    })
+  }, [findMatchCount])
+
+  const handleReplaceCurrentMatch = useCallback(() => {
+    if (!findQuery.trim() || findMatchCount === 0) return
+
+    const activeEditor =
+      activeView === 'manual'
+        ? manualEditorRef.current
+        : enhancedEditorRef.current
+
+    activeEditor?.replaceCurrentFindMatch(replaceQuery)
+  }, [activeView, findMatchCount, findQuery, replaceQuery])
+
+  const handleReplaceAllMatches = useCallback(() => {
+    if (!findQuery.trim() || findMatchCount === 0) return
+
+    const activeEditor =
+      activeView === 'manual'
+        ? manualEditorRef.current
+        : enhancedEditorRef.current
+
+    activeEditor?.replaceAllFindMatches(replaceQuery)
+    setCurrentMatchIndex(0)
+  }, [activeView, findMatchCount, findQuery, replaceQuery])
+
+  const participant =
+    getCalendarParticipantsLabel(meeting.calendarContext) ??
+    getPrimaryParticipant(titleDraft)
+  const calendarTime = formatCalendarContextTime(meeting.calendarContext)
+  const enhancementContent = activeEnhancement?.content ?? ''
+  const originalEnhancementNotes = enhancedNotes || manualNotes
+  const showEnhancingEditor = Boolean(
+    activeView === 'enhanced' &&
+      activeEnhancement &&
+      (activeEnhancement.isEnhancing || enhancementContent),
+  )
+  const canFindReplace =
+    activeView === 'manual' ||
+    (activeView === 'enhanced' &&
+      hasGeneratedEnhancedNotes &&
+      !showEnhancingEditor)
+
+  useEffect(() => {
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+      const isFindShortcut =
+        (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'f'
+
+      if (isFindShortcut && canFindReplace) {
+        event.preventDefault()
+        setIsFindReplaceOpen(true)
+        return
+      }
+
+      if (event.key === 'Escape' && isFindReplaceOpen) {
+        setIsFindReplaceOpen(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [canFindReplace, isFindReplaceOpen])
+
+  const handleTitleChange = useCallback(
+    (nextTitle: string) => {
+      setTitleDraft(nextTitle)
+      void persistMeeting({
+        ...meeting,
+        title: nextTitle,
+        updatedAt: new Date(),
+      })
+    },
+    [meeting, persistMeeting],
+  )
+
+  const handleMeetingDateChange = useCallback(
+    (nextDate: Date | undefined) => {
+      if (!nextDate) return
+
+      const createdAt = new Date(meeting.createdAt)
+      createdAt.setFullYear(
+        nextDate.getFullYear(),
+        nextDate.getMonth(),
+        nextDate.getDate(),
+      )
+
+      void persistMeeting({
+        ...meeting,
+        createdAt,
+        updatedAt: new Date(),
+      })
+      setIsDatePickerOpen(false)
+    },
+    [meeting, persistMeeting],
+  )
+
+  const handleGenerateTemplate = useCallback(
+    async (template: MeetingTemplate) => {
+      setGeneratingTemplateId(template.id)
+      setSelectedTemplateId(template.id)
+      setActiveView('enhanced')
+      setIsMenuOpen(false)
+      setLocalEnhancement({
+        meetingId: meeting.id,
+        content: '',
+        isEnhancing: true,
+      })
+
+      let nextEnhancedNotes = ''
+      try {
+        const response = await fetchWithWorkspace(
+          `/api/meetings/${meeting.id}/enhance/stream`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ meeting, template }),
+          },
+        )
+
+        if (!response.ok) {
+          const body = (await response.json().catch(() => ({}))) as {
+            error?: string
+          }
+          throw new Error(body.error || 'Failed to generate enhanced notes')
+        }
+
+        if (!response.body) {
+          throw new Error('Enhanced notes stream did not include a body')
+        }
+
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+
+        while (true) {
+          const { value, done } = await reader.read()
+          if (done) break
+
+          nextEnhancedNotes += decoder.decode(value, { stream: true })
+          setLocalEnhancement({
+            meetingId: meeting.id,
+            content: normalizeGeneratedMarkdown(nextEnhancedNotes),
+            isEnhancing: true,
+          })
+        }
+
+        nextEnhancedNotes += decoder.decode()
+        nextEnhancedNotes = normalizeGeneratedMarkdown(nextEnhancedNotes)
+
+        if (!nextEnhancedNotes) {
+          throw new Error('AI response did not include enhanced notes.')
+        }
+
+        setLocalEnhancement({
+          meetingId: meeting.id,
+          content: nextEnhancedNotes,
+          isEnhancing: false,
+        })
+
+        const updatedMeeting = {
+          ...meeting,
+          enhancedNotes: nextEnhancedNotes,
+          enhancedTemplateId: template.id,
+          enhancedAt: new Date(),
+          updatedAt: new Date(),
+        }
+
+        setEnhancedNotes(nextEnhancedNotes)
+        await persistMeeting(updatedMeeting)
+
+        window.setTimeout(() => {
+          setLocalEnhancement((current) =>
+            current?.meetingId === meeting.id && !current.isEnhancing
+              ? null
+              : current,
+          )
+        }, 1200)
+      } catch (error) {
+        console.error('Failed to generate enhanced notes:', error)
+        setLocalEnhancement(null)
+      } finally {
+        setGeneratingTemplateId(null)
+      }
+    },
+    [fetchWithWorkspace, meeting, persistMeeting],
+  )
+
+  const handleCreateTemplate = useCallback(() => {
+    const template = createUntitledTemplate()
+    setCustomTemplates((current) => [template, ...current])
+    setSelectedTemplateId(template.id)
+    setIsMenuOpen(false)
+    setIsTemplatesModalOpen(true)
+    void saveCustomTemplate(fetchWithWorkspace, template).catch((error) => {
+      console.error('Failed to save custom template:', error)
+    })
+    return template
+  }, [fetchWithWorkspace])
+
+  const handleDuplicateTemplate = useCallback(
+    (template: MeetingTemplate) => {
+      const duplicate = createTemplateCopy(template)
+      setCustomTemplates((current) => [duplicate, ...current])
+      setSelectedTemplateId(duplicate.id)
+      void saveCustomTemplate(fetchWithWorkspace, duplicate).catch((error) => {
+        console.error('Failed to save custom template:', error)
+      })
+      return duplicate
+    },
+    [fetchWithWorkspace],
+  )
+
+  const handleDeleteTemplate = useCallback(
+    (templateId: string) => {
+      setCustomTemplates((current) =>
+        current.filter((template) => template.id !== templateId),
+      )
+      if (selectedTemplateId === templateId) {
+        setSelectedTemplateId(DEFAULT_MEETING_TEMPLATE_ID)
+      }
+      void deleteCustomTemplate(fetchWithWorkspace, templateId).catch(
+        (error) => {
+          console.error('Failed to delete custom template:', error)
+        },
+      )
+    },
+    [fetchWithWorkspace, selectedTemplateId],
+  )
+
+  return (
+    <div className="relative flex h-full flex-col overflow-hidden bg-transparent">
+      <AppHeader
+        title={titleDraft || 'Meeting'}
+        back={onBack && !backDisabled ? onBack : undefined}
+        desktop={false}
+        actions={[
+          ...(canFindReplace
+            ? [
+                {
+                  id: 'meeting.find',
+                  label: 'Find',
+                  icon: Search,
+                  onPress: () => setIsFindReplaceOpen((open) => !open),
+                },
+              ]
+            : []),
+          ...(onMoveToTrash
+            ? [
+                {
+                  id: 'meeting.trash',
+                  label: 'Move to trash',
+                  icon: Trash2,
+                  onPress: onMoveToTrash,
+                  placement: 'overflow' as const,
+                },
+              ]
+            : []),
+        ]}
+        mobileControls={
+          <div className="flex w-full gap-2">
+            <Button
+              size="sm"
+              variant={activeView === 'manual' ? 'default' : 'secondary'}
+              onClick={() => setActiveView('manual')}
+            >
+              Notes
+            </Button>
+            <Button
+              size="sm"
+              variant={activeView === 'enhanced' ? 'default' : 'secondary'}
+              onClick={() => setActiveView('enhanced')}
+            >
+              Enhanced
+            </Button>
+            <Button
+              size="sm"
+              variant={activeView === 'transcript' ? 'default' : 'secondary'}
+              onClick={() => setActiveView('transcript')}
+            >
+              Transcript
+            </Button>
+          </div>
+        }
+      />
+      <DesktopOnly>
+        <Toolbar
+          position="top"
+          variant="plain"
+          material="none"
+          className="px-4"
+        >
+          {onBack ? (
+            <ToolbarButton
+              material="ultra-thin"
+              type="button"
+              onClick={onBack}
+              disabled={backDisabled}
+              className="text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer gap-1.5 px-2.5 text-xs disabled:pointer-events-none disabled:opacity-45"
+              title="Back to meetings"
+            >
+              <ArrowLeft className="size-3.5" />
+              <span>Meetings</span>
+            </ToolbarButton>
+          ) : null}
+          <ToolbarActions className="gap-3">
+            <SaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
+            <div className="flex items-center gap-3">
+              {canFindReplace ? (
+                <ToolbarButton
+                  material="ultra-thin"
+                  type="button"
+                  size="icon-xl"
+                  onClick={() => {
+                    setIsFindReplaceOpen((open) => !open)
+                    setIsMenuOpen(false)
+                  }}
+                  className={cn(
+                    'hover:bg-muted hover:text-foreground cursor-pointer',
+                    isFindReplaceOpen
+                      ? 'bg-muted text-foreground'
+                      : 'text-muted-foreground',
+                  )}
+                  title="Find in notes"
+                >
+                  <Search className="size-4" />
+                </ToolbarButton>
+              ) : null}
+              {onMoveToTrash ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <ToolbarButton
+                      material="ultra-thin"
+                      type="button"
+                      size="icon-xl"
+                      className="text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer"
+                      title="Meeting actions"
+                    >
+                      <MoreHorizontal className="size-5" />
+                    </ToolbarButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive cursor-pointer"
+                      onClick={onMoveToTrash}
+                    >
+                      <Trash2 className="mr-2 size-4" />
+                      Move to trash
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
+              <div className="relative">
+                <div className="bg-muted flex h-10 items-center gap-0.5 rounded-full p-0.5">
+                  <div className="flex items-center">
+                    <ChromeButton
+                      active={activeView === 'manual'}
+                      icon={List}
+                      title="Notes"
+                      onClick={() => {
+                        setActiveView('manual')
+                        setIsMenuOpen(false)
+                        setIsFindReplaceOpen(false)
+                      }}
+                    />
+                    <div className="relative">
+                      <EnhancedNotesButton
+                        active={activeView === 'enhanced'}
+                        open={isMenuOpen}
+                        onClick={() => {
+                          if (activeView === 'enhanced') {
+                            setIsMenuOpen((open) => !open)
+                          } else {
+                            setActiveView('enhanced')
+                            setIsMenuOpen(false)
+                          }
+                        }}
+                      />
+                      <TemplateDropdownMenu
+                        open={isMenuOpen}
+                        templates={templates}
+                        selectedTemplate={selectedTemplate}
+                        selectedTemplateId={selectedTemplateId}
+                        generated={hasGeneratedEnhancedNotes}
+                        generatingTemplateId={generatingTemplateId}
+                        onGenerateTemplate={(template) =>
+                          void handleGenerateTemplate(template)
+                        }
+                        onOpenAllTemplates={() => {
+                          setIsMenuOpen(false)
+                          setIsTemplatesModalOpen(true)
+                        }}
+                        onCreateTemplate={handleCreateTemplate}
+                      />
+                    </div>
+                    <ChromeButton
+                      active={activeView === 'transcript'}
+                      icon={Captions}
+                      title="Transcript"
+                      onClick={() => {
+                        setActiveView('transcript')
+                        setIsMenuOpen(false)
+                        setIsFindReplaceOpen(false)
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ToolbarActions>
+        </Toolbar>
+      </DesktopOnly>
+
+      <div
+        ref={scrollContainerRef}
+        className="meetings-detail-scroll min-h-0 flex-1 overflow-auto px-6 pb-[var(--chat-safe-padding)] sm:px-10 lg:px-16"
+      >
+        <div className="mx-auto min-h-full w-full max-w-[44rem] pt-8">
+          <header className="mb-8">
+            <Input
+              value={titleDraft}
+              onChange={(event) => handleTitleChange(event.target.value)}
+              className="meetings-detail-title-input h-auto w-full truncate border-none !bg-transparent px-0 py-0 text-2xl font-normal leading-tight shadow-none outline-none focus-visible:!bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:text-3xl"
+              placeholder="Untitled meeting"
+            />
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <DateMetadataPill
+                date={meeting.createdAt}
+                open={isDatePickerOpen}
+                onOpenChange={setIsDatePickerOpen}
+                onSelectDate={handleMeetingDateChange}
+              />
+              {calendarTime ? (
+                <MetadataPill icon={CalendarIcon} label={calendarTime} />
+              ) : null}
+              {participant && <MetadataPill icon={Users} label={participant} />}
+            </div>
+          </header>
+
+          {showEnhancingEditor ? (
+            <EnhancingEditor
+              key="enhancing-editor"
+              originalNotes={originalEnhancementNotes}
+              enhancedContent={enhancementContent}
+              isEnhancing={Boolean(activeEnhancement?.isEnhancing)}
+              className="min-h-full"
+              scrollContainer={scrollContainerRef.current}
+            />
+          ) : activeView === 'manual' ? (
+            <>
+              {isFindReplaceOpen ? (
+                <FindReplaceBar
+                  findQuery={findQuery}
+                  replaceQuery={replaceQuery}
+                  matchCount={findMatchCount}
+                  currentMatch={
+                    findMatchCount === 0 ? 0 : currentMatchIndex + 1
+                  }
+                  onFindQueryChange={handleFindQueryChange}
+                  onReplaceQueryChange={setReplaceQuery}
+                  onNextMatch={handleNextMatch}
+                  onPreviousMatch={handlePreviousMatch}
+                  onReplaceCurrent={handleReplaceCurrentMatch}
+                  onReplaceAll={handleReplaceAllMatches}
+                  onClose={() => setIsFindReplaceOpen(false)}
+                />
+              ) : null}
+              <MarkdownEditor
+                ref={manualEditorRef}
+                value={manualNotes}
+                onChange={handleManualNotesChange}
+                placeholder="Write your notes here..."
+                minHeight="100%"
+                maxHeight="none"
+                className="meetings-document-editor"
+                contentClassName="meetings-document-content"
+                hideMarkdownHint
+                findQuery={isFindReplaceOpen ? findQuery : ''}
+                currentFindMatch={currentMatchIndex}
+                onFindMatchCountChange={handleFindMatchCountChange}
+              />
+            </>
+          ) : activeView === 'enhanced' ? (
+            hasGeneratedEnhancedNotes ? (
+              <>
+                {isFindReplaceOpen ? (
+                  <FindReplaceBar
+                    findQuery={findQuery}
+                    replaceQuery={replaceQuery}
+                    matchCount={findMatchCount}
+                    currentMatch={
+                      findMatchCount === 0 ? 0 : currentMatchIndex + 1
+                    }
+                    onFindQueryChange={handleFindQueryChange}
+                    onReplaceQueryChange={setReplaceQuery}
+                    onNextMatch={handleNextMatch}
+                    onPreviousMatch={handlePreviousMatch}
+                    onReplaceCurrent={handleReplaceCurrentMatch}
+                    onReplaceAll={handleReplaceAllMatches}
+                    onClose={() => setIsFindReplaceOpen(false)}
+                  />
+                ) : null}
+                <MarkdownEditor
+                  ref={enhancedEditorRef}
+                  value={enhancedNotes}
+                  onChange={handleEnhancedNotesChange}
+                  placeholder="No notes were generated for this meeting"
+                  minHeight="100%"
+                  maxHeight="none"
+                  className="meetings-document-editor"
+                  contentClassName="meetings-document-content meetings-enhanced-document-content"
+                  hideMarkdownHint
+                  findQuery={isFindReplaceOpen ? findQuery : ''}
+                  currentFindMatch={currentMatchIndex}
+                  onFindMatchCountChange={handleFindMatchCountChange}
+                />
+              </>
+            ) : (
+              <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
+                <div className="bg-muted mb-4 flex size-12 items-center justify-center rounded-full">
+                  <Sparkles className="text-muted-foreground size-5" />
+                </div>
+                <h3 className="text-sm font-medium">No enhanced draft yet</h3>
+                <p className="text-muted-foreground mt-1 max-w-sm text-sm">
+                  End the meeting to turn your notes and transcript into a
+                  structured draft.
+                </p>
+              </div>
+            )
+          ) : (
+            <TranscriptView
+              meetingId={meeting.id}
+              segments={meeting.segments}
+              recordingSessions={meeting.recordingSessions}
+              isLive={isActive}
+              isPaused={isPaused}
+              currentInterim={currentInterim}
+              currentRecordingSessionId={currentRecordingSessionId}
+              startedAt={meeting.createdAt}
+              duration={meeting.duration}
+              className="meetings-transcript-document min-h-[420px]"
+              onResumeRecording={onResumeRecording}
+              onPauseRecording={onPauseRecording}
+            />
+          )}
+        </div>
+      </div>
+
+      <AllTemplatesModal
+        open={isTemplatesModalOpen}
+        onOpenChange={setIsTemplatesModalOpen}
+        templates={templates}
+        selectedTemplateId={selectedTemplateId}
+        generatingTemplateId={generatingTemplateId}
+        onTemplateSelect={(template) => void handleGenerateTemplate(template)}
+        onCreateTemplate={handleCreateTemplate}
+        onDuplicateTemplate={handleDuplicateTemplate}
+        onDeleteTemplate={handleDeleteTemplate}
+        onUpdateTemplate={(updatedTemplate) => {
+          setCustomTemplates((current) =>
+            current.map((template) =>
+              template.id === updatedTemplate.id ? updatedTemplate : template,
+            ),
+          )
+          void saveCustomTemplate(fetchWithWorkspace, updatedTemplate).catch(
+            (error) => {
+              console.error('Failed to save custom template:', error)
+            },
+          )
+        }}
+      />
+    </div>
+  )
+}
+
+interface FindReplaceBarProps {
+  findQuery: string
+  replaceQuery: string
+  matchCount: number
+  currentMatch: number
+  onFindQueryChange: (value: string) => void
+  onReplaceQueryChange: (value: string) => void
+  onNextMatch: () => void
+  onPreviousMatch: () => void
+  onReplaceCurrent: () => void
+  onReplaceAll: () => void
+  onClose: () => void
+}
+
+function FindReplaceBar({
+  findQuery,
+  replaceQuery,
+  matchCount,
+  currentMatch,
+  onFindQueryChange,
+  onReplaceQueryChange,
+  onNextMatch,
+  onPreviousMatch,
+  onReplaceCurrent,
+  onReplaceAll,
+  onClose,
+}: FindReplaceBarProps) {
+  const hasQuery = findQuery.trim().length > 0
+  const hasMatches = matchCount > 0
+  const matchLabel = !hasQuery
+    ? ''
+    : hasMatches
+      ? `${currentMatch} of ${matchCount}`
+      : 'No matches'
+
+  const handleFindKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') {
+      onClose()
+      return
+    }
+
+    if (event.key !== 'Enter') return
+
+    event.preventDefault()
+    if (event.shiftKey) {
+      onPreviousMatch()
+    } else {
+      onNextMatch()
+    }
+  }
+
+  return (
+    <div className="meetings-find-replace-bar border-border/70 bg-background/95 sticky top-2 z-10 mb-4 rounded-xl border p-2 shadow-sm backdrop-blur">
+      <div className="flex items-center gap-2">
+        <label className="relative min-w-0 flex-1">
+          <Search className="text-muted-foreground pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2" />
+          <Input
+            autoFocus
+            value={findQuery}
+            onChange={(event) => onFindQueryChange(event.target.value)}
+            onKeyDown={handleFindKeyDown}
+            placeholder="Find"
+            className="bg-background h-8 pl-8 text-sm"
+            aria-label="Find in enhanced notes"
+          />
+        </label>
+        <span
+          className={cn(
+            'text-muted-foreground w-16 shrink-0 text-center text-[11px]',
+            hasQuery && !hasMatches && 'text-destructive',
+          )}
+        >
+          {matchLabel}
+        </span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={onPreviousMatch}
+          disabled={!hasMatches}
+          className="size-8 cursor-pointer rounded-full disabled:pointer-events-none disabled:opacity-45"
+          title="Previous match"
+        >
+          <ChevronLeft className="size-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={onNextMatch}
+          disabled={!hasMatches}
+          className="size-8 cursor-pointer rounded-full disabled:pointer-events-none disabled:opacity-45"
+          title="Next match"
+        >
+          <ChevronRight className="size-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="size-8 cursor-pointer rounded-full"
+          title="Close find and replace"
+        >
+          <X className="size-4" />
+        </Button>
+      </div>
+      <div className="mt-2 flex items-center gap-2">
+        <label className="relative min-w-0 flex-1">
+          <Replace className="text-muted-foreground pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2" />
+          <Input
+            value={replaceQuery}
+            onChange={(event) => onReplaceQueryChange(event.target.value)}
+            placeholder="Replace"
+            className="bg-background h-8 pl-8 text-sm"
+            aria-label="Replace with"
+          />
+        </label>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onReplaceCurrent}
+          disabled={!hasMatches}
+          className="h-8 cursor-pointer rounded-full px-3 text-xs disabled:pointer-events-none disabled:opacity-45"
+        >
+          Replace
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={onReplaceAll}
+          disabled={!hasMatches}
+          className="h-8 cursor-pointer rounded-full px-3 text-xs disabled:pointer-events-none disabled:opacity-45"
+        >
+          All
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface ChromeButtonProps {
+  active: boolean
+  icon: LucideIcon
+  onClick: () => void
+  title: string
+}
+
+function ChromeButton({
+  active,
+  icon: Icon,
+  onClick,
+  title,
+}: ChromeButtonProps) {
+  return (
+    <ToolbarButton
+      material="ultra-thin"
+      type="button"
+      size="icon-xl"
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      aria-pressed={active}
+      className={cn(
+        'cursor-pointer',
+        active ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
+      )}
+    >
+      <Icon className="size-4" />
+    </ToolbarButton>
+  )
+}
+
+interface EnhancedNotesButtonProps {
+  active: boolean
+  open: boolean
+  onClick: () => void
+}
+
+function EnhancedNotesButton({
+  active,
+  open,
+  onClick,
+}: EnhancedNotesButtonProps) {
+  return (
+    <ToolbarButton
+      material="ultra-thin"
+      type="button"
+      onClick={onClick}
+      title="Enhanced notes"
+      aria-label="Enhanced notes"
+      aria-pressed={active}
+      className={cn(
+        'cursor-pointer gap-1.5 px-3',
+        active ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
+      )}
+    >
+      <Sparkles className="size-4" />
+      <ChevronDown
+        className={cn(
+          'size-3.5 transition-transform duration-200',
+          open && 'rotate-180',
+        )}
+      />
+    </ToolbarButton>
+  )
+}
+
+interface DateMetadataPillProps {
+  date: Date
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSelectDate: (date: Date | undefined) => void
+}
+
+function DateMetadataPill({
+  date,
+  open,
+  onOpenChange,
+  onSelectDate,
+}: DateMetadataPillProps) {
+  return (
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="border-border/80 bg-background text-muted-foreground hover:bg-muted/60 hover:text-foreground inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors"
+        >
+          <CalendarIcon className="size-3.5" />
+          <span>{formatMeetingDay(date)}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-auto p-0">
+        <DatePickerCalendar
+          mode="single"
+          selected={date}
+          onSelect={onSelectDate}
+          className="rounded-md"
+        />
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+interface SaveIndicatorProps {
+  isSaving: boolean
+  lastSaved: Date | null
+}
+
+function SaveIndicator({ isSaving, lastSaved }: SaveIndicatorProps) {
+  if (!isSaving && !lastSaved) return null
+
+  return (
+    <div className="bg-background/85 text-muted-foreground hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-xs backdrop-blur-sm sm:flex">
+      {isSaving ? (
+        <>
+          <Loader2 className="size-3 animate-spin" />
+          <span>Saving</span>
+        </>
+      ) : (
+        <>
+          <Check className="size-3" />
+          <span>{lastSaved ? formatRelativeTime(lastSaved) : 'Saved'}</span>
+        </>
+      )}
+    </div>
+  )
+}
+
+interface MetadataPillProps {
+  icon: LucideIcon
+  label: string
+}
+
+function MetadataPill({ icon: Icon, label }: MetadataPillProps) {
+  return (
+    <button
+      type="button"
+      className="border-border/80 bg-background text-muted-foreground hover:bg-muted/60 hover:text-foreground inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium shadow-sm transition-colors"
+    >
+      <Icon className="size-3.5" />
+      <span>{label}</span>
+    </button>
+  )
+}

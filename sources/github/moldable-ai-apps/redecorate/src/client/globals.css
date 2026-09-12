@@ -1,0 +1,324 @@
+@import 'tailwindcss';
+@import '@moldable-ai/ui/styles';
+@import '@moldable-ai/editor/styles';
+@source './**/*.{js,jsx,ts,tsx}';
+@source '../../node_modules/@moldable-ai/ui/dist/**/*.{js,jsx,ts,tsx}';
+@source '../../node_modules/@moldable-ai/editor/dist/**/*.{js,jsx,ts,tsx}';
+
+@theme {
+  --font-sans: Inter, system-ui, -apple-system, sans-serif;
+  --font-serif:
+    'New York', 'Cambria', 'Palatino', Georgia, 'Times New Roman', serif;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground overflow-hidden;
+  }
+}
+
+@layer components {
+  .rd-serif {
+    font-family: var(--font-serif);
+    letter-spacing: -0.012em;
+  }
+
+  .rd-emoji {
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+    font-variant-emoji: emoji;
+  }
+
+  .rd-mono {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  .rd-no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .rd-no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Tinted glass card surface, driven by --card-tone */
+  .rd-card-tone {
+    background:
+      radial-gradient(
+        125% 90% at 0% 0%,
+        color-mix(in oklch, var(--card-tone, var(--primary)) 30%, transparent)
+          0%,
+        transparent 56%
+      ),
+      radial-gradient(
+        125% 90% at 100% 100%,
+        color-mix(in oklch, var(--card-tone, var(--primary)) 18%, transparent)
+          0%,
+        transparent 56%
+      ),
+      linear-gradient(
+        180deg,
+        color-mix(
+          in oklch,
+          var(--card) 90%,
+          var(--card-tone, var(--primary)) 10%
+        ),
+        var(--card)
+      );
+  }
+
+  /* AI render / generating state — a drifting "aurora" of color clouds with a
+     slow light sweep. Calm, premium, and clearly "thinking". */
+  .rd-render {
+    position: relative;
+    isolation: isolate;
+    background:
+      radial-gradient(
+        58% 55% at 18% 22%,
+        oklch(0.62 0.15 290 / 0.5),
+        transparent 70%
+      ),
+      radial-gradient(
+        56% 52% at 84% 24%,
+        oklch(0.68 0.13 200 / 0.42),
+        transparent 72%
+      ),
+      radial-gradient(
+        66% 60% at 60% 92%,
+        oklch(0.72 0.14 40 / 0.46),
+        transparent 72%
+      ),
+      radial-gradient(
+        50% 48% at 38% 70%,
+        oklch(0.66 0.12 150 / 0.32),
+        transparent 70%
+      ),
+      color-mix(in oklab, var(--muted) 78%, var(--background));
+    background-size:
+      190% 190%,
+      170% 170%,
+      210% 210%,
+      180% 180%,
+      100% 100%;
+    background-position:
+      0% 0%,
+      100% 0%,
+      50% 100%,
+      30% 60%,
+      0 0;
+    animation: rd-aurora 12s ease-in-out infinite;
+  }
+
+  /* soft inner vignette to keep edges premium */
+  .rd-render::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      120% 120% at 50% 50%,
+      transparent 52%,
+      color-mix(in oklab, var(--background) 50%, transparent)
+    );
+    pointer-events: none;
+  }
+
+  .rd-render-sweep {
+    position: absolute;
+    inset: -40%;
+    pointer-events: none;
+    background: linear-gradient(
+      115deg,
+      transparent 42%,
+      color-mix(in oklab, var(--foreground) 8%, transparent) 47%,
+      color-mix(in oklab, var(--foreground) 22%, transparent) 50%,
+      color-mix(in oklab, var(--foreground) 8%, transparent) 53%,
+      transparent 58%
+    );
+    transform: translateX(-60%);
+    animation: rd-sweep 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  .rd-render-pulse {
+    animation: rd-pulse 1.9s ease-in-out infinite;
+  }
+
+  .rd-render-dots i {
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    border-radius: 9999px;
+    background: currentColor;
+    opacity: 0.4;
+    animation: rd-dot 1.2s ease-in-out infinite;
+  }
+  .rd-render-dots i:nth-child(2) {
+    animation-delay: 0.16s;
+  }
+  .rd-render-dots i:nth-child(3) {
+    animation-delay: 0.32s;
+  }
+
+  [data-slot='dialog-overlay'] {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+}
+
+@keyframes rd-view-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.992);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes rd-view-back {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -6px, 0) scale(1.012);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes rd-card-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes rd-chrome-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-rd-view-in {
+  animation: rd-view-in 340ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-rd-view-back {
+  animation: rd-view-back 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-rd-card-in {
+  animation: rd-card-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-rd-chrome-in {
+  animation: rd-chrome-in 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes image-view-emerge {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .image-view-emerge {
+    animation: 220ms cubic-bezier(0.16, 1, 0.3, 1) both image-view-emerge;
+    transform-origin: center;
+  }
+}
+
+@keyframes rd-aurora {
+  0% {
+    background-position:
+      0% 0%,
+      100% 0%,
+      50% 100%,
+      30% 60%,
+      0 0;
+  }
+  50% {
+    background-position:
+      55% 45%,
+      45% 55%,
+      30% 40%,
+      70% 35%,
+      0 0;
+  }
+  100% {
+    background-position:
+      0% 0%,
+      100% 0%,
+      50% 100%,
+      30% 60%,
+      0 0;
+  }
+}
+
+@keyframes rd-sweep {
+  0% {
+    transform: translateX(-65%);
+  }
+  100% {
+    transform: translateX(65%);
+  }
+}
+
+@keyframes rd-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.14) rotate(8deg);
+  }
+}
+
+@keyframes rd-dot {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rd-view-in,
+  .animate-rd-view-back,
+  .animate-rd-card-in,
+  .animate-rd-chrome-in,
+  .rd-render,
+  .rd-render-sweep,
+  .rd-render-pulse,
+  .rd-render-dots i {
+    animation: none;
+  }
+}

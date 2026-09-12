@@ -1,0 +1,21 @@
+import{n as e,t}from"./types-Bn_S2iY2.js";var n=`slides.text.replace { oldString, newString, replaceAll?, field?, slideId? }, slides.slides.add/update/remove/reorder/move, slides.decks.update/replace, slides.images.generate/edit/list, slides.versions.list + slides.deck.revert, slides.decks.applyTemplate, and slides.deck.publish/unpublish`;async function r(e){try{let t=await fetch(e);return t.ok?t.json():null}catch{return null}}function i(e){return e.map(e=>`- \`${e.id}\` — ${e.name}: ${e.tagline} (for ${e.audiences.join(`, `)})`).join(`
+`)}async function a(){return`The user is in the Slides app (deck gallery). To CREATE a deck, first pick a style, then build it.
+
+1. Choose a style that fits the use case (call \`slides.templates.list\` for the live list, or use these):
+${i(await r(`/api/templates`)??[])}
+   Rough mapping: teacher/lesson → clean classroom; founder/pitch/fundraise → bold-founder; finance/board/investor → finance-pro; PM/product/spec → product-brief; design/brand/marketing → editorial; developer/technical talk → dark-tech; creative/workshop/community → pastel-creative; general business/strategy → clean-minimal. If unsure, ask the user which they prefer.
+2. Create with \`slides.decks.create { title, templateId, density }\` — this seeds the template's theme and sample slides. Then refine with \`slides.text.replace { oldString, newString }\` for small changes, adding \`field\` or \`slideId\` only to disambiguate; use \`slides.slides.add/update\` for whole-slide changes, or \`slides.decks.replace\` for a full rewrite.
+
+Each slide's \`bodyHtml\` is the inner HTML of a fixed 1920×1080 stage that auto-reflows into a tall, scrolling, full-width page on phones — keep every deck mobile-friendly. ${t}
+
+${e}`}async function o(i){let a=i.templateId?await r(`/api/templates/${encodeURIComponent(i.templateId)}`):null,o=`The user is editing the Slides deck "${i.title}" (deckId: ${i.id}, ${i.slides.length} slide${i.slides.length===1?``:`s`}${a?`, style: ${a.name}`:``}). Edit it with the slides RPC (POST /api/moldable/rpc): ${n}. Use \`slides.text.replace { oldString, newString }\` for small exact-string edits across the deck; \`oldString\` must be unique unless \`replaceAll: true\`. Add \`field\` or \`slideId\` only to disambiguate. Each slide's bodyHtml is the inner HTML of a fixed 1920×1080 stage that auto-reflows into a tall, scrolling, full-width page on phones — keep new/edited slides mobile-friendly (compose from the kit; see MOBILE / RESPONSIVE in the vocabulary). Add class="reveal" for staggered entrances and set per-slide transition (fade/slide/zoom). For purposeful interactivity, use the deck's optional runtime (runtime.js/libs/connectOrigins/frameOrigins), mark interaction surfaces with data-deck-interactive, and use data-build="N" for click-to-reveal steps. Static decks need no runtime. Images: the user manages them in the Assets panel. Call slides.images.list to see existing files (reference them by their exact name as assets/<file>), slides.images.generate with timeoutMs 600000 to make a new one, or slides.images.edit with timeoutMs 600000 and { source: "<file>" } to remix an existing image (image-to-image — keeps its exact look). For a coherent deck, reuse this deck's image style and end every prompt with "No text, no words, no letters, no logos."`+(i.imageStyle?` This deck's image style: "${i.imageStyle}".`:``)+` To place an image, set it as a full-bleed background (<div class="full-bleed"><img class="bleed" src="assets/<file>"><div class="scrim"></div></div>) or a .media/.split/.hero figure in the target slide's bodyHtml.`;return a?`${o}
+
+Stay on-brand with this deck's style. Use its classes and design tokens below — do NOT hardcode fonts or colors. To change the whole look, call \`slides.decks.applyTemplate { templateId }\`: it re-skins any slides built from the shared component vocabulary instantly, then you refine any custom slides.
+
+${a.guide}`:`${o}
+
+This deck has no library style. ${t}
+
+${e}
+
+To adopt a polished look, call \`slides.decks.applyTemplate { templateId }\` (see \`slides.templates.list\`).`}export{o as deckChatInstructions,a as gridChatInstructions};

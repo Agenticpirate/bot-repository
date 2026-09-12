@@ -1,0 +1,407 @@
+{
+  "name": "Remotion",
+  "version": "0.1.15",
+  "aliases": [
+    "video",
+    "render"
+  ],
+  "visibility": "public",
+  "description": "Create programmatic videos with Remotion - manage projects, preview compositions, and render videos",
+  "runtime": "vite_hono",
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "author": "Moldable",
+  "license": "FSL-1.1-ALv2",
+  "icon": "🎬",
+  "iconPath": "public/icon.png",
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "category": "photo-video",
+  "skills": [
+    "remotion-dev/skills/remotion"
+  ],
+  "tags": [],
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "remotion.projects",
+        "name": "Remotion projects",
+        "description": "Read and manage Remotion video projects and composition code.",
+        "scopes": [
+          {
+            "id": "remotion.native.read",
+            "risk": "low",
+            "surfaces": [
+              "nativeUI"
+            ],
+            "name": "Read the native video project library",
+            "description": "Return bounded project and composition metadata for NativeUI without exposing source code or pretending to render video.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "route": {
+                  "type": "string",
+                  "enum": [
+                    "library",
+                    "project"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 24
+                }
+              },
+              "required": [
+                "route"
+              ]
+            }
+          },
+          {
+            "id": "remotion.projects.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "List projects",
+            "description": "List Remotion project metadata.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 500
+                }
+              }
+            }
+          },
+          {
+            "id": "remotion.projects.get",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Get project",
+            "description": "Get one Remotion project including composition code.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "remotion.projects.create",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Create project",
+            "description": "Create a Remotion project.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "width": {
+                  "type": "number"
+                },
+                "height": {
+                  "type": "number"
+                },
+                "fps": {
+                  "type": "number"
+                },
+                "durationInFrames": {
+                  "type": "number"
+                },
+                "autoDuration": {
+                  "type": "boolean"
+                },
+                "compositionCode": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "id": "remotion.projects.update",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Update project",
+            "description": "Update Remotion project metadata or composition code.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "width": {
+                  "type": "number"
+                },
+                "height": {
+                  "type": "number"
+                },
+                "fps": {
+                  "type": "number"
+                },
+                "durationInFrames": {
+                  "type": "number"
+                },
+                "autoDuration": {
+                  "type": "boolean"
+                },
+                "compositionCode": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "remotion.projects.delete",
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Delete project",
+            "description": "Delete a Remotion project.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "confirmationName": {
+                  "type": "string",
+                  "description": "When supplied by a typed-confirmation UI, this must exactly match the current project name."
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "remotion.projects.code",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Get project code",
+            "description": "Get the composition code for one project.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "remotion.drive",
+        "name": "Drive Remotion",
+        "description": "Navigate Remotion projects and read faithful project and composition data.",
+        "scopes": [
+          {
+            "id": "remotion.ui.describe",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Describe Remotion views",
+            "description": "List Remotion's project list and project editor views with their navigation requirements.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "remotion.ui.navigate",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Navigate Remotion",
+            "description": "Show the project list or open one existing Remotion project.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "projects",
+                    "project"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Required project id for the project view."
+                },
+                "params": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "view"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "remotion.ui.read",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Read Remotion content",
+            "description": "Return project-list data or a faithful project and composition summary including settings, duration, exported components, and complete composition source.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "projects",
+                    "project"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Required project id for the project view."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "remotion.ui.openProject",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Open a Remotion project",
+            "description": "Open one existing Remotion project in the composition editor.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "projectId"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      },
+      {
+        "id": "remotion.cards",
+        "name": "Chat cards",
+        "description": "Video thumbnail and live composition player.",
+        "scopes": [
+          {
+            "id": "remotion.cards.present",
+            "name": "Present one saved video project without starting a render.",
+            "description": "Present one saved video project without starting a render.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "remotion.cards.read",
+            "name": "Read metadata or the selected bounded composition for playback.",
+            "description": "Read metadata or the selected bounded composition for playback.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "detail": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "env": [],
+  "routeName": "remotion",
+  "screenshots": [
+    "public/screenshots/1.png"
+  ],
+  "tagline": "Make videos by describing them, powered by code"
+}

@@ -1,0 +1,401 @@
+import { app } from './app'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+
+const workspaceHeader = 'x-moldable-workspace'
+let moldableHome: string
+
+function favoritesPath(workspaceId: string) {
+  return path.join(
+    moldableHome,
+    'workspaces',
+    workspaceId,
+    'apps',
+    'affirmations',
+    'data',
+    'favorites.json',
+  )
+}
+
+function streakPath(workspaceId: string) {
+  return path.join(
+    moldableHome,
+    'workspaces',
+    workspaceId,
+    'apps',
+    'affirmations',
+    'data',
+    'streak.json',
+  )
+}
+
+async function seedFavorites(workspaceId: string, favorites: string[]) {
+  const filePath = favoritesPath(workspaceId)
+  await mkdir(path.dirname(filePath), { recursive: true })
+  await writeFile(filePath, JSON.stringify(favorites), 'utf8')
+}
+
+async function seedStreak(
+  workspaceId: string,
+  streak: { count: number; lastVisit: string },
+) {
+  const filePath = streakPath(workspaceId)
+  await mkdir(path.dirname(filePath), { recursive: true })
+  await writeFile(filePath, JSON.stringify(streak), 'utf8')
+}
+
+async function readSeededFavorites(workspaceId: string) {
+  return JSON.parse(
+    await readFile(favoritesPath(workspaceId), 'utf8'),
+  ) as string[]
+}
+
+async function readSeededStreak(workspaceId: string) {
+  return JSON.parse(await readFile(streakPath(workspaceId), 'utf8')) as {
+    count: number
+    lastVisit: string
+  }
+}
+
+async function requestJson(
+  pathname: string,
+  init: RequestInit & { workspaceId?: string } = {},
+) {
+  const headers = new Headers(init.headers)
+  if (init.workspaceId) headers.set(workspaceHeader, init.workspaceId)
+
+  return app.fetch(
+    new Request(`http://affirmations.test${pathname}`, {
+      ...init,
+      headers,
+    }),
+  )
+}
+
+beforeEach(async () => {
+  moldableHome = await mkdtemp(path.join(tmpdir(), 'affirmations-test-'))
+  process.env.MOLDABLE_HOME = moldableHome
+  process.env.MOLDABLE_APP_ID = 'affirmations'
+  delete process.env.MOLDABLE_APP_DATA_DIR
+  delete process.env.MOLDABLE_WORKSPACE_ID
+})
+
+afterEach(async () => {
+  await rm(moldableHome, { recursive: true, force: true })
+  delete process.env.MOLDABLE_HOME
+  delete process.env.MOLDABLE_APP_ID
+})
+
+describe('favorites API', () => {
+  it('rejects invalid workspace headers before touching storage', async () => {
+    const response = await requestJson('/api/favorites', {
+      workspaceId: '../../outside',
+    })
+
+    expect(response.status).toBe(400)
+  })
+
+  it('rejects invalid favorite save bodies without overwriting existing data', async () => {
+    await seedFavorites('personal', ['Keep this'])
+
+    const response = await requestJson('/api/favorites', {
+      method: 'POST',
+      workspaceId: 'personal',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ favorites: [] }),
+    })
+
+    expect(response.status).toBe(400)
+    expect(await readSeededFavorites('personal')).toEqual(['Keep this'])
+  })
+
+  it('normalizes and deduplicates favorite saves', async () => {
+    const response = await requestJson('/api/favorites', {
+      method: 'POST',
+      workspaceId: 'personal',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify([' Keep this ', 'Keep this', '', 'Another']),
+    })
+
+    expect(response.status).toBe(200)
+
+    const readResponse = await requestJson('/api/favorites', {
+      workspaceId: 'personal',
+    })
+    await expect(readResponse.json()).resolves.toEqual(['Keep this', 'Another'])
+  })
+
+  it('updates one favorite item without overwriting unrelated favorites', async () => {
+    await seedFavorites('personal', ['Existing'])
+
+    const addResponse = await requestJson('/api/favorites/item', {
+      method: 'POST',
+      workspaceId: 'personal',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'New favorite', favorite: true }),
+    })
+
+    expect(addResponse.status).toBe(200)
+    await expect(addResponse.json()).resolves.toEqual([
+      'Existing',
+      'New favorite',
+    ])
+
+    const removeResponse = await requestJson('/api/favorites/item', {
+      method: 'POST',
+      workspaceId: 'personal',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'Existing', favorite: false }),
+    })
+
+    expect(removeResponse.status).toBe(200)
+    await expect(removeResponse.json()).resolves.toEqual(['New favorite'])
+    await expect(readSeededFavorites('personal')).resolves.toEqual([
+      'New favorite',
+    ])
+  })
+
+  it('keeps favorites isolated by workspace', async () => {
+    await requestJson('/api/favorites', {
+      method: 'POST',
+      workspaceId: 'personal',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(['Personal']),
+    })
+    await requestJson('/api/favorites', {
+      method: 'POST',
+      workspaceId: 'work',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(['Work']),
+    })
+
+    await expect(readSeededFavorites('personal')).resolves.toEqual(['Personal'])
+    await expect(readSeededFavorites('work')).resolves.toEqual(['Work'])
+  })
+})
+
+describe('streak API', () => {
+  it('rejects invalid workspace headers before touching storage', async () => {
+    const response = await requestJson('/api/streak', {
+      method: 'POST',
+      workspaceId: '../../outside',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dayKey: '2026-06-02' }),
+    })
+
+    expect(response.status).toBe(400)
+  })
+
+  it('starts a workspace-scoped streak on first visit', async () => {
+    const response = await requestJson('/api/streak', {
+      method: 'POST',
+      workspaceId: 'personal',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dayKey: '2026-06-02' }),
+    })
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({
+      count: 1,
+      lastVisit: '2026-06-02',
+    })
+    await expect(readSeededStreak('personal')).resolves.toEqual({
+      count: 1,
+      lastVisit: '2026-06-02',
+    })
+  })
+
+  it('increments consecutive visits and keeps workspaces isolated', async () => {
+    await seedStreak('personal', { count: 4, lastVisit: '2026-06-01' })
+    await seedStreak('work', { count: 2, lastVisit: '2026-05-31' })
+
+    const response = await requestJson('/api/streak', {
+      method: 'POST',
+      workspaceId: 'personal',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dayKey: '2026-06-02' }),
+    })
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({
+      count: 5,
+      lastVisit: '2026-06-02',
+    })
+    await expect(readSeededStreak('personal')).resolves.toEqual({
+      count: 5,
+      lastVisit: '2026-06-02',
+    })
+    await expect(readSeededStreak('work')).resolves.toEqual({
+      count: 2,
+      lastVisit: '2026-05-31',
+    })
+  })
+
+  it('returns the existing count when already opened today', async () => {
+    await seedStreak('personal', { count: 4, lastVisit: '2026-06-02' })
+
+    const response = await requestJson('/api/streak', {
+      method: 'POST',
+      workspaceId: 'personal',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dayKey: '2026-06-02' }),
+    })
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({
+      count: 4,
+      lastVisit: '2026-06-02',
+    })
+  })
+})
+
+describe('affirmations RPC', () => {
+  it('rejects invalid workspace headers', async () => {
+    const response = await requestJson('/api/moldable/rpc', {
+      method: 'POST',
+      workspaceId: '../bad',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ method: 'affirmations.favorites.list' }),
+    })
+
+    expect(response.status).toBe(400)
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      error: { code: 'invalid_workspace' },
+    })
+  })
+
+  it('returns no results for unknown category IDs', async () => {
+    const response = await requestJson('/api/moldable/rpc', {
+      method: 'POST',
+      workspaceId: 'personal',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        method: 'affirmations.list',
+        params: { categoryId: 'missing-category' },
+      }),
+    })
+
+    await expect(response.json()).resolves.toEqual({ ok: true, result: [] })
+  })
+
+  it('trims search queries before matching', async () => {
+    const response = await requestJson('/api/moldable/rpc', {
+      method: 'POST',
+      workspaceId: 'personal',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        method: 'affirmations.search',
+        params: { query: ' peace ', limit: 5 },
+      }),
+    })
+    const body = (await response.json()) as {
+      ok: boolean
+      result: Array<{ text: string }>
+    }
+
+    expect(body.ok).toBe(true)
+    expect(body.result.length).toBeGreaterThan(0)
+    expect(body.result.every((item) => /peace/i.test(item.text))).toBe(true)
+  })
+
+  it('serves bounded native routes from the authoritative workspace state', async () => {
+    const favorite = 'My mind is calm and my heart is light.'
+    await seedFavorites('personal', [favorite])
+    await seedStreak('personal', { count: 4, lastVisit: '2026-08-01' })
+
+    const response = await requestJson('/api/moldable/rpc', {
+      method: 'POST',
+      workspaceId: 'personal',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        method: 'affirmations.native.read',
+        params: { route: 'home' },
+      }),
+    })
+    const body = (await response.json()) as {
+      ok: boolean
+      result: { streakCaptions: Array<{ text: string }> }
+    }
+
+    expect(response.status).toBe(200)
+    expect(body).toMatchObject({
+      ok: true,
+      result: { streakCaptions: [{ text: 'Day 4' }] },
+    })
+  })
+
+  it('returns bounded receipts for native favorite changes', async () => {
+    const text = 'My mind is calm and my heart is light.'
+    const addResponse = await requestJson('/api/moldable/rpc', {
+      method: 'POST',
+      workspaceId: 'personal',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        method: 'affirmations.native.mutate',
+        params: { action: 'favorite', text, favorite: true },
+      }),
+    })
+
+    await expect(addResponse.json()).resolves.toEqual({
+      ok: true,
+      result: {
+        ok: true,
+        action: 'favorite',
+        text,
+        favorite: true,
+        notices: [
+          {
+            title: 'Saved to favorites',
+            message: 'This affirmation is ready whenever you need it.',
+          },
+        ],
+      },
+    })
+    await expect(readSeededFavorites('personal')).resolves.toEqual([text])
+
+    const shuffleResponse = await requestJson('/api/moldable/rpc', {
+      method: 'POST',
+      workspaceId: 'personal',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        method: 'affirmations.native.mutate',
+        params: { action: 'shuffle' },
+      }),
+    })
+    await expect(shuffleResponse.json()).resolves.toEqual({
+      ok: true,
+      result: { ok: true, action: 'shuffle' },
+    })
+  })
+
+  it('rejects unknown favorite content and malformed native route params', async () => {
+    const unknownResponse = await requestJson('/api/moldable/rpc', {
+      method: 'POST',
+      workspaceId: 'personal',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        method: 'affirmations.native.mutate',
+        params: {
+          action: 'favorite',
+          text: 'Invented by an untrusted caller',
+          favorite: true,
+        },
+      }),
+    })
+    expect(unknownResponse.status).toBe(404)
+
+    const malformedResponse = await requestJson('/api/moldable/rpc', {
+      method: 'POST',
+      workspaceId: 'personal',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        method: 'affirmations.native.read',
+        params: { route: 'theme' },
+      }),
+    })
+    expect(malformedResponse.status).toBe(400)
+  })
+})

@@ -1,0 +1,278 @@
+{
+  "name": "Bookmarks",
+  "version": "0.1.2",
+  "aliases": [
+    "bookmark",
+    "saved posts",
+    "twitter bookmarks",
+    "x bookmarks"
+  ],
+  "runtime": "vite_hono",
+  "visibility": "public",
+  "description": "Your private, searchable X bookmarks library",
+  "author": "Moldable",
+  "license": "FSL-1.1-ALv2",
+  "icon": "🔖",
+  "iconPath": "public/icon.png",
+  "category": "productivity",
+  "tags": [
+    "bookmarks",
+    "search",
+    "twitter",
+    "x"
+  ],
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "bookmarks.library",
+        "name": "Local bookmark library",
+        "description": "Search and read the workspace's locally synced X bookmark archive.",
+        "scopes": [
+          {
+            "id": "bookmarks.status",
+            "name": "Bookmark sync status",
+            "description": "Check the connection, archive size, folders, and latest sync state.",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "bookmarks.folders.list",
+            "name": "List bookmark folders",
+            "description": "List the X bookmark folders known to this workspace, including their counts and whether each folder is enabled locally.",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false
+            },
+            "outputSchema": {
+              "type": "object",
+              "properties": {
+                "folders": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "bookmarks.list",
+            "name": "List bookmarks",
+            "description": "Read a bounded, newest-first page of locally archived bookmarks, optionally limited to one enabled folder.",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "folderId": {
+                  "type": "string"
+                },
+                "offset": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              }
+            },
+            "outputSchema": {
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "total": {
+                  "type": "number"
+                },
+                "offset": {
+                  "type": "number"
+                },
+                "limit": {
+                  "type": "number"
+                },
+                "hasMore": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          {
+            "id": "bookmarks.search",
+            "name": "Search bookmarks",
+            "description": "Search a bounded page of locally archived bookmarks by text, author, link, or folder.",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                "folderId": {
+                  "type": "string"
+                },
+                "offset": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              }
+            },
+            "outputSchema": {
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "total": {
+                  "type": "number"
+                },
+                "offset": {
+                  "type": "number"
+                },
+                "limit": {
+                  "type": "number"
+                },
+                "hasMore": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          {
+            "id": "bookmarks.get",
+            "name": "Read a bookmark",
+            "description": "Read one locally archived bookmark by X post ID.",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "id": "bookmarks.sync",
+            "name": "Refresh bookmarks",
+            "description": "Start a read-only sync from the confirmed X connection into the local workspace archive.",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false
+            },
+            "changesState": true
+          }
+        ]
+      },
+      {
+        "id": "bookmarks.cards",
+        "name": "Chat cards",
+        "description": "Show a saved post with its author, excerpt and thumbnail; tap to read its content and media.",
+        "scopes": [
+          {
+            "id": "bookmarks.cards.present",
+            "name": "Present chat card",
+            "description": "Show a saved post with its author, excerpt and thumbnail; tap to read its content and media.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "bookmarks.cards.read",
+            "name": "Read chat card",
+            "description": "Show a saved post with its author, excerpt and thumbnail; tap to read its content and media.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "env": [],
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "tagline": "Save on X. Find it here.",
+  "screenshots": [
+    "public/screenshot.png"
+  ]
+}

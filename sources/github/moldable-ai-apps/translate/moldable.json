@@ -1,0 +1,310 @@
+{
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "name": "Translate",
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "version": "0.1.10",
+  "aliases": [
+    "translation",
+    "translator"
+  ],
+  "visibility": "public",
+  "description": "Fast, private text translation across dozens of languages",
+  "runtime": "vite_hono",
+  "author": "Moldable",
+  "license": "FSL-1.1-ALv2",
+  "repository": "moldable-ai/apps",
+  "icon": "🌐",
+  "iconPath": "public/icon.png",
+  "category": "productivity",
+  "tags": [
+    "translate",
+    "translation",
+    "languages",
+    "essentials"
+  ],
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "translate.text",
+        "name": "Text translation",
+        "description": "Translate text between languages and read recent translations.",
+        "scopes": [
+          {
+            "id": "translate.text",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Translate text",
+            "description": "Translate a piece of text into a target language, optionally auto-detecting the source.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string"
+                },
+                "from": {
+                  "type": "string",
+                  "description": "Source language code, or \"auto\" to detect."
+                },
+                "to": {
+                  "type": "string",
+                  "description": "Target language code."
+                }
+              },
+              "required": [
+                "text",
+                "to"
+              ]
+            },
+            "changesState": true
+          },
+          {
+            "id": "translate.detect",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Detect language",
+            "description": "Detect the language of a piece of text.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ]
+            }
+          },
+          {
+            "id": "translate.history.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "List recent translations",
+            "description": "List the most recent text translations made in this workspace.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              }
+            }
+          },
+          {
+            "id": "translate.history.delete",
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Delete saved translation",
+            "description": "Delete one translation record from this workspace's private history.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "translate.history.clear",
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Clear translation history",
+            "description": "Delete every translation record in this workspace's private history.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            }
+          }
+        ]
+      },
+      {
+        "id": "translate.drive",
+        "name": "Translate UI drive",
+        "description": "Describe, navigate, read, and visibly drive the Translate app in the active workspace.",
+        "scopes": [
+          {
+            "id": "translate.ui.describe",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Describe Translate views",
+            "description": "List the translation workspace and history views with model-readable navigation guidance.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "id": "translate.ui.navigate",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Navigate Translate",
+            "description": "Open the translation workspace or history sheet. A translator entityId restores a real record from translate.history.list. Writes a per-workspace last-wins UI intent.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "translator",
+                    "history"
+                  ],
+                  "description": "A view id returned by translate.ui.describe."
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Optional translation record id for the translator view."
+                },
+                "params": {
+                  "type": "object",
+                  "description": "Reserved for view-specific options."
+                }
+              },
+              "required": [
+                "view"
+              ]
+            }
+          },
+          {
+            "id": "translate.ui.showHistory",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Show translation history",
+            "description": "Open the running Translate app's history sheet using a per-workspace UI intent.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "id": "translate.ui.read",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Read translations",
+            "description": "Return faithful structured JSON for recent workspace translations, newest first, or one translation record when entityId is supplied.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "translator",
+                    "history"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Optional record id from translate.history.list."
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "translate.cards",
+        "description": "Saved translation chat card.",
+        "name": "Chat cards",
+        "scopes": [
+          {
+            "description": "Present one saved translation in chat; does not retranslate.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            },
+            "id": "translate.cards.present",
+            "name": "Present one saved translation in chat; does not retranslate."
+          },
+          {
+            "description": "Read the selected saved translation without changing history.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            },
+            "id": "translate.cards.read",
+            "name": "Read the selected saved translation without changing history."
+          }
+        ]
+      }
+    ]
+  },
+  "env": [],
+  "vault": [
+    {
+      "key": "DEEPL_API_KEY",
+      "name": "DeepL API Key",
+      "description": "Powers automatic text translation between languages",
+      "url": "https://www.deepl.com/en/your-account/keys",
+      "required": true,
+      "capabilities": [
+        "deepl/translate"
+      ]
+    }
+  ],
+  "routeName": "translate",
+  "tagline": "Translate anything, privately"
+}

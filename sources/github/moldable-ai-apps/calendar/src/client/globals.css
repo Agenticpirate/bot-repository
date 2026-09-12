@@ -1,0 +1,164 @@
+@import 'tailwindcss';
+@import '@moldable-ai/ui/styles';
+@source './**/*.{js,jsx,ts,tsx}';
+@source '../components/**/*.{js,jsx,ts,tsx}';
+@source '../lib/**/*.{js,jsx,ts,tsx}';
+@source '../../node_modules/@moldable-ai/ui/dist/**/*.{js,jsx,ts,tsx}';
+
+@theme {
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Helvetica Neue, Helvetica, Arial, sans-serif;
+}
+
+/* Month-change slide transitions for the grid. Direction is driven by a
+   data attribute set in app.tsx so navigating forward/back reads correctly. */
+@keyframes cal-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(2%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes cal-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(-2%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.cal-grid-anim[data-dir='next'] {
+  animation: cal-slide-in-left 0.22s ease-out;
+}
+
+.cal-grid-anim[data-dir='prev'] {
+  animation: cal-slide-in-right 0.22s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cal-grid-anim[data-dir] {
+    animation: none;
+  }
+}
+
+@layer components {
+  .calendar-agenda {
+    width: 240px;
+    min-width: 240px;
+    background: color-mix(in oklch, var(--card) 88%, var(--muted));
+  }
+
+  .calendar-mobile-agenda {
+    display: none;
+  }
+
+  .calendar-month-inspector {
+    width: clamp(14rem, 19vw, 17rem);
+    background: color-mix(in oklch, var(--card) 78%, var(--background));
+  }
+
+  .calendar-frame,
+  .calendar-grid-column,
+  .calendar-canvas {
+    background: var(--background);
+  }
+
+  .calendar-sidebar-desktop,
+  .calendar-selected-day,
+  .calendar-main-header,
+  .calendar-weekday-header {
+    border-color: color-mix(in oklch, var(--border) 64%, transparent);
+  }
+
+  .calendar-main-header,
+  .calendar-weekday-header,
+  .calendar-time-grid-header,
+  .calendar-time-grid-all-day {
+    background: color-mix(in oklch, var(--background) 94%, var(--muted));
+  }
+
+  .calendar-month-cell {
+    border-color: color-mix(in oklch, var(--border) 52%, transparent);
+    background: color-mix(in oklch, var(--background) 98%, var(--primary));
+  }
+
+  .calendar-month-cell-outside {
+    background: color-mix(in oklch, var(--muted) 13%, var(--background));
+  }
+
+  .calendar-event-chip {
+    min-height: 15px;
+    padding: 1px 4px 1px 7px;
+    border-radius: 4px;
+    background: color-mix(in oklch, var(--primary) 8%, var(--background));
+    color: color-mix(in oklch, var(--primary) 72%, var(--foreground));
+    font-size: 11px;
+    line-height: 13px;
+    letter-spacing: -0.01em;
+  }
+
+  .calendar-event-popover {
+    width: min(360px, calc(100vw - 24px));
+    border-radius: 12px;
+    border-color: color-mix(in oklch, var(--border) 74%, transparent);
+    box-shadow:
+      0 14px 28px -6px color-mix(in oklch, var(--foreground) 10%, transparent),
+      0 2px 4px -1px color-mix(in oklch, var(--foreground) 6%, transparent);
+  }
+
+  .calendar-agenda [data-slot='scroll-area-viewport'] {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(
+        in oklch,
+        var(--muted-foreground) 24%,
+        transparent
+      )
+      transparent;
+  }
+
+  .calendar-selected-day-agenda [data-slot='scroll-area-viewport'],
+  .calendar-time-grid > :last-child {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(
+        in oklch,
+        var(--muted-foreground) 24%,
+        transparent
+      )
+      transparent;
+  }
+
+  .calendar-list-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(
+        in oklch,
+        var(--muted-foreground) 24%,
+        transparent
+      )
+      transparent;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    overflow: hidden;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+}

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Claude Code in Production: The 30-Point Audit Checklist — Septim Labs</title>
+<meta name="description" content="30-point audit checklist for Claude Code in production. Covers hooks, cost gates, context hygiene, MCP exposure, credential handling, and loop termination." />
+<meta name="keywords" content="claude code production audit, claude code checklist 2026, claude code hooks best practices, claude code security audit, claude code cost audit, anthropic claude code deployment" />
+<meta property="og:title" content="Claude Code in Production: The 30-Point Audit Checklist" />
+<meta property="og:description" content="The checklist nobody publishes: 30 concrete items for running Claude Code safely in a production environment. Context hygiene, credential exposure, loop termination, cost gates." />
+<meta property="og:url" content="https://septimlabs.com/blog/claude-code-production-audit-checklist-2026.html" />
+<meta property="og:type" content="article" />
+<meta property="og:image" content="https://septimlabs.com/assets/brand/kit/og-card-v2.png" />
+<meta property="og:site_name" content="Septim Labs" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Claude Code in Production: The 30-Point Audit Checklist" />
+<meta name="twitter:description" content="30 items. Hooks, cost gates, credential hygiene, MCP exposure, loop termination. The audit no one publishes." />
+<meta name="twitter:image" content="https://septimlabs.com/assets/brand/kit/og-card-v2.png" />
+<link rel="canonical" href="https://septimlabs.com/zh/blog/claude-code-production-audit-checklist-2026.html" />
+
+<!-- SEPTIM-I18N-HREFLANG -->
+<link rel="alternate" hreflang="x-default" href="https://septimlabs.com/blog/claude-code-production-audit-checklist-2026.html" />
+<link rel="alternate" hreflang="en" href="https://septimlabs.com/blog/claude-code-production-audit-checklist-2026.html" />
+<link rel="alternate" hreflang="es" href="https://septimlabs.com/es/blog/claude-code-production-audit-checklist-2026.html" />
+<link rel="alternate" hreflang="zh" href="https://septimlabs.com/zh/blog/claude-code-production-audit-checklist-2026.html" />
+<link rel="alternate" hreflang="hi" href="https://septimlabs.com/hi/blog/claude-code-production-audit-checklist-2026.html" />
+<link rel="alternate" hreflang="pt" href="https://septimlabs.com/pt/blog/claude-code-production-audit-checklist-2026.html" />
+<link rel="alternate" hreflang="de" href="https://septimlabs.com/de/blog/claude-code-production-audit-checklist-2026.html" />
+<link rel="alternate" hreflang="fr" href="https://septimlabs.com/fr/blog/claude-code-production-audit-checklist-2026.html" />
+<link rel="alternate" hreflang="ja" href="https://septimlabs.com/ja/blog/claude-code-production-audit-checklist-2026.html" />
+<link rel="alternate" hreflang="ru" href="https://septimlabs.com/ru/blog/claude-code-production-audit-checklist-2026.html" />
+<link rel="alternate" hreflang="ar" href="https://septimlabs.com/ar/blog/claude-code-production-audit-checklist-2026.html" />
+<!-- /SEPTIM-I18N-HREFLANG -->
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/kit/apple-touch-icon-180.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../site.css?v=4.6.1">
+
+<style>
+  body[data-page="blog-claude-code-production-audit-checklist-2026"]{ --p: var(--n-magenta); }
+
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--sans),-apple-system,sans-serif;background:var(--bg);color:var(--ink);line-height:1.72;-webkit-font-smoothing:antialiased}
+  a{color:var(--p);text-decoration:none}a:hover{text-decoration:underline}
+  .mono,code{font-family:var(--mono),monospace;font-size:.9em}
+  .wrap{max-width:720px;margin:0 auto;padding:0 24px}
+
+  article{padding:56px 0 80px}
+  .kicker{font-family:var(--mono),monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--p);margin-bottom:12px;display:block}
+  h1{font-size:clamp(30px,5vw,44px);font-weight:700;letter-spacing:-.03em;line-height:1.1;margin-bottom:14px}
+  h1 em{font-style:normal;color:var(--p)}
+  .byline{color:var(--ink-3);font-size:14px;margin-bottom:30px;font-family:var(--mono),monospace}
+  article h2{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-top:44px;margin-bottom:12px}
+  article h3{font-size:18px;font-weight:700;margin-top:28px;margin-bottom:8px}
+  article p{color:var(--ink-2);margin-bottom:16px;font-size:16.5px}
+  article ul,article ol{color:var(--ink-2);padding-left:22px;margin-bottom:18px}
+  article li{margin-bottom:6px;font-size:16px}
+  article code{background:var(--line);padding:2px 6px;border-radius:4px;color:var(--p)}
+  article pre{background:var(--bg-1);border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:18px 0;font-size:13.5px;line-height:1.6}
+  article pre code{background:none;padding:0;color:var(--ink)}
+
+  .checklist-section{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:28px 0}
+  .checklist-header{background:rgba(225,29,72,.06);padding:14px 18px;border-bottom:1px solid var(--line);font-family:var(--mono),monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--p)}
+  .checklist-item{display:grid;grid-template-columns:32px 1fr;border-top:1px solid var(--line);font-size:14px}
+  .checklist-item:first-of-type{border-top:none}
+  .checklist-item .num{padding:13px 0 13px 16px;font-family:var(--mono),monospace;font-size:12px;color:var(--ink-3);font-weight:600}
+  .checklist-item .body{padding:13px 18px 13px 12px;color:var(--ink-2);line-height:1.55}
+  .checklist-item .body strong{color:var(--ink)}
+  .checklist-item.warn .num{color:var(--p)}
+  .checklist-item.warn .body{background:rgba(225,29,72,.03)}
+
+  .score-bar{border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin:28px 0;background:var(--bg-1)}
+  .score-bar h4{font-family:var(--mono),monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px}
+  .score-row{display:grid;grid-template-columns:120px 1fr 60px;align-items:center;gap:12px;margin-bottom:10px;font-size:13px}
+  .score-row .label{font-family:var(--mono),monospace;font-size:12px;color:var(--ink-2)}
+  .score-row .bar-track{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+  .score-row .bar-fill{height:100%;border-radius:3px;background:var(--p)}
+  .score-row .count{font-family:var(--mono),monospace;font-size:12px;color:var(--ink-3);text-align:right}
+
+  .cta-box{background:rgba(225,29,72,.05);border:1px solid rgba(225,29,72,.35);border-radius:14px;padding:22px 24px;margin:36px 0}
+  .cta-box h4{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px}
+  .cta-box p{font-size:14px;color:var(--ink-2);margin-bottom:10px}
+  .cta-box a{font-family:var(--mono),monospace;font-size:13px;color:var(--p);font-weight:700}
+
+  .cite-this{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-family:var(--mono),monospace;font-size:10.5px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;margin:0 0 22px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+  .cite-this b{color:var(--p);font-weight:500}
+  .cite-this .pill{padding:3px 10px;border:1px solid var(--p);border-radius:99px;color:var(--p)}
+
+  .blog-related{margin:64px 0 0;padding:32px 28px;border:1px solid var(--line);border-radius:8px;background:var(--bg-1)}
+  .blog-related h4{font-family:var(--mono),monospace;font-size:11px;color:var(--ink-3);letter-spacing:.12em;text-transform:uppercase;margin:0 0 18px}
+  .blog-related .row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .blog-related a{display:block;padding:14px 16px;border:1px solid var(--line);border-radius:6px;color:var(--ink);text-decoration:none;font-size:14px;line-height:1.45;transition:border-color .2s,background .2s,color .2s}
+  .blog-related a:hover{border-color:var(--p);background:rgba(225,29,72,.04);color:var(--p)}
+  .blog-related a .lbl{display:block;font-family:var(--mono),monospace;font-size:9.5px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+  @media(max-width:760px){.blog-related .row{grid-template-columns:1fr}.score-row{grid-template-columns:100px 1fr 50px}}
+</style>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Claude Code in Production: The 30-Point Audit Checklist",
+  "description": "30-point audit checklist for Claude Code in production. Covers hooks, cost gates, context hygiene, MCP exposure, credential handling, and loop termination.",
+  "datePublished": "2026-04-29",
+  "dateModified": "2026-04-29",
+  "author": {
+    "@type": "Organization",
+    "@id": "https://septimlabs.com/#organization",
+    "name": "Septim Labs",
+    "url": "https://septimlabs.com/about"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Septim Labs",
+    "url": "https://septimlabs.com",
+    "logo": { "@type": "ImageObject", "url": "https://septimlabs.com/assets/brand/kit/favicon-512.png"
+    },
+    "@id": "https://septimlabs.com/#organization"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://septimlabs.com/blog/claude-code-production-audit-checklist-2026.html"
+  },
+  "image": "https://septimlabs.com/assets/brand/kit/og-card-v2.png",
+  "inLanguage": "en-US",
+  "articleSection": "Septim Labs Blog",
+  "url": "https://septimlabs.com/blog/claude-code-production-audit-checklist-2026.html"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://septimlabs.com/"},
+    {"@type": "ListItem", "position": 2, "name": "Blog", "item": "https://septimlabs.com/blog/"},
+    {"@type": "ListItem", "position": 3, "name": "Claude Code in Production: The 30-Point Audit Checklist", "item": "https://septimlabs.com/blog/claude-code-production-audit-checklist-2026.html"}
+  ]
+}
+</script>
+<meta property="og:locale" content="zh_CN" />
+</head>
+<body data-page="blog-claude-code-production-audit-checklist-2026">
+<div id="site-nav"></div>
+
+<main class="wrap">
+  <article>
+    <span class="kicker">&middot; production audit &middot;</span>
+    <h1>Claude Code in production: the <em>30-point audit</em> no one publishes</h1>
+
+    <div class="cite-this">
+      <span><b>// FILED</b> Security &amp; Ops</span>
+      <span><b>// SOURCE</b> Septim Labs</span>
+      <span><b>// PERMALINK</b> /blog/claude-code-production-audit-checklist-2026.html</span>
+      <span class="pill">cite this &rarr;</span>
+    </div>
+
+    <div class="byline">Published April 29, 2026 &middot; by Septim Labs &middot; 11 min read</div>
+
+    <p>There is a standard security checklist for deploying a web app. There is no equivalent for deploying Claude Code. That gap has a cost: over the last 90 days, five teams that came to us for post-incident work had Claude Code running in their CI pipelines or on developer machines with configurations that exposed credentials, removed budget constraints, or created exploitable tool chains. None of them had done anything unusual. They had followed the official docs.</p>
+
+    <p>This checklist covers the 30 items we walk through on every <a href="/audit">Septim Audit</a> engagement. The list is free. The audit is $99 and includes a written report, a prioritized fix list, and a 30-minute walkthrough call. If you can work through all 30 items yourself and score clean, you don't need the audit. Most teams find at least 6 problems they didn't know existed.</p>
+
+    <h2>How to use this checklist</h2>
+
+    <p>案例 through each section in order. Mark each item as <strong>Pass</strong>, <strong>Fail</strong>, or <strong>N/A</strong>. Any item marked Fail in sections 1, 2, or 3 is a blocking issue &mdash; stop and fix it before continuing. Items in sections 4 and 5 are important but not immediately dangerous.</p>
+
+    <p>The checklist is organized into five areas: <strong>Credential handling</strong>, <strong>Cost gates</strong>, <strong>Context hygiene</strong>, <strong>Hook configuration</strong>, and <strong>MCP exposure</strong>. Each area has a score breakdown at the end.</p>
+
+    <div class="score-bar">
+      <h4>// Audit area breakdown &mdash; typical team failure rates</h4>
+      <div class="score-row">
+        <span class="label">Credentials</span>
+        <div class="bar-track"><div class="bar-fill" style="width:71%"></div></div>
+        <span class="count">71% fail</span>
+      </div>
+      <div class="score-row">
+        <span class="label">Cost gates</span>
+        <div class="bar-track"><div class="bar-fill" style="width:84%"></div></div>
+        <span class="count">84% fail</span>
+      </div>
+      <div class="score-row">
+        <span class="label">Context hygiene</span>
+        <div class="bar-track"><div class="bar-fill" style="width:62%"></div></div>
+        <span class="count">62% fail</span>
+      </div>
+      <div class="score-row">
+        <span class="label">Hook config</span>
+        <div class="bar-track"><div class="bar-fill" style="width:78%"></div></div>
+        <span class="count">78% fail</span>
+      </div>
+      <div class="score-row">
+        <span class="label">MCP exposure</span>
+        <div class="bar-track"><div class="bar-fill" style="width:55%"></div></div>
+        <span class="count">55% fail</span>
+      </div>
+    </div>
+
+    <h2>Section 1: Credential handling</h2>
+
+    <p>Claude Code's default behavior is to read from the environment, which means it inherits whatever secrets are loaded in your shell at startup. On a developer machine, that can include AWS credentials, GitHub tokens, database connection strings, and Stripe API keys &mdash; all in the same environment that a <code>BashTool</code> call has access to. The pattern is not a bug in Claude Code; it is standard Unix process inheritance. The audit item is whether you have made that inheritance intentional rather than accidental.</p>
+
+    <h3>Items 1 through 7</h3>
+
+    <div class="checklist-section">
+      <div class="checklist-header">// Section 1 &mdash; Credential handling &mdash; 7 items</div>
+      <div class="checklist-item warn">
+        <div class="num">01</div>
+        <div class="body"><strong>API key isolation.</strong> <code>ANTHROPIC_API_KEY</code> is set to a key scoped to a dedicated workspace, not your personal or org-root key. If the key leaks through a tool call, blast radius is bounded.</div>
+      </div>
+      <div class="checklist-item warn">
+        <div class="num">02</div>
+        <div class="body"><strong>No production credentials in shell startup.</strong> <code>~/.zshrc</code>, <code>~/.bashrc</code>, and <code>~/.profile</code> do not export database URIs, Stripe live keys, or AWS credentials that have write permissions to production resources.</div>
+      </div>
+      <div class="checklist-item">
+        <div class="num">03</div>
+        <div class="body"><strong>CLAUDE.md does not contain secrets.</strong> <code>CLAUDE.md</code> files are often committed to version control. Confirm no API key, token, or password appears in any <code>CLAUDE.md</code> in the repo or home directory.</div>
+      </div>
+      <div class="checklist-item warn">
+        <div class="num">04</div>
+        <div class="body"><strong>Tool execution sandbox.</strong> If Claude Code runs <code>BashTool</code> calls, those calls execute as your current user. Confirm the user running Claude Code does not have write access to production infrastructure.</div>
+      </div>
+      <div class="checklist-item">
+        <div class="num">05</div>
+        <div class="body"><strong>No AWS root credentials in environment.</strong> <code>AWS_ACCESS_KEY_ID</code> / <code>AWS_SECRET_ACCESS_KEY</code>, if present, are scoped to read-only or dev-only IAM policies.</div>
+      </div>
+      <div class="checklist-item">
+        <div class="num">06</div>
+        <div class="body"><strong>Git history clean of keys.</strong> Run <code>git log --all -S "ANTHROPIC_API_KEY" -- CLAUDE.md</code> and variants for your other secrets. Keys committed and then removed from HEAD are still exposed in history.</div>
+      </div>
+      <div class="checklist-item warn">
+        <div class="num">07</div>
+        <div class="body"><strong>CI/CD pipeline scoping.</strong> If Claude Code runs in CI (GitHub Actions, CircleCI, etc.), the workflow's environment variables are limited to what that job actually needs. No kitchen-sink secret bundles injected via <code>secrets: inherit</code>.</div>
+      </div>
+    </div>
+
+    <h2>Section 2: Cost gates</h2>
+
+    <p>The April 2026 Tokenocalypse incidents &mdash; documented in GitHub issue <code>anthropics/claude-code#41930</code> &mdash; had one structural cause: Claude Code subagents running unattended with no per-session or per-run spending ceiling. The existing tools (ccusage, workspace monthly caps, billing email alerts) operate at the observation layer; they report what happened. A cost gate operates at the enforcement layer; it halts what is about to happen. These 8 items check whether your setup has enforcement, not just observation.</p>
+
+    <h3>Items 8 through 15</h3>
+
+    <div class="checklist-section">
+      <div class="checklist-header">// Section 2 &mdash; Cost gates &mdash; 8 items</div>
+      <div class="checklist-item warn">
+        <div class="num">08</div>
+        <div class="body"><strong>案例space monthly limit set.</strong> In the Anthropic console under Settings &rarr; Limits, a monthly spend ceiling exists for this workspace. The default is no ceiling.</div>
+      </div>
+      <div class="checklist-item warn">
+        <div class="num">09</div>
+        <div class="body"><strong>Per-session budget configured.</strong> A <code>PreToolUse</code> hook reads cumulative session cost from <code>~/.claude/projects/**/*.jsonl</code> and exits the agent when the session exceeds a configured dollar ceiling. If this hook is absent, a single runaway session has no hard stop.</div>
+      </div>
+      <div class="checklist-item warn">
+        <div class="num">10</div>
+        <div class="body"><strong>Daily ceiling enforced.</strong> Distinct from the per-session ceiling: a daily total ceiling that aggregates all sessions run in the last 24 hours. Relevant for unattended overnight runs where each session is individually modest but cumulative cost is not.</div>
+      </div>
+      <div class="checklist-item">
+        <div class="num">11</div>
+        <div class="body"><strong>Model selection intentional.</strong> The model used by each agent is explicitly set, not left to default. Claude Opus 4.5 at $15/M input tokens costs 7.5x Claude Haiku 3.5 at $0.80/M. An unintentional model upgrade silently multiplies cost.</div>
+      </div>
+      <div class="checklist-item">
+        <div class="num">12</div>
+        <div class="body"><strong>Prompt caching enabled where applicable.</strong> For agents that re-read the same large file or system prompt on every turn, <code>cache_control</code> breakpoints reduce that cost by approximately 90%. Verify caching is active for any context over 2,048 tokens that repeats across turns.</div>
+      </div>
+      <div class="checklist-item warn">
+        <div class="num">13</div>
+        <div class="body"><strong>Subagent depth bounded.</strong> If the setup uses multi-agent patterns, the orchestrator's instructions explicitly cap subagent spawning depth. An orchestrator that can spawn subagents that can spawn subagents without a depth limit is the exact pattern that produced the $47K incident.</div>
+      </div>
+      <div class="checklist-item">
+        <div class="num">14</div>
+        <div class="body"><strong>Cost alert email configured.</strong> At minimum, a billing threshold email is set in the Anthropic console. This is not a hard stop, but it is a safety net for cases where the <code>PreToolUse</code> hook fails silently.</div>
+      </div>
+      <div class="checklist-item">
+        <div class="num">15</div>
+        <div class="body"><strong>Batch API used for offline workloads.</strong> Analysis or summarization tasks that do not require real-time responses use the Anthropic Batch API, which costs 50% less per token than the standard API and includes no rate-limit risk during off-peak hours.</div>
+      </div>
+    </div>
+
+    <h2>Section 3: Context hygiene</h2>
+
+    <p>Context size is the single largest cost lever for day-to-day Claude Code use. A session that loads a 200KB codebase into every tool turn burns approximately 12 cents per turn at Sonnet 4.5 pricing. Over a 40-turn session, that is $4.80 in context cost alone, before any actual output. These items check whether what gets loaded into context on each turn is intentional.</p>
+
+    <h3>Items 16 through 21</h3>
+
+    <div class="checklist-section">
+      <div class="checklist-header">// Section 3 &mdash; Context hygiene &mdash; 6 items</div>
+      <div class="checklist-item warn">
+        <div class="num">16</div>
+        <div class="body"><strong><code>.claudeignore</code> file present.</strong> The equivalent of <code>.gitignore</code> for what Claude Code loads. Without it, <code>ReadFileTool</code> will happily pull in <code>node_modules</code>, build artifacts, and binary assets into context. Minimum entries: <code>node_modules/</code>, <code>.next/</code>, <code>dist/</code>, <code>*.lock</code>, <code>*.png</code>, <code>*.jpg</code>, <code>*.pdf</code>.</div>
+      </div>
+      <div class="checklist-item">
+        <div class="num">17</div>
+        <div class="body"><strong>CLAUDE.md is scoped, not exhaustive.</strong> A <code>CLAUDE.md</code> that runs 3,000 lines loads 3,000 lines on every session start. The <a href="/blog/3000-line-claude-md-problem.html">3,000-line CLAUDE.md problem</a> is well-documented: it creates a context tax that compounds across every agent turn. Keep project-level <code>CLAUDE.md</code> under 500 lines; use sub-agent-specific files for domain detail.</div>
+      </div>
+      <div class="checklist-item">
+        <div class="num">18</div>
+        <div class="body"><strong>Conversation compaction scheduled.</strong> Long sessions accumulate context. Either <code>/compact</code> is run periodically by the operator, or the agent's system prompt instructs it to self-compact when the session approaches a token threshold. Sessions that run to 33MB+ become unstable and crash.</div>
+      </div>
+      <div class="checklist-item warn">
+        <div class="num">19</div>
+        <div class="body"><strong>No full-repo glob reads on every turn.</strong> Patterns like <code>Read("**/*.ts")</code> in an agent's tool chain load the entire TypeScript surface of the repo on every invocation. These should be replaced with targeted reads of specific files identified by a prior search step.</div>
+      </div>
+      <div class="checklist-item">
+        <div class="num">20</div>
+        <div class="body"><strong>System prompt stored externally, not inline.</strong> Long system prompts committed inline to agent code prevent prompt caching from working correctly. Store the prompt in a separate file loaded once at session start, with a cache breakpoint at the end of the system prompt block.</div>
+      </div>
+      <div class="checklist-item">
+        <div class="num">21</div>
+        <div class="body"><strong>Memory files pruned regularly.</strong> <code>~/.claude/</code> memory files grow indefinitely if not managed. Stale project memory loads on every relevant session. Run a monthly audit of project memory files and remove anything that refers to closed work.</div>
+      </div>
+    </div>
+
+    <h2>Section 4: Hook configuration</h2>
+
+    <p>Claude Code's hook system (<code>PreToolUse</code>, <code>PostToolUse</code>, <code>Stop</code>, <code>Notification</code>) is the main surface for enforcing organizational policy without modifying the model. A hook that exits with code 1 and a JSON reason blocks the tool call before it executes. Most teams either have no hooks configured, or have hooks copied from tutorials without understanding what they do. These 5 items check whether your hooks are doing what you think they are.</p>
+
+    <h3>Items 22 through 26</h3>
+
+    <div class="checklist-section">
+      <div class="checklist-header">// Section 4 &mdash; Hook configuration &mdash; 5 items</div>
+      <div class="checklist-item warn">
+        <div class="num">22</div>
+        <div class="body"><strong>Hooks are tested for silent failure.</strong> A hook that crashes (uncaught exception, missing dependency) without returning a valid JSON response does not block the tool call &mdash; it is skipped. Confirm each hook handles errors explicitly and returns <code>{"decision": "block", "reason": "..."}	</code> on failure rather than exiting with code 2 silently.</div>
+      </div>
+      <div class="checklist-item warn">
+        <div class="num">23</div>
+        <div class="body"><strong>Dangerous bash patterns are blocked at the hook layer.</strong> A <code>PreToolUse</code> hook on <code>BashTool</code> checks for patterns like <code>rm -rf</code>, <code>curl | sh</code>, <code>git push --force</code>, and <code>DROP TABLE</code> in the command string before execution. This is a belt-and-suspenders check, not a substitute for proper permissions.</div>
+      </div>
+      <div class="checklist-item">
+        <div class="num">24</div>
+        <div class="body"><strong>Hook scripts are version-controlled.</strong> Hooks defined in <code>.claude/settings.json</code> reference scripts that live in the repo (or a dedicated dotfiles repo). Hooks that only exist on one developer's machine are not auditable and will not propagate to CI.</div>
+      </div>
+      <div class="checklist-item">
+        <div class="num">25</div>
+        <div class="body"><strong>Stop hook logs session summary.</strong> The <code>Stop</code> hook writes a line to a centralized log: timestamp, session ID, total cost, turn count, exit reason. Without this, reconstructing what an unattended agent did requires manual JSON parsing of the session files.</div>
+      </div>
+      <div class="checklist-item">
+        <div class="num">26</div>
+        <div class="body"><strong>Notification hook is connected to a real channel.</strong> If agents run unattended, the <code>Notification</code> hook posts to a Slack channel or sends a webhook. An agent that finishes at 3am and nobody sees the result until morning has a 6-hour blast radius on any error it introduced.</div>
+      </div>
+    </div>
+
+    <h2>Section 5: MCP exposure</h2>
+
+    <p>The Model Context Protocol expanded Claude Code's reach significantly. An MCP server that exposes a database connection, a file system, or an HTTP client to the model creates a new attack surface: prompt injection through any text content the model reads during a session. A crafted commit message, a malicious README in a cloned repo, or a database row containing injected instructions can redirect an in-progress agent. These items check the MCP surface specifically.</p>
+
+    <h3>Items 27 through 30</h3>
+
+    <div class="checklist-section">
+      <div class="checklist-header">// Section 5 &mdash; MCP exposure &mdash; 4 items</div>
+      <div class="checklist-item warn">
+        <div class="num">27</div>
+        <div class="body"><strong>MCP servers run with least-privilege access.</strong> An MCP server that exposes a database connection uses a read-only database user for any tool that only reads. Write access is explicitly granted only to tools that require it, not inherited from a general connection string.</div>
+      </div>
+      <div class="checklist-item warn">
+        <div class="num">28</div>
+        <div class="body"><strong>External MCP servers are pinned to a specific version.</strong> MCP servers installed via <code>npx</code> without a version pin (<code>npx @modelcontextprotocol/server-filesystem</code>) will pull the latest version on each run. A supply chain compromise in an upstream package propagates silently. Pin with <code>@x.y.z</code>.</div>
+      </div>
+      <div class="checklist-item">
+        <div class="num">29</div>
+        <div class="body"><strong>Prompt injection surface documented.</strong> For each MCP tool that reads external content (files, database rows, HTTP responses, git history), there is a documented assessment of whether that content could contain adversarial instructions. This does not require mitigating all risk &mdash; it requires knowing where the risk is.</div>
+      </div>
+      <div class="checklist-item">
+        <div class="num">30</div>
+        <div class="body"><strong>MCP server list reviewed quarterly.</strong> <code>.claude/settings.json</code> is reviewed on a schedule. MCP servers added for a specific project and never removed accumulate over time. Each additional server is additional attack surface and additional context overhead on session start.</div>
+      </div>
+    </div>
+
+    <h2>Interpreting your score</h2>
+
+    <p>If you worked through all 30 items honestly, you have one of three situations.</p>
+
+    <p><strong>0 failures in sections 1&ndash;3:</strong> Your setup is in reasonable shape. 案例 through sections 4 and 5 at your own pace. The remaining items are important but unlikely to produce an incident this week.</p>
+
+    <p><strong>Any failure in items 02, 04, 07, 09, 13, 22, 23, 27, or 28:</strong> These are the items with documented incident histories. Prioritize them before anything else. A failure on item 09 (no per-session cost gate) combined with item 13 (no subagent depth limit) is the exact configuration that produced the April 2026 Tokenocalypse incidents.</p>
+
+    <p><strong>6 or more failures total:</strong> The configuration needs a structured review, not a line-by-line fix. Trying to patch individual items without understanding how they interact often introduces new gaps while closing old ones. This is the situation where the productized audit makes sense: a single 90-minute session that produces a written report, a prioritized fix order, and a confirmation call.</p>
+
+    <p>The <a href="/tools/agents">Septim Agents Pack</a> ($49) includes pre-built hook scripts for items 09, 10, 23, 25, and 26 &mdash; tested, version-controlled, and ready to drop into <code>.claude/settings.json</code>. If you found failures in those items specifically, the pack covers them without requiring you to build the hooks from scratch.</p>
+
+    <div class="cta-box">
+      <h4>Want the audit done for you</h4>
+      <p>The Septim Audit is the productized version of this checklist. One flat fee, no subscription. You get a written findings report covering all 30 items, a prioritized fix list ordered by incident risk, and a 30-minute call to walk through the results. Teams typically find 6&ndash;12 failures they did not know existed.</p>
+      <a href="/audit">Septim Audit &mdash; $99, pay once &rarr;</a>
+    </div>
+
+    <h2>What's next</h2>
+
+    <p>If you are starting from scratch with Claude Code production hardening, the sequence that produces the most coverage per hour of work is: items 02 and 04 first (credential scoping), then item 09 (per-session cost gate), then item 16 (claudeignore), then item 22 (hook failure testing). Those four items close the four highest-frequency incident patterns we have seen across the last 90 days of audit work.</p>
+
+    <p>The full checklist, the hook scripts, and the CLAUDE.md templates are all included in the <a href="/audit">Septim Audit</a> report. If you want the hooks without the audit, they are in the <a href="/tools/agents">Agents Pack</a>. Both are pay-once.</p>
+
+    <div class="blog-related">
+      <h4>// Related</h4>
+      <div class="row">
+        <a href="/blog/claude-code-cost-optimization-checklist-2026.html"><span class="lbl">Cost</span>25-item cost optimization checklist for Claude Code and the Anthropic API</a>
+        <a href="/blog/mcp-server-vulnerability-checklist-2026.html"><span class="lbl">Security</span>MCP server vulnerability checklist: 24 items, covers CVE data and the SlowMist audit</a>
+        <a href="/blog/tokenocalypse-subagent-cost-guide.html"><span class="lbl">Incident</span>The Tokenocalypse: why your Claude subagents burned $47K and how to stop it</a>
+      </div>
+    </div>
+  </article>
+</main>
+
+<div id="site-foot"></div>
+<script src="../../site-shell.js?v=4.6.0"></script>
+<script src="../../site.js?v=4.6.0"></script>
+</body>
+</html>

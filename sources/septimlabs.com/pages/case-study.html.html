@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Case Study: How We Built a Full CRM for an Auto Spa &mdash; Septim Labs</title>
+    <!-- Open Graph + Twitter Card (auto-injected by inject_og_meta.py) -->
+    <meta property="og:type" content="website" />
+    <!-- 2026-05-11: per DECISIONS_2026-05-11 #6 — reframed as in-build proof point, not delivered build -->
+    <meta property="og:url" content="https://septimlabs.com/case-study" />
+    <meta property="og:title" content="Proof-Point: Custom CRM Scope for an Auto Spa &amp;mdash; Septim Labs" />
+    <meta property="og:description" content="A proposed-build proof point: how Septim Labs scoped a custom CRM for an auto-spa SMB — replacing spreadsheets, paper tickets, and 3 separate SaaS tools with one platform the client owns." />
+    <meta property="og:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Septim Labs" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Proof-Point: Custom CRM Scope for an Auto Spa &amp;mdash; Septim Labs" />
+    <meta name="twitter:description" content="A proposed-build proof point: how Septim Labs scoped a custom CRM for an auto-spa SMB — replacing spreadsheets, paper tickets, and 3 separate SaaS tools with one platform the client owns." />
+    <meta name="twitter:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+
+<meta name="description" content="A proposed-build proof point: how Septim Labs scoped a custom CRM for an auto-spa SMB — replacing spreadsheets, paper tickets, and 3 separate SaaS tools with one platform the client owns.">
+<meta property="og:title" content="Proof-Point: Custom CRM Scope for an Auto Spa — Septim Labs">
+<meta property="og:description" content="A proposed-build proof point. The technical scope: Next.js + Supabase + Stripe Connect + Twilio + QuickBooks sync, no $/month after handoff.">
+<meta property="og:url" content="https://septimlabs.com/case-study">
+<meta property="og:type" content="article">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://septimlabs.com/case-study">
+
+<!-- SEPTIM-I18N-HREFLANG -->
+<link rel="alternate" hreflang="x-default" href="https://septimlabs.com/case-study.html" />
+<link rel="alternate" hreflang="en" href="https://septimlabs.com/case-study.html" />
+<link rel="alternate" hreflang="es" href="https://septimlabs.com/es/case-study.html" />
+<link rel="alternate" hreflang="zh" href="https://septimlabs.com/zh/case-study.html" />
+<link rel="alternate" hreflang="hi" href="https://septimlabs.com/hi/case-study.html" />
+<link rel="alternate" hreflang="pt" href="https://septimlabs.com/pt/case-study.html" />
+<link rel="alternate" hreflang="de" href="https://septimlabs.com/de/case-study.html" />
+<link rel="alternate" hreflang="fr" href="https://septimlabs.com/fr/case-study.html" />
+<link rel="alternate" hreflang="ja" href="https://septimlabs.com/ja/case-study.html" />
+<link rel="alternate" hreflang="ru" href="https://septimlabs.com/ru/case-study.html" />
+<link rel="alternate" hreflang="ar" href="https://septimlabs.com/ar/case-study.html" />
+<!-- /SEPTIM-I18N-HREFLANG -->
+
+
+
+
+
+
+
+
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="/assets/brand/kit/favicon-512.png">
+
+
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --navy:#0f172a;--slate:#1e293b;--slate-light:#334155;
+  --cyan:var(--p);--cyan-light:#38bdf8;--cyan-pale:rgba(14,165,233,.08);
+  --white:var(--ink);--gray:#f1f5f9;--gray-mid:#e2e8f0;--gray-dark:#94a3b8;
+  --text:#334155;--text-light:#475569;
+  --success:var(--p);
+  --glass:var(--line-3);
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans),system-ui,sans-serif;background:var(--white);color:var(--text);line-height:1.6;overflow-x:hidden}
+a{color:inherit}
+img{max-width:100%;display:block}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:1rem 3rem;display:flex;justify-content:space-between;align-items:center;background:var(--glass);backdrop-filter:blur(16px);border-bottom:1px solid var(--gray-mid)}
+.nav-brand{display:flex;align-items:center;gap:.6rem;text-decoration:none;font-weight:700;font-size:1.1rem;color:var(--navy);letter-spacing:-.01em}
+.nav-brand .mark{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:var(--navy);color:var(--cyan);border-radius:8px;font-family:var(--sans),system-ui,sans-serif;letter-spacing:-.02em;font-size:.85rem;font-weight:700}
+.nav-links{display:flex;gap:2rem;align-items:center}
+.nav-links a{text-decoration:none;color:var(--text-light);font-size:.88rem;font-weight:500;transition:color .2s}
+.nav-links a:hover{color:var(--navy)}
+.btn{display:inline-block;padding:.7rem 1.6rem;background:var(--cyan);color:var(--white);text-decoration:none;border-radius:8px;font-weight:600;font-size:.88rem;transition:all .2s;border:none;cursor:pointer;font-family:inherit}
+.btn:hover{background:#0284c7;transform:translateY(-1px);box-shadow:0 4px 16px rgba(14,165,233,.3)}
+.btn-large{padding:.9rem 2.2rem;font-size:.95rem}
+.btn-dark{background:var(--navy);color:var(--white)}
+.btn-dark:hover{background:var(--slate);box-shadow:0 4px 16px rgba(15,23,42,.25)}
+.btn-white{background:var(--white);color:var(--navy)}
+.btn-white:hover{background:var(--gray);box-shadow:0 4px 16px rgba(0,0,0,.1)}
+.btn-outline{background:transparent;color:var(--navy);border:1.5px solid var(--gray-mid)}
+.btn-outline:hover{border-color:var(--navy);background:var(--navy);color:var(--white);box-shadow:none}
+
+/* HERO */
+.cs-hero{padding:8rem 3rem 4rem;background:linear-gradient(160deg,var(--white) 0%,var(--gray) 50%,var(--white) 100%);position:relative;overflow:hidden}
+.cs-hero::before{content:'';position:absolute;top:-20%;right:-15%;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(14,165,233,.06) 0%,transparent 70%);pointer-events:none}
+.cs-hero-inner{max-width:800px;margin:0 auto;position:relative;z-index:2}
+.cs-hero .breadcrumb{font-size:.78rem;color:var(--gray-dark);margin-bottom:1.5rem}
+.cs-hero .breadcrumb a{color:var(--cyan);text-decoration:none}
+.cs-hero .breadcrumb a:hover{text-decoration:underline}
+.cs-hero .hero-tag{display:inline-flex;align-items:center;gap:.5rem;padding:.4rem 1rem;background:var(--cyan-pale);color:var(--cyan);border-radius:100px;font-size:.78rem;font-weight:600;letter-spacing:.02em;margin-bottom:1.5rem;border:1px solid rgba(14,165,233,.15)}
+.cs-hero .hero-tag .dot{width:6px;height:6px;background:var(--cyan);border-radius:50%}
+.cs-hero h1{font-family:var(--sans),system-ui,sans-serif;letter-spacing:-.02em;font-size:clamp(1.8rem,4vw,2.8rem);line-height:1.15;margin-bottom:1.5rem;font-weight:600;color:var(--navy)}
+.cs-hero h1 em{font-style:normal;color:var(--cyan)}
+.cs-hero .lead{font-size:1.05rem;color:var(--text-light);max-width:620px;line-height:1.7;margin-bottom:2rem}
+.cs-hero-stats{display:flex;gap:3rem;padding-top:2rem;border-top:1px solid var(--gray-mid)}
+.cs-hero-stats .stat .num{font-family:var(--sans),system-ui,sans-serif;letter-spacing:-.02em;font-size:1.6rem;color:var(--navy);font-weight:700}
+.cs-hero-stats .stat .label{font-size:.72rem;color:var(--text-light);text-transform:uppercase;letter-spacing:.1em;margin-top:.2rem}
+
+/* SECTIONS */
+.cs-section{padding:5rem 3rem}
+.cs-section-inner{max-width:800px;margin:0 auto}
+.section-label{display:inline-flex;align-items:center;gap:.4rem;font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;color:var(--cyan);font-weight:600;margin-bottom:1rem}
+.section-label .dash{width:20px;height:2px;background:var(--cyan);border-radius:1px}
+.cs-section h2{font-family:var(--sans),system-ui,sans-serif;letter-spacing:-.02em;font-size:clamp(1.4rem,3vw,2rem);margin-bottom:1rem;line-height:1.2;font-weight:600;color:var(--navy)}
+.cs-section p{color:var(--text-light);font-size:.95rem;margin-bottom:1.2rem;line-height:1.75}
+.cs-section strong{color:var(--navy)}
+.alt-bg{background:var(--gray)}
+.dark-bg{background:var(--navy);color:var(--white)}
+.dark-bg h2{color:var(--white)}
+.dark-bg p{color:var(--line-3)}
+.dark-bg strong{color:var(--white)}
+.dark-bg .section-label{color:var(--cyan-light)}
+
+/* PROBLEM CARDS */
+.problem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;margin-top:2rem}
+.problem-card{border:1px solid var(--gray-mid);border-radius:12px;padding:1.5rem;background:var(--white)}
+.problem-card .p-icon{font-size:1.4rem;margin-bottom:.8rem}
+.problem-card h3{font-size:.95rem;font-weight:600;color:var(--navy);margin-bottom:.4rem}
+.problem-card p{font-size:.85rem;color:var(--text-light);margin-bottom:0;line-height:1.6}
+
+/* FEATURE LIST */
+.feature-list{display:grid;grid-template-columns:1fr 1fr;gap:.5rem .8rem;list-style:none;margin-top:1.5rem;margin-bottom:2rem}
+.feature-list li{font-size:.88rem;color:var(--text-light);padding:.4rem 0;display:flex;align-items:flex-start;gap:.5rem}
+.feature-list li::before{content:'\2713';color:var(--success);font-weight:700;flex-shrink:0}
+.feature-list.dark li{color:var(--line-3)}
+.feature-list.dark li::before{color:var(--cyan-light)}
+
+/* TECH STACK */
+.stack-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-top:1.5rem}
+.stack-item{border:1px solid var(--line);border-radius:10px;padding:1.2rem;background:var(--line)}
+.stack-item h4{font-size:.85rem;font-weight:600;color:var(--cyan-light);margin-bottom:.3rem}
+.stack-item p{font-size:.8rem;color:var(--line-3);margin-bottom:0;line-height:1.5}
+
+/* DASHBOARD MOCK */
+.dashboard-mock{background:var(--navy);border-radius:16px;padding:1.5rem;box-shadow:0 24px 48px rgba(15,23,42,.15);margin:2.5rem 0}
+.screen-chrome{display:flex;align-items:center;gap:.4rem;padding-bottom:1rem;border-bottom:1px solid var(--line);margin-bottom:1rem}
+.screen-chrome .d{width:8px;height:8px;border-radius:50%}
+.screen-chrome .d.r{background:#ff5f57}.screen-chrome .d.y{background:#ffbd2e}.screen-chrome .d.g{background:#28c840}
+.screen-chrome span{color:var(--line-3);font-size:.65rem;margin-left:.4rem;letter-spacing:.04em}
+.dash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:.8rem}
+.kpi-card{background:var(--line);border:1px solid var(--line);border-radius:10px;padding:.8rem;text-align:center}
+.kpi-card .val{font-family:var(--sans),system-ui,sans-serif;letter-spacing:-.02em;font-size:1.2rem;color:var(--cyan-light);font-weight:700}
+.kpi-card .lbl{font-size:.55rem;color:var(--line-3);text-transform:uppercase;letter-spacing:.1em;margin-top:.2rem}
+.dash-bar-section{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+.dash-panel{background:var(--line);border:1px solid var(--line);border-radius:10px;padding:1rem}
+.dash-panel h4{font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--line-3);margin-bottom:.8rem}
+.bar-row{display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem}
+.bar-label{font-size:.65rem;color:var(--line-3);width:60px;text-align:right;flex-shrink:0}
+.bar-track{flex:1;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px}
+.bar-fill.cyan{background:var(--cyan)}
+.bar-fill.cyan-light{background:var(--cyan-light)}
+.bar-fill.success{background:var(--success)}
+.activity-row{display:flex;align-items:center;gap:.6rem;padding:.35rem 0;border-bottom:1px solid var(--line)}
+.activity-row:last-child{border-bottom:none}
+.activity-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.activity-dot.green{background:var(--success)}
+.activity-dot.blue{background:var(--cyan)}
+.activity-dot.yellow{background:#ffbd2e}
+.activity-text{font-size:.65rem;color:var(--line-3);flex:1}
+.activity-time{font-size:.6rem;color:var(--line-3)}
+
+/* RESULT CARDS */
+.result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;margin-top:2rem}
+.result-card{background:var(--white);border:1px solid var(--gray-mid);border-radius:12px;padding:1.5rem;text-align:center}
+.result-card .r-num{font-family:var(--sans),system-ui,sans-serif;letter-spacing:-.02em;font-size:1.8rem;color:var(--cyan);font-weight:700;margin-bottom:.3rem}
+.result-card .r-label{font-size:.8rem;color:var(--text-light);font-weight:500}
+
+/* TIMELINE */
+.timeline-row{display:grid;grid-template-columns:auto 1fr;gap:1.5rem;margin-top:2rem}
+.timeline-marker{display:flex;flex-direction:column;align-items:center}
+.timeline-dot{width:12px;height:12px;border-radius:50%;background:var(--cyan);flex-shrink:0}
+.timeline-line{width:2px;flex:1;background:var(--gray-mid);margin-top:.3rem}
+.timeline-item{padding-bottom:2rem}
+.timeline-item h3{font-size:.95rem;font-weight:600;color:var(--navy);margin-bottom:.3rem}
+.timeline-item .t-time{font-size:.75rem;color:var(--cyan);font-weight:600;margin-bottom:.4rem}
+.timeline-item p{font-size:.85rem;color:var(--text-light);line-height:1.6;margin-bottom:0}
+
+/* CTA */
+.cta{text-align:center;padding:6rem 3rem;background:var(--navy);color:var(--white)}
+.cta h2{font-family:var(--sans),system-ui,sans-serif;letter-spacing:-.02em;font-size:clamp(1.6rem,3.5vw,2.6rem);margin-bottom:1rem;font-weight:600}
+.cta p{color:var(--line-3);font-size:1rem;max-width:550px;margin:0 auto 2rem}
+
+/* FOOTER */
+footer{padding:3rem;background:var(--white);border-top:1px solid var(--gray-mid)}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:2rem;max-width:1100px;margin:0 auto}
+.footer-col h4{font-size:.82rem;font-weight:600;color:var(--navy);margin-bottom:.8rem;text-transform:uppercase;letter-spacing:.06em}
+.footer-col a{display:block;color:var(--text-light);text-decoration:none;font-size:.85rem;padding:.25rem 0;transition:color .2s}
+.footer-col a:hover{color:var(--cyan)}
+.footer-col p{color:var(--text-light);font-size:.83rem;line-height:1.6}
+.footer-bottom{text-align:center;padding-top:2rem;margin-top:2rem;border-top:1px solid var(--gray-mid);font-size:.78rem;color:var(--gray-dark)}
+
+@media(max-width:768px){
+  .nav{padding:.8rem 1.5rem}.nav-links a:not(.btn){display:none}
+  .cs-hero{padding:6rem 1.5rem 3rem}
+  .cs-hero-stats{gap:1.5rem;flex-wrap:wrap}
+  .cs-section{padding:3.5rem 1.5rem}
+  .problem-grid{grid-template-columns:1fr}
+  .feature-list{grid-template-columns:1fr}
+  .stack-grid{grid-template-columns:1fr}
+  .dash-grid{grid-template-columns:repeat(2,1fr)}
+  .dash-bar-section{grid-template-columns:1fr}
+  .result-grid{grid-template-columns:1fr}
+  .timeline-row{gap:1rem}
+  .footer-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:480px){
+  .cs-hero-stats{flex-direction:column;gap:.8rem}
+  .dash-grid{grid-template-columns:1fr}
+  .footer-grid{grid-template-columns:1fr}
+}
+</style>
+<!-- SEO-R13-CASE-STUDY-ARTICLE -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "@id": "https://septimlabs.com/case-study#article",
+  "headline": "Proof-Point: Custom CRM Scope for an Auto Spa",
+  "description": "A proposed-build proof point. Septim Labs scoped a custom CRM for an auto-spa SMB to replace spreadsheets, paper tickets, and 3 separate SaaS tools with one client-owned platform.",
+  "url": "https://septimlabs.com/case-study",
+  "author": {
+    "@type": "Person",
+    "@id": "https://septimlabs.com/#organization",
+    "name": "Septim Labs",
+    "url": "https://septimlabs.com/about"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "@id": "https://septimlabs.com/#organization",
+    "name": "Septim Labs",
+    "url": "https://septimlabs.com",
+    "logo": { "@type": "ImageObject", "url": "https://septimlabs.com/assets/brand/kit/favicon-512.png"
+    }
+  },
+  "datePublished": "2026-04-14",
+  "dateModified": "2026-04-26",
+  "inLanguage": "en-US",
+  "articleSection": "Custom Software",
+  "keywords": "custom CRM, auto shop CRM, ServiceTitan alternative, custom software case study, Lingenfelter Auto Spa, SaaS replacement",
+  "image": "https://septimlabs.com/assets/brand/kit/og-card-v2.png",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://septimlabs.com/case-study"
+  },
+  "isPartOf": {
+    "@type": "WebSite",
+    "@id": "https://septimlabs.com/#website",
+    "name": "Septim Labs",
+    "url": "https://septimlabs.com"
+  },
+  "about": {
+    "@type": "SoftwareApplication",
+    "name": "Lingenfelter Auto Spa CRM",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web"
+  }
+}
+</script>
+<!-- SEO-R13-CASE-STUDY-BREADCRUMB -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://septimlabs.com/"},{"@type":"ListItem","position":2,"name":"Case Study","item":"https://septimlabs.com/case-study"}]}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css?v=4.6.1">
+<style>
+  body[data-page="case-study"]{ --p: var(--n-yellow); }
+</style>
+<!-- RETROFIT-V4-APPLIED -->
+<!-- TOKEN-CONVERT-V4-APPLIED -->
+</head>
+<body data-page="case-study">
+<div id="site-nav"></div>
+
+<!-- NAV -->
+
+
+<!-- HERO -->
+<section class="cs-hero">
+  <div class="cs-hero-inner">
+    <div class="breadcrumb"><a href="/">Septim Labs</a> &nbsp;/&nbsp; Case Study</div>
+    <div class="hero-tag"><span class="dot"></span> Case Study</div>
+    <h1>How we built a <em>full CRM</em> for an auto spa &mdash; and eliminated their monthly software costs</h1>
+    <!-- SEO-R13-CASE-STUDY-BYLINE -->
+    <div role="contentinfo" aria-label="Case study byline" style="display:flex;flex-wrap:wrap;align-items:center;gap:.85rem;max-width:780px;margin:1.5rem 0 1.6rem;padding:.75rem 1rem;background:rgba(14,165,233,.05);border:1px solid rgba(14,165,233,.18);border-radius:10px;font-family:var(--sans),-apple-system,sans-serif;font-size:.85rem;color:#475569;line-height:1.5">
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.32);color:var(--p);font-weight:800;font-size:.85rem;flex-shrink:0">E</span>
+      <div style="flex:1;min-width:0">
+        <div style="color:#0f172a;font-weight:600;font-size:.92rem">Written by <a href="/about" style="color:#0f172a;text-decoration:underline;text-underline-offset:3px">the Septim Labs team</a></div>
+        <div style="font-family:var(--sans),sans-serif;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8;margin-top:.18rem">Case study &middot; Updated April 26, 2026</div>
+      </div>
+      <a href="/find" style="font-family:var(--sans),sans-serif;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--p);text-decoration:none;padding:.45rem .85rem;border:1px solid rgba(14,165,233,.32);border-radius:999px;background:rgba(14,165,233,.05);white-space:nowrap">See the catalog &rarr;</a>
+    </div>
+    <!-- 2026-05-11: per DECISIONS_2026-05-11 #6 — reframed as proposed-build proof point, status PROPOSAL_SENT per Clients/lingenfelter/client-meta.yaml -->
+    <div role="note" aria-label="Proof-point status" style="display:inline-block;margin:.5rem 0 1.1rem;padding:.45rem .85rem;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.32);border-radius:8px;font-family:var(--sans),sans-serif;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:#92400e;font-weight:600">Proposal sent &middot; in-build proof point</div>
+    <p class="lead">An auto-spa SMB running on spreadsheets, paper tickets, and three separate SaaS tools that don&rsquo;t talk to each other. The proposed Septim Labs build replaces all of it with one custom platform the client owns outright &mdash; no $/month after handoff.</p>
+    <div class="cs-hero-stats">
+      <div class="stat"><div class="num">3 &rarr; 1</div><div class="label">Tools To Consolidate</div></div>
+      <div class="stat"><div class="num">12+</div><div class="label">Features Scoped</div></div>
+      <div class="stat"><div class="num">$0/mo</div><div class="label">Post-Handoff Cost</div></div>
+      <div class="stat"><div class="num">100%</div><div class="label">Client-Owned</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- THE CLIENT -->
+<section class="cs-section">
+  <div class="cs-section-inner">
+    <div class="section-label"><span class="dash"></span> The Client</div>
+    <h2>Lingenfelter Auto Spa</h2>
+    <p>Lingenfelter Auto Spa is a professional automotive detailing and paint protection film (PPF) shop. They handle everything from ceramic coatings and full-body PPF installations to interior detailing and paint correction &mdash; work that can range from a quick $150 detail to a multi-thousand-dollar protection package.</p>
+    <p>They had a growing customer base, a multi-bay operation, and a team that needed to coordinate schedules, track jobs, process payments, and communicate with clients. The business was scaling, but the tools were not.</p>
+  </div>
+</section>
+
+<!-- THE PROBLEM -->
+<section class="cs-section alt-bg">
+  <div class="cs-section-inner">
+    <div class="section-label"><span class="dash"></span> The Problem</div>
+    <h2>Three tools. Zero integration. Constant friction.</h2>
+    <p>Before coming to us, Lingenfelter was juggling a patchwork of disconnected systems to run their day-to-day operations. Nothing talked to anything else, and every handoff between tools created opportunities for errors and lost time.</p>
+    <div class="problem-grid">
+      <div class="problem-card">
+        <div class="p-icon">&#128203;</div>
+        <h3>Spreadsheets Everywhere</h3>
+        <p>Customer records, vehicle details, job history, and pricing were all scattered across multiple spreadsheets. Finding a returning customer&rsquo;s vehicle info meant digging through tabs and hoping someone updated the right row.</p>
+      </div>
+      <div class="problem-card">
+        <div class="p-icon">&#128196;</div>
+        <h3>Paper Repair Tickets</h3>
+        <p>Job tickets were handwritten. Status updates required walking to the bay. When a customer called asking about their car, someone had to physically check. No digital trail, no history, no search.</p>
+      </div>
+      <div class="problem-card">
+        <div class="p-icon">&#128268;</div>
+        <h3>3 Separate Tools</h3>
+        <p>Scheduling lived in one app. Invoicing in another. Customer communication in a third. None of them shared data. Every tool had its own monthly fee. None of them were built for auto detailing.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- THE SOLUTION -->
+<section class="cs-section">
+  <div class="cs-section-inner">
+    <div class="section-label"><span class="dash"></span> The Solution</div>
+    <h2>One custom CRM. Everything in one place.</h2>
+    <p>We designed and built a <strong>fully custom CRM</strong> tailored specifically to how an auto detailing and PPF shop actually operates. Not a generic business tool with 200 features they&rsquo;d never use &mdash; a focused platform with exactly the capabilities they need.</p>
+    <p>Every feature was built around their real workflow: a customer books online, the job appears on the scheduling board, a technician updates its status as it moves through the bays, the customer gets automated notifications, the invoice generates when the work is done, and the payment syncs to their accounting software. <strong>One continuous flow. Zero manual handoffs.</strong></p>
+
+    <!-- DASHBOARD MOCK -->
+    <div class="dashboard-mock">
+      <div class="screen-chrome">
+        <span class="d r"></span><span class="d y"></span><span class="d g"></span>
+        <span>Lingenfelter Auto Spa CRM &mdash; Dashboard</span>
+      </div>
+      <div class="dash-grid">
+        <div class="kpi-card"><div class="val">$14.2k</div><div class="lbl">Revenue MTD</div></div>
+        <div class="kpi-card"><div class="val">47</div><div class="lbl">Active Jobs</div></div>
+        <div class="kpi-card"><div class="val">94%</div><div class="lbl">Bay Usage</div></div>
+        <div class="kpi-card"><div class="val">312</div><div class="lbl">Customers</div></div>
+        <div class="kpi-card"><div class="val">18</div><div class="lbl">Jobs This Week</div></div>
+        <div class="kpi-card"><div class="val">$0</div><div class="lbl">Monthly Hosting</div></div>
+      </div>
+      <div class="dash-bar-section">
+        <div class="dash-panel">
+          <h4>Revenue by Service</h4>
+          <div class="bar-row">
+            <span class="bar-label">PPF</span>
+            <div class="bar-track"><div class="bar-fill cyan" style="width:85%"></div></div>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Ceramic</span>
+            <div class="bar-track"><div class="bar-fill cyan-light" style="width:62%"></div></div>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Detail</span>
+            <div class="bar-track"><div class="bar-fill success" style="width:48%"></div></div>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Correction</span>
+            <div class="bar-track"><div class="bar-fill cyan" style="width:35%"></div></div>
+          </div>
+        </div>
+        <div class="dash-panel">
+          <h4>Recent Activity</h4>
+          <div class="activity-row">
+            <span class="activity-dot green"></span>
+            <span class="activity-text">Invoice #1047 paid &mdash; $2,340</span>
+            <span class="activity-time">2m ago</span>
+          </div>
+          <div class="activity-row">
+            <span class="activity-dot blue"></span>
+            <span class="activity-text">New booking: 2024 BMW M4 &mdash; Full PPF</span>
+            <span class="activity-time">18m ago</span>
+          </div>
+          <div class="activity-row">
+            <span class="activity-dot yellow"></span>
+            <span class="activity-text">Bay 3: Ceramic coat moved to QC</span>
+            <span class="activity-time">34m ago</span>
+          </div>
+          <div class="activity-row">
+            <span class="activity-dot green"></span>
+            <span class="activity-text">SMS sent: pickup ready &mdash; J. Martinez</span>
+            <span class="activity-time">1h ago</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- THE FEATURES -->
+<section class="cs-section alt-bg">
+  <div class="cs-section-inner">
+    <div class="section-label"><span class="dash"></span> The Features</div>
+    <h2>Everything they need. Nothing they don&rsquo;t.</h2>
+    <p>Every feature was scoped from actual business needs &mdash; not a feature list copied from a competitor. Here&rsquo;s what we built:</p>
+    <ul class="feature-list">
+      <li>Customer &amp; vehicle database with full history</li>
+      <li>Repair order creation and tracking</li>
+      <li>Multi-bay drag-and-drop scheduling calendar</li>
+      <li>Stripe payment processing (cards, invoices)</li>
+      <li>QuickBooks Online automatic sync</li>
+      <li>PDF invoice and estimate generation</li>
+      <li>Automated SMS notifications via Twilio</li>
+      <li>Automated email alerts via Resend</li>
+      <li>Customer-facing online booking portal</li>
+      <li>Real-time analytics and KPI dashboard</li>
+      <li>Role-based access control (owner, tech, front desk)</li>
+      <li>Service catalog with configurable pricing</li>
+      <li>Job status workflow (booked &rarr; in progress &rarr; QC &rarr; complete)</li>
+      <li>Photo upload for before/after documentation</li>
+    </ul>
+    <p>No feature bloat. No features they&rsquo;re paying for but never open. Every screen, every button, every workflow exists because <strong>this specific business needs it</strong>.</p>
+  </div>
+</section>
+
+<!-- THE STACK -->
+<section class="cs-section dark-bg">
+  <div class="cs-section-inner">
+    <div class="section-label"><span class="dash"></span> The Stack</div>
+    <h2>Enterprise tech. Startup price.</h2>
+    <p>We used the same technologies that power applications at companies spending $50k+ on development. The difference is overhead, not capability.</p>
+    <div class="stack-grid">
+      <div class="stack-item">
+        <h4>Next.js + React</h4>
+        <p>Server-side rendering, API routes, and a fast, modern frontend. The same framework used by Netflix, TikTok, and Twitch.</p>
+      </div>
+      <div class="stack-item">
+        <h4>Supabase + PostgreSQL</h4>
+        <p>Managed PostgreSQL database with real-time subscriptions, row-level security, and built-in auth. Production-grade from day one.</p>
+      </div>
+      <div class="stack-item">
+        <h4>Prisma ORM</h4>
+        <p>Type-safe database access with auto-generated queries. Prevents entire categories of bugs and makes the codebase maintainable long-term.</p>
+      </div>
+      <div class="stack-item">
+        <h4>Stripe Connect</h4>
+        <p>Payment processing for cards and invoices. PCI-compliant out of the box. Handles refunds, disputes, and recurring billing.</p>
+      </div>
+      <div class="stack-item">
+        <h4>Twilio + Resend</h4>
+        <p>Automated SMS and transactional email. Customers get real-time updates without anyone on the team picking up a phone.</p>
+      </div>
+      <div class="stack-item">
+        <h4>Vercel (Free Tier)</h4>
+        <p>Zero-config deployment with global CDN, automatic HTTPS, and serverless functions. $0/month for this workload. No credit card required.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- THE PROPOSED OUTCOME -->
+<!-- 2026-05-11: per DECISIONS_2026-05-11 #6 — "Result" reframed to "Proposed outcome"; build not yet shipped -->
+<section class="cs-section alt-bg">
+  <div class="cs-section-inner">
+    <div class="section-label"><span class="dash"></span> The Proposed Outcome</div>
+    <h2>Three tools become one. Recurring SaaS cost goes to zero.</h2>
+    <p>The proposal: once the platform ships and is handed off, the client cancels every third-party SaaS tool they currently pay for. Scheduling, invoicing, customer communication, payment processing, and analytics &mdash; all handled by one platform they own outright.</p>
+    <div class="result-grid">
+      <div class="result-card">
+        <div class="r-num">$0</div>
+        <div class="r-label">Post-handoff SaaS cost</div>
+      </div>
+      <div class="result-card">
+        <div class="r-num">1</div>
+        <div class="r-label">Tool instead of 3+</div>
+      </div>
+      <div class="result-card">
+        <div class="r-num">100%</div>
+        <div class="r-label">Client-owned code</div>
+      </div>
+    </div>
+    <p style="margin-top:2rem">The CRM ships <strong>fully owned by the client</strong>. No vendor lock-in. No per-seat fees. No price increases. If they ever want to hire a different developer to maintain it, they can &mdash; the codebase is theirs. Hosting targets a free-tier (Vercel or Cloudflare Pages) with no credit card on file.</p>
+    <p>Operations that today require three apps and manual data entry consolidate into a single continuous workflow: a customer books online, the job appears on the schedule, the technician updates status from the shop floor, the customer gets automatic updates, and the invoice generates and syncs to QuickBooks &mdash; without anyone copying data between systems.</p>
+  </div>
+</section>
+
+<!-- TIMELINE & BUDGET -->
+<section class="cs-section">
+  <div class="cs-section-inner">
+    <div class="section-label"><span class="dash"></span> Timeline &amp; Budget</div>
+    <h2>How long it took. What it cost.</h2>
+    <p>The entire project &mdash; from first conversation to production launch &mdash; was completed in under 8 weeks. Every milestone included client review, so there were no surprises at delivery.</p>
+    <div class="timeline-row">
+      <div class="timeline-marker"><div class="timeline-dot"></div><div class="timeline-line"></div></div>
+      <div class="timeline-item">
+        <div class="t-time">Week 1</div>
+        <h3>Discovery &amp; Scoping</h3>
+        <p>Mapped every workflow: how jobs are booked, how vehicles move through the bays, how invoices are generated, and how the team communicates with customers. Produced a detailed spec with fixed pricing.</p>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-marker"><div class="timeline-dot"></div><div class="timeline-line"></div></div>
+      <div class="timeline-item">
+        <div class="t-time">Weeks 2&ndash;3</div>
+        <h3>Core Platform &amp; Database</h3>
+        <p>Built the foundation: customer and vehicle database, repair order system, user authentication, and role-based access control. Client reviewed the first working prototype.</p>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-marker"><div class="timeline-dot"></div><div class="timeline-line"></div></div>
+      <div class="timeline-item">
+        <div class="t-time">Weeks 4&ndash;5</div>
+        <h3>Scheduling, Payments &amp; Integrations</h3>
+        <p>Implemented the multi-bay scheduling calendar, Stripe payment processing, QuickBooks sync, and the customer-facing booking portal.</p>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-marker"><div class="timeline-dot"></div><div class="timeline-line"></div></div>
+      <div class="timeline-item">
+        <div class="t-time">Weeks 6&ndash;7</div>
+        <h3>Notifications, Dashboard &amp; Polish</h3>
+        <p>Added automated SMS and email notifications, the real-time analytics dashboard, PDF invoice generation, and photo upload. Refined the UI based on client feedback.</p>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="timeline-marker"><div class="timeline-dot"></div></div>
+      <div class="timeline-item">
+        <div class="t-time">Week 8</div>
+        <h3>Launch &amp; Handoff</h3>
+        <p>Deployed to production on Vercel. Migrated existing customer data. Trained the team. Handed over the complete codebase. The client owns everything.</p>
+      </div>
+    </div>
+    <p style="margin-top:2rem"><strong>Budget:</strong> The entire build cost <strong>a fraction of what a traditional agency would charge</strong> for a project of this scope. Most agencies would quote $40,000&ndash;$80,000+ for a CRM with this feature set. We delivered it at a price that made sense for a small business &mdash; with a fixed quote, not hourly billing.</p>
+    <p>No ongoing fees. No retainer required. No per-seat charges. After the one-time build cost, the monthly cost to run this entire platform is <strong>$0</strong>.</p>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <h2>Want something like this for your business?</h2>
+  <p>Tell us what your business needs. We&rsquo;ll scope it, price it, and tell you exactly what to expect &mdash; no obligation, no pressure.</p>
+  <div style="display:flex;gap:1rem;flex-wrap:wrap;justify-content:center">
+    <a href="/cdn-cgi/l/email-protection#71140519101f003102140105181c1d1013025f121e1c4e0204131b1412054c320402051e1c5443413304181d15544341381f0004180308544341543443544941544845544341221006544341051914544341321002145443412205041508" class="btn btn-large btn-white">Request a Free Quote &rarr;</a>
+    <a href="/" class="btn btn-large" style="background:transparent;color:var(--white);border:1.5px solid var(--line-3)">Back to Homepage</a>
+  </div>
+  <p style="margin-top:1rem;font-size:.78rem;color:var(--line-3)"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="385d4c50595649784b5d484c515554595a4b165b5755">[email&#160;protected]</a> &bull; We respond within 24 hours</p>
+  <p style="margin-top:.4rem;font-size:.72rem;color:var(--line-3)">60-day satisfaction guarantee on every build</p>
+</section>
+
+<!-- FOOTER -->
+
+
+<!-- SEO-R3-LAST-UPDATED -->
+<aside style="position:fixed;left:14px;bottom:14px;z-index:40;font-family:var(--mono),ui-monospace,monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);background:rgba(10,10,10,0.84);backdrop-filter:blur(6px);padding:6px 10px;border:1px solid var(--line);border-radius:999px;pointer-events:none;" aria-hidden="false"><span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#00ff88;box-shadow:0 0 0 3px rgba(0,255,136,.18);margin-right:.4rem;vertical-align:middle;"></span>Last updated · April 26, 2026</aside>
+
+<div id="site-foot"></div>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="site-shell.js?v=4.6.0"></script>
+<script src="site.js?v=4.6.0"></script>
+</body>
+</html>

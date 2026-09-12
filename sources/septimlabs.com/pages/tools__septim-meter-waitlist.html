@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Septim Meter — Claude Code is silently burning 40% of your quota — Septim Labs</title>
+<meta name="description" content="Claude Code v2.1.100+ injects ~20,000 invisible cache tokens per request. GitHub issue #46917 is open. Anthropic closed #46829 as not-planned. Septim Meter surfaces what the client hides. $19 pay-once, ships in 14 days." />
+<meta property="og:title" content="Septim Meter — your Claude Code is silently burning 40% extra tokens" />
+<meta property="og:description" content="Claude Code v2.1.100+ injects ~20,000 phantom cache tokens per request. No native meter. No disclosure. GitHub #46917 open. We built the audit tool. $19 once." />
+<meta property="og:url" content="https://septimlabs.com/tools/septim-meter-waitlist/" />
+<meta property="og:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Septim Meter — Claude Code phantom token detector" />
+<meta name="twitter:description" content="Your Claude Code injects 20K invisible tokens per request. We measure it. $19 once." />
+<meta name="twitter:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+<link rel="canonical" href="https://septimlabs.com/tools/septim-meter-waitlist/" />
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/kit/apple-touch-icon-180.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../site.css?v=4.6.1">
+
+<style>
+body[data-page="septim-meter-waitlist"]{ --p: var(--n-amber); }
+
+.mw { max-width: 880px; margin: 0 auto; padding: 0 24px; }
+
+/* Hero */
+.m-hero { padding: 96px 0 56px; }
+.m-eyebrow { display: inline-block; font-family: var(--mono), monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .14em; color: var(--p); margin-bottom: 18px; }
+.m-h1 { font-size: clamp(44px, 5.6vw, 72px); font-weight: 700; letter-spacing: -.035em; line-height: 1.04; margin-bottom: 22px; text-wrap: balance; }
+.m-h1 em { font-style: normal; color: var(--p); }
+.m-sub { font-size: 18px; color: var(--ink-2); max-width: 680px; margin-bottom: 32px; line-height: 1.65; }
+
+/* Evidence block */
+.m-evidence { background: var(--bg-1); border: 1px solid var(--line); border-left: 3px solid var(--p); border-radius: 10px; padding: 24px 28px; margin: 40px 0; }
+.m-evidence .ev-label { font-family: var(--mono), monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--p); margin-bottom: 16px; }
+.m-evidence .ev-row { display: flex; gap: 20px; flex-wrap: wrap; }
+.m-evidence .ev-stat { flex: 1; min-width: 160px; }
+.m-evidence .ev-num { font-family: var(--mono), monospace; font-size: 28px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; line-height: 1; margin-bottom: 4px; }
+.m-evidence .ev-num em { font-style: normal; color: var(--p); }
+.m-evidence .ev-desc { font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+.m-evidence .ev-source { font-family: var(--mono), monospace; font-size: 10px; color: var(--ink-3); margin-top: 4px; }
+
+/* Proof quote */
+.m-quote { border: 1px solid var(--line); border-radius: 10px; padding: 22px 26px; margin: 18px 0; background: var(--bg-1); }
+.m-quote .q-text { font-size: 15px; color: var(--ink); line-height: 1.7; margin-bottom: 10px; font-style: italic; }
+.m-quote .q-source { font-family: var(--mono), monospace; font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .10em; }
+.m-quote .q-source a { color: var(--ink-3); text-decoration: none; border-bottom: 1px solid var(--line); }
+.m-quote .q-source a:hover { color: var(--ink-2); }
+
+/* What Meter measures */
+.m-measures { margin: 56px 0; }
+.m-sec-label { font-family: var(--mono), monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .14em; color: var(--p); margin-bottom: 14px; display: block; }
+.m-h2 { font-size: clamp(28px, 3.8vw, 42px); font-weight: 700; letter-spacing: -.025em; line-height: 1.1; margin-bottom: 16px; }
+.m-h2 em { font-style: normal; color: var(--p); }
+.m-lead { font-size: 16px; color: var(--ink-2); max-width: 660px; line-height: 1.65; margin-bottom: 32px; }
+
+.m-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+@media (max-width: 640px) { .m-grid { grid-template-columns: 1fr; } }
+
+.m-card { background: var(--bg-1); border: 1px solid var(--line); border-radius: 10px; padding: 22px 24px; }
+.m-card .mc-label { font-family: var(--mono), monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--p); margin-bottom: 8px; }
+.m-card h3 { font-size: 16px; font-weight: 600; letter-spacing: -.01em; margin-bottom: 8px; color: var(--ink); }
+.m-card p { font-size: 13px; color: var(--ink-2); line-height: 1.6; margin: 0; }
+
+/* The number breakdown */
+.m-breakdown { background: var(--bg-1); border: 1px solid var(--line); border-radius: 12px; padding: 28px; margin: 40px 0; }
+.m-bd-title { font-family: var(--mono), monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-3); margin-bottom: 20px; }
+.m-bd-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.m-bd-row:last-child { margin-bottom: 0; padding-top: 14px; border-top: 1px dashed var(--line-2); margin-top: 14px; }
+.m-bd-label { font-size: 13px; color: var(--ink-2); flex: 1; }
+.m-bd-val { font-family: var(--mono), monospace; font-size: 16px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.m-bd-val.bad { color: #fb923c; }
+.m-bd-val.warn { color: var(--p); }
+.m-bd-bar { height: 4px; border-radius: 2px; background: var(--line); flex: 0 0 120px; position: relative; overflow: hidden; }
+.m-bd-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 2px; background: var(--p); }
+.m-bd-fill.bad { background: #fb923c; }
+
+/* Waitlist form */
+.m-waitlist { padding: 56px 0; border-top: 1px solid var(--line); }
+.m-form-wrap { max-width: 520px; }
+.m-form-note { font-size: 13px; color: var(--ink-3); margin-bottom: 26px; line-height: 1.6; }
+.m-form-note strong { color: var(--ink-2); }
+
+.m-form { display: flex; gap: 10px; flex-wrap: wrap; }
+.m-input { flex: 1; min-width: 220px; padding: 13px 16px; background: var(--bg); border: 1px solid var(--line-2); border-radius: 8px; font-family: var(--sans), -apple-system, sans-serif; font-size: 14px; color: var(--ink); outline: none; transition: border-color .15s; }
+.m-input:focus { border-color: var(--p); }
+.m-input::placeholder { color: var(--ink-3); }
+.m-btn { padding: 13px 24px; background: var(--p); color: #1a1100; border: none; border-radius: 8px; font-family: var(--sans), -apple-system, sans-serif; font-weight: 700; font-size: 14px; cursor: pointer; transition: opacity .15s; white-space: nowrap; }
+.m-btn:hover { opacity: .88; }
+.m-price-note { font-family: var(--mono), monospace; font-size: 11px; color: var(--ink-3); margin-top: 14px; letter-spacing: .04em; }
+.m-price-note strong { color: var(--ink-2); }
+
+/* Status pill */
+.m-status { display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(251,191,36,.25); background: rgba(251,191,36,.06); border-radius: 999px; padding: 6px 14px; margin-bottom: 20px; font-family: var(--mono), monospace; font-size: 11px; color: var(--p); letter-spacing: .08em; text-transform: uppercase; }
+.m-status::before { content: ""; width: 6px; height: 6px; background: var(--p); border-radius: 50%; flex-shrink: 0; }
+
+/* Issue ref */
+.m-issue-ref { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono), monospace; font-size: 11px; color: var(--ink-3); text-decoration: none; border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; transition: border-color .15s, color .15s; }
+.m-issue-ref:hover { border-color: var(--p); color: var(--p); }
+.m-issue-ref .dot { width: 5px; height: 5px; background: #4ade80; border-radius: 50%; flex-shrink: 0; }
+.m-issue-ref .dot.closed { background: #f87171; }
+
+.m-divider { border: none; border-top: 1px solid var(--line); margin: 56px 0; }
+
+/* Footer attribution */
+.m-foot-attr { text-align: center; padding: 24px 0 8px; font-family: var(--mono), monospace; font-size: 10px; color: var(--ink-3); letter-spacing: .10em; text-transform: uppercase; }
+
+/* Preview section */
+.m-preview { padding: 56px 0; border-top: 1px solid var(--line); }
+.m-preview-demo-label { display: inline-block; font-family: var(--mono), monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-3); background: var(--bg-1); border: 1px dashed var(--line-2); border-radius: 4px; padding: 3px 10px; margin-bottom: 24px; }
+.m-preview-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 0; }
+@media (max-width: 640px) { .m-preview-cards { grid-template-columns: 1fr; } }
+.m-pcard { background: var(--bg-1); border: 1px solid var(--line); border-radius: 10px; padding: 22px 24px; }
+.m-pcard .pc-label { font-family: var(--mono), monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--p); margin-bottom: 10px; }
+.m-pcard .pc-title { font-size: 12px; font-weight: 600; color: var(--ink-2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 14px; font-family: var(--mono), monospace; }
+.m-pcard .pc-data { font-family: var(--mono), monospace; font-variant-numeric: tabular-nums; }
+.m-pcard .pc-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 6px; font-size: 13px; }
+.m-pcard .pc-row:last-child { margin-bottom: 0; }
+.m-pcard .pc-key { color: var(--ink-2); flex-shrink: 0; }
+.m-pcard .pc-val { color: var(--ink); text-align: right; }
+.m-pcard .pc-val.accent { color: var(--p); }
+.m-pcard .pc-val.warn { color: var(--n-rose); font-weight: 600; }
+.m-pcard .pc-val.flagged { color: var(--p); }
+.pc-flag-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); margin-top: 10px; }
+.pc-flag-badge { font-family: var(--mono), monospace; font-size: 11px; background: rgba(244,63,94,.12); color: var(--n-rose); border: 1px solid rgba(244,63,94,.25); border-radius: 4px; padding: 2px 8px; white-space: nowrap; flex-shrink: 0; }
+.pc-flag-meta { font-family: var(--mono), monospace; font-size: 12px; color: var(--ink-2); }
+.pc-billing-num { font-family: var(--mono), monospace; font-size: 36px; font-weight: 700; color: var(--n-rose); letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1; margin: 8px 0 6px; }
+.pc-billing-sub { font-family: var(--mono), monospace; font-size: 11px; color: var(--ink-3); margin-bottom: 0; }
+.pc-downgrade-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--line-2); border-radius: 6px; padding: 9px 16px; font-family: var(--mono), monospace; font-size: 12px; color: var(--ink-2); text-decoration: none; transition: border-color .15s, color .15s; margin-top: 10px; cursor: default; opacity: .65; }
+.pc-downgrade-btn .arr { color: var(--p); }
+</style>
+</head>
+<body data-page="septim-meter-waitlist">
+<div id="site-nav"></div>
+
+<main>
+<section class="m-hero">
+  <div class="mw">
+    <div class="m-status">Issue #46917 — still open · v2.1.126</div>
+    <div class="m-eyebrow">Septim Meter — Early Access</div>
+    <h1 class="m-h1">Your Claude Code is silently burning <em>40% extra</em> tokens.</h1>
+    <p class="m-sub">Claude Code v2.1.100 introduced a regression that injects approximately 20,000 <code>cache_creation_input_tokens</code> per request — tokens that count against your daily quota but never appear in your context window. GitHub issue <a href="https://github.com/anthropics/claude-code/issues/46917" class="m-issue-ref" target="_blank" rel="noopener"><span class="dot"></span>#46917 open</a> — unresolved through v2.1.126. Anthropic closed the companion request (#46829) as not-planned. Septim Meter surfaces what the client hides.</p>
+
+    <!-- Evidence stats -->
+    <div class="m-evidence">
+      <div class="ev-label">Confirmed by community + primary sources</div>
+      <div class="ev-row">
+        <div class="ev-stat">
+          <div class="ev-num"><em>+22K</em></div>
+          <div class="ev-desc">extra tokens injected per request in v2.1.100+</div>
+          <div class="ev-source">GitHub #46917 · payload diff</div>
+        </div>
+        <div class="ev-stat">
+          <div class="ev-num"><em>~40%</em></div>
+          <div class="ev-desc">quota inflation — confirmed 17–26% across user reports</div>
+          <div class="ev-source">HN #47752049 · 54 pts</div>
+        </div>
+        <div class="ev-stat">
+          <div class="ev-num"><em>19 min</em></div>
+          <div class="ev-desc">Max plan daily limit hit instead of the expected ~5 hours</div>
+          <div class="ev-source">Threads @newclawtimes</div>
+        </div>
+        <div class="ev-stat">
+          <div class="ev-num"><em>0</em></div>
+          <div class="ev-desc">native audit surface in any Anthropic dashboard</div>
+          <div class="ev-source">claude.ai usage page — no per-request breakdown</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PREVIEW: What Meter will surface -->
+<section class="m-preview">
+  <div class="mw">
+    <span class="m-sec-label">Preview — what Meter surfaces</span>
+    <h2 class="m-h2">Four signals the <em>dashboard never shows.</em></h2>
+    <p class="m-lead">Static demo data. Not your session. Illustrates the four readouts Meter will surface on day one — the signals the claude.ai usage page has never exposed.</p>
+    <div class="m-preview-demo-label">demo data — not your actual session</div>
+
+    <div class="m-preview-cards">
+
+      <!-- Card 1: Version baseline comparison -->
+      <div class="m-pcard">
+        <div class="pc-label">01 — Version baseline</div>
+        <div class="pc-title">v2.1.98 vs your installed version</div>
+        <div class="pc-data">
+          <div class="pc-row">
+            <span class="pc-key">Your version: v2.1.126</span>
+            <span class="pc-val accent">72,103 tokens</span>
+          </div>
+          <div class="pc-row">
+            <span class="pc-key">Baseline v2.1.98</span>
+            <span class="pc-val">49,726 tokens</span>
+          </div>
+          <div class="pc-row" style="border-top:1px solid var(--line);padding-top:10px;margin-top:6px;">
+            <span class="pc-key">Phantom overhead</span>
+            <span class="pc-val warn">+22,377 &nbsp;(+44.9%)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Per-request phantom flag -->
+      <div class="m-pcard">
+        <div class="pc-label">02 — Per-request flag</div>
+        <div class="pc-title">cache_creation overhead, per message</div>
+        <div class="pc-data">
+          <div class="pc-row">
+            <span class="pc-key">Request</span>
+            <span class="pc-val">47</span>
+          </div>
+          <div class="pc-row">
+            <span class="pc-key">cache_creation overhead</span>
+            <span class="pc-val flagged">21,402 tokens</span>
+          </div>
+        </div>
+        <div class="pc-flag-row">
+          <span class="pc-flag-badge">&#9888; flagged</span>
+          <span class="pc-flag-meta">overhead exceeds 2× clean baseline</span>
+        </div>
+      </div>
+
+      <!-- Card 3: Session phantom billing in dollars -->
+      <div class="m-pcard">
+        <div class="pc-label">03 — Session phantom billing</div>
+        <div class="pc-title">estimated cost you did not author today</div>
+        <div class="pc-billing-num">$4.81</div>
+        <div class="pc-billing-sub">phantom billing today &nbsp;&middot;&nbsp; Sonnet 4.5 effective rate</div>
+      </div>
+
+      <!-- Card 4: Downgrade CTA -->
+      <div class="m-pcard">
+        <div class="pc-label">04 — Remediation</div>
+        <div class="pc-title">pinned workaround while #46917 is open</div>
+        <div class="pc-data">
+          <div class="pc-row">
+            <span class="pc-key">Affected range</span>
+            <span class="pc-val">v2.1.100 – v2.1.126</span>
+          </div>
+          <div class="pc-row">
+            <span class="pc-key">Last clean build</span>
+            <span class="pc-val accent">v2.1.98</span>
+          </div>
+        </div>
+        <div class="pc-downgrade-btn">Downgrade to v2.1.98 <span class="arr">&#8594;</span> instructions</div>
+      </div>
+
+    </div>
+
+    <p style="font-family:var(--mono),monospace;font-size:11px;color:var(--ink-3);margin-top:20px;line-height:1.6;">
+      Proof of the overhead: <a href="https://github.com/anthropics/claude-code/issues/46917" target="_blank" rel="noopener" style="color:var(--ink-3);border-bottom:1px solid var(--line);">GitHub #46917 (open)</a> &nbsp;&middot;&nbsp; <a href="https://github.com/anthropics/claude-code/issues/46829" target="_blank" rel="noopener" style="color:var(--ink-3);border-bottom:1px solid var(--line);">#46829 (closed as not-planned)</a>. Baseline token counts sourced from community payload diffs filed in #46917.
+    </p>
+  </div>
+</section>
+
+<section style="padding: 0 0 56px;">
+  <div class="mw">
+    <!-- What the numbers actually look like -->
+    <div class="m-breakdown">
+      <div class="m-bd-title">What the payload diff shows — v2.1.98 vs v2.1.101, same prompt</div>
+      <div class="m-bd-row">
+        <span class="m-bd-label">v2.1.98 — bytes sent</span>
+        <span class="m-bd-bar"><span class="m-bd-fill" style="width:54%"></span></span>
+        <span class="m-bd-val">169,514 bytes → 49,726 tokens</span>
+      </div>
+      <div class="m-bd-row">
+        <span class="m-bd-label">v2.1.101 — bytes sent</span>
+        <span class="m-bd-bar"><span class="m-bd-fill bad" style="width:100%"></span></span>
+        <span class="m-bd-val bad">171,903 bytes → ~72,000 tokens</span>
+      </div>
+      <div class="m-bd-row">
+        <span class="m-bd-label">Overhead — tokens you never wrote</span>
+        <span class="m-bd-bar"></span>
+        <span class="m-bd-val warn">+22,274 tokens per request</span>
+      </div>
+    </div>
+
+    <!-- Community quote -->
+    <div class="m-quote">
+      <p class="q-text">"Claude Code v2.1.100 silently adds ~20,000 invisible tokens to every single request. Pro Max users are hitting their limits in 90 minutes."</p>
+      <div class="q-source"><a href="https://news.ycombinator.com/item?id=47752049" target="_blank" rel="noopener">Hacker News #47752049 — 54 upvotes · 10 comments</a> &nbsp;/&nbsp; <a href="https://github.com/anthropics/claude-code/issues/46917" target="_blank" rel="noopener">GitHub Issue #46917</a></div>
+    </div>
+
+    <div style="margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+      <a href="https://github.com/anthropics/claude-code/issues/46917" class="m-issue-ref" target="_blank" rel="noopener"><span class="dot"></span>GitHub #46917 — OPEN</a>
+      <a href="https://github.com/anthropics/claude-code/issues/46829" class="m-issue-ref" target="_blank" rel="noopener"><span class="dot closed"></span>#46829 — Closed as not-planned</a>
+    </div>
+  </div>
+</section>
+
+<hr class="m-divider">
+
+<!-- What Meter measures -->
+<section class="m-measures">
+  <div class="mw">
+    <span class="m-sec-label">What Septim Meter does</span>
+    <h2 class="m-h2">Session burn is invisible. <em>Meter makes it readable.</em></h2>
+    <p class="m-lead">The issue is server-side — the client sends the inflated payload and Anthropic bills accordingly, but nothing in the claude.ai dashboard shows you per-request <code>cache_creation_input_tokens</code>. The only defense is external measurement. Meter is that tool.</p>
+
+    <div class="m-grid">
+      <div class="m-card">
+        <div class="mc-label">Version audit</div>
+        <h3>Is your version affected?</h3>
+        <p>Enter your installed Claude Code version. Meter cross-references the known inflation signature table (v2.1.100–v2.1.126) and shows your per-request overhead multiplier. Workaround: downgrade to v2.1.98.</p>
+      </div>
+      <div class="m-card">
+        <div class="mc-label">Session estimator</div>
+        <h3>How fast are you burning your limit?</h3>
+        <p>Input your plan tier (Pro · Max), session start time, and message count. Meter calculates estimated quota consumed — user-generated vs phantom cache overhead as separate line items.</p>
+      </div>
+      <div class="m-card">
+        <div class="mc-label">Reset calendar</div>
+        <h3>When does your quota reset?</h3>
+        <p>Anthropic uses a 5-day rolling window. Input your account start date; Meter shows projected reset times so you can pace sessions rather than hitting the wall mid-task.</p>
+      </div>
+      <div class="m-card">
+        <div class="mc-label">Safe daily target</div>
+        <h3>What's a sustainable daily budget?</h3>
+        <p>Given your plan and the current overhead multiplier, Meter outputs a single number: the safe daily token ceiling to coast the rolling window without interruption. No math required.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="m-divider">
+
+<!-- Waitlist -->
+<section class="m-waitlist">
+  <div class="mw">
+    <span class="m-sec-label">Early access — #46917 still open</span>
+    <h2 class="m-h2">Be first to know if <em>your version</em> is responsible.</h2>
+    <div class="m-form-wrap">
+      <p class="m-form-note">
+        GitHub #46917 is unresolved through v2.1.126. When Meter ships, it tells you exactly how many phantom <code>cache_creation_input_tokens</code> your installed version is injecting — and what your actual quota burn looks like versus what you authored. <strong>One email. No subscription. $19 pay-once when the build is live.</strong>
+      </p>
+      <form class="m-form" action="https://formsubmit.co/ethanq@septimlabs.com" method="POST">
+        <input type="hidden" name="_subject" value="Septim Meter waitlist signup" />
+        <input type="hidden" name="_captcha" value="false" />
+        <input type="hidden" name="_template" value="table" />
+        <input type="hidden" name="_next" value="https://septimlabs.com/tools/septim-meter-waitlist/?joined=1" />
+        <input class="m-input" type="email" name="email" placeholder="you@domain.com" required autocomplete="email" />
+        <button class="m-btn" type="submit">Send me the build link</button>
+      </form>
+      <div class="m-price-note"><strong>$19 founding rate — first 100 sales.</strong> Increases to $29 after. &nbsp;·&nbsp; ETA &lt;14 days &nbsp;·&nbsp; browser-side, no login, no server</div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="m-foot-attr">
+  <div class="mw">by Septim Labs &nbsp;·&nbsp; pay-once tools &nbsp;·&nbsp; no subscription</div>
+</div>
+
+<div id="site-foot"></div>
+<script src="../../site-shell.js?v=4.6.1"></script>
+<script src="../../site.js"></script>
+<script>
+  // Show confirmation if returning from formsubmit redirect
+  (function() {
+    const p = new URLSearchParams(location.search);
+    if (p.get('joined') === '1') {
+      const btn = document.querySelector('.m-btn');
+      const form = document.querySelector('.m-form');
+      if (form) {
+        form.innerHTML = '<p style="font-family:var(--mono),monospace;font-size:13px;color:var(--p);letter-spacing:.04em;">You\'re on the list. The studio notifies you when the Stripe link is live.</p>';
+      }
+    }
+  })();
+</script>
+</body>
+</html>

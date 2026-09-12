@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Prisma migration safety checklist (12 checks + 6 stories) &mdash; Septim Labs</title>
+    <!-- Open Graph + Twitter Card (auto-injected by inject_og_meta.py) -->
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://septimlabs.com/blog/prisma-migration-safety-checklist" />
+    <meta property="og:title" content="The Prisma migration safety checklist (12 checks + 6 stories) &amp;mdash; Septim Labs" />
+    <meta property="og:description" content="Every broken Prisma migration in production looks fine when you wrote it. Here" />
+    <meta property="og:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Septim Labs" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="The Prisma migration safety checklist (12 checks + 6 stories) &amp;mdash; Septim Labs" />
+    <meta name="twitter:description" content="Every broken Prisma migration in production looks fine when you wrote it. Here" />
+    <meta name="twitter:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+
+<meta name="description" content="Every broken Prisma migration in production looks fine when you wrote it. Here's the 12-check safety list, the 6 outage stories behind each check, and the Claude-powered pre-commit hook that catches them before the commit lands." />
+<meta name="keywords" content="prisma migration safety, prisma migration rollback, prisma rename column, prisma production migration, prisma migration gotchas, prisma migration best practices, prisma schema drift, prisma down migration, prisma foreign key migration, claude code migration review, pre-commit hook migration" />
+<meta property="og:title" content="The Prisma migration safety checklist (12 checks + 6 stories)" />
+<meta property="og:description" content="12-check safety list, 6 real production outage stories, and the pre-commit hook that catches the things you forgot before the commit lands." />
+<meta property="og:url" content="https://septimlabs.com/blog/prisma-migration-safety-checklist.html" />
+<meta property="og:type" content="article" />
+<link rel="canonical" href="https://septimlabs.com/blog/prisma-migration-safety-checklist.html" />
+
+<!-- SEPTIM-I18N-HREFLANG -->
+<link rel="alternate" hreflang="x-default" href="https://septimlabs.com/blog/prisma-migration-safety-checklist.html" />
+<link rel="alternate" hreflang="en" href="https://septimlabs.com/blog/prisma-migration-safety-checklist.html" />
+<link rel="alternate" hreflang="es" href="https://septimlabs.com/es/blog/prisma-migration-safety-checklist.html" />
+<link rel="alternate" hreflang="zh" href="https://septimlabs.com/zh/blog/prisma-migration-safety-checklist.html" />
+<link rel="alternate" hreflang="hi" href="https://septimlabs.com/hi/blog/prisma-migration-safety-checklist.html" />
+<link rel="alternate" hreflang="pt" href="https://septimlabs.com/pt/blog/prisma-migration-safety-checklist.html" />
+<link rel="alternate" hreflang="de" href="https://septimlabs.com/de/blog/prisma-migration-safety-checklist.html" />
+<link rel="alternate" hreflang="fr" href="https://septimlabs.com/fr/blog/prisma-migration-safety-checklist.html" />
+<link rel="alternate" hreflang="ja" href="https://septimlabs.com/ja/blog/prisma-migration-safety-checklist.html" />
+<link rel="alternate" hreflang="ru" href="https://septimlabs.com/ru/blog/prisma-migration-safety-checklist.html" />
+<link rel="alternate" hreflang="ar" href="https://septimlabs.com/ar/blog/prisma-migration-safety-checklist.html" />
+<!-- /SEPTIM-I18N-HREFLANG -->
+
+
+
+
+
+
+
+
+
+
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/kit/apple-touch-icon-180.png" />
+
+
+
+<style>
+  *,*::before,*::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root { --bg: var(--bg); --bg-2: var(--bg-1); --border: var(--line); --text: var(--ink); --muted: var(--ink-2); --subtle: var(--ink-3); --accent: #ff6b6b; --good: var(--p); --danger: #ff6b6b; }
+  body { font-family: var(--sans), -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.72; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+  .mono, code { font-family: var(--mono), monospace; font-size: 0.9em; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+  nav { position: sticky; top: 0; z-index: 50; background: rgba(10,10,10,0.9); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 56px; padding: 0 24px; }
+  nav .brand { font-family: var(--mono), monospace; font-weight: 700; font-size: 14px; color: var(--text); } nav .brand .dot { color: var(--accent); }
+  nav .links a { color: var(--muted); margin-left: 18px; font-size: 13px; }
+
+  .danger-bar { background: rgba(255,107,107,0.1); color: var(--danger); border-top: 1px solid rgba(255,107,107,0.3); border-bottom: 1px solid rgba(255,107,107,0.3); padding: 10px 14px; text-align: center; font-size: 13px; font-family: var(--mono), monospace; font-weight: 700; letter-spacing: 0.01em; }
+
+  article { padding: 56px 0 80px; }
+  .kicker { font-family: var(--mono), monospace; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; display: block; }
+  h1 { font-size: clamp(32px, 5vw, 44px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 14px; }
+  h1 em {font-style:normal;color:var(--p)}
+  .byline { color: var(--subtle); font-size: 14px; margin-bottom: 30px; font-family: var(--mono), monospace; }
+  article h2 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; margin-top: 44px; margin-bottom: 12px; }
+  article h3 { font-size: 19px; font-weight: 700; margin-top: 28px; margin-bottom: 8px; }
+  article h4 { font-size: 15px; font-weight: 700; margin-top: 16px; margin-bottom: 6px; color: var(--text); }
+  article p { color: var(--muted); margin-bottom: 16px; font-size: 16.5px; }
+  article ul, article ol { color: var(--muted); padding-left: 22px; margin-bottom: 18px; }
+  article li { margin-bottom: 6px; font-size: 16px; }
+  article pre { background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; overflow-x: auto; margin: 18px 0; font-size: 13px; line-height: 1.6; }
+  article code { background: var(--line); padding: 2px 6px; border-radius: 4px; color: var(--accent); }
+  article pre code { background: none; padding: 0; color: var(--text); }
+
+  .check-item { background: var(--bg-2); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 10px; padding: 20px 22px; margin: 18px 0; }
+  .check-item .num { font-family: var(--mono), monospace; font-size: 11px; letter-spacing: 0.14em; color: var(--accent); margin-bottom: 6px; }
+  .check-item h3 { margin-top: 0; font-size: 17px; }
+  .check-item .story { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); font-size: 14px; color: var(--muted); font-style: italic; line-height: 1.6; }
+  .check-item .story strong { color: var(--text); font-style: normal; }
+
+  .cta-box { background: rgba(255,107,107,0.06); border: 1px solid rgba(255,107,107,0.35); border-radius: 14px; padding: 22px 24px; margin: 36px 0; }
+  .cta-box h4 { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .cta-box p { font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+  .cta-box a { font-family: var(--mono), monospace; font-size: 13px; color: var(--accent); font-weight: 700; }
+
+  footer { padding: 30px 0; border-top: 1px solid var(--border); text-align: center; color: var(--subtle); font-size: 12px; } footer a { color: var(--muted); }
+</style>
+<!-- SEO-R4-BLOGPOSTING -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"The Prisma migration safety checklist (12 checks + 6 stories) — Septim Labs","description":"Every broken Prisma migration in production looks fine when you wrote it. Here","url":"https://septimlabs.com/blog/prisma-migration-safety-checklist.html","datePublished":"2026-04-11","dateModified":"2026-04-26","author":{"@type":"Organization","@id":"https://septimlabs.com/#organization","name":"Septim Labs","url":"https://septimlabs.com/about"},"publisher":{"@type":"Organization","name":"Septim Labs","url":"https://septimlabs.com","logo": { "@type": "ImageObject", "url": "https://septimlabs.com/assets/brand/kit/favicon-512.png"},"@id":"https://septimlabs.com/#organization"},"mainEntityOfPage":{"@type":"WebPage","@id":"https://septimlabs.com/blog/prisma-migration-safety-checklist.html"},"image":"https://septimlabs.com/assets/brand/kit/og-card-v2.png","inLanguage":"en-US","keywords":"prisma migration safety, prisma production migration, safe schema migration, prisma checklist","articleSection":"Engineering"}</script><!-- SEO-R8-AUTHOR-BOUND -->
+<!-- SEO-R8-BREADCRUMB -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://septimlabs.com/"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://septimlabs.com/blog/"},{"@type":"ListItem","position":3,"name":"Prisma Migration Safety Checklist","item":"https://septimlabs.com/blog/prisma-migration-safety-checklist.html"}]}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../site.css?v=4.6.1">
+<style>
+  body[data-page="blog-prisma-migration-safety-checklist"]{ --p: var(--n-orange); }
+
+  body[data-page="blog-prisma-migration-safety-checklist"]{ --p: var(--n-aqua); }
+  
+  /* ── Blog post visual motif (theme-aware, --p driven) ── */
+  .blog-motif{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--bg-1);padding:24px 26px;margin:14px 0 36px;overflow:hidden}
+  .blog-motif svg{display:block;width:100%;height:auto;overflow:visible;max-height:200px}
+  .blog-motif .ann{font-family:var(--mono);font-size:10px;fill:var(--ink-3);letter-spacing:.1em;text-transform:uppercase}
+  .blog-motif .ann.hi{fill:var(--p)}
+  .blog-motif .axis{stroke:var(--line-2);stroke-width:.8;fill:none}
+  .blog-motif .ring{stroke:var(--line-2);stroke-width:.8;fill:none}
+  .blog-motif .center{fill:var(--p);stroke:var(--bg);stroke-width:2}
+  /* agents-grid */
+  .blog-motif .nodes .n{fill:var(--p);opacity:.65}
+  .blog-motif .nodes .hub{fill:var(--p);filter:drop-shadow(0 0 6px var(--p-glow))}
+  .blog-motif .nodes .trace{stroke:var(--p);stroke-width:.8;opacity:.35;stroke-dasharray:120;stroke-dashoffset:120;animation:bm-trace 3s ease-out forwards}
+  @keyframes bm-trace{to{stroke-dashoffset:0;opacity:.65}}
+  /* security-radar */
+  .blog-motif .sweep{fill:var(--p);opacity:.18;transform-origin:0 0;animation:bm-sweep 6s linear infinite}
+  @keyframes bm-sweep{to{}}
+  .blog-motif .threat.hi{fill:var(--p);filter:drop-shadow(0 0 4px var(--p-glow))}
+  .blog-motif .threat.med{fill:var(--ink-2)}
+  .blog-motif .threat.low{fill:var(--ink-3)}
+  /* cost-bars */
+  .blog-motif .bar.a{fill:var(--ink-3);opacity:.55}
+  .blog-motif .bar.b{fill:var(--p);filter:drop-shadow(0 0 6px var(--p-glow))}
+  .blog-motif .flatline{stroke:var(--p);stroke-width:1.5;stroke-dasharray:3 4}
+  .blog-motif .endpoint{fill:var(--p)}
+  /* schema-diff */
+  .blog-motif .diff-h{font-family:var(--mono);font-size:11px;fill:var(--ink-3);letter-spacing:.12em;text-transform:uppercase}
+  .blog-motif .diff-h.hi{fill:var(--p)}
+  .blog-motif .diff-l{font-family:var(--mono);font-size:11px;fill:var(--ink-2)}
+  .blog-motif .row.del{fill:var(--p);opacity:.06}
+  .blog-motif .row.add{fill:var(--p);opacity:.16}
+  .blog-motif .row.neutral{fill:var(--shade)}
+  .blog-motif .arr{stroke:var(--p);stroke-width:1.5;fill:var(--p)}
+  /* cost-spike */
+  .blog-motif .curve{stroke:var(--p);stroke-width:2;fill:none;stroke-linejoin:round;stroke-linecap:round;filter:drop-shadow(0 0 6px var(--p-glow))}
+  .blog-motif .peak{fill:var(--p);filter:drop-shadow(0 0 6px var(--p-glow))}
+  .blog-motif .peak-stem,.blog-motif .fix-stem{stroke:var(--p);stroke-width:.8;stroke-dasharray:2 3;opacity:.5}
+  .blog-motif .peak-lbl{font-family:var(--mono);font-size:10px;fill:var(--p);letter-spacing:.08em;font-weight:500}
+  /* shared cite-this strip */
+  .cite-this{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;margin:0 0 22px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+  .cite-this b{color:var(--p);font-weight:500}
+  .cite-this .pill{padding:3px 10px;border:1px solid var(--p);border-radius:99px;color:var(--p);background:var(--p-soft)}
+  /* related-posts footer */
+  .blog-related{margin:64px 0 0;padding:32px 28px;border:1px solid var(--line);border-radius:8px;background:var(--bg-1)}
+  .blog-related h4{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.12em;text-transform:uppercase;margin:0 0 18px}
+  .blog-related .row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .blog-related a{display:block;padding:14px 16px;border:1px solid var(--line);border-radius:6px;color:var(--ink);text-decoration:none;font-size:14px;line-height:1.45;transition:border-color .2s,background .2s,color .2s}
+  .blog-related a:hover{border-color:var(--p);background:var(--p-soft);color:var(--p)}
+  .blog-related a .lbl{display:block;font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+  @media (max-width:760px){.blog-related .row{grid-template-columns:1fr}}
+
+  /* unique motif: prisma-migration-safety-checklist */
+  .blog-motif .gt rect{fill:var(--bg);stroke:var(--line);stroke-width:1;transition:stroke .25s,fill .25s}
+.blog-motif .gt:hover rect{stroke:var(--p);fill:color-mix(in srgb,var(--p) 10%,var(--bg))}
+.blog-motif .gt.deploy rect{fill:var(--n-mint);stroke:var(--n-mint)}
+.blog-motif .gn{font-family:var(--mono);font-size:9.5px;fill:var(--ink-3);letter-spacing:.06em}
+.blog-motif .gc{font-family:var(--mono);font-size:14px;fill:var(--p)}
+.blog-motif .gd{font-family:var(--mono);font-size:18px;fill:var(--bg);font-weight:600}
+.blog-motif .footer-l{font-family:var(--mono);font-size:10px;fill:var(--ink-3);letter-spacing:.08em}
+</style>
+<!-- RETROFIT-V4-APPLIED -->
+<!-- TOKEN-CONVERT-V4-APPLIED -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","speakable":{"@type":"SpeakableSpecification","cssSelector":["h1","h2",".lede","blockquote"]},"url":"https://septimlabs.com/blog/prisma-migration-safety-checklist.html"}</script>
+<!-- BLOG-ENRICH-V4-1 -->
+<!-- BLOG-MOTIFS-UNIQUE-V1 -->
+</head>
+<body data-page="blog-prisma-migration-safety-checklist">
+<div id="site-nav"></div>
+  
+
+  <div class="danger-bar">&#9888; Every broken Prisma migration in production looks fine when you wrote it.</div>
+
+  <main class="wrap">
+    <article>
+      <span class="kicker">&middot; guide &middot;</span>
+      <h1>The Prisma migration <em>safety checklist</em> &mdash; 12 checks + 6 outage stories</h1>
+<figure class="blog-motif" aria-labelledby="m-fc-prisma-migration-safety-checklist"><figcaption id="m-fc-prisma-migration-safety-checklist" class="blog-motif-cap"><span class="cap-l">// figure</span> Twelve gates before prisma migrate deploy</figcaption><svg viewBox="0 0 720 180" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="m-t-pms m-d-pms">
+<title id="m-t-pms">Prisma migration safety gauntlet</title>
+<desc id="m-d-pms">A horizontal row of 12 numbered gates labeled with check categories ending in a green deploy gate.</desc>
+<g class="gates">
+<g class="gt" transform="translate(30 60)"><rect width="44" height="60" rx="3"/><text x="22" y="22" text-anchor="middle" class="gn">01</text><text x="22" y="46" text-anchor="middle" class="gc">✓</text></g><g class="gt" transform="translate(83 60)"><rect width="44" height="60" rx="3"/><text x="22" y="22" text-anchor="middle" class="gn">02</text><text x="22" y="46" text-anchor="middle" class="gc">✓</text></g><g class="gt" transform="translate(136 60)"><rect width="44" height="60" rx="3"/><text x="22" y="22" text-anchor="middle" class="gn">03</text><text x="22" y="46" text-anchor="middle" class="gc">✓</text></g><g class="gt" transform="translate(189 60)"><rect width="44" height="60" rx="3"/><text x="22" y="22" text-anchor="middle" class="gn">04</text><text x="22" y="46" text-anchor="middle" class="gc">✓</text></g><g class="gt" transform="translate(242 60)"><rect width="44" height="60" rx="3"/><text x="22" y="22" text-anchor="middle" class="gn">05</text><text x="22" y="46" text-anchor="middle" class="gc">✓</text></g><g class="gt" transform="translate(295 60)"><rect width="44" height="60" rx="3"/><text x="22" y="22" text-anchor="middle" class="gn">06</text><text x="22" y="46" text-anchor="middle" class="gc">✓</text></g><g class="gt" transform="translate(348 60)"><rect width="44" height="60" rx="3"/><text x="22" y="22" text-anchor="middle" class="gn">07</text><text x="22" y="46" text-anchor="middle" class="gc">✓</text></g><g class="gt" transform="translate(401 60)"><rect width="44" height="60" rx="3"/><text x="22" y="22" text-anchor="middle" class="gn">08</text><text x="22" y="46" text-anchor="middle" class="gc">✓</text></g><g class="gt" transform="translate(454 60)"><rect width="44" height="60" rx="3"/><text x="22" y="22" text-anchor="middle" class="gn">09</text><text x="22" y="46" text-anchor="middle" class="gc">✓</text></g><g class="gt" transform="translate(507 60)"><rect width="44" height="60" rx="3"/><text x="22" y="22" text-anchor="middle" class="gn">10</text><text x="22" y="46" text-anchor="middle" class="gc">✓</text></g><g class="gt" transform="translate(560 60)"><rect width="44" height="60" rx="3"/><text x="22" y="22" text-anchor="middle" class="gn">11</text><text x="22" y="46" text-anchor="middle" class="gc">✓</text></g><g class="gt" transform="translate(613 60)"><rect width="44" height="60" rx="3"/><text x="22" y="22" text-anchor="middle" class="gn">12</text><text x="22" y="46" text-anchor="middle" class="gc">✓</text></g><g class="gt deploy" transform="translate(670 60)"><rect width="30" height="60" rx="3"/><text x="15" y="38" text-anchor="middle" class="gd">→</text></g>
+</g>
+<text x="40" y="156" class="footer-l">// 12 SAFETY CHECKS · DEPLOY ONLY IF ALL PASS</text>
+</svg></figure>
+<div class="cite-this"><span><b>// FILED</b> Engineering</span><span><b>// SOURCE</b> Septim Labs</span><span><b>// PERMALINK</b> /blog/prisma-migration-safety-checklist.html</span><span class="pill">cite this →</span></div>
+
+<!-- SEO-R7-AUTHOR-BYLINE --><!-- SEO-R10-BYLINE-REPOINTED -->
+<div role="contentinfo" aria-label="Article byline" style="display:flex;flex-wrap:wrap;align-items:center;gap:.85rem;max-width:780px;margin:1.6rem auto 0;padding:.8rem 1rem;background:var(--shade);border:1px solid var(--line);border-radius:10px;font-family:var(--sans),-apple-system,sans-serif;font-size:.82rem;color:var(--ink-2);line-height:1.5;"><span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:rgba(0,217,255,0.1);border:1px solid rgba(0,217,255,0.3);color:var(--p);font-weight:800;font-size:.85rem;flex-shrink:0;">E</span><div style="flex:1;min-width:0"><div style="color:var(--ink);font-weight:600;font-size:.92rem">By <a href="https://septimlabs.com/about" style="color:var(--ink);text-decoration:underline;text-underline-offset:3px">the Septim Labs team</a></div><div style="font-family:var(--mono),monospace;font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-top:.18rem">Published April 11, 2026 &middot; Updated April 26, 2026</div></div><a href="https://septimlabs.com/find" style="font-family:var(--mono),monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--p);text-decoration:none;padding:.4rem .8rem;border:1px solid rgba(0,217,255,0.32);border-radius:999px;background:rgba(0,217,255,0.06);white-space:nowrap;">Find your tool &rarr;</a></div>
+
+      <div class="byline">Published April 20, 2026 &middot; by Septim Labs &middot; 11 min read</div>
+
+      <p>I&rsquo;ve been on the wrong end of enough 2am Slack messages to know the pattern. "Hey, the login endpoint is throwing 500s in prod." "The seed script can&rsquo;t find the <code>users.email</code> column." "Staging is fine, prod is broken, please look." Every time &mdash; <em>every time</em> &mdash; it traces back to a migration that worked locally, passed CI, and blew up the moment it hit a real database with real concurrent writes and a real up-to-down version gap.</p>
+
+      <p>This post is the twelve-check Prisma migration safety list I wish every migration author kept pinned to their monitor. Each check comes with a short story from an actual outage I or a colleague has shipped. Some names are changed. All of the patterns are real.</p>
+
+      <p>At the end I&rsquo;ll describe the Claude-powered pre-commit hook we&rsquo;re building that runs these checks automatically on every migration file you stage &mdash; but first, the list.</p>
+
+      <h2>The 12 checks</h2>
+
+      <div class="check-item">
+        <div class="num">01 &middot; CRITICAL</div>
+        <h3>Every destructive change has a written-out rollback.</h3>
+        <p>A destructive change is any DROP, any RENAME, any ALTER that changes a column type, any NOT NULL that wasn&rsquo;t NOT NULL before. Prisma&rsquo;s default migration engine does not generate a down-migration. You have to write it. If you can&rsquo;t describe how to reverse the change in SQL before you commit, you don&rsquo;t have a migration &mdash; you have a landmine.</p>
+        <div class="story"><strong>Story:</strong> a team renamed <code>users.email_address</code> to <code>users.email</code> in one migration. Canary was fine. Prod was fine. The <em>next</em> deploy of the application &mdash; three weeks later &mdash; rolled back the app image to one that still expected <code>users.email_address</code>, and the user table was now unreadable to the old code. Fifteen-minute partial outage. Rollback would have been trivial if it existed.</div>
+      </div>
+
+      <div class="check-item">
+        <div class="num">02 &middot; CRITICAL</div>
+        <h3>Column renames are done in two migrations, never one.</h3>
+        <p>A single-migration column rename is almost always wrong in any environment where the application runs across multiple servers or has rolling deploys. The correct pattern: (1) add the new column, backfill it, and have the app write to both; (2) cut the app over to read from the new column; (3) drop the old column. Three deploys. Prisma&rsquo;s rename shortcut collapses this into one migration &mdash; it works only if your app is entirely offline during the migration.</p>
+        <div class="story"><strong>Story:</strong> the Prisma <code>@@map</code> + <code>@map</code> annotation is a frequent false sense of security here. It changes the logical-to-physical mapping but does not generate the three-step expand-and-contract sequence. A dev assumed it did. 14 minutes of 500s on the <code>/billing</code> endpoint.</div>
+      </div>
+
+      <div class="check-item">
+        <div class="num">03 &middot; CRITICAL</div>
+        <h3>Adding a NOT NULL column has a default value or a backfill.</h3>
+        <p>Adding <code>NOT NULL</code> without a default fails on any table with existing rows. Adding it with a default that doesn&rsquo;t fit your data fails <em>silently</em> &mdash; you get every existing row stamped with the default, and the app now treats those as real values. Three paths are correct: add with a default, add nullable then backfill then alter to NOT NULL, or add nullable and leave it that way if null is acceptable. Pick one explicitly.</p>
+        <div class="story"><strong>Story:</strong> <code>users.plan</code> added as <code>NOT NULL DEFAULT 'free'</code>. Every grandfathered paid user got silently downgraded to free. Nobody noticed for 6 hours because the billing job ran at midnight. Refund queue for 3 days.</div>
+      </div>
+
+      <div class="check-item">
+        <div class="num">04 &middot; CRITICAL</div>
+        <h3>Foreign keys reference tables that exist at migration time.</h3>
+        <p>Prisma will let you reference a model that doesn&rsquo;t have its migration applied yet in some configurations. The migration engine doesn&rsquo;t always order migrations by foreign-key dependency when you merge branches. If you&rsquo;re stacking migrations from multiple feature branches, check that the <em>referenced</em> table&rsquo;s migration sorts before the <em>referencing</em> table&rsquo;s migration lexicographically by timestamp.</p>
+        <div class="story"><strong>Story:</strong> two teams merged on Friday afternoon. Team A added <code>Organization</code>. Team B added <code>Project</code> with a FK to <code>Organization</code>. Timestamps were within 3 seconds of each other and the sort order put Project before Organization on deploy. 20 minutes of <code>ERROR 1452</code> in prod during the blue-green window.</div>
+      </div>
+
+      <div class="check-item">
+        <div class="num">05 &middot; HIGH</div>
+        <h3>Unique indexes on existing tables don&rsquo;t conflict with current data.</h3>
+        <p>Adding a <code>@unique</code> on a column where duplicates already exist fails at migration time. Fine locally with an empty dev database. Catastrophic in prod. Before you add a unique constraint, run a <code>SELECT column, COUNT(*) FROM table GROUP BY column HAVING COUNT(*) &gt; 1</code> against a recent prod snapshot.</p>
+        <div class="story"><strong>Story:</strong> added a unique constraint on <code>users.phone_number</code>. Worked on the dev seed. Failed at migration in prod because 400 users had a legacy shared "+1-555-HELLO" placeholder. Migration blocked. Deploy blocked. Hotfix at midnight.</div>
+      </div>
+
+      <div class="check-item">
+        <div class="num">06 &middot; HIGH</div>
+        <h3>Indexes created on large tables use <code>CREATE INDEX CONCURRENTLY</code>.</h3>
+        <p>Prisma does not, by default, generate <code>CREATE INDEX CONCURRENTLY</code> for PostgreSQL. A regular <code>CREATE INDEX</code> holds an ACCESS EXCLUSIVE lock on the table for the duration. On a 50M-row table that&rsquo;s a minute of full lock &mdash; meaning every read and write hangs for that minute. Your app will not be dead, but it will look like it is.</p>
+        <div class="story"><strong>Story:</strong> a composite index on <code>events(tenant_id, created_at)</code> on a 120M-row table took 4 minutes. The four-minute lock queued enough writes that the connection pool saturated and started timing out <em>other</em> queries. 11-minute partial outage for a 4-minute index creation.</div>
+      </div>
+
+      <div class="check-item">
+        <div class="num">07 &middot; HIGH</div>
+        <h3>The seed script still works after this migration.</h3>
+        <p>Prisma seeds are separate from migrations but coupled to the schema. If you drop a column, rename a model, or change a required field, the seed script may still reference the old shape. This only bites you when a new developer clones the repo and runs <code>prisma migrate reset</code> &mdash; often weeks after the migration landed.</p>
+        <div class="story"><strong>Story:</strong> team dropped <code>users.role</code> in favor of a separate <code>UserRole</code> model. Seed script still did <code>prisma.user.create({ data: { ..., role: 'admin' }})</code>. Two weeks later a contractor joined, ran reset, got a cryptic Prisma error, filed a ticket, lost half a day.</div>
+      </div>
+
+      <div class="check-item">
+        <div class="num">08 &middot; HIGH</div>
+        <h3>Every model&rsquo;s migration file has a matching TypeScript regeneration.</h3>
+        <p>Merging a migration without running <code>prisma generate</code> pushes a schema change to your co-workers&rsquo; branches without the matching type definitions. Their TypeScript compiles fine (because they have the old types); your PR compiles fine; the <em>merged</em> code is broken in a way that slips through both CIs. Every migration PR should include the regenerated <code>node_modules/.prisma/client</code> content check or an explicit step in CI.</p>
+        <div class="story"><strong>Story:</strong> a <code>Post.slug</code> field was renamed to <code>Post.urlSlug</code>. The migration branch generated fresh types. Three other in-flight PRs merged with stale types. CI green on all four. Production build red.</div>
+      </div>
+
+      <div class="check-item">
+        <div class="num">09 &middot; MEDIUM</div>
+        <h3>Non-null field additions have a narrow time window or a backfill strategy.</h3>
+        <p>On large tables, even adding a nullable column can be slow under heavy write load because PostgreSQL rewrites the table. If the column is <code>NOT NULL</code>, you&rsquo;re also rewriting every row to set the default. Prefer short pre-announced maintenance windows for these; avoid them during peak traffic.</p>
+        <div class="story"><strong>Story:</strong> <code>orders.stripe_customer_id</code> added as <code>NOT NULL DEFAULT ''</code> at 2pm on a Tuesday. Took 90 seconds on the 85M-row table. That&rsquo;s 90 seconds of elevated p99 on every checkout. Support load spiked.</div>
+      </div>
+
+      <div class="check-item">
+        <div class="num">10 &middot; MEDIUM</div>
+        <h3>Migration names describe intent, not just action.</h3>
+        <p><code>20260401_add_field.sql</code> tells you nothing. <code>20260401_add_stripe_customer_id_to_orders.sql</code> tells the next human (or LLM) exactly what to audit. Good migration names are a security control &mdash; they surface dangerous changes to reviewers before they have to read SQL.</p>
+        <div class="story"><strong>Story:</strong> PR reviewer approved <code>20260401_update_users.sql</code> because the PR description looked fine. Didn&rsquo;t read the SQL. Migration dropped <code>users.api_key</code> column. API keys revoked across 3,000 tenants. 9-hour recovery.</div>
+      </div>
+
+      <div class="check-item">
+        <div class="num">11 &middot; MEDIUM</div>
+        <h3>You&rsquo;ve run the migration against a recent prod snapshot locally.</h3>
+        <p>Dev databases are tiny, clean, and schema-current. Prod databases are none of those. Keep a weekly-refreshed anonymized snapshot of prod available to every engineer. Run your migration against it before merging. This catches ~40% of the issues on this list automatically.</p>
+        <div class="story"><strong>Story:</strong> the unique-constraint-on-phone outage in check #5 would have been caught in 30 seconds against a prod snapshot. The team had a snapshot, but using it required an AWS VPN login that took 15 minutes, so nobody bothered.</div>
+      </div>
+
+      <div class="check-item">
+        <div class="num">12 &middot; LOW</div>
+        <h3>Your deployment pipeline halts between <code>prisma migrate deploy</code> and app deploy.</h3>
+        <p>Applying the migration and deploying the new app image should be two separate pipeline steps with a manual (or automated) gate in between. When something goes wrong, that gate is the difference between "rolled back in 30 seconds" and "schema in state A while app expects state B." Zero-downtime deploys require this gate to be short; observable deploys require it to exist at all.</p>
+        <div class="story"><strong>Story:</strong> unified CI step ran migration + deploy atomically. Migration succeeded; app image failed to pull from the registry (transient). App was down; schema was the new version; rolling back the app meant rolling back the schema. 6-minute outage for a 30-second fix.</div>
+      </div>
+
+      <h2>How the checklist ages</h2>
+
+      <p>About twice a year I revise this list. Patterns #3 and #4 are ten years old &mdash; they&rsquo;re not going anywhere. Patterns #6 and #9 are postgres-specific and would be different for MySQL or SQLite. Patterns #8 and #12 are Prisma-era &mdash; they didn&rsquo;t exist on the same list five years ago, and they&rsquo;ll probably evolve as the migration tooling does.</p>
+
+      <p>The point of the list isn&rsquo;t that it&rsquo;s exhaustive. The point is that the 12 things on it are the 12 things you can&rsquo;t afford to forget, and all 12 of them are detectable from the migration file plus a bit of surrounding context (the seed script, the model definition, the recent schema history). Which means they&rsquo;re all automatable.</p>
+
+      <h2>The automation layer</h2>
+
+      <p>Here&rsquo;s the structural problem with checklists: they require a human to remember to use them, at the exact moment they&rsquo;re most tired, on the thing that feels most routine. Friday afternoon. Last commit before vacation. 11pm push after a long day.</p>
+
+      <p>The right place to run this list is not on a PR review 4 hours later. It&rsquo;s at <code>git commit</code> &mdash; before the migration has even left your laptop. That&rsquo;s what we&rsquo;re building with <a href="/septim-guard">Septim Guard</a>.</p>
+
+      <div class="cta-box">
+        <h4>Septim Guard: the pre-commit hook version of this list</h4>
+        <p>Detects any file in your migrations directory (Prisma, Drizzle, TypeORM, Sequelize, Rails, Django, Alembic, Flyway, Liquibase, plus a custom path option). Sends the diff + the surrounding schema context to Claude with a checklist-shaped prompt. Returns a structured verdict in &lt;6 seconds. High-severity findings block the commit. Soft findings warn but pass. Hard override with <code>--no-verify</code>.</p>
+        <p>Launch list is <strong>$29 founding rate</strong> for the first 50 seats. Shipping June 2026. Pay $0 now. <a href="/septim-guard">Reserve your seat &rarr;</a></p>
+      </div>
+
+      <h2>Until Guard ships: three things you can do this week</h2>
+
+      <p>Even without a pre-commit hook, you can close ~70% of the gap tonight:</p>
+
+      <h3>1. Pin this checklist in your repo README</h3>
+
+      <p>Drop the 12-check list (or a link to this page) in <code>/docs/MIGRATION_CHECKLIST.md</code> and reference it from your PR template under a "Migration safety" checkbox. Make the author tick each box before the PR is reviewable. Psychological friction beats zero friction.</p>
+
+      <h3>2. Add a simple prod-snapshot script to your Makefile</h3>
+
+      <pre><code>make db-snapshot-test: \
+  pg_dump --no-owner --no-privileges prod | \
+  psql local-snapshot-db && \
+  prisma migrate dev --preview-feature</code></pre>
+
+      <p>Whatever your version of this is &mdash; the idea is to make running your migration against a prod-shaped schema one command, not 15 minutes of VPN.</p>
+
+      <h3>3. Require two approvers on any migration PR</h3>
+
+      <p>The single cheapest governance control that actually works. Two humans who have to read the SQL before it merges. Most teams don&rsquo;t do this because it feels bureaucratic. Most teams also have the outage stories above.</p>
+
+      <h2>Closing</h2>
+
+      <p>Migrations fail in the same patterns every time. That&rsquo;s good news: it means the patterns are reviewable by any reviewer who knows the list &mdash; human, checklist, or LLM. The twelve above are the ones that matter. Pin the list. Run the snapshot. Require two approvers. And when Guard ships, run the checklist automatically on every commit, so you don&rsquo;t have to remember.</p>
+
+      <div class="cta-box">
+        <h4>Already using Tether?</h4>
+        <p><a href="/tether">Septim Tether</a> ($19) runs Claude on your general pre-commit diff. <a href="/septim-guard">Septim Guard</a> ($29 founding) specializes in migration files with 11 framework presets and schema-aware checks. Tether owners upgrade to Guard for $15 when it launches.</p>
+      </div>
+
+      <h3>Further reading</h3>
+      <ul>
+        <li><a href="/blog/claude-code-pr-review-setup-2026.html">How to set up Claude Code PR review in 2026 (3 options, real tradeoffs)</a> &mdash; PR-review pattern survey, covers the CI layer this post doesn&rsquo;t.</li>
+        <li><a href="/blog/tokenocalypse-subagent-cost-guide.html">The Tokenocalypse: why your Claude subagents burned $47K</a> &mdash; same hook pattern, applied to cost instead of migrations.</li>
+        <li><a href="/septim-guard">Septim Guard</a> &mdash; the product page with the reservation form.</li>
+        <li><a href="/tether">Septim Tether</a> &mdash; the $19 general-purpose pre-commit hook that Guard is a sibling of.</li>
+      </ul>
+    </article>
+  </main>
+
+  
+<!-- SEO-R4-LAST-UPDATED -->
+<aside style="position:fixed;left:14px;bottom:14px;z-index:40;font-family:var(--mono),ui-monospace,monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);background:rgba(10,10,10,0.84);backdrop-filter:blur(6px);padding:6px 10px;border:1px solid var(--line);border-radius:999px;pointer-events:none;" aria-hidden="false"><span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#00ff88;box-shadow:0 0 0 3px rgba(0,255,136,.18);margin-right:.4rem;vertical-align:middle;"></span>Last updated · April 26, 2026</aside>
+
+<div id="site-foot"></div>
+<script src="../site-shell.js?v=4.6.0"></script>
+<script src="../site.js?v=4.6.0"></script>
+<aside class="blog-related" aria-label="Related from Septim Labs"><h4>// continue reading</h4><div class="row"><a href="stripe-integration-guide.html"><span class="lbl">// related post</span>Wiring Stripe checkout</a><a href="how-to-write-claude-md-2026.html"><span class="lbl">// related post</span>How to write a CLAUDE.md</a><a href="../tools/forge.html"><span class="lbl">// from septim labs</span>Septim Forge — $89</a></div></aside>
+</body>
+</html>

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es" dir="ltr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Septim Palette &mdash; 5-color palette generator built for Claude Code / AI dev UIs</title>
+    <!-- Open Graph + Twitter Card (auto-injected by inject_og_meta.py) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://septimlabs.com/es/tools/palette/" />
+    <meta property="og:title" content="Septim Palette &amp;mdash; 5-color palette generator built for Claude Code / AI dev UIs — Septim Labs" />
+    <meta property="og:description" content="Free browser-based palette generator for developers. Lock colors, tap space to regenerate, export as CSS variables, Tailwind config, JSON tokens, or SVG. Built by Septim Labs." />
+    <meta property="og:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Septim Labs" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Septim Palette &amp;mdash; 5-color palette generator built for Claude Code / AI dev UIs — Septim Labs" />
+    <meta name="twitter:description" content="Free browser-based palette generator for developers. Lock colors, tap space to regenerate, export as CSS variables, Tailwind config, JSON tokens, or SVG. Built by Septim Labs." />
+    <meta name="twitter:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+
+<meta name="description" content="Free browser-based palette generator for developers. Lock colors, tap space to regenerate, export as CSS variables, Tailwind config, JSON tokens, or SVG. Built by Septim Labs." />
+<meta name="keywords" content="palette generator, color palette tool, Tailwind config generator, CSS variables export, design tokens, Claude Code design" />
+<meta property="og:title" content="Septim Palette &mdash; palette generator for developers" />
+<meta property="og:description" content="Free. Browser-based. No signup. Lock colors, tap space to reroll, export to CSS/Tailwind/JSON. 12 harmony modes." />
+<meta property="og:url" content="https://septimlabs.com/tools/palette" />
+<meta property="og:type" content="website" />
+<link rel="canonical" href="https://septimlabs.com/es/tools/palette/" />
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/kit/apple-touch-icon-180.png" />
+
+
+
+<style>
+  *,*::before,*::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root { --bg: var(--bg); --bg-2: var(--bg-1); --border: var(--line); --border-hi: var(--line-2); --text: var(--ink); --muted: var(--ink-2); --subtle: var(--ink-3); --accent: var(--p); }
+  html, body { height: 100%; overflow: hidden; }
+  body { font-family: var(--sans), -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.45; -webkit-font-smoothing: antialiased; display: flex; flex-direction: column; }
+  a { color: inherit; text-decoration: none; }
+  .mono { font-family: var(--mono), monospace; }
+
+  nav { flex: none; background: rgba(10,10,10,0.9); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; gap: 16px; max-width: 100%; }
+  .nav-inner a.logo { font-weight: 800; letter-spacing: -.02em; font-size: 14px; color: var(--text); }
+  .nav-inner .crumb { font-family: var(--mono), monospace; font-size: 11px; color: var(--subtle); letter-spacing: .12em; text-transform: uppercase; }
+  .nav-inner .crumb .sep { margin: 0 8px; color: var(--border-hi); }
+  .nav-inner .crumb strong { color: var(--accent); font-weight: 600; }
+  .nav-right { display: flex; align-items: center; gap: 14px; }
+  .nav-right a { font-size: 12px; color: var(--muted); font-family: var(--mono), monospace; letter-spacing: .08em; }
+  .nav-right a:hover { color: var(--accent); }
+
+  .toolbar { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; border-bottom: 1px solid var(--border); background: #0d0d0d; gap: 12px; flex-wrap: wrap; }
+  .harmony { display: flex; gap: 4px; flex-wrap: wrap; }
+  .harmony button { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: var(--mono), monospace; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 6px 10px; border-radius: 6px; cursor: pointer; transition: all .12s; }
+  .harmony button:hover { border-color: var(--accent); color: var(--text); }
+  .harmony button.active { border-color: var(--accent); background: rgba(0,217,255,0.1); color: var(--accent); }
+  .actions { display: flex; gap: 6px; }
+  .actions button { background: var(--bg-2); border: 1px solid var(--border); color: var(--text); font-family: var(--mono), monospace; font-size: 11px; letter-spacing: .06em; padding: 7px 14px; border-radius: 6px; cursor: pointer; transition: all .12s; }
+  .actions button:hover { border-color: var(--accent); color: var(--accent); }
+  .actions button.primary { background: var(--accent); color: #003647; border-color: var(--accent); font-weight: 700; }
+  .actions button.primary:hover { filter: brightness(1.1); }
+
+  .stage { flex: 1; display: flex; overflow: hidden; }
+  .swatch { flex: 1; position: relative; cursor: pointer; transition: flex 0.25s cubic-bezier(0.25,0.1,0.25,1); display: flex; flex-direction: column; justify-content: flex-end; padding: 22px 20px; min-width: 60px; }
+  .swatch:hover { flex: 1.06; }
+  .swatch .hex { font-family: var(--mono), monospace; font-size: clamp(15px, 2.2vw, 22px); font-weight: 700; letter-spacing: .04em; margin-bottom: 6px; }
+  .swatch .name { font-family: var(--mono), monospace; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; opacity: 0.6; margin-bottom: 18px; }
+  .swatch .controls { display: flex; gap: 8px; opacity: 0.7; transition: opacity .15s; }
+  .swatch:hover .controls { opacity: 1; }
+  .swatch .ctl { width: 32px; height: 32px; border: 1.5px solid currentColor; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.08); cursor: pointer; font-size: 14px; transition: all .12s; }
+  .swatch .ctl:hover { background: rgba(0,0,0,0.25); transform: scale(1.06); }
+  .swatch .ctl.locked { background: rgba(0,0,0,0.3); }
+  .swatch.locked .hex::after { content: ' \u2022 locked'; font-size: 11px; font-weight: 400; opacity: 0.65; letter-spacing: .06em; }
+
+  .panel { position: fixed; inset: 0; background: rgba(0,0,0,0.72); backdrop-filter: blur(12px); display: none; align-items: center; justify-content: center; padding: 24px; z-index: 100; }
+  .panel.open { display: flex; }
+  .panel-inner { background: var(--bg-2); border: 1px solid var(--border-hi); border-radius: 14px; max-width: 720px; width: 100%; max-height: 86vh; overflow: auto; }
+  .panel-head { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--bg-2); z-index: 1; }
+  .panel-head h2 { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+  .panel-head button { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-family: var(--mono), monospace; font-size: 11px; letter-spacing: .08em; }
+  .panel-head button:hover { border-color: var(--accent); color: var(--accent); }
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); padding: 8px 16px 0; position: sticky; top: 55px; background: var(--bg-2); z-index: 1; }
+  .tabs button { background: transparent; border: none; color: var(--subtle); font-family: var(--mono), monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 8px 12px; border-bottom: 2px solid transparent; cursor: pointer; transition: color .12s; }
+  .tabs button:hover { color: var(--text); }
+  .tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .export-box { padding: 16px 22px; }
+  .export-box pre { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; font-family: var(--mono), monospace; font-size: 12px; line-height: 1.55; color: var(--text); white-space: pre-wrap; word-break: break-all; max-height: 50vh; overflow: auto; }
+  .copy-btn { margin-top: 10px; background: var(--accent); color: #003647; border: none; padding: 9px 18px; border-radius: 6px; font-weight: 700; font-family: var(--mono), monospace; font-size: 12px; letter-spacing: .06em; cursor: pointer; }
+  .copy-btn:hover { filter: brightness(1.1); }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #003647; padding: 10px 20px; border-radius: 999px; font-family: var(--mono), monospace; font-size: 12px; font-weight: 700; letter-spacing: .06em; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 200; }
+  .toast.show { opacity: 1; }
+
+  .hint { position: fixed; bottom: 24px; right: 24px; font-family: var(--mono), monospace; font-size: 10px; color: var(--subtle); letter-spacing: .1em; text-transform: uppercase; pointer-events: none; }
+
+  @media (max-width: 780px) { .toolbar { padding: 8px 14px; } .harmony { gap: 3px; } .harmony button { padding: 5px 7px; font-size: 9px; } .swatch { padding: 16px 14px; } .hint { display: none; } .stage { flex-direction: column; } .swatch { min-height: 80px; } }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../../site.css?v=4.6.1">
+<style>
+  body[data-page="tools-palette"]{ --p: var(--n-amber); }
+</style>
+<!-- RETROFIT-V4-APPLIED -->
+<!-- TOKEN-CONVERT-V4-APPLIED -->
+<meta property="og:locale" content="es_ES" />
+</head>
+<body data-page="tools-palette">
+<div id="site-nav"></div>
+
+
+
+<div class="toolbar">
+  <div class="harmony">
+    <button data-h="random" class="active">random</button>
+    <button data-h="analogous">analogous</button>
+    <button data-h="complementary">complementary</button>
+    <button data-h="triadic">triadic</button>
+    <button data-h="tetradic">tetradic</button>
+    <button data-h="monochrome">mono</button>
+    <button data-h="shades">shades</button>
+    <button data-h="dark-ui">dark-ui</button>
+  </div>
+  <div class="actions">
+    <button id="regen" class="primary" title="Space">Regenerate (Space)</button>
+    <button id="save-url" title="Copy shareable URL">Share URL</button>
+    <button id="export">Export</button>
+  </div>
+</div>
+
+<div class="stage" id="stage"></div>
+
+<div class="panel" id="panel">
+  <div class="panel-inner">
+    <div class="panel-head">
+      <h2>Export palette</h2>
+      <button id="close-panel">close (esc)</button>
+    </div>
+    <div class="tabs" id="tabs">
+      <button data-t="css" class="active">CSS variables</button>
+      <button data-t="tw">Tailwind</button>
+      <button data-t="json">JSON tokens</button>
+      <button data-t="scss">SCSS</button>
+      <button data-t="svg">SVG</button>
+      <button data-t="claude">CLAUDE.md</button>
+    </div>
+    <div class="export-box">
+      <pre id="export-out"></pre>
+      <button id="copy-export" class="copy-btn">Copy to clipboard</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="hint">Space = reroll &nbsp;&middot;&nbsp; Click hex = copy &nbsp;&middot;&nbsp; L = lock</div>
+
+<script>
+// ---------- Color utilities ----------
+function hexToHsl(hex) {
+  hex = hex.replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+  const r = parseInt(hex.slice(0,2), 16) / 255;
+  const g = parseInt(hex.slice(2,4), 16) / 255;
+  const b = parseInt(hex.slice(4,6), 16) / 255;
+  const max = Math.max(r,g,b), min = Math.min(r,g,b);
+  let h = 0, s = 0, l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)); break;
+      case g: h = ((b - r) / d + 2); break;
+      case b: h = ((r - g) / d + 4); break;
+    }
+    h *= 60;
+  }
+  return [Math.round(h), Math.round(s * 100), Math.round(l * 100)];
+}
+function hslToHex(h, s, l) {
+  s = Math.max(0, Math.min(100, s)) / 100;
+  l = Math.max(0, Math.min(100, l)) / 100;
+  h = ((h % 360) + 360) % 360;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+  const m = l - c / 2;
+  let r=0,g=0,b=0;
+  if (h < 60) { r=c; g=x; }
+  else if (h < 120) { r=x; g=c; }
+  else if (h < 180) { g=c; b=x; }
+  else if (h < 240) { g=x; b=c; }
+  else if (h < 300) { r=x; b=c; }
+  else { r=c; b=x; }
+  const to = v => Math.round((v + m) * 255).toString(16).padStart(2,'0');
+  return '#' + to(r) + to(g) + to(b);
+}
+function contrastText(hex) {
+  const [, , l] = hexToHsl(hex);
+  return l > 55 ? 'var(--bg-1)' : '#f8f8f8';
+}
+// Rough color-name labels (display only, not dictionary-accurate).
+function colorName(hex) {
+  const [h, s, l] = hexToHsl(hex);
+  if (s < 10) return l < 15 ? 'ink' : l < 30 ? 'charcoal' : l < 55 ? 'slate' : l < 75 ? 'stone' : 'chalk';
+  let base;
+  if (h < 15 || h >= 345) base = 'rust';
+  else if (h < 45) base = 'amber';
+  else if (h < 70) base = 'citron';
+  else if (h < 150) base = 'fern';
+  else if (h < 190) base = 'teal';
+  else if (h < 230) base = 'azure';
+  else if (h < 265) base = 'indigo';
+  else if (h < 295) base = 'violet';
+  else if (h < 330) base = 'rose';
+  else base = 'magenta';
+  const tone = l < 25 ? 'deep' : l < 45 ? 'rich' : l < 65 ? '' : l < 80 ? 'pale' : 'bleach';
+  return (tone ? tone + ' ' : '') + base;
+}
+
+// ---------- Harmony generators ----------
+function randHex(minL=18, maxL=75, minS=35, maxS=85) {
+  const h = Math.floor(Math.random() * 360);
+  const s = minS + Math.floor(Math.random() * (maxS - minS));
+  const l = minL + Math.floor(Math.random() * (maxL - minL));
+  return hslToHex(h, s, l);
+}
+function genPalette(mode, seedHex) {
+  const seedH = seedHex ? hexToHsl(seedHex) : [Math.floor(Math.random()*360), 60 + Math.floor(Math.random()*25), 50];
+  const [h, s, l] = seedH;
+  switch (mode) {
+    case 'analogous':
+      return [h - 30, h - 15, h, h + 15, h + 30].map(hh => hslToHex(hh, s, l + (Math.random()*20 - 10)));
+    case 'complementary':
+      return [h, h + 20, (h + 180) % 360, (h + 200) % 360, (h + 160) % 360].map((hh, i) => hslToHex(hh, s, l + (i*6 - 12)));
+    case 'triadic':
+      return [h, (h + 120) % 360, (h + 240) % 360, (h + 60) % 360, (h + 180) % 360].map((hh, i) => hslToHex(hh, s - (i*4), l + (i*4 - 8)));
+    case 'tetradic':
+      return [h, (h + 90) % 360, (h + 180) % 360, (h + 270) % 360, (h + 45) % 360].map((hh, i) => hslToHex(hh, s - (i*3), l + (i*3 - 6)));
+    case 'monochrome':
+      return [l - 35, l - 18, l, l + 18, l + 35].map(ll => hslToHex(h, s, Math.max(8, Math.min(92, ll))));
+    case 'shades':
+      return [15, 32, 50, 68, 85].map(ll => hslToHex(h, s * 0.85, ll));
+    case 'dark-ui':
+      return [hslToHex(h, 8, 6), hslToHex(h, 12, 12), hslToHex(h, 10, 22), hslToHex(h, s, 55), hslToHex(h, s+10, 72)];
+    default:
+      return [0,0,0,0,0].map(() => randHex());
+  }
+}
+
+// ---------- State ----------
+const state = {
+  colors: [null, null, null, null, null],
+  locked: [false, false, false, false, false],
+  harmony: 'random',
+};
+
+function applyHash() {
+  if (!location.hash) return;
+  const hex = location.hash.replace('#', '').split('-');
+  if (hex.length === 5 && hex.every(h => /^[0-9a-f]{6}$/i.test(h))) {
+    state.colors = hex.map(h => '#' + h);
+    state.locked = [false, false, false, false, false];
+  }
+}
+function writeHash() {
+  const hex = state.colors.map(c => c.replace('#', '')).join('-');
+  history.replaceState(null, '', '#' + hex);
+}
+
+function regenerate() {
+  const next = genPalette(state.harmony, state.locked.some(x => x) ? state.colors[state.locked.indexOf(true)] : null);
+  state.colors = state.colors.map((c, i) => state.locked[i] ? c : next[i]);
+  render();
+  writeHash();
+}
+
+function render() {
+  const stage = document.getElementById('stage');
+  stage.innerHTML = '';
+  state.colors.forEach((c, i) => {
+    const sw = document.createElement('div');
+    sw.className = 'swatch' + (state.locked[i] ? ' locked' : '');
+    sw.style.background = c;
+    sw.style.color = contrastText(c);
+    sw.innerHTML = `
+      <div class="hex">${c.toUpperCase()}</div>
+      <div class="name">${colorName(c)}</div>
+      <div class="controls">
+        <div class="ctl copy" title="Copy hex">&#128203;</div>
+        <div class="ctl lock ${state.locked[i] ? 'locked' : ''}" title="Lock (L)">${state.locked[i] ? '&#128274;' : '&#128275;'}</div>
+        <div class="ctl tune" title="Nudge">&#8645;</div>
+      </div>
+    `;
+    sw.querySelector('.copy').onclick = (e) => { e.stopPropagation(); copyText(c); };
+    sw.querySelector('.lock').onclick = (e) => { e.stopPropagation(); state.locked[i] = !state.locked[i]; render(); };
+    sw.querySelector('.tune').onclick = (e) => {
+      e.stopPropagation();
+      if (state.locked[i]) { toast('Unlock first to nudge'); return; }
+      const [h, s, l] = hexToHsl(state.colors[i]);
+      state.colors[i] = hslToHex(h, s, Math.max(5, Math.min(95, l + (Math.random() > 0.5 ? 8 : -8))));
+      render(); writeHash();
+    };
+    sw.onclick = () => copyText(c);
+    stage.appendChild(sw);
+  });
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => toast('Copied ' + text));
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove('show'), 1400);
+}
+
+// ---------- Exports ----------
+const exporters = {
+  css(c) {
+    return ':root {\n' + c.map((hex, i) => `  --color-${i+1}: ${hex};`).join('\n') + '\n}';
+  },
+  tw(c) {
+    return 'module.exports = {\n  theme: {\n    extend: {\n      colors: {\n' +
+      c.map((hex, i) => `        palette${i+1}: "${hex}",`).join('\n') +
+      '\n      }\n    }\n  }\n};';
+  },
+  json(c) {
+    return JSON.stringify({
+      palette: c.map((hex, i) => ({ name: `color-${i+1}`, label: colorName(hex), value: hex })),
+      generated: new Date().toISOString(),
+      source: 'septimlabs.com/tools/palette'
+    }, null, 2);
+  },
+  scss(c) {
+    return c.map((hex, i) => `$color-${i+1}: ${hex};`).join('\n') + '\n\n$palette: (\n' +
+      c.map((hex, i) => `  "color-${i+1}": ${hex}`).join(',\n') + '\n);';
+  },
+  svg(c) {
+    const w = 600, h = 120, step = w / c.length;
+    const rects = c.map((hex, i) => `  <rect x="${i*step}" y="0" width="${step}" height="${h}" fill="${hex}"/>\n  <text x="${i*step + step/2}" y="${h/2 + 4}" text-anchor="middle" font-family="monospace" font-size="14" fill="${contrastText(hex)}">${hex.toUpperCase()}</text>`).join('\n');
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">\n${rects}\n</svg>`;
+  },
+  claude(c) {
+    return `# Palette\n\nGenerated by Septim Palette (${new Date().toISOString().slice(0,10)}).\n\n` +
+      `Use these hex values consistently across the UI. Do not invent new accents mid-build.\n\n` +
+      c.map((hex, i) => `- **color-${i+1}** \u2014 \`${hex}\` \u2014 ${colorName(hex)}`).join('\n') +
+      `\n\nTailwind config + CSS variables also available at septimlabs.com/tools/palette`;
+  },
+};
+
+let currentTab = 'css';
+function renderExport() {
+  const out = document.getElementById('export-out');
+  out.textContent = exporters[currentTab](state.colors);
+}
+
+// ---------- Event wiring ----------
+document.querySelectorAll('.harmony button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.harmony button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.harmony = btn.dataset.h;
+    regenerate();
+  };
+});
+document.getElementById('regen').onclick = regenerate;
+document.getElementById('save-url').onclick = () => copyText(location.href);
+document.getElementById('export').onclick = () => {
+  document.getElementById('panel').classList.add('open');
+  renderExport();
+};
+document.getElementById('close-panel').onclick = () => document.getElementById('panel').classList.remove('open');
+document.getElementById('panel').onclick = (e) => {
+  if (e.target.id === 'panel') document.getElementById('panel').classList.remove('open');
+};
+document.querySelectorAll('#tabs button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('#tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.t;
+    renderExport();
+  };
+});
+document.getElementById('copy-export').onclick = () => copyText(document.getElementById('export-out').textContent);
+
+window.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.code === 'Space') { e.preventDefault(); regenerate(); }
+  if (e.key === 'Escape') { document.getElementById('panel').classList.remove('open'); }
+  if (e.key === 'l' || e.key === 'L') {
+    // lock whatever swatch the mouse is hovering (fallback: cycle)
+    const hover = document.querySelector('.swatch:hover');
+    if (hover) {
+      const idx = [...hover.parentElement.children].indexOf(hover);
+      state.locked[idx] = !state.locked[idx]; render();
+    }
+  }
+});
+
+applyHash();
+if (!state.colors[0]) {
+  state.colors = genPalette('random');
+}
+render();
+writeHash();
+</script>
+
+<div id="site-foot"></div>
+<script src="../../../site-shell.js?v=4.6.0"></script>
+<script src="../../../site.js?v=4.6.0"></script>
+</body>
+</html>

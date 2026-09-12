@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>How to set up Claude Code PR review in 2026 (3 options, real tradeoffs)</title>
+    <!-- Open Graph + Twitter Card (auto-injected by inject_og_meta.py) -->
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://septimlabs.com/zh/blog/claude-code-pr-review-setup-2026" />
+    <meta property="og:title" content="How to set up Claude Code PR review in 2026 (3 options, real tradeoffs) — Septim Labs" />
+    <meta property="og:description" content="Three ways to run Claude Code against your pull requests in 2026: the manual local flow, the GitHub Action flow, and the pre-commit hook flow. Real setup steps, real cost math, honest limits." />
+    <meta property="og:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Septim Labs" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="How to set up Claude Code PR review in 2026 (3 options, real tradeoffs) — Septim Labs" />
+    <meta name="twitter:description" content="Three ways to run Claude Code against your pull requests in 2026: the manual local flow, the GitHub Action flow, and the pre-commit hook flow. Real setup steps, real cost math, honest limits." />
+    <meta name="twitter:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+
+<meta name="description" content="Three ways to run Claude Code against your pull requests in 2026: the manual local flow, the GitHub Action flow, and the pre-commit hook flow. Real setup steps, real cost math, honest limits." />
+<meta property="og:title" content="How to set up Claude Code PR review in 2026" />
+<meta property="og:description" content="Three ways to run Claude against your PRs in 2026. Local. CI. Pre-commit. Setup steps + cost math." />
+<meta property="og:url" content="https://septimlabs.com/zh/blog/claude-code-pr-review-setup-2026.html" />
+<meta property="og:type" content="article" />
+<meta property="og:locale" content="zh_CN" />
+<link rel="canonical" href="https://septimlabs.com/zh/blog/claude-code-pr-review-setup-2026.html" />
+
+<!-- SEPTIM-I18N-HREFLANG -->
+<link rel="alternate" hreflang="x-default" href="https://septimlabs.com/blog/claude-code-pr-review-setup-2026.html" />
+<link rel="alternate" hreflang="en" href="https://septimlabs.com/blog/claude-code-pr-review-setup-2026.html" />
+<link rel="alternate" hreflang="es" href="https://septimlabs.com/es/blog/claude-code-pr-review-setup-2026.html" />
+<link rel="alternate" hreflang="zh" href="https://septimlabs.com/zh/blog/claude-code-pr-review-setup-2026.html" />
+<link rel="alternate" hreflang="hi" href="https://septimlabs.com/hi/blog/claude-code-pr-review-setup-2026.html" />
+<link rel="alternate" hreflang="pt" href="https://septimlabs.com/pt/blog/claude-code-pr-review-setup-2026.html" />
+<link rel="alternate" hreflang="de" href="https://septimlabs.com/de/blog/claude-code-pr-review-setup-2026.html" />
+<link rel="alternate" hreflang="fr" href="https://septimlabs.com/fr/blog/claude-code-pr-review-setup-2026.html" />
+<link rel="alternate" hreflang="ja" href="https://septimlabs.com/ja/blog/claude-code-pr-review-setup-2026.html" />
+<link rel="alternate" hreflang="ru" href="https://septimlabs.com/ru/blog/claude-code-pr-review-setup-2026.html" />
+<link rel="alternate" hreflang="ar" href="https://septimlabs.com/ar/blog/claude-code-pr-review-setup-2026.html" />
+<!-- /SEPTIM-I18N-HREFLANG -->
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/kit/apple-touch-icon-180.png" />
+
+
+
+<style>
+  *,*::before,*::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root { --bg: var(--bg); --bg-2: var(--bg-1); --border: var(--line); --text: var(--ink); --muted: var(--ink-2); --subtle: var(--ink-3); --accent: var(--p); }
+  body { font-family: var(--sans), -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.72; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .mono, code { font-family: var(--mono), monospace; font-size: 0.9em; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+  nav { position: sticky; top: 0; z-index: 50; background: rgba(10,10,10,0.9); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 56px; padding: 0 24px; }
+  nav .brand { font-family: var(--mono), monospace; font-weight: 700; font-size: 14px; color: var(--text); }
+  nav .brand .dot { color: var(--accent); }
+  nav .links a { color: var(--muted); margin-left: 18px; font-size: 13px; }
+
+  article { padding: 56px 0 80px; }
+  .kicker { font-family: var(--mono), monospace; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; display: block; }
+  h1 { font-size: clamp(32px, 5vw, 44px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 14px; }
+  h1 em {font-style:normal;color:var(--p)}
+  .byline { color: var(--subtle); font-size: 14px; margin-bottom: 30px; font-family: var(--mono), monospace; }
+
+  article h2 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; margin-top: 44px; margin-bottom: 12px; }
+  article h3 { font-size: 19px; font-weight: 700; margin-top: 28px; margin-bottom: 8px; }
+  article p { color: var(--muted); margin-bottom: 16px; font-size: 16.5px; }
+  article ul, article ol { color: var(--muted); padding-left: 22px; margin-bottom: 18px; }
+  article li { margin-bottom: 6px; font-size: 16px; }
+  article pre { background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; overflow-x: auto; margin: 18px 0; font-size: 13.5px; line-height: 1.6; }
+  article code { background: var(--line); padding: 2px 6px; border-radius: 4px; color: var(--accent); }
+  article pre code { background: none; padding: 0; color: var(--text); }
+
+  .comparison { margin: 30px 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .comparison-row { display: grid; grid-template-columns: 180px 1fr 1fr 1fr; font-size: 13px; }
+  .comparison-row.head { background: rgba(255,140,66,0.08); font-family: var(--mono), monospace; text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; color: var(--muted); }
+  .comparison-row > div { padding: 14px 16px; border-top: 1px solid var(--border); }
+  .comparison-row.head > div { border-top: none; }
+  .comparison-row > div:not(:last-child) { border-right: 1px solid var(--border); }
+  .comparison-row .label { color: var(--subtle); font-family: var(--mono), monospace; font-size: 12px; }
+
+  .cta-box { background: rgba(255,140,66,0.06); border: 1px solid rgba(255,140,66,0.3); border-radius: 14px; padding: 22px 24px; margin: 36px 0; }
+  .cta-box h4 { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .cta-box p { font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+  .cta-box a { font-family: var(--mono), monospace; font-size: 13px; color: var(--accent); font-weight: 700; }
+
+  footer { padding: 30px 0; border-top: 1px solid var(--border); text-align: center; color: var(--subtle); font-size: 12px; }
+  footer a { color: var(--muted); }
+
+  @media (max-width: 620px) {
+    .comparison-row { grid-template-columns: 140px 1fr; }
+    .comparison-row > div:nth-child(n+3) { display: none; }
+    .comparison-row > div { border-right: none !important; }
+  }
+</style>
+<!-- SEO-R4-BLOGPOSTING -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"How to set up Claude Code PR review in 2026 (3 options, real tradeoffs)","description":"Three ways to run Claude Code against your pull requests in 2026: the manual local flow, the GitHub Action flow, and the pre-commit hook flow. Real setup steps, real cost math, honest limits.","url":"https://septimlabs.com/blog/claude-code-pr-review-setup-2026.html","datePublished":"2026-04-22","dateModified":"2026-04-26","author":{"@type":"Organization","@id":"https://septimlabs.com/#organization","name":"Septim Labs","url":"https://septimlabs.com/about"},"publisher":{"@type":"Organization","name":"Septim Labs","url":"https://septimlabs.com","logo": { "@type": "ImageObject", "url": "https://septimlabs.com/assets/brand/kit/favicon-512.png"},"@id":"https://septimlabs.com/#organization"},"mainEntityOfPage":{"@type":"WebPage","@id":"https://septimlabs.com/blog/claude-code-pr-review-setup-2026.html"},"image":"https://septimlabs.com/assets/brand/kit/og-card-v2.png","inLanguage":"en-US","keywords":"claude code pr review, claude github actions, claude code ci cd, ai pr review 2026","articleSection":"Claude Code"}</script><!-- SEO-R8-AUTHOR-BOUND -->
+<!-- SEO-R8-BREADCRUMB -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://septimlabs.com/"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://septimlabs.com/blog/"},{"@type":"ListItem","position":3,"name":"Claude Code PR Review Setup (2026)","item":"https://septimlabs.com/blog/claude-code-pr-review-setup-2026.html"}]}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../site.css?v=4.6.1">
+<style>
+  body[data-page="blog-claude-code-pr-review-setup-2026"]{ --p: var(--n-orange); }
+
+  body[data-page="blog-claude-code-pr-review-setup-2026"]{ --p: var(--n-violet); }
+  
+  /* ── Blog post visual motif (theme-aware, --p driven) ── */
+  .blog-motif{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--bg-1);padding:24px 26px;margin:14px 0 36px;overflow:hidden}
+  .blog-motif svg{display:block;width:100%;height:auto;overflow:visible;max-height:200px}
+  .blog-motif .ann{font-family:var(--mono);font-size:10px;fill:var(--ink-3);letter-spacing:.1em;text-transform:uppercase}
+  .blog-motif .ann.hi{fill:var(--p)}
+  .blog-motif .axis{stroke:var(--line-2);stroke-width:.8;fill:none}
+  .blog-motif .ring{stroke:var(--line-2);stroke-width:.8;fill:none}
+  .blog-motif .center{fill:var(--p);stroke:var(--bg);stroke-width:2}
+  /* agents-grid */
+  .blog-motif .nodes .n{fill:var(--p);opacity:.65}
+  .blog-motif .nodes .hub{fill:var(--p);filter:drop-shadow(0 0 6px var(--p-glow))}
+  .blog-motif .nodes .trace{stroke:var(--p);stroke-width:.8;opacity:.35;stroke-dasharray:120;stroke-dashoffset:120;animation:bm-trace 3s ease-out forwards}
+  @keyframes bm-trace{to{stroke-dashoffset:0;opacity:.65}}
+  /* security-radar */
+  .blog-motif .sweep{fill:var(--p);opacity:.18;transform-origin:0 0;animation:bm-sweep 6s linear infinite}
+  @keyframes bm-sweep{to{}}
+  .blog-motif .threat.hi{fill:var(--p);filter:drop-shadow(0 0 4px var(--p-glow))}
+  .blog-motif .threat.med{fill:var(--ink-2)}
+  .blog-motif .threat.low{fill:var(--ink-3)}
+  /* cost-bars */
+  .blog-motif .bar.a{fill:var(--ink-3);opacity:.55}
+  .blog-motif .bar.b{fill:var(--p);filter:drop-shadow(0 0 6px var(--p-glow))}
+  .blog-motif .flatline{stroke:var(--p);stroke-width:1.5;stroke-dasharray:3 4}
+  .blog-motif .endpoint{fill:var(--p)}
+  /* schema-diff */
+  .blog-motif .diff-h{font-family:var(--mono);font-size:11px;fill:var(--ink-3);letter-spacing:.12em;text-transform:uppercase}
+  .blog-motif .diff-h.hi{fill:var(--p)}
+  .blog-motif .diff-l{font-family:var(--mono);font-size:11px;fill:var(--ink-2)}
+  .blog-motif .row.del{fill:var(--p);opacity:.06}
+  .blog-motif .row.add{fill:var(--p);opacity:.16}
+  .blog-motif .row.neutral{fill:var(--shade)}
+  .blog-motif .arr{stroke:var(--p);stroke-width:1.5;fill:var(--p)}
+  /* cost-spike */
+  .blog-motif .curve{stroke:var(--p);stroke-width:2;fill:none;stroke-linejoin:round;stroke-linecap:round;filter:drop-shadow(0 0 6px var(--p-glow))}
+  .blog-motif .peak{fill:var(--p);filter:drop-shadow(0 0 6px var(--p-glow))}
+  .blog-motif .peak-stem,.blog-motif .fix-stem{stroke:var(--p);stroke-width:.8;stroke-dasharray:2 3;opacity:.5}
+  .blog-motif .peak-lbl{font-family:var(--mono);font-size:10px;fill:var(--p);letter-spacing:.08em;font-weight:500}
+  /* shared cite-this strip */
+  .cite-this{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;margin:0 0 22px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+  .cite-this b{color:var(--p);font-weight:500}
+  .cite-this .pill{padding:3px 10px;border:1px solid var(--p);border-radius:99px;color:var(--p);background:var(--p-soft)}
+  /* related-posts footer */
+  .blog-related{margin:64px 0 0;padding:32px 28px;border:1px solid var(--line);border-radius:8px;background:var(--bg-1)}
+  .blog-related h4{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.12em;text-transform:uppercase;margin:0 0 18px}
+  .blog-related .row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .blog-related a{display:block;padding:14px 16px;border:1px solid var(--line);border-radius:6px;color:var(--ink);text-decoration:none;font-size:14px;line-height:1.45;transition:border-color .2s,background .2s,color .2s}
+  .blog-related a:hover{border-color:var(--p);background:var(--p-soft);color:var(--p)}
+  .blog-related a .lbl{display:block;font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+  @media (max-width:760px){.blog-related .row{grid-template-columns:1fr}}
+
+  /* unique motif: claude-code-pr-review-setup-2026 */
+  .blog-motif .stg rect{fill:var(--bg);stroke:var(--line);stroke-width:1;transition:stroke .25s,fill .25s}
+.blog-motif .stg:hover rect{stroke:var(--p);fill:color-mix(in srgb,var(--p) 8%,var(--bg))}
+.blog-motif .stg.active rect{stroke:var(--p);fill:color-mix(in srgb,var(--p) 12%,var(--bg));filter:drop-shadow(0 0 6px var(--p-glow))}
+.blog-motif .stg .sn{font-family:var(--mono);font-size:9px;fill:var(--ink-3);letter-spacing:.12em}
+.blog-motif .stg .st{font-family:var(--sans);font-size:11.5px;fill:var(--ink);font-weight:500}
+.blog-motif .stg.gate rect{fill:var(--p);stroke:var(--p)}
+.blog-motif .stg.gate .check{font-family:var(--mono);font-size:18px;fill:var(--bg);font-weight:600}
+.blog-motif .arr line{stroke:var(--ink-3);stroke-width:1.2}
+.blog-motif .arr polygon{fill:var(--ink-3)}
+</style>
+<!-- RETROFIT-V4-APPLIED -->
+<!-- TOKEN-CONVERT-V4-APPLIED -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","speakable":{"@type":"SpeakableSpecification","cssSelector":["h1","h2",".lede","blockquote"]},"url":"https://septimlabs.com/blog/claude-code-pr-review-setup-2026.html"}</script>
+<!-- BLOG-ENRICH-V4-1 -->
+<!-- BLOG-MOTIFS-UNIQUE-V1 -->
+</head>
+<body data-page="blog-claude-code-pr-review-setup-2026">
+<div id="site-nav"></div>
+  
+
+  <main class="wrap">
+    <article>
+      <span class="kicker">&middot; guide &middot;</span>
+      <h1>How to set up <em>Claude Code PR review</em> in 2026 &mdash; 3 options, real tradeoffs</h1>
+<figure class="blog-motif" aria-labelledby="m-fc-claude-code-pr-review-setup-2026"><figcaption id="m-fc-claude-code-pr-review-setup-2026" class="blog-motif-cap"><span class="cap-l">// figure</span> Pull request review pipeline</figcaption><svg viewBox="0 0 720 180" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="m-t-cpr m-d-cpr">
+<title id="m-t-cpr">PR review pipeline</title>
+<desc id="m-d-cpr">Five sequential pipeline stages connected by arrows: PR Opened, Checkout, Claude Review, Post Comment, Merge Gate.</desc>
+<g class="pipe">
+<g class="stg" transform="translate(20 60)"><rect width="120" height="60" rx="6"/><text x="60" y="26" text-anchor="middle" class="sn">// 01</text><text x="60" y="46" text-anchor="middle" class="st">PR opened</text></g>
+<g class="arr" transform="translate(150 90)"><line x1="0" y1="0" x2="20" y2="0"/><polygon points="20,-4 28,0 20,4"/></g>
+<g class="stg" transform="translate(180 60)"><rect width="120" height="60" rx="6"/><text x="60" y="26" text-anchor="middle" class="sn">// 02</text><text x="60" y="46" text-anchor="middle" class="st">Checkout</text></g>
+<g class="arr" transform="translate(310 90)"><line x1="0" y1="0" x2="20" y2="0"/><polygon points="20,-4 28,0 20,4"/></g>
+<g class="stg active" transform="translate(340 60)"><rect width="120" height="60" rx="6"/><text x="60" y="26" text-anchor="middle" class="sn">// 03</text><text x="60" y="46" text-anchor="middle" class="st">Claude reviews</text></g>
+<g class="arr" transform="translate(470 90)"><line x1="0" y1="0" x2="20" y2="0"/><polygon points="20,-4 28,0 20,4"/></g>
+<g class="stg" transform="translate(500 60)"><rect width="120" height="60" rx="6"/><text x="60" y="26" text-anchor="middle" class="sn">// 04</text><text x="60" y="46" text-anchor="middle" class="st">Comment posted</text></g>
+<g class="arr" transform="translate(630 90)"><line x1="0" y1="0" x2="20" y2="0"/><polygon points="20,-4 28,0 20,4"/></g>
+<g class="stg gate" transform="translate(660 60)"><rect width="40" height="60" rx="6"/><text x="20" y="38" text-anchor="middle" class="check">✓</text></g>
+</g>
+</svg></figure>
+<div class="cite-this"><span><b>// FILED</b> Claude Code</span><span><b>// SOURCE</b> Septim Labs</span><span><b>// PERMALINK</b> /blog/claude-code-pr-review-setup-2026.html</span><span class="pill">cite this →</span></div>
+
+<!-- SEO-R7-AUTHOR-BYLINE --><!-- SEO-R10-BYLINE-REPOINTED -->
+<div role="contentinfo" aria-label="Article byline" style="display:flex;flex-wrap:wrap;align-items:center;gap:.85rem;max-width:780px;margin:1.6rem auto 0;padding:.8rem 1rem;background:var(--shade);border:1px solid var(--line);border-radius:10px;font-family:var(--sans),-apple-system,sans-serif;font-size:.82rem;color:var(--ink-2);line-height:1.5;"><span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:rgba(0,217,255,0.1);border:1px solid rgba(0,217,255,0.3);color:var(--p);font-weight:800;font-size:.85rem;flex-shrink:0;">E</span><div style="flex:1;min-width:0"><div style="color:var(--ink);font-weight:600;font-size:.92rem">By <a href="https://septimlabs.com/about" style="color:var(--ink);text-decoration:underline;text-underline-offset:3px">the Septim Labs team</a></div><div style="font-family:var(--mono),monospace;font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-top:.18rem">Published April 22, 2026 &middot; Updated April 26, 2026</div></div><a href="https://septimlabs.com/find" style="font-family:var(--mono),monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--p);text-decoration:none;padding:.4rem .8rem;border:1px solid rgba(0,217,255,0.32);border-radius:999px;background:rgba(0,217,255,0.06);white-space:nowrap;">Find your tool &rarr;</a></div>
+
+      <div class="byline">Published April 20, 2026 &middot; by Septim Labs</div>
+
+      <p>Short version: Claude Code can review your pull requests at three different points in the development loop &mdash; locally (you invoke it), in CI (GitHub Actions invokes it), or pre-commit (git invokes it). Each one catches different bugs, costs different amounts of Anthropic credits, and has different latency.</p>
+
+      <p>Most guides pick one and pretend it&rsquo;s the answer. It isn&rsquo;t. This piece covers all three setups honestly and shows which one is right for which team size.</p>
+
+      <h2>The three setup patterns</h2>
+
+      <div class="comparison">
+        <div class="comparison-row head">
+          <div>Pattern</div><div>Who triggers it</div><div>Cost per PR</div><div>Honest limit</div>
+        </div>
+        <div class="comparison-row">
+          <div class="label">1. Local / Claude Code skills</div>
+          <div>You, manually</div>
+          <div>~$0.05 &ndash; $0.15</div>
+          <div>Only reviews what you ask it to</div>
+        </div>
+        <div class="comparison-row">
+          <div class="label">2. CI / GitHub Actions</div>
+          <div>Every push to PR</div>
+          <div>~$0.10 &ndash; $0.30</div>
+          <div>Slow feedback (3-5 min CI lag)</div>
+        </div>
+        <div class="comparison-row">
+          <div class="label">3. Pre-commit hook</div>
+          <div>git commit</div>
+          <div>~$0.01 &ndash; $0.03</div>
+          <div>Only sees staged diff, not full PR</div>
+        </div>
+      </div>
+
+      <h2>Option 1: Local review via Claude Code skills</h2>
+
+      <p>Cheapest to set up, slowest to run across a team. You open Claude Code, type <code>/pr-review</code> (or equivalent), Claude reads the diff and posts findings.</p>
+
+      <h3>Setup</h3>
+
+      <ol>
+        <li>安装 Claude Code (if you haven&rsquo;t): <code>npm i -g @anthropic-ai/claude-code</code></li>
+        <li>Create a <code>pr-review</code> skill at <code>~/.claude/skills/pr-review/SKILL.md</code></li>
+        <li>The skill should instruct Claude to run <code>git diff origin/main...HEAD</code>, classify each hunk into {bug, style, test-gap, doc-gap, nit}, and return a structured review.</li>
+        <li>Invoke with <code>/pr-review</code> before you open the PR on GitHub.</li>
+      </ol>
+
+      <h3>When this wins</h3>
+      <ul>
+        <li>Solo developer or pair &mdash; you&rsquo;re the reviewer, Claude is the pre-reviewer.</li>
+        <li>Pre-PR self-review. Catches the "I shouldn&rsquo;t have committed this" mistakes before a human sees them.</li>
+        <li>Offline-friendly: you don&rsquo;t need CI, you don&rsquo;t need a GitHub Token. Just Claude Code.</li>
+      </ul>
+
+      <h3>When this loses</h3>
+      <ul>
+        <li>Teams of 3+. You forget to run it. Someone else opens the PR and skips it entirely.</li>
+        <li>You need the review history to exist somewhere other than your terminal.</li>
+      </ul>
+
+      <p>For a ready-built skill, <a href="https://github.com/septimlabs-code/septim-drills-samples">3 of our Drills skills are free on GitHub</a> (including a basic PR-review skill). The full 25-skill pack is <a href="/drills">Septim Drills, $29 one-time</a>.</p>
+
+      <h2>Option 2: GitHub Actions-triggered review</h2>
+
+      <p>A workflow in <code>.github/workflows/</code> runs Claude against the PR diff on every push. Review comments auto-post as a bot comment on the PR.</p>
+
+      <h3>Setup</h3>
+
+      <ol>
+        <li>Add an Anthropic API key to your repo secrets as <code>ANTHROPIC_API_KEY</code>.</li>
+        <li>Create <code>.github/workflows/pr-review.yml</code> that triggers on <code>pull_request</code> events.</li>
+        <li>In the workflow: fetch the diff, call the Anthropic API with a structured review prompt, post the response as a PR comment via <code>gh pr comment</code>.</li>
+        <li>Pin the Anthropic SDK version in the workflow file (don&rsquo;t use <code>latest</code>; bump deliberately).</li>
+      </ol>
+
+      <h3>The honest limit</h3>
+
+      <p>CI review has a 3-5 minute latency from push to comment. That&rsquo;s fine for end-of-day review. It is not fine if you want Claude to block your merge before you&rsquo;ve switched contexts. Also, CI runs on every push &mdash; which means 10 pushes to a single PR = 10 Claude calls = ~$1-3 per PR if you&rsquo;re not careful.</p>
+
+      <p>Two guardrails worth adding:</p>
+      <ul>
+        <li><strong>Rate-limit to "first push per 10 minutes"</strong> so you don&rsquo;t pay for every typo-fix.</li>
+        <li><strong>Scope by changed-file path</strong> &mdash; if only <code>docs/**</code> changed, skip security review, save tokens.</li>
+      </ul>
+
+      <p>Our <a href="/flint">Septim Flint pack ($29)</a> 交付s 5 pre-built GitHub Actions workflows with both guardrails baked in: pr-review, security-triage, migration-safety, test-gaps, and dependency-triage. Everything runs 自托管 via your own API key &mdash; no proxy, no vendor.</p>
+
+      <h2>Option 3: Pre-commit hook review</h2>
+
+      <p>Runs locally, at <code>git commit</code> time, against your staged diff. Fastest feedback, but only sees the subset of code that&rsquo;s actually being committed.</p>
+
+      <h3>Setup</h3>
+
+      <ol>
+        <li>安装 <a href="https://pre-commit.com">pre-commit</a>: <code>pip install pre-commit</code></li>
+        <li>Create <code>.pre-commit-config.yaml</code> with a local hook that runs <code>git diff --cached</code> through a Claude-calling script.</li>
+        <li>Run <code>pre-commit install</code> once per clone to register the hook.</li>
+        <li>Budget the hook to <strong>4 seconds max</strong> &mdash; if Claude doesn&rsquo;t respond fast, skip the check silently. A 30-second pre-commit hook is a hook developers disable.</li>
+      </ol>
+
+      <h3>What this catches that CI misses</h3>
+      <ul>
+        <li>Secrets/API keys accidentally staged (one of the fastest-growing PR-leak classes).</li>
+        <li>Typos in identifiers (<code>getUesrById</code> vs <code>getUserById</code>) &mdash; Claude is good at these, linters aren&rsquo;t.</li>
+        <li>Stale test expectations (<code>expect(result).toBe(3)</code> when the function now returns 4).</li>
+      </ul>
+
+      <h3>What this misses that CI catches</h3>
+      <ul>
+        <li>Anything spanning multiple files (because the commit might only stage one).</li>
+        <li>Test coverage regressions (the pre-commit scope is too narrow to compute coverage).</li>
+        <li>Migrations / schema changes that need the full PR context.</li>
+      </ul>
+
+      <p>If you want this pre-built with all three hooks + a budget-limit + a bypass flag, <a href="/tether">Septim Tether ($19)</a> is the package. Three hooks, POSIX shell plus inline Python, stdlib only. No dependencies beyond pre-commit itself.</p>
+
+      <h2>The combination that actually works</h2>
+
+      <p>Most teams we see 交付 a layered setup:</p>
+
+      <ol>
+        <li><strong>Pre-commit</strong> catches the cheap, fast stuff (typos, secrets) before it leaves your laptop.</li>
+        <li><strong>GitHub Actions</strong> catches the expensive stuff (architecture, security, test-gap) on the PR itself &mdash; async, doesn&rsquo;t block your flow.</li>
+        <li><strong>Local Claude Code</strong> runs as the dev&rsquo;s own pre-review pass before opening the PR in the first place.</li>
+      </ol>
+
+      <p>Running all three layers costs about $0.30-0.50 per PR in API credits, catches roughly 2-3x more issues than any single layer, and doesn&rsquo;t slow down the dev cycle.</p>
+
+      <div class="cta-box">
+        <h4>Want the whole review stack pre-built?</h4>
+        <p>We bundle all three layers: <strong>25 Claude Code skills</strong> (Drills, local loop), <strong>5 PR-review GitHub Actions</strong> (Flint, CI loop), and <strong>3 pre-commit hooks</strong> (Tether, pre-commit loop) as the <a href="/review-stack">Septim Review Stack</a> for $59, one-time. Individual price: $77. Three private GitHub repo invites delivered to your email in &lt;5 minutes after checkout.</p>
+        <p><a href="/review-stack">See Review Stack &rarr;</a></p>
+      </div>
+
+      <h2>The common mistakes</h2>
+
+      <ul>
+        <li><strong>Using <code>claude-4-5-sonnet</code> when Haiku would do.</strong> For pre-commit typo checks, Haiku is 10x cheaper and 3x faster with no quality loss.</li>
+        <li><strong>Running the review on every push.</strong> Debounce by 10 minutes. Your wallet will thank you.</li>
+        <li><strong>Posting Claude&rsquo;s review as a blocking comment.</strong> Don&rsquo;t. Post it as a "suggestions" comment. A blocking Claude review creates merge friction that erodes team trust in 2-3 weeks.</li>
+        <li><strong>Not pinning the prompt.</strong> If you change the review prompt mid-week, half the team sees one review style and half sees another. Check the prompt into the repo.</li>
+      </ul>
+
+      <h2>常见问题</h2>
+
+      <h3>Does Claude see our whole codebase?</h3>
+      <p>Only what you send it. In all three patterns, you control the context window: the diff, optionally the files the diff touches, and nothing else. Claude doesn&rsquo;t crawl the repo unless you explicitly pipe more content.</p>
+
+      <h3>What if my repo is private and I can&rsquo;t send code to Anthropic?</h3>
+      <p>Then you need an on-prem model. None of these patterns work. Claude Code does support Bedrock/Vertex endpoints, but if your policy is "no code leaves our VPC" you want a local-model setup, not Claude.</p>
+
+      <h3>Is this reliable enough to actually block merges?</h3>
+      <p>For most teams: no, don&rsquo;t block on AI review yet. Use it as "suggestion" output. The false-positive rate on Claude 4.7 Sonnet is ~5-8% depending on codebase complexity &mdash; low enough to be useful, high enough to create merge friction if you make it blocking.</p>
+
+      <h3>Can I use this with GitLab/Bitbucket?</h3>
+      <p>Yes for all three patterns, but only Option 1 and Option 3 are drop-in &mdash; Option 2 (GitHub Actions) needs a GitLab CI or Bitbucket Pipelines equivalent. The logic is identical; only the YAML differs.</p>
+
+      <h2>TL;DR</h2>
+
+      <p><strong>Solo dev:</strong> just use Option 1 (local Claude Code skills). Start there.</p>
+      <p><strong>Small team (2-10):</strong> Option 1 + Option 3 (local + pre-commit). Add Option 2 when you hit 10 PRs/week.</p>
+      <p><strong>Team of 10+:</strong> all three layers. This is where <a href="/review-stack">Review Stack</a> is the right-size buy.</p>
+
+      <p>If you want the whole setup handed to you as three private GitHub repos you can clone and run today, <a href="/review-stack">Septim Review Stack</a> is $59 one-time. Otherwise, all three patterns are straightforward enough to build from scratch in a weekend.</p>
+
+      <div class="cta-box">
+        <h4>Questions? Reply-guys? Disagreements?</h4>
+        <p>Email us at <a href="/cdn-cgi/l/email-protection#6b0e1f030a051a2b180e1b1f0206070a091845080406"><span class="__cf_email__" data-cfemail="5732233f36392617243227233e3a3b3635247934383a">[email&#160;protected]</span></a> &mdash; we reply within 24h on weekdays, US Eastern time.</p>
+      </div>
+    </article>
+  </main>
+
+  
+<!-- SEO-R4-LAST-UPDATED -->
+<aside style="position:fixed;left:14px;bottom:14px;z-index:40;font-family:var(--mono),ui-monospace,monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);background:rgba(10,10,10,0.84);backdrop-filter:blur(6px);padding:6px 10px;border:1px solid var(--line);border-radius:999px;pointer-events:none;" aria-hidden="false"><span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#00ff88;box-shadow:0 0 0 3px rgba(0,255,136,.18);margin-right:.4rem;vertical-align:middle;"></span>最近更新 · April 26, 2026</aside>
+
+<div id="site-foot"></div>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="../../site-shell.js?v=4.6.0"></script>
+<script src="../../site.js?v=4.6.0"></script>
+<aside class="blog-related" aria-label="Related from Septim Labs"><h4>// continue reading</h4><div class="row"><a href="how-to-write-claude-md-2026.html"><span class="lbl">// related post</span>How to write a CLAUDE.md that works</a><a href="best-claude-code-sub-agents-2026.html"><span class="lbl">// related post</span>10 Claude sub-agents we 交付 with</a><a href="../agents/"><span class="lbl">// from septim labs</span>Septim Agents Pack — $49</a></div></aside>
+</body>
+</html>

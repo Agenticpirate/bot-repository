@@ -1,0 +1,1117 @@
+{
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "name": "Redecorate",
+  "version": "0.1.14",
+  "aliases": [
+    "interior design",
+    "home design",
+    "room makeover",
+    "redesign",
+    "renovation",
+    "landscape design"
+  ],
+  "runtime": "vite_hono",
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "visibility": "public",
+  "description": "Reimagine your home, inside and out — a folder-based playground for AI room, exterior, backyard, and floorplan redesigns.",
+  "author": "Moldable",
+  "license": "MIT",
+  "icon": "🛋️",
+  "iconPath": "public/icon.png",
+  "category": "graphics-design",
+  "tags": [
+    "interior design",
+    "home",
+    "redesign",
+    "renovation",
+    "architecture",
+    "landscape",
+    "staging",
+    "gpt-image-2"
+  ],
+  "moldableDependencies": {
+    "@moldable-ai/editor": "^0.1.57",
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "redecorate.redecorate",
+        "name": "Redecorate",
+        "description": "Create folders, import room/exterior/floorplan photos, generate and remix redesigns, and organize ideas in the active workspace.",
+        "scopes": [
+          {
+            "id": "redecorate.native.read",
+            "name": "Read the mobile Redecorate experience",
+            "description": "Return one route-specific, bounded NativeUI projection for the space gallery, one design collection, or one design and its verified image variants.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "route": {
+                  "type": "string",
+                  "enum": [
+                    "home",
+                    "collection",
+                    "design"
+                  ]
+                },
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "favorites",
+                    "folder"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 16
+                }
+              },
+              "required": [
+                "route"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "redecorate.native.mutate",
+            "name": "Update one mobile design preference",
+            "description": "Set the favorite state for one design and return only a bounded mutation receipt.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "favorite"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "favorite": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "action",
+                "id",
+                "favorite"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "changesState": true
+          },
+          {
+            "id": "redecorate.folders.list",
+            "name": "List folders",
+            "description": "List room/space folders with cover renders and design counts.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "redecorate.folders.create",
+            "name": "Create folder",
+            "description": "Create a new folder (e.g. Living Room, Backyard).",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "emoji": {
+                  "type": "string"
+                },
+                "space": {
+                  "type": "string",
+                  "enum": [
+                    "interior",
+                    "exterior",
+                    "both"
+                  ]
+                },
+                "blurb": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "redecorate.folders.rename",
+            "name": "Rename folder",
+            "description": "Rename a folder or change its emoji/blurb.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "emoji": {
+                  "type": "string"
+                },
+                "blurb": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "redecorate.folders.update",
+            "name": "Update folder",
+            "description": "Update a folder's name, emoji, or blurb.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "emoji": {
+                  "type": "string"
+                },
+                "blurb": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "redecorate.folders.archive",
+            "name": "Delete folder",
+            "description": "Delete a folder; its designs return to All designs (unfiled).",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "redecorate.folders.delete",
+            "name": "Delete folder",
+            "description": "Delete a folder and return its designs to All designs as unfiled items.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "redecorate.designs.list",
+            "name": "List designs",
+            "description": "List designs (spaces) with their latest render. Each design holds the original photo plus its redesign variants.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              }
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "redecorate.designs.get",
+            "name": "Get design",
+            "description": "Get one design including every render/iteration and before/after lineage.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "redecorate.designs.generate",
+            "name": "Generate design",
+            "description": "Generate a new design render from a text prompt (optionally into a folder, optionally seeded by a style preset).",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "prompt": {
+                  "type": "string"
+                },
+                "aspectRatio": {
+                  "type": "string",
+                  "enum": [
+                    "square",
+                    "portrait",
+                    "story",
+                    "landscape",
+                    "widescreen"
+                  ]
+                },
+                "quality": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high",
+                    "auto"
+                  ]
+                },
+                "folderId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "presetId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "prompt"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "redecorate.images.import",
+            "name": "Import image",
+            "description": "Save a room/exterior/floorplan/inspiration image from an absolute local path as a new design, optionally into a folder.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Existing design id. Omit to create a new design."
+                },
+                "imagePath": {
+                  "type": "string"
+                },
+                "prompt": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "folderId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "aspectRatio": {
+                  "type": "string",
+                  "enum": [
+                    "square",
+                    "portrait",
+                    "story",
+                    "landscape",
+                    "widescreen"
+                  ]
+                }
+              },
+              "required": [
+                "imagePath"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "redecorate.designs.remix",
+            "name": "Remix design",
+            "description": "Create a new render as a child of an existing render using GPT Image edits — e.g. 'make this living room warmer'. Preserves room geometry.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "baseIterationId": {
+                  "type": "string"
+                },
+                "prompt": {
+                  "type": "string"
+                },
+                "aspectRatio": {
+                  "type": "string",
+                  "enum": [
+                    "square",
+                    "portrait",
+                    "story",
+                    "landscape",
+                    "widescreen"
+                  ]
+                },
+                "quality": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high",
+                    "auto"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "prompt"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "redecorate.designs.generateFromReference",
+            "name": "New variant from render",
+            "description": "Use an existing render as visual reference while adding a distinct new variant in the same design.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "baseIterationId": {
+                  "type": "string"
+                },
+                "prompt": {
+                  "type": "string"
+                },
+                "aspectRatio": {
+                  "type": "string",
+                  "enum": [
+                    "square",
+                    "portrait",
+                    "story",
+                    "landscape",
+                    "widescreen"
+                  ]
+                },
+                "quality": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high",
+                    "auto"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "prompt"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "redecorate.designs.favorite",
+            "name": "Favorite design",
+            "description": "Mark a design as a favorite (or unset).",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "favorite": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "changesState": true
+          },
+          {
+            "id": "redecorate.designs.archive",
+            "name": "Archive design",
+            "description": "Archive (or unarchive) a design to hide it without deleting.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "archived": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "redecorate.designs.move",
+            "name": "Move design",
+            "description": "Move a design into a folder, or pass null to unfile it.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "folderId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "folderId"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "redecorate.designs.delete",
+            "name": "Delete design",
+            "description": "Delete a design and all of its renders.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "redecorate.designs.deleteIteration",
+            "name": "Delete render",
+            "description": "Delete one or more renders from a design. Deleting them all removes the design.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "iterationId": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "id",
+                "iterationId"
+              ]
+            },
+            "risk": "destructive",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "redecorate.designs.retry",
+            "name": "Retry render",
+            "description": "Retry a failed render with its original prompt.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "quality": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high",
+                    "auto"
+                  ]
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "redecorate.designs.cancel",
+            "name": "Cancel pending render",
+            "description": "Cancel and clear a pending render for a design.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "deleteEmptyThread": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "changesState": true
+          },
+          {
+            "id": "redecorate.designs.setAspectRatio",
+            "name": "Set aspect ratio",
+            "description": "Regenerate the design as a new render with a different aspect ratio.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "baseIterationId": {
+                  "type": "string"
+                },
+                "aspectRatio": {
+                  "type": "string",
+                  "enum": [
+                    "square",
+                    "portrait",
+                    "story",
+                    "landscape",
+                    "widescreen"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "aspectRatio"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "redecorate.designs.importGenerated",
+            "name": "Save generated render",
+            "description": "Save a locally generated image file into an existing design, or create a new design when no id is given.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "imagePath": {
+                  "type": "string"
+                },
+                "prompt": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "aspectRatio": {
+                  "type": "string",
+                  "enum": [
+                    "square",
+                    "portrait",
+                    "story",
+                    "landscape",
+                    "widescreen"
+                  ]
+                },
+                "quality": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high",
+                    "auto"
+                  ]
+                },
+                "folderId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "imagePath"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "redecorate.designs.removeBackground",
+            "name": "Remove background",
+            "description": "Remove the background from a render and save the transparent PNG as a new render.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "iterationId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "redecorate.presets.list",
+            "name": "List style presets",
+            "description": "List the built-in style presets, prompt templates, and categories.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "redecorate.styles.list",
+            "name": "List custom styles",
+            "description": "List workspace custom styles and their prompts, applicability, tags, subtypes, accents, and thumbnails.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "redecorate.styles.create",
+            "name": "Create custom style",
+            "description": "Create or replace a workspace custom style from a name and prompt with optional presentation and applicability metadata.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "blurb": {
+                  "type": "string"
+                },
+                "prompt": {
+                  "type": "string"
+                },
+                "applies": {
+                  "type": "string",
+                  "enum": [
+                    "interior",
+                    "exterior",
+                    "both"
+                  ]
+                },
+                "accent": {
+                  "type": "string",
+                  "pattern": "^#?[0-9a-fA-F]{6}$"
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 8
+                },
+                "subtypes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 12
+                }
+              },
+              "required": [
+                "name",
+                "prompt"
+              ]
+            },
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "redecorate.styles.delete",
+            "name": "Delete custom style",
+            "description": "Delete a workspace custom style and its thumbnail asset.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "risk": "destructive",
+            "surfaces": [
+              "voice"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "redecorate.drive",
+        "name": "Drive Redecorate",
+        "description": "Navigate Redecorate folders and designs and read faithful design prompt and style metadata.",
+        "scopes": [
+          {
+            "id": "redecorate.ui.describe",
+            "name": "Describe Redecorate views",
+            "description": "List Redecorate's navigable galleries and entity views with their required ids.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "redecorate.ui.navigate",
+            "name": "Navigate Redecorate",
+            "description": "Show the folder gallery, all designs, favorites, one folder, or one design.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "home",
+                    "all",
+                    "favorites",
+                    "folder",
+                    "design"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Required folder id or design id for entity views."
+                },
+                "params": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "view"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "redecorate.ui.read",
+            "name": "Read Redecorate content",
+            "description": "Return the data behind a Redecorate gallery, folder, or design; design reads include metadata, prompt lineage, and the selected style summary.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "home",
+                    "all",
+                    "favorites",
+                    "folder",
+                    "design"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Required folder id or design id for entity views."
+                }
+              },
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "redecorate.ui.openDesign",
+            "name": "Open a design",
+            "description": "Open one non-archived design and its iteration detail view.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "designId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "designId"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          },
+          {
+            "id": "redecorate.ui.showFolder",
+            "name": "Show a design folder",
+            "description": "Open one room or space folder and show its designs.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "folderId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "folderId"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "redecorate.cards",
+        "name": "Chat cards",
+        "description": "Show selected images as a horizontal collection; tap for the full image and recent variants. Uses existing image asset routes.",
+        "scopes": [
+          {
+            "id": "redecorate.cards.present",
+            "name": "Present chat card",
+            "description": "Show selected images as a horizontal collection; tap for the full image and recent variants. Uses existing image asset routes.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "minItems": 1,
+                  "maxItems": 8
+                }
+              },
+              "required": [
+                "ids"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "redecorate.cards.read",
+            "name": "Read chat card",
+            "description": "Show selected images as a horizontal collection; tap for the full image and recent variants. Uses existing image asset routes.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "minItems": 1,
+                  "maxItems": 8
+                },
+                "detailId": {
+                  "type": "string",
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "ids"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "env": [],
+  "vault": [
+    {
+      "key": "OPENAI_API_KEY",
+      "name": "OpenAI API Key",
+      "description": "Powers GPT Image 2 redesigns, remixes, and reference renders through OpenAI Codex OAuth.",
+      "url": "https://platform.openai.com/api-keys",
+      "required": true,
+      "capabilities": [
+        "openai/image-generation"
+      ]
+    },
+    {
+      "key": "REMOVE_BG_API_KEY",
+      "name": "Remove.bg API Key",
+      "description": "Optional. Enables one-click background removal for a render.",
+      "url": "https://www.remove.bg/api",
+      "required": false,
+      "capabilities": [
+        "remove-bg/background-removal"
+      ]
+    }
+  ],
+  "routeName": "redecorate",
+  "tagline": "Reimagine every room, facade, and backyard — in one tap"
+}

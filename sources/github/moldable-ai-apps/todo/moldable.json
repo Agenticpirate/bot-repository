@@ -1,0 +1,494 @@
+{
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "name": "Todo",
+  "version": "0.1.15",
+  "aliases": [
+    "tasks",
+    "checklist"
+  ],
+  "runtime": "vite_hono",
+  "visibility": "public",
+  "description": "Simple task management with quick add and completion tracking",
+  "author": "Moldable",
+  "license": "FSL-1.1-ALv2",
+  "repository": "moldable-ai/apps",
+  "icon": "✅",
+  "iconPath": "public/icon.png",
+  "category": "productivity",
+  "tags": [
+    "tasks",
+    "todo",
+    "checklist",
+    "productivity"
+  ],
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "todo.tasks",
+        "name": "Todo tasks",
+        "description": "Read and manage Todo tasks in the active workspace.",
+        "scopes": [
+          {
+            "id": "todo.native.read",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Read the mobile Todo experience",
+            "description": "Return a bounded NativeUI projection for the all, active, completed, or detail view.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "active",
+                    "completed",
+                    "detail"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 50
+                }
+              },
+              "required": [
+                "view"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "todo.native.draft",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Read a mobile todo draft",
+            "description": "Return a bounded server-owned create draft or an editable draft for one existing todo, including its ISO due date.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "create",
+                    "edit"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "mode"
+              ],
+              "additionalProperties": false
+            },
+            "changesState": true
+          },
+          {
+            "id": "todo.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "List todos",
+            "description": "List todos with optional filters for text, priority, due date, and completion status.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string"
+                },
+                "includeCompleted": {
+                  "type": "boolean"
+                },
+                "priority": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                  ]
+                },
+                "dueBefore": {
+                  "type": "string",
+                  "description": "ISO date or datetime."
+                },
+                "dueAfter": {
+                  "type": "string",
+                  "description": "ISO date or datetime."
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 200
+                }
+              }
+            }
+          },
+          {
+            "id": "todo.search",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Search todos",
+            "description": "Search todos by title with the same filters as list.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string"
+                },
+                "includeCompleted": {
+                  "type": "boolean"
+                },
+                "priority": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                  ]
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 200
+                }
+              }
+            }
+          },
+          {
+            "id": "todo.get",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Get todo",
+            "description": "Get one todo by ID.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "todo.create",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Create todo",
+            "description": "Create a new todo.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "priority": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                  ]
+                },
+                "dueDate": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "ISO date or datetime."
+                },
+                "completed": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "title"
+              ]
+            }
+          },
+          {
+            "id": "todo.update",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Update todo",
+            "description": "Update todo title, priority, due date, or completion state.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "completed": {
+                  "type": "boolean"
+                },
+                "priority": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                  ]
+                },
+                "dueDate": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          {
+            "id": "todo.complete",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Complete todo",
+            "description": "Mark a todo complete or active.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "completed": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "completed"
+              ]
+            },
+            "changesState": true
+          },
+          {
+            "id": "todo.delete",
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Delete todo",
+            "description": "Delete one todo by ID.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "todo.drive",
+        "name": "Todo UI drive",
+        "description": "Describe, navigate, read, and visibly drive the Todo app in the active workspace.",
+        "scopes": [
+          {
+            "id": "todo.ui.describe",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Describe Todo views",
+            "description": "List the all, active, and completed Todo views, including how an optional todo entityId is used.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "id": "todo.ui.navigate",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Navigate Todo",
+            "description": "Show the all, active, or completed Todo filter in the open app, optionally focusing a real todo by entityId. Writes a per-workspace last-wins UI intent.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "active",
+                    "completed"
+                  ],
+                  "description": "A view id returned by todo.ui.describe."
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Optional todo id from todo.list to focus."
+                },
+                "params": {
+                  "type": "object",
+                  "description": "Reserved for view-specific options."
+                }
+              },
+              "required": [
+                "view"
+              ]
+            }
+          },
+          {
+            "id": "todo.ui.show",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Show Todo",
+            "description": "Bring the open Todo app to its unfiltered all-todos view using a per-workspace UI intent.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "id": "todo.ui.read",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Read Todo view",
+            "description": "Return faithful structured JSON for all todos or a requested all, active, or completed view. With entityId, return that todo's complete data.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "active",
+                    "completed"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Optional todo id from todo.list."
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "todo.cards",
+        "name": "Chat cards",
+        "description": "Compact app-owned previews with a fuller view on tap.",
+        "scopes": [
+          {
+            "id": "todo.cards.present",
+            "name": "Show one todo or a compact checklist of up to 12 selected todos.",
+            "description": "Show one todo or a compact checklist of up to 12 selected todos.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "minItems": 1,
+                  "maxItems": 12
+                }
+              },
+              "required": [
+                "ids"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "todo.cards.read",
+            "name": "Read the current selected checklist, including removed-item count.",
+            "description": "Read the current selected checklist, including removed-item count.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "minItems": 1,
+                  "maxItems": 12
+                }
+              },
+              "required": [
+                "ids"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "env": [],
+  "commands": "dynamic",
+  "routeName": "todo",
+  "screenshots": [
+    "public/screenshots/1.png"
+  ],
+  "tagline": "Keyboard-fast task management that lives on your machine"
+}

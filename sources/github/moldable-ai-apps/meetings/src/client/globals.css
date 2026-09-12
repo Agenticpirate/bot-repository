@@ -1,0 +1,271 @@
+@import 'tailwindcss';
+@import '@moldable-ai/ui/styles';
+@import '@moldable-ai/editor/styles';
+
+@source './**/*.{js,jsx,ts,tsx}';
+@source '../components/**/*.{js,jsx,ts,tsx}';
+@source '../hooks/**/*.{js,jsx,ts,tsx}';
+@source '../lib/**/*.{js,jsx,ts,tsx}';
+@source '../../node_modules/@moldable-ai/ui/dist/**/*.{js,jsx,ts,tsx}';
+@source '../../node_modules/@moldable-ai/editor/dist/**/*.{js,jsx,ts,tsx}';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .meetings-recording-dock {
+    animation: meetings-dock-enter 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .meetings-status-pulse {
+    animation: meetings-status-pulse 1400ms ease-in-out infinite;
+  }
+
+  .meetings-enhanced-content {
+    animation: meetings-enhanced-reveal 260ms ease-out;
+  }
+
+  .meetings-enhance-gradient {
+    @apply via-background/90 to-background pointer-events-none sticky bottom-0 mt-2 flex justify-center bg-gradient-to-b from-transparent py-4;
+  }
+
+  .meetings-enhance-bar {
+    @apply relative z-20 flex h-16 items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium backdrop-blur-md;
+    animation: meetings-enhance-bar 1800ms ease-in-out infinite;
+  }
+
+  .meetings-enhance-follow-bar {
+    @apply pointer-events-none fixed z-30 opacity-100;
+    transition:
+      top 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      opacity 180ms ease;
+  }
+
+  .meetings-dashed-separator {
+    position: relative;
+  }
+
+  .meetings-dashed-separator::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: var(--meetings-dash-inset, 1.25rem);
+    height: 1px;
+    background-image: repeating-linear-gradient(
+      to right,
+      color-mix(in oklch, var(--border) 72%, transparent) 0 5.25px,
+      transparent 5.25px 10.5px
+    );
+    pointer-events: none;
+  }
+
+  .meetings-dashed-separator:last-child::after {
+    display: none;
+  }
+
+  .meetings-detail-title-input {
+    font-family: Georgia, 'Times New Roman', serif;
+    letter-spacing: 0;
+  }
+
+  .meetings-document-editor {
+    @apply text-muted-foreground;
+    --primary: oklch(0.62 0.17 45.03);
+    --primary-foreground: oklch(0.985 0 0);
+    --ring: oklch(0.62 0.17 45.03);
+    caret-color: oklch(0.55 0.18 45.03);
+  }
+
+  .meetings-document-content {
+    @apply text-muted-foreground pb-20 pt-2 text-[1.375rem] leading-[1.7];
+  }
+
+  .meetings-document-content ::selection {
+    background: color-mix(in oklch, var(--primary) 22%, transparent);
+    color: inherit;
+  }
+
+  .meetings-document-content h1,
+  .meetings-document-content h2,
+  .meetings-document-content h3 {
+    @apply text-foreground mb-2 mt-8;
+  }
+
+  .meetings-document-content h1:first-child,
+  .meetings-document-content h2:first-child,
+  .meetings-document-content h3:first-child {
+    @apply mt-0;
+  }
+
+  .meetings-document-content h1 {
+    @apply text-[1.45rem] font-semibold leading-snug;
+  }
+
+  .meetings-document-content h2 {
+    @apply text-[1.25rem] font-semibold leading-snug;
+  }
+
+  .meetings-document-content h3 {
+    @apply text-[1.1rem] font-semibold leading-snug;
+  }
+
+  .meetings-document-content p {
+    @apply my-1;
+  }
+
+  .meetings-document-content h1 + p:empty,
+  .meetings-document-content h2 + p:empty,
+  .meetings-document-content h3 + p:empty,
+  .meetings-document-content h1 + p:has(> br:only-child),
+  .meetings-document-content h2 + p:has(> br:only-child),
+  .meetings-document-content h3 + p:has(> br:only-child),
+  .meetings-document-content p:empty:has(+ h1),
+  .meetings-document-content p:empty:has(+ h2),
+  .meetings-document-content p:empty:has(+ h3),
+  .meetings-document-content p:has(> br:only-child):has(+ h1),
+  .meetings-document-content p:has(> br:only-child):has(+ h2),
+  .meetings-document-content p:has(> br:only-child):has(+ h3) {
+    @apply my-0;
+    min-height: 0.75rem;
+    line-height: 0.75rem;
+  }
+
+  .meetings-document-content p:empty + h1,
+  .meetings-document-content p:empty + h2,
+  .meetings-document-content p:empty + h3,
+  .meetings-document-content p:has(> br:only-child) + h1,
+  .meetings-document-content p:has(> br:only-child) + h2,
+  .meetings-document-content p:has(> br:only-child) + h3 {
+    @apply mt-3;
+  }
+
+  .meetings-document-content ul,
+  .meetings-document-content ol {
+    @apply my-2 pl-7;
+  }
+
+  .meetings-document-content h1 + ul,
+  .meetings-document-content h2 + ul,
+  .meetings-document-content h3 + ul,
+  .meetings-document-content h1 + ol,
+  .meetings-document-content h2 + ol,
+  .meetings-document-content h3 + ol {
+    @apply mt-1;
+  }
+
+  .meetings-document-content li {
+    @apply my-1.5 pl-1;
+  }
+
+  .meetings-document-content li::marker {
+    @apply text-muted-foreground;
+  }
+
+  .meetings-enhanced-document-content,
+  .meetings-enhanced-document-content h1,
+  .meetings-enhanced-document-content h2,
+  .meetings-enhanced-document-content h3,
+  .meetings-enhanced-document-content h4,
+  .meetings-enhanced-document-content h5,
+  .meetings-enhanced-document-content h6,
+  .meetings-enhanced-document-content p,
+  .meetings-enhanced-document-content li,
+  .meetings-enhanced-document-content strong,
+  .meetings-enhanced-document-content em,
+  .meetings-enhanced-document-content [data-lexical-text='true'] {
+    color: var(--muted-foreground) !important;
+  }
+
+  .meetings-enhanced-document-content a {
+    color: var(--muted-foreground) !important;
+    text-decoration-line: underline;
+  }
+
+  .meetings-enhanced-document-content a:hover {
+    color: color-mix(
+      in oklch,
+      var(--muted-foreground) 80%,
+      transparent
+    ) !important;
+  }
+
+  .meetings-document-content .lexical-nested-listitem {
+    list-style-type: none;
+  }
+
+  .meetings-document-content .lexical-nested-listitem::before,
+  .meetings-document-content .lexical-nested-listitem::after {
+    display: none;
+  }
+
+  .meetings-document-content [data-lexical-text='true'] {
+    letter-spacing: 0;
+  }
+
+  .meetings-document-editor [data-lexical-editor='true'] + div {
+    @apply text-muted-foreground/55 pointer-events-none absolute inset-0 flex items-start px-0 py-3 text-[1.375rem] leading-[1.7];
+    top: 5px;
+  }
+
+  .meetings-transcript-document {
+    @apply text-muted-foreground;
+  }
+}
+
+@keyframes meetings-dock-enter {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes meetings-status-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 32%, transparent);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--primary) 0%, transparent);
+  }
+}
+
+@keyframes meetings-enhanced-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes meetings-enhance-bar {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}

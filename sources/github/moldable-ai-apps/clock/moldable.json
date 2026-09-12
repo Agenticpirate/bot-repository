@@ -1,0 +1,677 @@
+{
+  "aliases": [
+    "alarms",
+    "timer",
+    "stopwatch",
+    "world clock"
+  ],
+  "appApi": {
+    "capabilities": [
+      {
+        "description": "Allow approved apps to read and control countdown timers in this workspace.",
+        "id": "clock.timers",
+        "name": "Timers",
+        "scopes": [
+          {
+            "description": "List all timers with their label, duration, run state, and remaining time.",
+            "id": "clock.timers.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {
+                "state": {
+                  "enum": [
+                    "running",
+                    "paused",
+                    "idle",
+                    "finished"
+                  ],
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "name": "List timers"
+          },
+          {
+            "description": "Create a countdown timer of a given duration and optionally start it.",
+            "id": "clock.timers.create",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {
+                "durationMs": {
+                  "minimum": 1000,
+                  "type": "number"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "start": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "durationMs"
+              ],
+              "type": "object"
+            },
+            "name": "Create timer"
+          },
+          {
+            "description": "Rename a countdown timer without changing its duration or run state.",
+            "id": "clock.timers.update",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "label"
+              ],
+              "type": "object"
+            },
+            "name": "Rename timer"
+          },
+          {
+            "description": "Start or resume a timer by id.",
+            "id": "clock.timers.resume",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "type": "object"
+            },
+            "name": "Start timer"
+          },
+          {
+            "description": "Pause a running timer by id.",
+            "id": "clock.timers.pause",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "type": "object"
+            },
+            "name": "Pause timer"
+          },
+          {
+            "description": "Reset a timer back to its full duration. Also dismisses a finished timer.",
+            "id": "clock.timers.reset",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "type": "object"
+            },
+            "name": "Reset timer"
+          },
+          {
+            "description": "Delete a timer by id.",
+            "id": "clock.timers.delete",
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "type": "object"
+            },
+            "name": "Delete timer"
+          }
+        ]
+      },
+      {
+        "description": "Allow approved apps to read and manage alarms in this workspace.",
+        "id": "clock.alarms",
+        "name": "Alarms",
+        "scopes": [
+          {
+            "description": "List all alarms with their time, label, repeat days, and enabled state.",
+            "id": "clock.alarms.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {
+                "enabledOnly": {
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            },
+            "name": "List alarms"
+          },
+          {
+            "description": "Get the next alarm that will fire and how long until it does.",
+            "id": "clock.alarms.next",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {},
+              "type": "object"
+            },
+            "name": "Next alarm"
+          },
+          {
+            "description": "Create an alarm for a time of day with optional repeat days.",
+            "id": "clock.alarms.create",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "repeat": {
+                  "items": {
+                    "maximum": 6,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "time": {
+                  "description": "24h HH:mm",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "time"
+              ],
+              "type": "object"
+            },
+            "name": "Create alarm"
+          },
+          {
+            "description": "Update an alarm's time, label, repeat days, or enabled state.",
+            "id": "clock.alarms.update",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "repeat": {
+                  "items": {
+                    "maximum": 6,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "time": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "type": "object"
+            },
+            "name": "Update alarm"
+          },
+          {
+            "description": "Delete an alarm by id.",
+            "id": "clock.alarms.delete",
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "type": "object"
+            },
+            "name": "Delete alarm"
+          }
+        ]
+      },
+      {
+        "description": "Allow approved apps to find time zones and manage saved world clocks.",
+        "id": "clock.worldclocks",
+        "name": "World clocks",
+        "scopes": [
+          {
+            "description": "List saved world clocks with their current local time and UTC offset.",
+            "id": "clock.worldclocks.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {},
+              "type": "object"
+            },
+            "name": "List world clocks"
+          },
+          {
+            "description": "Search supported time zones by city or IANA identifier, excluding zones already saved.",
+            "id": "clock.worldclocks.search",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "query": {
+                  "type": "string"
+                },
+                "limit": {
+                  "minimum": 1,
+                  "maximum": 60,
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            },
+            "name": "Search time zones"
+          },
+          {
+            "description": "Add a supported time zone to the saved world clocks.",
+            "id": "clock.worldclocks.create",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "timeZone": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "timeZone"
+              ],
+              "type": "object"
+            },
+            "name": "Add world clock"
+          },
+          {
+            "description": "Permanently remove one saved world clock by id.",
+            "id": "clock.worldclocks.delete",
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "type": "object"
+            },
+            "name": "Delete world clock"
+          }
+        ]
+      },
+      {
+        "description": "Control the workspace stopwatch and record laps.",
+        "id": "clock.stopwatch",
+        "name": "Stopwatch",
+        "scopes": [
+          {
+            "description": "Start or resume the stopwatch.",
+            "id": "clock.stopwatch.start",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {},
+              "type": "object"
+            },
+            "name": "Start stopwatch"
+          },
+          {
+            "description": "Stop the stopwatch and preserve elapsed time.",
+            "id": "clock.stopwatch.stop",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {},
+              "type": "object"
+            },
+            "name": "Stop stopwatch"
+          },
+          {
+            "description": "Record the current stopwatch elapsed time as a lap.",
+            "id": "clock.stopwatch.lap",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {},
+              "type": "object"
+            },
+            "name": "Record stopwatch lap"
+          },
+          {
+            "description": "Reset the stopwatch and permanently clear elapsed time and all laps.",
+            "id": "clock.stopwatch.reset",
+            "risk": "destructive",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {},
+              "type": "object"
+            },
+            "name": "Reset stopwatch"
+          }
+        ]
+      },
+      {
+        "description": "Let an assistant drive the running Clock UI and its timers: list the app's views, navigate the open window between tabs, read what is behind a view as structured JSON, and start or cancel countdown timers. Navigation and reading are non-destructive; cancelling a timer permanently removes it.",
+        "id": "clock.drive",
+        "name": "Drive Clock",
+        "scopes": [
+          {
+            "description": "List every navigable view of the Clock UI. Returns { views: [{ id, name, description }] } explaining what each view shows and what entityId means for it. Call this before clock.ui.navigate when unsure which view id to target.",
+            "id": "clock.ui.describe",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {},
+              "type": "object"
+            },
+            "name": "Describe Clock views"
+          },
+          {
+            "description": "Navigate the open Clock UI to a view (tab). The running client applies the change visibly; no data is modified. view is a view id from clock.ui.describe: \"worldclock\", \"alarms\", \"timers\", or \"stopwatch\". Optional entityId: a timer id when view is \"timers\", or an alarm id when view is \"alarms\"; it is rejected if that timer or alarm does not exist. Returns { ok: true, intentId }.",
+            "id": "clock.ui.navigate",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {
+                "entityId": {
+                  "description": "Optional timer id (view \"timers\") or alarm id (view \"alarms\").",
+                  "type": "string"
+                },
+                "params": {
+                  "description": "Reserved for view-specific options; Clock views currently take none.",
+                  "type": "object"
+                },
+                "view": {
+                  "description": "View id from clock.ui.describe.",
+                  "enum": [
+                    "worldclock",
+                    "alarms",
+                    "timers",
+                    "stopwatch"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "view"
+              ],
+              "type": "object"
+            },
+            "name": "Navigate Clock"
+          },
+          {
+            "description": "Read the content behind a Clock view as structured JSON straight from the data layer — no pixels, no HTML. With no view: everything at once — all timers with their run state and remaining milliseconds, world clocks with current local time and UTC offset, alarms plus the next one to fire, and the stopwatch. With view: just that view's data. Optional entityId narrows \"timers\" to one timer or \"alarms\" to one alarm.",
+            "id": "clock.ui.read",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "entityId": {
+                  "description": "Optional timer id (view \"timers\") or alarm id (view \"alarms\").",
+                  "type": "string"
+                },
+                "view": {
+                  "description": "Optional view to read; omit for a snapshot of the whole app.",
+                  "enum": [
+                    "worldclock",
+                    "alarms",
+                    "timers",
+                    "stopwatch"
+                  ],
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "name": "Read Clock content"
+          },
+          {
+            "description": "Create a countdown timer for the given number of minutes and start it running immediately. minutes may be fractional (0.5 is thirty seconds) and must amount to at least one second. Returns the running timer including its id, which clock.timers.cancel accepts. Reversible: the timer can still be paused, reset, or cancelled.",
+            "id": "clock.timers.start",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "inputSchema": {
+              "properties": {
+                "label": {
+                  "description": "Optional short label shown on the timer, e.g. \"Tea\".",
+                  "type": "string"
+                },
+                "minutes": {
+                  "description": "Duration in minutes; fractional values allowed, minimum one second.",
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "minutes"
+              ],
+              "type": "object"
+            },
+            "name": "Start a timer"
+          },
+          {
+            "description": "Cancel a countdown timer by id, whether running, paused, or finished. This is irreversible: the timer is permanently removed and cannot be restored — use clock.timers.pause instead to merely stop the countdown.",
+            "id": "clock.timers.cancel",
+            "risk": "destructive",
+            "surfaces": [
+              "voice"
+            ],
+            "inputSchema": {
+              "properties": {
+                "timerId": {
+                  "description": "Id of the timer to cancel (from clock.timers.list, clock.timers.start, or clock.ui.read).",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "timerId"
+              ],
+              "type": "object"
+            },
+            "name": "Cancel a timer"
+          }
+        ]
+      },
+      {
+        "id": "clock.cards",
+        "name": "Chat cards",
+        "description": "Show a selected countdown timer with live remaining time and a larger progress view on tap.",
+        "scopes": [
+          {
+            "id": "clock.cards.present",
+            "name": "Present chat card",
+            "description": "Show a selected countdown timer with live remaining time and a larger progress view on tap.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "clock.cards.read",
+            "name": "Read chat card",
+            "description": "Show a selected countdown timer with live remaining time and a larger progress view on tap.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ],
+    "version": 1
+  },
+  "author": "Moldable",
+  "category": "utilities",
+  "description": "Alarms, multiple timers, a stopwatch, and world clocks — all local.",
+  "env": [],
+  "icon": "⏰",
+  "iconPath": "public/icon.png",
+  "license": "FSL-1.1-ALv2",
+  "moldableDependencies": {
+    "@moldable-ai/storage": "^0.1.8",
+    "@moldable-ai/ui": "^0.2.59"
+  },
+  "name": "Clock",
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "repository": "moldable-ai/apps",
+  "routeName": "clock",
+  "runtime": "vite_hono",
+  "tagline": "Alarms, timers, stopwatch, and world clocks — local-first",
+  "tags": [
+    "clock",
+    "alarm",
+    "timer",
+    "stopwatch",
+    "world clock",
+    "time"
+  ],
+  "version": "0.1.12",
+  "visibility": "public",
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  }
+}

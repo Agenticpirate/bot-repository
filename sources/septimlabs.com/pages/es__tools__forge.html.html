@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="canonical" href="https://septimlabs.com/es/tools/forge.html" />
+<meta property="og:locale" content="es_ES" />
+
+<!-- SEPTIM-I18N-HREFLANG -->
+<link rel="alternate" hreflang="x-default" href="https://septimlabs.com/tools/forge.html" />
+<link rel="alternate" hreflang="en" href="https://septimlabs.com/tools/forge.html" />
+<link rel="alternate" hreflang="es" href="https://septimlabs.com/es/tools/forge.html" />
+<link rel="alternate" hreflang="zh" href="https://septimlabs.com/zh/tools/forge.html" />
+<link rel="alternate" hreflang="hi" href="https://septimlabs.com/hi/tools/forge.html" />
+<link rel="alternate" hreflang="pt" href="https://septimlabs.com/pt/tools/forge.html" />
+<link rel="alternate" hreflang="de" href="https://septimlabs.com/de/tools/forge.html" />
+<link rel="alternate" hreflang="fr" href="https://septimlabs.com/fr/tools/forge.html" />
+<link rel="alternate" hreflang="ja" href="https://septimlabs.com/ja/tools/forge.html" />
+<link rel="alternate" hreflang="ru" href="https://septimlabs.com/ru/tools/forge.html" />
+<link rel="alternate" hreflang="ar" href="https://septimlabs.com/ar/tools/forge.html" />
+<!-- /SEPTIM-I18N-HREFLANG -->
+
+<title>Forge — Septim Labs</title>
+    <!-- Open Graph + Twitter Card (auto-injected by inject_og_meta.py) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://septimlabs.com/es/tools/forge" />
+    <meta property="og:title" content="Forge — Septim Labs" />
+    <meta property="og:description" content="Septim Labs — pay-once developer tools, custom SMB software builds. You buy once, you keep it." />
+    <meta property="og:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Septim Labs" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Forge — Septim Labs" />
+    <meta name="twitter:description" content="Septim Labs — pay-once developer tools, custom SMB software builds. You buy once, you keep it." />
+    <meta name="twitter:image" content="https://septimlabs.com/assets/brand/og-card-v2.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../site.css?v=4.6.1" />
+<style>
+/* FORGE — Postgres GUI. Schema diagram + query results. Cobalt steel palette. */
+:root[data-theme="dark"] .fg-page{
+  --paper:var(--bg);--paper-2:var(--bg);--paper-3:#141414;
+  --ink-a:#f0f0f0;--ink2-a:#9aa0aa;--ink3-a:#5a606a;
+  --rule-a:var(--line);--rule2-a:var(--line-2);
+  --field-a:var(--bg);--field2-a:#141414;
+  --p:#5fb4ff;--p-soft:rgba(95,180,255,.10);--p-deep:#3a85cc;
+  --ok:#5fc587;--warn:#e6a14a;--err:#e96c6c;
+}
+:root[data-theme="light"] .fg-page{
+  --paper:var(--ink);--paper-2:#f5f5f5;--paper-3:#e8e8e8;
+  --ink-a:var(--bg);--ink2-a:#454852;--ink3-a:#7a7e88;
+  --rule-a:rgba(0,0,0,.10);--rule2-a:rgba(0,0,0,.22);
+  --field-a:#f5f5f5;--field2-a:#e8e8e8;
+  --p:#1a5fb4;--p-soft:rgba(26,95,180,.08);--p-deep:#0e3f7d;
+  --ok:#2a7e4f;--warn:#a06820;--err:#a02818;
+}
+body{background:var(--paper)}
+.fg-page{background:var(--paper);color:var(--ink-a);font-family:var(--sans);line-height:1.5}
+.hud{position:sticky;top:0;z-index:40;display:grid;grid-template-columns:auto 1fr auto auto auto;align-items:center;background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--rule2-a);font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3-a)}
+.hud > *{padding:11px 18px;border-right:1px solid var(--rule-a)}.hud > *:last-child{border-right:none}
+.hud .file{color:var(--p);font-weight:700}.hud .file::before{content:"⛁";margin-right:8px}
+.hud .clock{font-variant-numeric:tabular-nums;color:var(--ink-a);min-width:130px;text-align:center}
+@media(max-width:780px){.hud{grid-template-columns:auto 1fr auto}.hud .build{display:none}}
+
+.hero{padding:80px clamp(20px,5vw,80px) 60px;border-bottom:1px solid var(--rule2-a);display:grid;grid-template-columns:1fr 1.2fr;gap:60px;align-items:start}
+.crumb{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3-a);display:flex;gap:14px;align-items:center;margin-bottom:32px}
+.crumb a{color:var(--ink2-a);text-decoration:none}.crumb b{color:var(--p);font-weight:600}
+.hero h1{font-size:clamp(56px,8vw,128px);font-weight:800;letter-spacing:-.045em;line-height:.92;margin:0 0 28px;color:var(--ink-a)}
+.hero h1 em{font-style:normal;font-weight:700;color:var(--p)}
+.hero h1 code{font-family:var(--mono);font-weight:700;color:var(--p);font-size:.85em;line-height:1}
+.hero .blurb{font-size:18px;line-height:1.6;color:var(--ink2-a);max-width:54ch;margin:0 0 32px}
+.hero .blurb b{color:var(--ink-a);font-weight:600;background:var(--p-soft);padding:1px 6px;border-radius:3px}
+.hero .blurb code{font-family:var(--mono);background:var(--paper-2);padding:1px 6px;border-radius:3px;color:var(--p);font-size:.9em}
+.hero .meta{display:grid;grid-template-columns:repeat(4,auto);border:1px solid var(--rule2-a);background:var(--paper-2);width:fit-content;font-family:var(--mono);border-radius:6px;overflow:hidden}
+.hero .meta > div{padding:14px 22px;border-right:1px solid var(--rule-a)}.hero .meta > div:last-child{border-right:none}
+.hero .meta .k{color:var(--ink3-a);letter-spacing:.16em;text-transform:uppercase;font-size:10px;margin-bottom:6px}
+.hero .meta .v{color:var(--ink-a);font-size:18px;font-weight:600}.hero .meta .v.price{color:var(--p);font-size:24px;font-weight:700}
+.hero .actions{margin-top:32px;display:flex;gap:14px;flex-wrap:wrap}
+.btn-p{display:inline-flex;align-items:center;gap:10px;padding:14px 24px;background:var(--p);color:#0e1318;text-decoration:none;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;border-radius:6px}
+.btn-g{display:inline-flex;align-items:center;gap:10px;padding:14px 24px;border:1px solid var(--rule2-a);color:var(--ink-a);text-decoration:none;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;border-radius:6px}
+
+/* SCHEMA — table cards with FK lines */
+.schema{background:var(--paper-2);border:1px solid var(--rule2-a);border-radius:8px;overflow:hidden;font-family:var(--mono);box-shadow:0 8px 32px rgba(0,0,0,.20)}
+.schema .sh{display:flex;justify-content:space-between;padding:12px 18px;background:var(--paper-3);border-bottom:1px solid var(--rule-a);font-size:11px;color:var(--ink2-a);letter-spacing:.06em}
+.schema .sh b{color:var(--ink-a);font-family:var(--sans);font-weight:600;letter-spacing:-.005em;font-size:13px}
+.schema .sh .conn{color:var(--ok)}.schema .sh .conn::before{content:"●";margin-right:6px;color:var(--ok)}
+.schema .canvas{position:relative;height:380px;background:var(--paper-2);background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:20px 20px;overflow:hidden}
+.schema .canvas svg{position:absolute;inset:0;pointer-events:none}
+.tbl{position:absolute;background:var(--paper);border:1px solid var(--rule2-a);border-radius:6px;font-size:11px;min-width:180px;box-shadow:0 4px 16px rgba(0,0,0,.18);overflow:hidden}
+.tbl .th{padding:8px 12px;background:var(--paper-3);border-bottom:1px solid var(--rule-a);color:var(--p);font-weight:700;font-size:11.5px;display:flex;justify-content:space-between;align-items:center}
+.tbl .th small{color:var(--ink3-a);font-weight:400;font-size:10px}
+.tbl .tr{padding:5px 12px;display:grid;grid-template-columns:14px 1fr auto;gap:8px;align-items:center;border-bottom:1px dotted var(--rule-a);font-size:10.5px}
+.tbl .tr:last-child{border-bottom:none}
+.tbl .tr .ic{font-weight:700;font-size:9px;text-align:center;width:14px}
+.tbl .tr .ic.pk{color:var(--acc)}.tbl .tr .ic.fk{color:var(--key)}.tbl .tr .ic.idx{color:var(--ok)}
+.tbl .tr .col{color:var(--ink-a);font-weight:500}
+.tbl .tr .col.pk{color:var(--acc);font-weight:700}
+.tbl .tr .col.fk{color:var(--key)}
+.tbl .tr .ty{color:var(--ink3-a);font-size:9.5px;text-transform:uppercase}
+.tbl.users{top:24px;left:24px}
+.tbl.orders{top:24px;left:280px}
+.tbl.items{top:200px;left:280px}
+.tbl.products{top:200px;left:540px;min-width:170px}
+@media(max-width:1080px){.schema .canvas{height:600px}.tbl{position:relative;left:auto !important;top:auto !important;margin:12px}.schema .canvas{display:flex;flex-wrap:wrap;height:auto;padding:12px}.schema .canvas svg{display:none}}
+
+/* QUERY console */
+.qc{background:var(--ink-a);color:var(--paper);font-family:var(--mono);border-top:1px solid var(--rule2-a)}
+.qc .qh{padding:10px 16px;background:var(--paper-3);color:var(--ink2-a);font-size:11px;letter-spacing:.14em;text-transform:uppercase;display:flex;justify-content:space-between;border-bottom:1px solid var(--rule-a)}
+.qc .qh b{color:var(--p)}
+.qc .body{padding:18px 20px;font-size:13px;line-height:1.7;color:#e6ecf2}
+.qc .body .kw{color:var(--p)}.qc .body .str{color:var(--ok)}.qc .body .num{color:var(--acc)}.qc .body .com{color:var(--ink3-a);font-style:normal}
+.qc .res{border-top:1px solid var(--rule-a);padding:14px 20px;display:flex;gap:24px;font-size:11px;color:var(--line-3);letter-spacing:.06em}
+.qc .res b{color:var(--p);font-weight:700}
+.qc .tbl-r{font-family:var(--mono);font-size:11.5px;border-top:1px solid var(--rule-a)}
+.qc .tbl-r .row{display:grid;grid-template-columns:60px 110px 1fr 100px 80px;align-items:center;border-bottom:1px solid var(--line)}
+.qc .tbl-r .row > *{padding:10px 16px;border-right:1px solid var(--line)}.qc .tbl-r .row > *:last-child{border-right:none}
+.qc .tbl-r .row.h{background:var(--line);color:var(--line-3);font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:700}
+.qc .tbl-r .row .id{color:var(--p);font-weight:700}
+.qc .tbl-r .row .em{color:#e6ecf2}
+.qc .tbl-r .row .nm{color:#e6ecf2}
+.qc .tbl-r .row .nm small{display:block;color:var(--line-3);font-size:10px;letter-spacing:0;font-family:var(--sans);font-style:normal;margin-top:2px}
+.qc .tbl-r .row .num{text-align:right;color:var(--acc);font-variant-numeric:tabular-nums}
+.qc .tbl-r .row .stat{color:var(--ok);font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+.qc .tbl-r .row .stat.warn{color:var(--acc)}
+@media(max-width:780px){.qc .tbl-r .row{grid-template-columns:50px 1fr 80px}.qc .tbl-r .row .em,.qc .tbl-r .row .num{display:none}}
+@media(max-width:980px){.hero{grid-template-columns:1fr}}
+
+.sec{padding:90px clamp(20px,5vw,80px);border-bottom:1px solid var(--rule2-a)}
+.sec .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:48px;border-bottom:1px solid var(--rule-a);padding-bottom:14px}
+.sec .head .ex{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-a);font-weight:700}
+.sec .head .ex b{background:var(--p);color:var(--paper);padding:3px 9px;margin-right:10px;border-radius:3px}
+.sec .head .pg{font-family:var(--mono);font-size:10px;color:var(--ink3-a);letter-spacing:.14em;text-transform:uppercase}
+.sec h2{font-size:clamp(34px,4.5vw,68px);font-weight:800;letter-spacing:-.035em;line-height:1.04;margin:0 0 24px;max-width:20ch;color:var(--ink-a)}
+.sec h2 em{font-style:normal;font-weight:700;color:var(--p)}
+.sec .copy{font-size:16px;line-height:1.65;color:var(--ink2-a);max-width:60ch;margin:0 0 16px}
+.sec .copy code{font-family:var(--mono);background:var(--paper-2);padding:1px 5px;border-radius:3px;color:var(--p);font-size:.9em}
+.sec .copy b{color:var(--ink-a);font-weight:600}
+
+/* PERF cards */
+.perf{margin-top:24px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.pc{background:var(--paper-2);border:1px solid var(--rule2-a);border-radius:8px;padding:24px;font-family:var(--mono)}
+.pc .lbl{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3-a);margin-bottom:12px}
+.pc .v{font-family:var(--sans);font-size:48px;font-weight:800;color:var(--p);letter-spacing:-.03em;line-height:1}
+.pc .v.r{color:var(--err)}.pc .v.g{color:var(--ok)}
+.pc .v small{font-size:14px;color:var(--ink3-a);font-weight:500;letter-spacing:0}
+.pc .body{font-family:var(--sans);font-size:13.5px;line-height:1.55;color:var(--ink2-a);margin-top:14px;padding-top:14px;border-top:1px solid var(--rule-a)}
+.pc .body b{color:var(--ink-a);font-weight:600}
+@media(max-width:780px){.perf{grid-template-columns:1fr}}
+
+.buy{padding:120px clamp(20px,5vw,80px);background:var(--paper-2);border-top:1px solid var(--rule2-a);display:grid;grid-template-columns:1.4fr 1fr;gap:48px;align-items:center}
+.buy h3{font-size:clamp(36px,4.5vw,72px);font-weight:800;letter-spacing:-.035em;margin:0 0 16px;line-height:1.04;color:var(--ink-a)}
+.buy h3 em{font-style:normal;font-weight:700;color:var(--p)}
+.buy .copy{font-size:16px;line-height:1.6;color:var(--ink2-a);max-width:48ch;margin:0 0 28px}
+.buy .price{font-size:140px;font-weight:800;letter-spacing:-.04em;line-height:.95;color:var(--p)}
+.buy .price small{display:block;font-family:var(--mono);font-size:11px;color:var(--ink3-a);letter-spacing:.14em;font-weight:500;margin-top:14px;text-transform:uppercase}
+@media(max-width:780px){.buy{grid-template-columns:1fr}}
+
+.next{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule2-a);border-top:1px solid var(--rule2-a)}
+.next a{padding:36px 28px;text-decoration:none;background:var(--paper);display:flex;flex-direction:column;gap:6px;color:inherit}
+.next a:hover{background:var(--paper-2)}
+.next a .l{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ink3-a);text-transform:uppercase}
+.next a .n{font-size:28px;font-weight:800;color:var(--ink-a);letter-spacing:-.02em}
+.next a .d{font-size:13px;color:var(--ink2-a);line-height:1.5;margin-top:4px}
+@media(max-width:780px){.next{grid-template-columns:1fr}}
+</style>
+<!-- TOKEN-CONVERT-V4-APPLIED -->
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/kit/apple-touch-icon-180.png" />
+</head>
+<body data-page="tools">
+<div id="site-nav"></div>
+
+<main class="fg-page">
+
+<div class="hud">
+  <span class="file">FORGE/09 · STAGING.PROD</span>
+  <span style="color:var(--ink2-a);overflow:hidden;white-space:nowrap;text-overflow:ellipsis"># pg 16.2 · staging-east-2 · 142 tables · 2.4 GB · 8 active conns · 12ms latency · last query 2s</span>
+  <span class="clock" id="clk">--:--:-- UTC</span>
+  <span style="color:var(--ink3-a)">v1.9</span>
+  <span style="color:var(--ok)">● CONNECTED</span>
+</div>
+
+<header class="hero">
+  <div>
+    <div class="crumb"><a href="../tools.html">/ tools</a><span>›</span><b>09 · forge</b><span>·</span><span>postgres</span></div>
+    <h1>A Postgres GUI<br/>that respects<br/><em>your laptop's RAM.</em></h1>
+    <p class="blurb">Schema browser, query console, EXPLAIN visualizer. Native binary, <b>under 60 MB</b> resident, no Electron, no telemetry. Connects over <code>libpq</code> like your psql does. Reads <code>~/.pgpass</code> like your psql does.</p>
+    <div class="meta">
+      <div><div class="k">Connections</div><div class="v">unlimited</div></div>
+      <div><div class="k">Memory</div><div class="v">~58 MB</div></div>
+      <div><div class="k">Engine</div><div class="v">native</div></div>
+      <div><div class="k">Price</div><div class="v price">$79</div></div>
+    </div>
+    <div class="actions">
+      <a class="btn-p" href="../contact.html?subject=Forge">Buy · $79 once →</a>
+      <a class="btn-g" href="#perf">Why it's fast</a>
+    </div>
+  </div>
+
+  <div class="schema">
+    <div class="sh"><span><b>schema · public</b> · 4 of 142 tables shown</span><span class="conn">staging-east-2 · 12ms</span></div>
+    <div class="canvas">
+      <svg viewBox="0 0 720 380" preserveAspectRatio="none">
+        <defs><marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="currentColor"/></marker></defs>
+        <g stroke="currentColor" stroke-width="1.4" fill="none" style="color:var(--key)" marker-end="url(#ar)">
+          <path d="M204 60 L 280 60"/>
+          <path d="M204 105 L 280 240"/>
+          <path d="M460 230 L 540 220"/>
+        </g>
+      </svg>
+      <div class="tbl users">
+        <div class="th">users <small>1.4k rows</small></div>
+        <div class="tr"><span class="ic pk">PK</span><span class="col pk">id</span><span class="ty">uuid</span></div>
+        <div class="tr"><span class="ic">·</span><span class="col">email</span><span class="ty">citext</span></div>
+        <div class="tr"><span class="ic">·</span><span class="col">name</span><span class="ty">text</span></div>
+        <div class="tr"><span class="ic">·</span><span class="col">created_at</span><span class="ty">tstz</span></div>
+        <div class="tr"><span class="ic idx">IX</span><span class="col">last_seen</span><span class="ty">tstz</span></div>
+      </div>
+      <div class="tbl orders">
+        <div class="th">orders <small>18.2k rows</small></div>
+        <div class="tr"><span class="ic pk">PK</span><span class="col pk">id</span><span class="ty">bigserial</span></div>
+        <div class="tr"><span class="ic fk">FK</span><span class="col fk">user_id</span><span class="ty">uuid</span></div>
+        <div class="tr"><span class="ic">·</span><span class="col">total_cents</span><span class="ty">int8</span></div>
+        <div class="tr"><span class="ic">·</span><span class="col">status</span><span class="ty">enum</span></div>
+        <div class="tr"><span class="ic idx">IX</span><span class="col">created_at</span><span class="ty">tstz</span></div>
+      </div>
+      <div class="tbl items">
+        <div class="th">order_items <small>62.4k rows</small></div>
+        <div class="tr"><span class="ic pk">PK</span><span class="col pk">id</span><span class="ty">bigserial</span></div>
+        <div class="tr"><span class="ic fk">FK</span><span class="col fk">order_id</span><span class="ty">int8</span></div>
+        <div class="tr"><span class="ic fk">FK</span><span class="col fk">product_id</span><span class="ty">int8</span></div>
+        <div class="tr"><span class="ic">·</span><span class="col">qty</span><span class="ty">int4</span></div>
+        <div class="tr"><span class="ic">·</span><span class="col">unit_cents</span><span class="ty">int4</span></div>
+      </div>
+      <div class="tbl products">
+        <div class="th">products <small>284 rows</small></div>
+        <div class="tr"><span class="ic pk">PK</span><span class="col pk">id</span><span class="ty">bigserial</span></div>
+        <div class="tr"><span class="ic">·</span><span class="col">sku</span><span class="ty">text</span></div>
+        <div class="tr"><span class="ic">·</span><span class="col">name</span><span class="ty">text</span></div>
+        <div class="tr"><span class="ic">·</span><span class="col">price</span><span class="ty">int4</span></div>
+      </div>
+    </div>
+
+    <div class="qc">
+      <div class="qh"><span><b>QUERY · q.sql</b> · executed in 14.2 ms · 6 rows</span><span style="color:var(--ok)">✓ EXPLAIN: idx scan, no seq</span></div>
+      <div class="body"><span class="com">-- top 6 customers by lifetime spend, last 90d</span><br/><span class="kw">SELECT</span> u.email, u.name, <span class="kw">SUM</span>(o.total_cents) <span class="kw">AS</span> spend_c<br/><span class="kw">FROM</span> users u <span class="kw">JOIN</span> orders o <span class="kw">ON</span> o.user_id = u.id<br/><span class="kw">WHERE</span> o.created_at &gt; <span class="kw">NOW</span>() - <span class="str">'90 days'</span>::interval<br/><span class="kw">GROUP BY</span> u.id <span class="kw">ORDER BY</span> spend_c <span class="kw">DESC</span> <span class="kw">LIMIT</span> <span class="num">6</span>;</div>
+      <div class="tbl-r">
+        <div class="row h"><span>#</span><span>EMAIL</span><span>NAME</span><span>SPEND</span><span>STATUS</span></div>
+        <div class="row"><span class="id">001</span><span class="em"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5e2c702a3f301e3f2e3b26703d31">[email&#160;protected]</a></span><span class="nm">Reza Tan<small>VIP · since '21</small></span><span class="num">$48,210.42</span><span class="stat">ACTIVE</span></div>
+        <div class="row"><span class="id">002</span><span class="em"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f482da9d8d9186b49584918cda979b">[email&#160;protected]</a></span><span class="nm">Vidya Iyer<small>VIP · since '22</small></span><span class="num">$31,840.18</span><span class="stat">ACTIVE</span></div>
+        <div class="row"><span class="id">003</span><span class="em"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="177c397a727973786d76577667726f397478">[email&#160;protected]</a></span><span class="nm">Karina Mendoza</span><span class="num">$24,612.00</span><span class="stat">ACTIVE</span></div>
+        <div class="row"><span class="id">004</span><span class="em"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="96f2b8fef9fafbd6e0f3f1f7b8fff9">[email&#160;protected]</a></span><span class="nm">Daria Holm<small>renewing soon</small></span><span class="num">$18,420.92</span><span class="stat warn">RENEW</span></div>
+      </div>
+      <div class="res"><span>PLAN · <b>idx_orders_created → hash join → sort</b></span><span>BUFFERS · <b>shared hit 412</b></span><span>WAL · <b>0</b></span></div>
+    </div>
+  </div>
+</header>
+
+<section class="sec" id="perf">
+  <div class="head"><span class="ex"><b>EXHIBIT A</b>Why it's fast</span><span class="pg">PG. 02 / 06</span></div>
+  <h2>Native binary.<em>Native everything.</em></h2>
+  <p class="copy">Most database GUIs are a Chrome window in a trenchcoat. Forge is a single Rust binary that talks <code>libpq</code> directly. <b>Cold start is ~80 ms.</b> Schema diff on a 3,000-table database draws in under a second.</p>
+
+  <div class="perf">
+    <div class="pc"><div class="lbl">— Cold start</div><div class="v g">82<small>ms</small></div><p class="body">From <code>$ forge</code> to a usable schema browser. <b>About 40× faster than the leading Electron GUI.</b></p></div>
+    <div class="pc"><div class="lbl">— Resident memory</div><div class="v g">58<small>MB</small></div><p class="body">Steady-state RSS while browsing a 142-table staging DB. <b>Your laptop won't notice.</b></p></div>
+    <div class="pc"><div class="lbl">— Schema diff · 3k tables</div><div class="v g">920<small>ms</small></div><p class="body">Side-by-side diff between staging and prod. <b>Reads <code>pg_catalog</code>, doesn't introspect twice.</b></p></div>
+  </div>
+</section>
+
+<section class="buy">
+  <div>
+    <h3><em>Seventy-nine.</em> Paga una vez, query forever.</h3>
+    <p class="copy">Universal binary, mac + linux + windows. <b>No telemetry, no auto-updater, no signed-in-as.</b> If your DBA has paranoia about a database tool phoning home, hand them a packet capture and a coffee.</p>
+    <a class="btn-p" href="../contact.html?subject=Forge">Buy Forge · $79 once →</a>
+  </div>
+  <div class="price">$79<small>ONCE · NATIVE BINARY · MAC/LIN/WIN</small></div>
+</section>
+
+<nav class="next">
+  <a href="hatch.html"><span class="l">— Next tool · 10</span><span class="n">Hatch →</span><span class="d">Status pages and incident timelines that your customers will actually read.</span></a>
+  <a href="lattice.html"><span class="l">— O back to</span><span class="n">Lattice →</span><span class="d">Code review, in your editor.</span></a>
+</nav>
+</main>
+
+<div id="site-foot"></div>
+<div class="grain" aria-hidden="true"></div>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="../../site.js?v=4.6.0"></script>
+<script src="../../site-shell.js?v=4.6.0"></script>
+<script>(()=>{const c=document.getElementById('clk');if(!c)return;const f=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');c.textContent=`${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`};f();setInterval(f,1000)})();</script>
+</body>
+</html>

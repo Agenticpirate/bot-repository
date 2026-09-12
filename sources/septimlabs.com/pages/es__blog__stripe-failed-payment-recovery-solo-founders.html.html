@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es" dir="ltr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Stripe Failed-Payment Recovery for Solo Founders: What Actually Trabajos — Septim Labs</title>
+<meta name="description" content="Stripe dunning for solo founders: smart retries, SCA exemptions, card updater, and the 4 email sequences that recover 60-80% of failed payments without a billing team." />
+<meta name="keywords" content="stripe failed payment recovery, stripe dunning solo founder, stripe smart retries, stripe involuntary churn, stripe payment failure email sequence, stripe SCA exemption" />
+<meta property="og:title" content="Stripe Failed-Payment Recovery for Solo Founders: What Actually Works" />
+<meta property="og:description" content="Smart retries, SCA exemptions, the Card Updater service, and the 4 email sequences that recover most failed payments. What the Stripe docs omit and why it matters." />
+<meta property="og:url" content="https://septimlabs.com/es/blog/stripe-failed-payment-recovery-solo-founders.html" />
+<meta property="og:type" content="article" />
+<meta property="og:image" content="https://septimlabs.com/assets/brand/kit/og-card-v2.png" />
+<meta property="og:site_name" content="Septim Labs" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Stripe Failed-Payment Recovery for Solo Founders: What Actually Works" />
+<meta name="twitter:description" content="What the Stripe docs do not tell you about recovering failed payments as a solo founder. Smart retries, SCA exemptions, card updater, and 4 email sequences." />
+<meta name="twitter:image" content="https://septimlabs.com/assets/brand/kit/og-card-v2.png" />
+<link rel="canonical" href="https://septimlabs.com/es/blog/stripe-failed-payment-recovery-solo-founders.html" />
+
+
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/kit/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/brand/kit/favicon-192.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/kit/apple-touch-icon-180.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../site.css?v=4.6.1">
+
+<style>
+  body[data-page="blog-stripe-failed-payment-recovery-solo-founders"]{ --p: var(--n-mint); }
+
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--sans),-apple-system,sans-serif;background:var(--bg);color:var(--ink);line-height:1.72;-webkit-font-smoothing:antialiased}
+  a{color:var(--p);text-decoration:none}a:hover{text-decoration:underline}
+  .mono,code{font-family:var(--mono),monospace;font-size:.9em}
+  .wrap{max-width:720px;margin:0 auto;padding:0 24px}
+
+  article{padding:56px 0 80px}
+  .kicker{font-family:var(--mono),monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--p);margin-bottom:12px;display:block}
+  h1{font-size:clamp(30px,5vw,44px);font-weight:700;letter-spacing:-.03em;line-height:1.1;margin-bottom:14px}
+  h1 em{font-style:normal;color:var(--p)}
+  .byline{color:var(--ink-3);font-size:14px;margin-bottom:30px;font-family:var(--mono),monospace}
+  article h2{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-top:44px;margin-bottom:12px}
+  article h3{font-size:18px;font-weight:700;margin-top:28px;margin-bottom:8px}
+  article p{color:var(--ink-2);margin-bottom:16px;font-size:16.5px}
+  article ul,article ol{color:var(--ink-2);padding-left:22px;margin-bottom:18px}
+  article li{margin-bottom:6px;font-size:16px}
+  article code{background:var(--line);padding:2px 6px;border-radius:4px;color:var(--p)}
+  article pre{background:var(--bg-1);border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow-x:auto;margin:18px 0;font-size:13.5px;line-height:1.6}
+  article pre code{background:none;padding:0;color:var(--ink)}
+
+  .failure-table{width:100%;border-collapse:collapse;margin:24px 0;font-size:14px}
+  .failure-table th,.failure-table td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  .failure-table th{background:rgba(94,234,212,.06);color:var(--ink-2);font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono),monospace;font-weight:500}
+  .failure-table td.code{color:var(--p);font-family:var(--mono),monospace;font-size:13px;font-weight:600}
+  .failure-table td.action{font-size:13px;line-height:1.55;color:var(--ink-2)}
+  .failure-table td.rec{font-size:13px;line-height:1.55;color:var(--ink-2)}
+
+  .sequence-block{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:28px 0}
+  .sequence-header{background:rgba(94,234,212,.06);padding:14px 18px;border-bottom:1px solid var(--line);font-family:var(--mono),monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--p)}
+  .sequence-row{display:grid;grid-template-columns:100px 1fr;border-top:1px solid var(--line)}
+  .sequence-row:first-of-type{border-top:none}
+  .sequence-row .when{padding:13px 16px;font-family:var(--mono),monospace;font-size:12px;color:var(--ink-3);background:rgba(94,234,212,.03);border-right:1px solid var(--line)}
+  .sequence-row .what{padding:13px 18px;color:var(--ink-2);font-size:14px;line-height:1.55}
+  .sequence-row .what strong{color:var(--ink)}
+
+  .metric-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin:24px 0}
+  .metric-card{border:1px solid var(--line);border-radius:10px;padding:18px;background:var(--bg-1);text-align:center}
+  .metric-card .val{font-family:var(--mono),monospace;font-size:28px;font-weight:700;color:var(--p);display:block;margin-bottom:4px}
+  .metric-card .label{font-family:var(--mono),monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+
+  .cta-box{background:rgba(94,234,212,.05);border:1px solid rgba(94,234,212,.35);border-radius:14px;padding:22px 24px;margin:36px 0}
+  .cta-box h4{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px}
+  .cta-box p{font-size:14px;color:var(--ink-2);margin-bottom:10px}
+  .cta-box a{font-family:var(--mono),monospace;font-size:13px;color:var(--p);font-weight:700}
+
+  .cite-this{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-family:var(--mono),monospace;font-size:10.5px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;margin:0 0 22px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+  .cite-this b{color:var(--p);font-weight:500}
+  .cite-this .pill{padding:3px 10px;border:1px solid var(--p);border-radius:99px;color:var(--p)}
+
+  .blog-related{margin:64px 0 0;padding:32px 28px;border:1px solid var(--line);border-radius:8px;background:var(--bg-1)}
+  .blog-related h4{font-family:var(--mono),monospace;font-size:11px;color:var(--ink-3);letter-spacing:.12em;text-transform:uppercase;margin:0 0 18px}
+  .blog-related .row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .blog-related a{display:block;padding:14px 16px;border:1px solid var(--line);border-radius:6px;color:var(--ink);text-decoration:none;font-size:14px;line-height:1.45;transition:border-color .2s,background .2s,color .2s}
+  .blog-related a:hover{border-color:var(--p);background:rgba(94,234,212,.04);color:var(--p)}
+  .blog-related a .lbl{display:block;font-family:var(--mono),monospace;font-size:9.5px;color:var(--ink-3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+  @media(max-width:640px){.metric-row{grid-template-columns:1fr 1fr}.blog-related .row{grid-template-columns:1fr}}
+</style>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Stripe Failed-Payment Recovery for Solo Founders: What Actually Works",
+  "description": "Stripe dunning for solo founders: smart retries, SCA exemptions, card updater, and the 4 email sequences that recover 60-80% of failed payments without a billing team.",
+  "datePublished": "2026-04-29",
+  "dateModified": "2026-04-29",
+  "author": {
+    "@type": "Organization",
+    "@id": "https://septimlabs.com/#organization",
+    "name": "Septim Labs",
+    "url": "https://septimlabs.com/about"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Septim Labs",
+    "url": "https://septimlabs.com",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://septimlabs.com/assets/brand/kit/favicon-512.png"
+    },
+    "@id": "https://septimlabs.com/#organization"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://septimlabs.com/blog/stripe-failed-payment-recovery-solo-founders.html"
+  },
+  "image": "https://septimlabs.com/assets/brand/kit/og-card-v2.png",
+  "inLanguage": "en-US",
+  "articleSection": "Septim Labs Blog",
+  "url": "https://septimlabs.com/blog/stripe-failed-payment-recovery-solo-founders.html"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://septimlabs.com/"},
+    {"@type": "ListItem", "position": 2, "name": "Blog", "item": "https://septimlabs.com/blog/"},
+    {"@type": "ListItem", "position": 3, "name": "Stripe Failed-Payment Recovery for Solo Founders: What Actually Works", "item": "https://septimlabs.com/blog/stripe-failed-payment-recovery-solo-founders.html"}
+  ]
+}
+</script>
+<meta property="og:locale" content="es_ES" />
+</head>
+<body data-page="blog-stripe-failed-payment-recovery-solo-founders">
+<div id="site-nav"></div>
+
+<main class="wrap">
+  <article>
+    <span class="kicker">&middot; billing &amp; recovery &middot;</span>
+    <h1>Stripe failed-payment recovery for solo founders: <em>what actually works</em></h1>
+
+    <div class="cite-this">
+      <span><b>// FILED</b> Revenue Ops</span>
+      <span><b>// SOURCE</b> Septim Labs</span>
+      <span><b>// PERMALINK</b> /blog/stripe-failed-payment-recovery-solo-founders.html</span>
+      <span class="pill">cite this &rarr;</span>
+    </div>
+
+    <div class="byline">Published April 29, 2026 &middot; by Septim Labs &middot; 9 min read</div>
+
+    <p>For a solo founder running a subscription product, involuntary churn &mdash; customers who want to keep paying but whose card fails &mdash; typically accounts for 20 to 40 percent of total churn. It is the category that kills quietly: no angry email, no cancellation, no feedback. A payment declines on the third of the month, Stripe retries twice more, and the subscription cancels on day 14 while the customer assumes everything is fine. They notice at month two when they try to log in.</p>
+
+    <p>The Stripe documentation covers the mechanics of dunning thoroughly. What it does not cover is the decision logic for a solo founder who has no billing team and cannot build a custom dunning system from scratch. This post covers that layer: which Stripe settings to turn on, which failure codes to act on manually vs. let the retry logic handle, and the four email sequences that recover the majority of failed payments across subscription businesses at the $29&ndash;$299/month range.</p>
+
+    <div class="metric-row">
+      <div class="metric-card">
+        <span class="val">39%</span>
+        <span class="label">Avg involuntary churn share</span>
+      </div>
+      <div class="metric-card">
+        <span class="val">72%</span>
+        <span class="label">Recovery rate with smart retries + email</span>
+      </div>
+      <div class="metric-card">
+        <span class="val">Day&nbsp;3</span>
+        <span class="label">Optimal first recovery email send</span>
+      </div>
+    </div>
+
+    <h2>The failure code taxonomy you actually need</h2>
+
+    <p>Stripe returns a <code>decline_code</code> on every failed charge. There are over 40 possible codes, but for recovery purposes they collapse into four buckets with distinct handling strategies.</p>
+
+    <table class="failure-table">
+      <thead>
+        <tr>
+          <th>Code bucket</th>
+          <th>Examples</th>
+          <th>What to do</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="code">Soft decline &mdash; retry</td>
+          <td class="action"><code>insufficient_funds</code>, <code>do_not_honor</code>, <code>generic_decline</code></td>
+          <td class="rec">Let smart retries handle it. Do not email the customer on the first failure &mdash; 40% of these resolve on the next attempt within 48 hours.</td>
+        </tr>
+        <tr>
+          <td class="code">Card updated needed</td>
+          <td class="action"><code>expired_card</code>, <code>incorrect_cvc</code>, <code>incorrect_number</code></td>
+          <td class="rec">Email immediately. The customer needs to update their card. Smart retries will not help because the card data itself is wrong. Send the update link within 2 hours of failure.</td>
+        </tr>
+        <tr>
+          <td class="code">Authentication required</td>
+          <td class="action"><code>authentication_required</code></td>
+          <td class="rec">Stripe handles this via PaymentIntent confirmation with 3DS, but only if you have set up the <code>payment_intent.payment_failed</code> webhook to send a hosted invoice link. If you have not, these fail silently.</td>
+        </tr>
+        <tr>
+          <td class="code">Hard decline &mdash; no retry</td>
+          <td class="action"><code>fraudulent</code>, <code>pickup_card</code>, <code>restricted_card</code>, <code>do_not_honor</code> persisting</td>
+          <td class="rec">Do not retry. Email the customer with a payment update link only. Further retries on a hard-declined card can damage your processing reputation score.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>The key insight from this table is that the action is different for each bucket. A single blanket "please update your payment method" email sent on every failure &mdash; which is what most founders default to &mdash; will confuse customers whose card actually has sufficient funds and is just experiencing a transient bank-side decline. Telling a customer their card has a problem when the problem is their bank's availability is a customer experience failure that drives voluntary cancellations.</p>
+
+    <h2>The three Stripe settings most founders leave off</h2>
+
+    <p>Before building any custom logic, check that these three settings are correctly configured in your Stripe dashboard.</p>
+
+    <h3>Smart Retries</h3>
+
+    <p>Smart Retries uses Stripe's machine learning model to determine the optimal timing for each retry attempt, based on the failure code, the card network, the time of day, and your account's historical recovery rates. It is enabled per-product under Billing &rarr; Settings &rarr; Smart Retries. The default is 4 attempts over 14 days, but the timing is adaptive. For most solo founders, this is the highest-leverage single setting: it typically recovers 15&ndash;25% of soft declines without any intervention on your part.</p>
+
+    <p>The one configuration decision you need to make is the maximum retry window. 14 days is the Stripe default. If your subscription period is monthly and the customer's account goes dark after failure, 14 days means the subscription cancels before the next billing cycle. If your product has high engagement, a shorter window (7 days) with a faster manual escalation is often better: the customer is more likely to notice and act in the first week.</p>
+
+    <h3>Automatic Card Updater</h3>
+
+    <p>The Card Updater service (enabled under Billing &rarr; Settings &rarr; Card Updater) automatically updates stored card details when a card issuer notifies Visa or Mastercard of a card replacement. This handles the case where a customer gets a new card issued by their bank &mdash; due to a lost card, a breach, or routine replacement &mdash; without telling you. Stripe estimates this applies to roughly 10% of card failures in any given quarter. It costs nothing to enable. It is off by default.</p>
+
+    <h3>SCA exemption configuration for EU customers</h3>
+
+    <p>Strong Customer Authentication (SCA) requirements under PSD2 apply to European Economic Area customers. If you have EU subscribers, recurring charges that do not qualify for a merchant-initiated transaction (MIT) exemption will trigger <code>authentication_required</code> declines. The fix is to configure the exemption correctly when the customer first subscribes &mdash; during the initial SetupIntent or PaymentIntent confirmation. Attempting to claim the exemption retroactively on a failed recurring charge does not work. This is a setup issue, not a dunning issue, but it surfaces as dunning failures in your logs, which is why it belongs here.</p>
+
+    <h2>The four email sequences</h2>
+
+    <p>Email is the recovery layer for failures that smart retries do not resolve. The four sequences below map to the four failure code buckets above. Each uses a payment update link generated via <code>stripe.billingPortal.sessions.create</code> or, for simpler setups, a hosted invoice link retrieved from the relevant <code>Invoice</code> object.</p>
+
+    <h3>Sequence A: soft decline</h3>
+
+    <div class="sequence-block">
+      <div class="sequence-header">// Sequence A &mdash; Soft decline &mdash; do not email on day 1</div>
+      <div class="sequence-row">
+        <div class="when">Day 1</div>
+        <div class="what">No email. Let Smart Retries work. Sending an email on day 1 of a transient decline creates support tickets from customers whose payment resolves before they read the email.</div>
+      </div>
+      <div class="sequence-row">
+        <div class="when">Day 3</div>
+        <div class="what"><strong>Email 1:</strong> Plain text. Subject: "Small issue with your [Product] payment." One sentence: a payment attempt failed, here is a link to update your card if needed, or it may resolve on its own. No urgency framing. No "your account will be cancelled." The customer does not need to panic yet.</div>
+      </div>
+      <div class="sequence-row">
+        <div class="when">Day 7</div>
+        <div class="what"><strong>Email 2:</strong> Slightly more direct. Subject: "Your [Product] payment is still failing." Confirm the payment has now failed multiple times. Include the update link prominently. Mention that access continues until day 14 but will pause if unresolved.</div>
+      </div>
+      <div class="sequence-row">
+        <div class="when">Day 12</div>
+        <div class="what"><strong>Email 3:</strong> Final notice. Subject: "2 days left to keep your [Product] access." Update link, direct ask. Include a secondary offer: if the customer is having financial difficulty, a pause option is available. This reduces hard cancellations from customers who could not pay that month but would return.</div>
+      </div>
+    </div>
+
+    <h3>Sequence B: card data issue (expired, wrong CVC)</h3>
+
+    <div class="sequence-block">
+      <div class="sequence-header">// Sequence B &mdash; Card update required &mdash; act within 2 hours</div>
+      <div class="sequence-row">
+        <div class="when">Hour 2</div>
+        <div class="what"><strong>Email 1:</strong> Plain text. Subject: "Action needed: your [Product] card." The card on file is expired or has an incorrect number. Link to update it. This is not ambiguous &mdash; be specific about the failure type so the customer knows what to do.</div>
+      </div>
+      <div class="sequence-row">
+        <div class="when">Day 2</div>
+        <div class="what"><strong>Email 2:</strong> Follow-up. Subject: "Reminder: update your card to keep [Product]." Restate the issue, restate the link, add the specific date access will pause.</div>
+      </div>
+      <div class="sequence-row">
+        <div class="when">Day 6</div>
+        <div class="what"><strong>Email 3:</strong> Final. Same structure as Sequence A day 12. Update link prominently. Pause offer if available.</div>
+      </div>
+    </div>
+
+    <h3>Sequence C: authentication required (SCA / 3DS)</h3>
+
+    <div class="sequence-block">
+      <div class="sequence-header">// Sequence C &mdash; Authentication required &mdash; send hosted invoice link</div>
+      <div class="sequence-row">
+        <div class="when">Day 1</div>
+        <div class="what"><strong>Email 1:</strong> Plain text, direct. Subject: "You need to confirm your [Product] payment." The EU banking system requires an extra confirmation step. Do not explain PSD2 or SCA. Include the hosted invoice URL from <code>invoice.hosted_invoice_url</code>. The customer clicks it, authenticates with their bank, payment goes through. This is the entire flow.</div>
+      </div>
+      <div class="sequence-row">
+        <div class="when">Day 4</div>
+        <div class="what"><strong>Email 2:</strong> Reminder. Same message, new subject line. Confirm the link has not expired (hosted invoice links expire after 30 days; if needed, generate a fresh one via the Stripe API).</div>
+      </div>
+    </div>
+
+    <h3>Sequence D: hard decline</h3>
+
+    <div class="sequence-block">
+      <div class="sequence-header">// Sequence D &mdash; Hard decline &mdash; no retries, one email</div>
+      <div class="sequence-row">
+        <div class="when">Day 1</div>
+        <div class="what"><strong>Email 1 (only):</strong> Plain text. Subject: "Your [Product] payment was declined." One sentence: the card on file was declined by your bank. Include the payment update link. Do not attempt further charges. If no update is made within 7 days, cancel the subscription cleanly. Do not let these linger in a half-cancelled state.</div>
+      </div>
+    </div>
+
+    <h2>Building this without a team</h2>
+
+    <p>The four sequences above require exactly one webhook handler: <code>invoice.payment_failed</code>. The handler reads the <code>charge.failure_code</code> or <code>decline_code</code> from the associated charge, determines which sequence to start, and queues the first email. Subsequent emails run on a timer from the initial failure date.</p>
+
+    <p>For a solo founder using Resend or Postmark and a serverless function, the entire system is approximately 200 lines of TypeScript or Python. The payment update link comes from either <code>stripe.billingPortal.sessions.create</code> (for customers in your Stripe dashboard) or from the <code>hosted_invoice_url</code> on the failed invoice object.</p>
+
+    <h3>The one piece most custom builds miss</h3>
+
+    <p>The most common implementation failure is not checking whether the subscription is still active before sending later emails in the sequence. A customer who updated their card on day 4 should not receive the day 7 "still failing" email. Before each queued email sends, check that <code>subscription.status</code> is still <code>past_due</code> and that no successful payment has been made since the sequence started. Sending a recovery email to a customer who already recovered is a trust cost that is hard to quantify but real.</p>
+
+    <h2>When to get a pre-built system vs. building your own</h2>
+
+    <p>The custom build described above is the right call for a founder who is already comfortable with Stripe webhooks and wants full control over the email copy and timing. It takes approximately 3&ndash;4 hours to build and test on the first pass.</p>
+
+    <p>If the webhook plumbing is not something you want to own &mdash; or if you are dealing with an existing subscriber base where multiple payment failures have already accumulated without a recovery system &mdash; the faster path is a pre-built system configured to your product. The <a href="/septim-rescue">Septim Rescue</a> service ($299) covers the setup, configuration, and first-30-day monitoring of exactly this pattern: webhook handler, failure code routing, four email sequences, and a review call once the first month of recovery data is available. It is a one-time engagement, not an ongoing fee.</p>
+
+    <div class="cta-box">
+      <h4>Stripe dunning configured and running in 48 hours</h4>
+      <p>Septim Rescue ($299, pay once) covers the full failed-payment recovery setup for your Stripe subscription product. Webhook handler, failure code routing, four email sequences, Card Updater enabled, SCA exemption reviewed. First-month recovery data reviewed on a call. One flat fee, no retainer.</p>
+      <a href="/septim-rescue">Septim Rescue &mdash; $299, pay once &rarr;</a>
+    </div>
+
+    <h2>What's next</h2>
+
+    <p>The recovery sequences above handle the majority of involuntary churn. The remaining involuntary churn &mdash; roughly 25&ndash;30% of all failed payments that do not recover within the retry window &mdash; consists primarily of customers who have genuinely left the card behind: closed accounts, stolen-card replacements that Automatic Card Updater did not catch, and EU customers with cards that require re-authentication but never clicked the link.</p>
+
+    <p>For those, the most effective approach is a 60-day reactivation sequence &mdash; separate from the dunning sequence, sent after the subscription has been cancelled &mdash; with a clean "re-subscribe" link generated via a new <code>Checkout Session</code>. That is a post-cancellation win-back problem, not a payment recovery problem, and the logic is different. Worth a separate post.</p>
+
+    <p>If you are building a custom Stripe integration from scratch and want the full billing architecture reviewed before you ship it, the <a href="/audit">Septim Audit</a> covers Stripe configuration as part of its payment infrastructure section alongside the Claude Code and MCP surface areas.</p>
+
+    <div class="blog-related">
+      <h4>// Related</h4>
+      <div class="row">
+        <a href="/blog/stripe-integration-guide.html"><span class="lbl">Billing</span>Stripe integration guide: subscriptions, webhooks, and the 6 most common setup errors</a>
+        <a href="/blog/claude-code-production-audit-checklist-2026.html"><span class="lbl">Audit</span>Claude Code in production: the 30-point audit checklist</a>
+        <a href="/blog/saas-mvp-what-to-build-first.html"><span class="lbl">Product</span>SaaS MVP: what to build first and what to defer until you have 10 paying customers</a>
+      </div>
+    </div>
+  </article>
+</main>
+
+<div id="site-foot"></div>
+<script src="../../site-shell.js?v=4.6.0"></script>
+<script src="../../site.js?v=4.6.0"></script>
+</body>
+</html>

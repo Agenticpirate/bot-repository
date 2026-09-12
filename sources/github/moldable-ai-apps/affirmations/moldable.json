@@ -1,0 +1,408 @@
+{
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "name": "Affirmations",
+  "version": "0.1.18",
+  "aliases": [
+    "mindfulness",
+    "wellness"
+  ],
+  "visibility": "public",
+  "description": "A soothing, daily affirmation app to improve mental health and positivity.",
+  "runtime": "vite_hono",
+  "author": "Moldable",
+  "license": "FSL-1.1-ALv2",
+  "icon": "✨",
+  "iconPath": "public/icon.png",
+  "category": "health-fitness",
+  "tags": [],
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "affirmations.content",
+        "name": "Affirmations",
+        "description": "Read affirmation categories, affirmation text, random affirmations, and favorites.",
+        "scopes": [
+          {
+            "id": "affirmations.native.read",
+            "name": "Read the mobile Affirmations experience",
+            "description": "Return a route-specific, bounded NativeUI projection for home, today's affirmation, a theme, one affirmation, favorites, or a random affirmation.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "route": {
+                  "type": "string",
+                  "enum": [
+                    "home",
+                    "daily",
+                    "theme",
+                    "affirmation",
+                    "favorites",
+                    "random"
+                  ]
+                },
+                "categoryId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 16
+                }
+              },
+              "required": [
+                "route"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ]
+          },
+          {
+            "id": "affirmations.native.mutate",
+            "name": "Update the mobile Affirmations experience",
+            "description": "Perform a low-risk per-affirmation favorite change or request another random affirmation, returning only a bounded receipt.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "favorite",
+                    "shuffle"
+                  ]
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                },
+                "favorite": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "action"
+              ],
+              "additionalProperties": false
+            },
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "changesState": true
+          },
+          {
+            "id": "affirmations.categories",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "List categories",
+            "description": "List affirmation categories."
+          },
+          {
+            "id": "affirmations.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "List affirmations",
+            "description": "List affirmations, optionally filtered by category or text.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "categoryId": {
+                  "type": "string"
+                },
+                "query": {
+                  "type": "string"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 200
+                }
+              }
+            }
+          },
+          {
+            "id": "affirmations.search",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Search affirmations",
+            "description": "Search affirmation text.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string"
+                },
+                "categoryId": {
+                  "type": "string"
+                },
+                "limit": {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 200
+                }
+              }
+            }
+          },
+          {
+            "id": "affirmations.random",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Random affirmation",
+            "description": "Return one random affirmation, optionally constrained by category or query.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "categoryId": {
+                  "type": "string"
+                },
+                "query": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "id": "affirmations.favorites.list",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "List favorites",
+            "description": "List favorite affirmations in this workspace."
+          },
+          {
+            "id": "affirmations.favorites.update",
+            "risk": "important",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Update favorites",
+            "description": "Replace the favorite affirmations list.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "favorites": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "favorites"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "affirmations.drive",
+        "name": "Drive the Affirmations UI",
+        "description": "Describe, navigate, and read the running Affirmations UI so an assistant can visibly drive the app (open today's affirmation, a theme deck, or the favorites list) and read the content behind any view. All of these are non-destructive: they only change what is displayed or read data.",
+        "scopes": [
+          {
+            "id": "affirmations.ui.describe",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Describe UI views",
+            "description": "List every navigable view in the Affirmations UI. Returns { views: [{ id, name, description, params? }] } explaining what each view shows and what entityId/params mean for it. Call this before affirmations.ui.navigate when unsure which view id to target.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "id": "affirmations.ui.navigate",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Navigate the UI",
+            "description": "Navigate the open Affirmations UI to a view. The running client applies the change visibly; nothing is modified. view is a view id from affirmations.ui.describe. entityId is the category id (from affirmations.categories) and is required when view is \"category\". params carries view-specific options: { text } for \"category\" picks the affirmation to show first. Returns { ok: true, intentId }.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "home",
+                    "daily",
+                    "category",
+                    "favorites"
+                  ],
+                  "description": "View id from affirmations.ui.describe."
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Category id (from affirmations.categories). Required when view is \"category\"."
+                },
+                "params": {
+                  "type": "object",
+                  "description": "View-specific options: { text: string } for \"category\" shows that exact affirmation first (best-effort)."
+                }
+              },
+              "required": [
+                "view"
+              ]
+            }
+          },
+          {
+            "id": "affirmations.ui.showToday",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Show today's affirmation",
+            "description": "Open the full-screen card with today's affirmation (one fixed affirmation per calendar day). Purely visual navigation; nothing is modified. Returns { ok: true, intentId, dayKey, text } where text is today's affirmation.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "id": "affirmations.ui.shuffle",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Shuffle to a random affirmation",
+            "description": "Pick one random affirmation from any theme and visibly show it in the full-screen theme viewer, like the in-app shuffle button. Purely visual navigation; nothing is modified. Returns { ok: true, intentId, affirmation: { text, categoryId, categoryName } } with the affirmation now on screen.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "id": "affirmations.ui.read",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Read a view's content",
+            "description": "Read the content behind the current or a target Affirmations view as structured JSON straight from the data layer (no pixels, no HTML). With no params, returns the home dashboard: today's affirmation, streak days, favorites count, and every theme with its affirmation count. With view \"daily\", returns today's affirmation and whether it is a favorite. With view \"category\" and entityId set to a category id (entityId alone also works), returns that theme's full affirmation list with per-item favorite flags. With view \"favorites\", returns the saved favorites list.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "home",
+                    "daily",
+                    "category",
+                    "favorites"
+                  ],
+                  "description": "Optional view id to read. Defaults to the home dashboard (or the category view when entityId is given)."
+                },
+                "entityId": {
+                  "type": "string",
+                  "description": "Optional category id to read (required when view is \"category\")."
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "affirmations.cards",
+        "name": "Chat cards",
+        "description": "Show a chosen affirmation as a quiet styled card with the full text on tap.",
+        "scopes": [
+          {
+            "id": "affirmations.cards.present",
+            "name": "Present chat card",
+            "description": "Show a chosen affirmation as a quiet styled card with the full text on tap.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "categoryId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000
+                }
+              },
+              "required": [
+                "categoryId",
+                "text"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "affirmations.cards.read",
+            "name": "Read chat card",
+            "description": "Show a chosen affirmation as a quiet styled card with the full text on tap.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "categoryId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000
+                }
+              },
+              "required": [
+                "categoryId",
+                "text"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "env": [],
+  "routeName": "affirmations",
+  "screenshots": [
+    "public/screenshots/1.png"
+  ],
+  "tagline": "Daily affirmations across ten themes, saved to your favorites"
+}

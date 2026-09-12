@@ -1,0 +1,419 @@
+{
+  "window": {
+    "titlebar": "app",
+    "nativeMaterial": {
+      "background": true
+    }
+  },
+  "mobile": {
+    "type": "mobile-web",
+    "path": "dist-mobile"
+  },
+  "name": "Weather",
+  "version": "0.1.10",
+  "aliases": [
+    "forecast",
+    "conditions"
+  ],
+  "runtime": "vite_hono",
+  "visibility": "public",
+  "description": "Local forecast and current conditions, at a glance. Keyless and local-first.",
+  "author": "",
+  "license": "FSL-1.1-ALv2",
+  "icon": "⛅",
+  "iconPath": "public/icon.png",
+  "category": "weather",
+  "tags": [
+    "weather",
+    "forecast",
+    "essentials"
+  ],
+  "moldableDependencies": {
+    "@moldable-ai/ui": "^0.2.59",
+    "@moldable-ai/storage": "^0.1.8"
+  },
+  "appApi": {
+    "version": 1,
+    "capabilities": [
+      {
+        "id": "weather.weather",
+        "name": "Weather",
+        "description": "Read current conditions and the forecast for the user's location (IP-resolved, or explicit coordinates).",
+        "scopes": [
+          {
+            "id": "weather.native.read",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Read the mobile Weather experience",
+            "description": "Return a route-specific, bounded NativeUI projection of live current, hourly, daily, or location weather data for the workspace's saved or IP-resolved location.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "route": {
+                  "type": "string",
+                  "enum": [
+                    "overview",
+                    "hourly",
+                    "daily",
+                    "location"
+                  ]
+                }
+              },
+              "required": [
+                "route"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "weather.native.searchLocations",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Search mobile weather locations",
+            "description": "Search Open-Meteo for a bounded list of locations without changing workspace state.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "minLength": 2,
+                  "maxLength": 80
+                }
+              },
+              "required": [
+                "query"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "weather.native.location.update",
+            "risk": "important",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Update the mobile weather location",
+            "description": "Save one selected location or return to the reversible approximate IP-location mode.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "set",
+                    "use-ip"
+                  ]
+                },
+                "latitude": {
+                  "type": "number",
+                  "minimum": -90,
+                  "maximum": 90
+                },
+                "longitude": {
+                  "type": "number",
+                  "minimum": -180,
+                  "maximum": 180
+                },
+                "name": {
+                  "type": "string"
+                },
+                "region": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "country": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "timezone": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "action"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "weather.native.refresh",
+            "risk": "low",
+            "surfaces": [
+              "voice",
+              "nativeUI"
+            ],
+            "name": "Refresh mobile weather",
+            "description": "Bypass the fresh cache, fetch current Open-Meteo conditions, and return a bounded refresh receipt.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "changesState": true
+          },
+          {
+            "id": "weather.conditions",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Current conditions",
+            "description": "Get current temperature, feels-like, humidity, wind, and a condition label for the user's location.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "lat": {
+                  "type": "number"
+                },
+                "lon": {
+                  "type": "number"
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "fahrenheit",
+                    "celsius"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": "weather.forecast",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Forecast",
+            "description": "Get the next 12 hours and 7-day daily forecast (highs, lows, precipitation probability, condition).",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "lat": {
+                  "type": "number"
+                },
+                "lon": {
+                  "type": "number"
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "fahrenheit",
+                    "celsius"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": "weather.get",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Full weather",
+            "description": "Get the full payload: location, current conditions, hourly, and daily forecast in one call.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "lat": {
+                  "type": "number"
+                },
+                "lon": {
+                  "type": "number"
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "fahrenheit",
+                    "celsius"
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "weather.drive",
+        "name": "Weather UI drive",
+        "description": "Describe, navigate, and read the Weather app in the active workspace.",
+        "scopes": [
+          {
+            "id": "weather.ui.describe",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Describe Weather views",
+            "description": "List the current conditions, hourly forecast, and 7-day forecast sections with model-readable descriptions.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "id": "weather.ui.navigate",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Navigate Weather",
+            "description": "Scroll the open Weather app to current conditions, the hourly forecast, or the 7-day forecast using a per-workspace last-wins UI intent.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "current",
+                    "hourly",
+                    "daily"
+                  ],
+                  "description": "A view id returned by weather.ui.describe."
+                },
+                "params": {
+                  "type": "object",
+                  "description": "Reserved for view-specific options."
+                }
+              },
+              "required": [
+                "view"
+              ]
+            }
+          },
+          {
+            "id": "weather.ui.read",
+            "risk": "low",
+            "surfaces": [
+              "voice"
+            ],
+            "name": "Read current forecast",
+            "description": "Return the same faithful full forecast JSON as weather.get: location, current conditions, hourly forecast, daily forecast, units, and update time. Optional coordinates select a location.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "view": {
+                  "type": "string",
+                  "enum": [
+                    "current",
+                    "hourly",
+                    "daily"
+                  ],
+                  "description": "Optional visible section context; the full forecast model is always returned."
+                },
+                "lat": {
+                  "type": "number",
+                  "minimum": -90,
+                  "maximum": 90
+                },
+                "lon": {
+                  "type": "number",
+                  "minimum": -180,
+                  "maximum": 180
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "fahrenheit",
+                    "celsius"
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "weather.cards",
+        "name": "Chat cards",
+        "description": "Show conditions for a location with hourly and daily forecasts on tap. Omit coordinates to use the current app location; the card stays bound to that location.",
+        "scopes": [
+          {
+            "id": "weather.cards.present",
+            "name": "Present chat card",
+            "description": "Show conditions for a location with hourly and daily forecasts on tap. Omit coordinates to use the current app location; the card stays bound to that location.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "lat": {
+                  "type": "number",
+                  "minimum": -90,
+                  "maximum": 90
+                },
+                "lon": {
+                  "type": "number",
+                  "minimum": -180,
+                  "maximum": 180
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "celsius",
+                    "fahrenheit"
+                  ]
+                },
+                "locationName": {
+                  "type": "string",
+                  "maxLength": 240
+                }
+              },
+              "required": [],
+              "additionalProperties": false
+            }
+          },
+          {
+            "id": "weather.cards.read",
+            "name": "Read chat card",
+            "description": "Show conditions for a location with hourly and daily forecasts on tap. Omit coordinates to use the current app location; the card stays bound to that location.",
+            "risk": "low",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "lat": {
+                  "type": "number",
+                  "minimum": -90,
+                  "maximum": 90
+                },
+                "lon": {
+                  "type": "number",
+                  "minimum": -180,
+                  "maximum": 180
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "celsius",
+                    "fahrenheit"
+                  ]
+                },
+                "locationName": {
+                  "type": "string",
+                  "maxLength": 240
+                }
+              },
+              "required": [],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "env": []
+}
