@@ -2,9 +2,11 @@
 
 Official public catalog of Grok Bot templates. Canonical index: [https://x.ai/bot/marketplace](https://x.ai/bot/marketplace).
 
+- Tab: **Bots** (Grok Bot Marketplace templates)
+- Plugins tab / Grok Build catalog: [sources/x.ai-bot-marketplace-plugins/](../x.ai-bot-marketplace-plugins/INDEX.md)
 - Sitemap: https://x.ai/sitemap.xml
-- Archived at: 2026-09-12T09:36:30Z
-- Slugs in sitemap: 71
+- Archived at: 2026-09-12T19:19:16Z
+- Slugs in sitemap + listing pages: 71
 - Pages downloaded: 71
 - `template.json` extracted: 71
 - Failures: 0

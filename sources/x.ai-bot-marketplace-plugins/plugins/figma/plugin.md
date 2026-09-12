@@ -1,0 +1,46 @@
+# figma
+
+- Marketplace: Grok Build Plugin Marketplace (Plugins catalog)
+- Source of truth: https://github.com/xai-org/plugin-marketplace
+- Catalog revision: `9963e48f7a4a641d4f3a791cec55b089dd4aefa6`
+- Category: development
+- Homepage: https://github.com/figma/mcp-server-guide
+- Keywords: figma, figma mcp
+- Domains: figma.com, www.figma.com
+
+## Description
+
+Official Figma MCP server and skills for design-to-code workflows. Read design context from Figma files, implement designs, use Code Connect, write to the canvas, and generate Figma designs from web pages.
+
+## Source pin
+
+```json
+{
+  "source": "url",
+  "url": "https://github.com/figma/mcp-server-guide.git",
+  "sha": "d638a5e055e8d95e0394a94350860398cf424b74"
+}
+```
+
+## Components (plugin-index.json)
+
+### mcpServers
+
+- **figma**: http
+
+### skills
+
+- **figma-code-connect**: Creates and maintains Figma Code Connect template files that map Figma components to code snippets. Use when the user m…
+- **figma-create-new-file**: **MANDATORY prerequisite** — you MUST invoke this skill BEFORE every `create_new_file` tool call. NEVER call `create_ne…
+- **figma-design-to-code**: **MANDATORY prerequisite** — you MUST invoke this skill BEFORE calling the `get_design_context` Figma MCP tool. You MUS…
+- **figma-generate-design**: Use this skill alongside figma-use when the task involves translating an application page, view, or multi-section layou…
+- **figma-generate-diagram**: MANDATORY prerequisite — load this skill BEFORE every `generate_diagram` tool call. NEVER call `generate_diagram` direc…
+- **figma-generate-library**: Build or update a professional-grade design system in Figma from a codebase. Use when the user wants to create variable…
+- **figma-generative-plugins**: **MANDATORY prerequisite** — load this skill before calling `create_generative_plugin` or `update_generative_plugin`. U…
+- **figma-implement-motion**: Translates Figma motion and animations into production-ready application code. Use when implementing animation/motion f…
+- **figma-shaders**: **MANDATORY prerequisite** — load this skill before calling `create_shader` or `update_shader`. Use when the user asks…
+- **figma-swiftui**: SwiftUI ↔ Figma translation. Use whenever the user mentions Swift, SwiftUI, iOS, iPhone, or iPad — in EITHER direction…
+- **figma-use**: **MANDATORY prerequisite** — you MUST invoke this skill BEFORE every `use_figma` tool call. NEVER call `use_figma` dire…
+- **figma-use-figjam**: This skill helps agents use Figma's use_figma MCP tool in the FigJam context. Can be used alongside figma-use which has…
+- **figma-use-motion**: Motion / animation context for the `use_figma` MCP tool — animating Figma nodes via manual keyframes, animation styles,…
+- **figma-use-slides**: This skill helps agents use Figma's use_figma MCP tool in the Slides context. Can be used alongside figma-use which has…
