@@ -1,20 +1,21 @@
 # skills.sh errors
 
-Updated: 2026-09-12T19:29:59Z
+Updated: 2026-09-12T19:53:47Z
 
 ## Rate limit
 
 Live `GET /api/download/{owner}/{repo}/{slug}` returns HTTP 429 `{"error":"rate_limit_exceeded","message":"Rate limit exceeded. Maximum 60 requests per hour."}` with `Retry-After: 60`.
 
-Target is all 19998 sitemap ids. 17773 have full `files/` + hash. 2193 remain.
+Target is all 19998 sitemap ids. 17821 have full `files/` + hash. 2143 remain.
 Prefer `scripts/fill_skills_sh_from_github.py` for bulk fill. This API client is only for leftovers and stays under the 60/hour cap.
 
 ## Permanent misses
 
-32 ids returned HTTP 404 from the download API; page HTML was saved once.
+34 ids returned HTTP 404 from the download API; page HTML was saved once.
 
 Recent failures / fallbacks:
 
-- `okx/onchainos-skills/okx-x402-payment` rate_limited: HTTP 429 rate_limit_exceeded (60/hour)
+- `api/git/mws-shared` html_fallback: HTTP 404
+- `api/git/fireworks-tech-graph` html_fallback: HTTP 404
 
 Resume: `python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`
