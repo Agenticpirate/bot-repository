@@ -1,0 +1,287 @@
+@import "@fontsource/geist/latin-600.css";
+@import "@fontsource/inter/latin-400.css";
+@import "@fontsource/inter/latin-500.css";
+@import "@fontsource/geist-mono/latin-400.css";
+@import "@fontsource/geist-mono/latin-500.css";
+@import "tailwindcss";
+@import "./tokens.css";
+
+@layer base {
+  html {
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    /* Section jump-nav (Shareable Bots) and every in-page anchor animate instead of
+       jumping. Pure CSS, zero JS, CSP-safe. The §4.4 reduced-motion block below forces
+       scroll-behavior:auto for users who prefer reduced motion, so this is accessible. */
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-height: 100vh;
+    margin: 0;
+    background: var(--color-bg);
+    /* F6 — the page itself NEVER scrolls sideways. Individual containers may (the C4 table
+       rule: a genuinely tabular or code-formatted block scrolls within its own box), but
+       nothing is allowed to widen the document. `clip` rather than `hidden` because `hidden`
+       on body creates a scroll container and breaks `position: sticky` and scroll anchoring;
+       `clip` just refuses the overflow. */
+    overflow-x: clip;
+  }
+
+  /* ── F6 · D9 wrap contract for every prompt / contract / code surface ──────────────────
+     A prompt is PROSE, not a table: it must wrap, never scroll. `white-space: pre-wrap`
+     alone is not enough — it only breaks at existing whitespace, so one unbroken
+     `https://grokbot.dev/api/v1/collections.json` blows past the container and, inside the
+     InstallModal at 390, took the whole page sideways (the operator's F6 report).
+     `overflow-wrap: anywhere` is the operative fix, and it is chosen over
+     `word-break: break-word` deliberately: `anywhere` also shrinks the element's MIN-CONTENT
+     size, so a flex or grid parent stops being forced wider than the viewport. Without that,
+     the parent still blows out even though the text wraps.
+     `min-inline-size: 0` cancels the `auto` minimum every flex item gets, which is the other
+     half of the same problem. */
+  pre,
+  code,
+  kbd,
+  samp {
+    max-inline-size: 100%;
+    min-inline-size: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* Long bare URLs in prose (entry bodies, hub intros) are the same hazard, minus the
+     monospace. */
+  p a[href],
+  li a[href] {
+    overflow-wrap: anywhere;
+  }
+
+  /* F6 extension (operator, "make it perfect"): prose block text itself must wrap, not only
+     links inside it. An entry summary carrying an unbreakable token — the arrow string
+     `brief→observe→correct→schedule→deliver` has no soft-wrap opportunity — was overflowing its
+     grid column and taking the whole page ~15px sideways at 375px (proven the scroll-causer by
+     hide-and-remeasure, not inferred). `anywhere` rather than `break-word` is deliberate: it
+     also shrinks the element's MIN-CONTENT size, so the flex/grid parent stops being forced
+     wider than the viewport. Normal prose is unaffected — a break only ever happens when a run
+     genuinely cannot fit. */
+  p,
+  li,
+  dd,
+  figcaption {
+    overflow-wrap: anywhere;
+  }
+
+  /* …but the numbered index label ("01"/"02"/"03") that leads a flex step row must NOT be
+     shrunk to a single glyph and broken between digits by the rule above (it is a flex child,
+     and `overflow-wrap: anywhere` drops its min-content to one character so the flex algorithm
+     squeezes it). Pin it to its content width. Regression fixed here rather than per-template:
+     it is always the mono span that is the first child of a flex `<li>` (plugin install steps,
+     the install modal, the /agent and /contribute step lists). */
+  li.flex > .font-mono:first-child {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* §4.6 focus — never `outline: none`, never on `:focus` alone. */
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+}
+
+@layer components {
+  .container-page {
+    width: 100%;
+    max-width: var(--container-max);
+    margin-inline: auto;
+    padding-inline: var(--page-gutter);
+  }
+
+  .site-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .site-grid[data-rails="true"] {
+    grid-template-columns: minmax(0, 160px) minmax(0, var(--container-max)) minmax(0, 160px);
+    gap: 24px;
+  }
+
+  /* Constrain the header to the container so its bar/border no longer spans the gutters —
+     that clears the top of both gutters, so side rails can run the full height of the page.
+
+     NOTE: with sponsors ON this rule is redundant — the generated rail stylesheet
+     (src/lib/sponsorLayout.ts) applies the same constraint from the DERIVED breakpoint
+     (1276px, far below 1600) and, being unlayered, outranks this @layer rule everywhere it
+     applies. This is kept as the sponsors-OFF behaviour, so flipping ENABLE_SPONSORS off
+     restores exactly what the site did before the rails existed. Do not "sync" the 1600 to
+     the rail breakpoint: it is not a rail constant, and hardcoding the derived value here
+     is precisely the mistake the derivation exists to prevent. */
+  @media (min-width: 1600px) {
+    .siteHeader {
+      max-inline-size: var(--container-max);
+      margin-inline: auto;
+    }
+  }
+
+  .display-track {
+    letter-spacing: var(--tracking-display);
+  }
+
+  .skip-link {
+    position: absolute;
+    inset-block-start: 8px;
+    inset-inline-start: 8px;
+    z-index: 50;
+    transform: translateY(-150%);
+    border: var(--border-width) solid var(--color-border-interactive);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-text);
+    padding: 8px 12px;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+  }
+
+  .skip-link:focus {
+    transform: translateY(0);
+  }
+
+  /* §4.2.10 stretched link — one accessible name per card. Global (not scoped) so the
+     §4.2.8 Pagefind island can render EntryCard-equivalent markup on /search/. */
+  .entry-card__link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  .clamp-2 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .clamp-3 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+  }
+
+  /* Entry-body prose (plugin + use-case detail pages). Section headings match
+     SectionHeading's sub variant; lists get their markers back from the reset. */
+  .prose-body h2 {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    letter-spacing: -0.02em;
+    color: var(--color-text);
+    margin-block-start: 0.75rem;
+  }
+
+  .prose-body ol,
+  .prose-body ul {
+    list-style: revert;
+    padding-inline-start: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* News / article bodies render raw markdown and can carry long bare URLs
+     (x.ai/bot links) and prompt code blocks. Without this they overflow the
+     viewport on a phone (F6: the page never scrolls sideways). Same
+     `overflow-wrap: anywhere` treatment the use-case prompt block already uses.
+     A prompt is prose, so `pre` WRAPS rather than scrolls. */
+  .prose-body {
+    overflow-wrap: break-word;
+  }
+  .prose-body a,
+  .prose-body code {
+    overflow-wrap: anywhere;
+  }
+  .prose-body pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-inline-size: 100%;
+  }
+}
+
+/* §4.4 rule 6 — the one global reduced-motion rule. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .container-page {
+    padding-inline: var(--page-gutter-desktop);
+  }
+}
+
+/* ── The /wall/ masonry (F12), moved here at F17 ────────────────────────────────────────
+ *
+ * DEFECT THIS FIXES, found while verifying F17's mixed wall and PRE-DATING it: these rules
+ * lived in a `<style is:global>` inside `src/pages/wall/[page].astro`, on the reasoning that
+ * one definition shared by both wall routes beats two copies. The reasoning was right; the
+ * placement was not. `wall/[page].astro` only generates pages 2+, so with fewer than
+ * SSR_COUNT items it generates NOTHING — and a route that builds no pages contributes no
+ * stylesheet to any page. `/wall/` therefore linked no masonry CSS at all and had been
+ * rendering as one full-width column ever since F12 shipped. Measured, not inferred:
+ * `getComputedStyle('.wallMasonry').columnCount` returned `auto` on the built page, and the
+ * rule was present in `dist/_astro/` but linked from nothing.
+ *
+ * It is the same family as the bug F12 itself fixed — output that only exists when the item
+ * count is above a threshold — which is why it hid: the wall has never held 12 items.
+ *
+ * global.css always ships, so both routes get exactly one copy and neither can lose it.
+ */
+/* Perf (operator, 2026-08-22): the wall was CSS multi-column (`columns: 2`). Multicol
+ * re-balances EVERY column on each appended batch and on each embed that changes height as it
+ * loads — so a long wall got heavier to scroll the further you went. Switched to CSS grid:
+ * each card is an independent block that never triggers a whole-wall recolumn, which also lets
+ * `content-visibility` (below) actually skip off-screen cards. Row-aligned instead of a tight
+ * masonry stagger — the tradeoff that buys smooth scrolling at scale. */
+.wallMasonry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+  max-inline-size: 620px;   /* single column ~= one tweet, centered */
+  margin-inline: auto;
+}
+@media (min-width: 768px) {
+  .wallMasonry {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-inline-size: 1160px;   /* two ~550 tweets + gap, centered */
+  }
+}
+/* The heart of the fix: off-screen wall cards cost the browser ~nothing — no layout, no paint,
+ * and a heavy third-party X/YouTube iframe that has scrolled away stops costing main-thread
+ * time. `contain-intrinsic-size` reserves a plausible height so the scrollbar stays stable and
+ * cards don't collapse; `auto` remembers each card's real height once it has rendered once. */
+.wallCard {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 480px;
+}
+/* Direct round: capped at TWO columns (was 3 at xl) — operator wants a 2-col wall, and
+   an X embed is ~550px wide, so 2 columns fill the container with no right-side waste. */
+.wallMasonry > * {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin-block-end: 1.5rem;
+}

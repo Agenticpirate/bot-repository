@@ -1,0 +1,18 @@
+# Grok Bot Guides
+
+How to create, write instructions for, chain, and monetize Grok bots. Every guide also has a plain-text (markdown) version: append .md to its URL.
+
+- [What Are Grok Bots? The Complete 2026 Guide](https://grokbothq.xyz/guides/what-are-grok-bots): Grok bots are one-click custom assistants built on xAI's Grok platform. A creator writes plain-English instructions that define a persona and its rules; the bot is published at x.ai/bot, and anyone can open it from a link and use it immediately - no setup, no configuration.
+- [How to Create a Grok Bot in 10 Minutes (2026 Walkthrough)](https://grokbothq.xyz/guides/how-to-create-a-grok-bot): Go to x.ai/bot, click create, and write instructions in plain English: a role, the job, explicit rules, and a workflow. Test the bot against three real prompts, fix where it drifts, then publish. You get a shareable x.ai/bot link - no code required.
+- [How to Write Grok Bot Instructions That Actually Work](https://grokbothq.xyz/guides/how-to-write-bot-instructions): Write instructions like a spec, not a vibe: a defined role, one job, numbered and testable rules, an explicit workflow, and a failure mode. Rules beat personality - 'end every review with Ship it / Needs another pass' outperforms 'be helpful and thorough' every time.
+- [How to Publish Your Grok Bot and Get Your First 1,000 Opens](https://grokbothq.xyz/guides/how-to-publish-and-share-your-grok-bot): Publish at x.ai/bot to get your shareable bot link, then distribute: submit to GrokBot HQ (hand-reviewed, free), post an output screenshot demo on X, put the link in your profile, and pitch it to niche communities where the job-to-be-done already comes up.
+- [How to Find the Best Grok Bots (Without Opening 50 Duds)](https://grokbothq.xyz/guides/how-to-find-the-best-grok-bots): Judge a bot before opening it: does it do one job, do its instructions include testable rules and a failure mode, and can you see real output? Curated directories like GrokBot HQ pre-test every listing, so start there and check the 'instructions' section on each bot page.
+- [How to Chain Grok Bots Into Workflows (Combo Guide)](https://grokbothq.xyz/guides/how-to-chain-grok-bots): Chaining Grok bots means running them in sequence and pasting each bot's output into the next - no integrations required. The trick is output discipline: design (or choose) bots whose output format is the next bot's input format, like Build → Review → Fix in the Ship Desk combo.
+- [Grok Bot Safety: What to Never Share With a Bot](https://grokbothq.xyz/guides/grok-bot-safety-and-privacy): A Grok bot only sees what you paste or type into it. Never share passwords, one-time codes, full card numbers, or other people's private data. Redact account numbers from statements, remember bot creators may see usage, and report harmful bots to the directory within minutes.
+- [Can You Make Money With a Grok Bot? What Works in 2026](https://grokbothq.xyz/guides/monetize-your-grok-bot): There's no direct payout for Grok bot usage today. Builders monetize indirectly: bots as free lead generation for paid products or services, bots as portfolio pieces that win clients, and featured directory placements that drive qualified opens at launch.
+
+
+---
+
+Part of [GrokBot HQ](https://grokbothq.xyz), the independent, hand-reviewed directory of Grok bots. Canonical page: [https://grokbothq.xyz/guides](https://grokbothq.xyz/guides).
+GrokBot HQ is an independent directory maintained by fans of the Grok bot ecosystem. It is not affiliated with, endorsed by, or sponsored by xAI. Grok is a trademark of xAI; references are for identification only.

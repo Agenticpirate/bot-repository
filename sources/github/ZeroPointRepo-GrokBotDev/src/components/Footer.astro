@@ -1,0 +1,124 @@
+---
+import BookmarkNudge from './BookmarkNudge.astro';
+import MarkGlyph from './MarkGlyph.astro';
+import NavLink from './NavLink.astro';
+import ThemeToggle from './ThemeToggle.astro';
+
+interface FooterStats {
+  plugins: number;
+  useCases: number;
+  collections: number;
+  generatedAt: string;
+}
+
+interface Props {
+  stats?: FooterStats;
+  statsUrl?: string;
+}
+
+const { stats = { plugins: 0, useCases: 0, collections: 0, generatedAt: new Date().toISOString() }, statsUrl = '' } = Astro.props;
+const builtStamp = stats.generatedAt.replace(/\.\d{3}Z$/, 'Z');
+const columns = [
+  // Direct round, operator: counts column REMOVED, collections links REMOVED,
+  // "use cases" renamed "awesome use cases". Three groups now.
+  //
+  // 2026-08-30, operator: `collections` is BACK in browse ("in footer clickable for now").
+  // The lane was rebuilt around curated bundles of Shareable Bots and needs a way in — the
+  // header stays untouched (F11), so the footer is the one entry point besides the
+  // breadcrumb trail every collection detail page already carries.
+  {
+    title: 'browse',
+    links: [
+      { href: '/plugins/', label: 'plugins' },
+      { href: '/use-cases/', label: 'awesome use cases' },
+      { href: '/marketplace/', label: 'shareable bots' },
+      { href: '/collections/', label: 'collections' },
+      { href: '/wall/', label: 'wall' },
+      { href: '/news/', label: 'news' },
+      { href: '/categories/', label: 'categories' },
+      { href: '/integrations/', label: 'integrations' },
+    ],
+  },
+  {
+    title: 'machine',
+    links: [
+      { href: '/agent/', label: 'agent' },
+      { href: '/api/v1/index.json', label: 'api' },
+      { href: '/api/v1/templates.json', label: 'templates api' },
+      { href: '/rss.xml', label: 'rss' },
+      { href: '/news/rss.xml', label: 'news rss' },
+      { href: '/llms.txt', label: 'llms.txt' },
+      { href: 'https://mcp.grokbot.dev', label: 'mcp host', external: true },
+    ],
+  },
+  {
+    title: 'project',
+    links: [
+      { href: '/about/', label: 'about' },
+      { href: '/privacy/', label: 'privacy' },
+      { href: '/sponsors/', label: 'sponsors' },
+      { href: '/contribute/', label: 'contribute' },
+      { href: 'https://x.com/GrokBotDev', label: 'follow @grokbotdev', external: true },
+      { href: 'https://github.com/ZeroPointRepo/GrokBotDev', label: 'github', external: true },
+      ...(statsUrl ? [{ href: statsUrl, label: 'stats', external: true }] : []),
+    ],
+  },
+];
+---
+
+<footer class="border-t border-border bg-bg">
+  <div class="container-page py-12">
+    {/* F8 — the footer was ONE column on a phone: 17 links at a 32px pitch, 970px tall,
+        1.15 screens of scrolling. Two columns from the base breakpoint halves the row count;
+        the four groups stay intact and are never interleaved (browse | machine, then
+        project | counts). Four columns from md, not lg: at 768 two columns leave 348px of
+        column for a ~90px label and the footer still ran 670px on a tablet with room to
+        spare. The ruled composition is unchanged — four groups — it just arrives one
+        breakpoint earlier. Read §4.5's footer row as 2 / 2 / 4 / 4.
+        Touch targets come from PADDING, not line-height: each link is a 44px flex row with
+        the text vertically centred, so the §4.6 / WCAG 2.2 SC 2.5.8 target is real (all 17
+        were 16px tall before) while the type keeps its tight `--text-xs` rhythm. */}
+    {/* Direct round, operator: "still way too big line height" — rows drop 44px → 32px
+        (still above SC 2.5.8's 24px floor). Three groups after the counts removal:
+        2-col phone (browse | machine, project below), 3-col from md. */}
+    <nav aria-label="footer" class="grid grid-cols-2 gap-x-6 gap-y-6 md:grid-cols-3">
+      {columns.map((column) => (
+        <section aria-labelledby={`footer-${column.title.replaceAll(' ', '-')}`}>
+          <h2 id={`footer-${column.title.replaceAll(' ', '-')}`} class="mb-1.5 font-mono text-xs text-text">
+            {column.title}
+          </h2>
+          <ul>
+            {column.links.map((link) => (
+              <li>
+                <NavLink
+                  href={link.href}
+                  label={link.label}
+                  external={link.external}
+                  variant="footer"
+                  class="flex min-h-8 items-center"
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </nav>
+
+    <div class="mt-10 flex flex-col gap-3 border-t border-border pt-6 font-mono text-xs text-text-muted md:flex-row md:items-center md:justify-between">
+      <p class="flex items-center gap-2 text-text">
+        <MarkGlyph size={14} />
+        <span class="display-track font-display font-semibold">grokbot.dev</span>
+      </p>
+      <p>GrokBot.dev is an independent community project — not affiliated with xAI.</p>
+      {/* F9 — the bottom bar, not the link columns: a button among a list of links reads as
+          a broken link. This row already holds non-link chrome (mark, disclaimer, stamp). */}
+      <p class="flex items-center gap-4">
+        {/* Operator (2026-08-25): sitewide bookmark reminder — most visitors land on a
+            detail page from X, so the footer carries the compact variant on every page. */}
+        <BookmarkNudge variant="footer" />
+        <span>built {builtStamp}</span>
+        <ThemeToggle variant="inline" />
+      </p>
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,129 @@
+---
+// The one page shell. Owns the §6 head contract: self-referencing absolute canonical,
+// robots, OG/Twitter, the §6.4 JSON-LD @graph, and §6.10 feed autodiscovery.
+import '../styles/global.css';
+import SiteHeader from '../components/SiteHeader.astro';
+import Footer from '../components/Footer.astro';
+import SponsorRail from '../components/SponsorRail.astro';
+import SponsorBar from '../components/SponsorBar.astro';
+import SideRailStyles from '../components/SideRailStyles.astro';
+import InstallModal from '../components/InstallModal.astro';
+import ConnectNudge from '../components/ConnectNudge.astro';
+import { ENABLE_RAILS, ENABLE_SPONSORS } from '../lib/buildFlags';
+import { siteStats } from '../lib/entries';
+import { SITE, baseGraph, OG_VERSION } from '../lib/seo';
+import geistDisplayUrl from '@fontsource/geist/files/geist-latin-600-normal.woff2?url';
+import interBodyUrl from '@fontsource/inter/files/inter-latin-400-normal.woff2?url';
+import geistMonoUrl from '@fontsource/geist-mono/files/geist-mono-latin-400-normal.woff2?url';
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** Thin hubs, /search/, /subscribed/, deprecated entries and /dev/ set this (§6.2). */
+  robots?: string;
+  /** Absolute OG image URL; defaults to the site card (§6.6). */
+  ogImage?: string;
+  /** Page-type members of the §6.4 @graph — the sitewide two are always added. */
+  graph?: Record<string, unknown>[];
+  /** Lane feed for autodiscovery on lane index pages (§6.10). */
+  laneFeed?: string;
+}
+
+const {
+  title = 'grokbot.dev',
+  description = 'A community directory for what Grok Bot can do.',
+  robots,
+  ogImage = `${SITE}/og/default.png`,
+  graph = [],
+  laneFeed,
+} = Astro.props;
+
+const currentPath = Astro.url.pathname;
+const canonical = `${SITE}${currentPath}`;
+// Surface 2 is ambient and INTERNAL-ONLY: the home hero already asks for the same thing in
+// its primary CTA, so nudging there would be the site arguing with itself.
+const isHome = currentPath === '/';
+const statsUrl = import.meta.env.PUBLIC_STATS_URL ?? '';
+const stats = await siteStats();
+const jsonLd = JSON.stringify({ '@context': 'https://schema.org', '@graph': [...baseGraph(), ...graph] });
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    {/* F9 — pre-paint theme. BLOCKING classic script, deliberately first: an Astro <script>
+        compiles to type="module" and defers, which paints light before flipping to dark on a
+        repeat visit. Same-origin external, so §10.7's `script-src 'self'` covers it with
+        nothing inline. `is:inline` only tells Astro not to process it. */}
+    <script is:inline src="/theme-init.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="light dark" />
+    {robots && <meta name="robots" content={robots} />}
+    <link rel="canonical" href={canonical} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="grokbot.dev" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={`${ogImage.startsWith('http') ? ogImage : SITE + ogImage}?v=${OG_VERSION}`} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="alternate" type="application/rss+xml" title="grokbot.dev" href={`${SITE}/rss.xml`} />
+    {laneFeed && <link rel="alternate" type="application/rss+xml" title={`grokbot.dev — ${laneFeed}`} href={`${SITE}/${laneFeed}/rss.xml`} />}
+
+    <link rel="preload" href={geistDisplayUrl} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={interBodyUrl} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={geistMonoUrl} as="font" type="font/woff2" crossorigin />
+    <title>{title}</title>
+    <script type="application/ld+json" is:inline set:html={jsonLd} />
+    {/* SANCTIONED ISLAND #1 — analytics loader, once, sitewide (§4.2 client-JS policy). */}
+    <script>
+      import '../scripts/analytics';
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">skip to content</a>
+    {/* The generated rail stylesheet. Deliberately the first thing in <body>: it must come
+        AFTER the bundled stylesheets in <head> so its equal-specificity rules (`:root`
+        narrowing --container-max, `.wallMasonry`) win on source order, and BEFORE any page
+        content so the narrowed container applies on the first paint. Emits nothing at all
+        when sponsors are off or when there are too few sponsors for rails. */}
+    {ENABLE_SPONSORS && <SideRailStyles />}
+    <SiteHeader currentPath={currentPath} />
+    {ENABLE_SPONSORS && <SponsorBar />}
+    {ENABLE_SPONSORS && (
+      <>
+        <SponsorRail side="left" />
+        <SponsorRail side="right" />
+      </>
+    )}
+    <div class="site-grid" data-rails={ENABLE_RAILS ? 'true' : 'false'}>
+      {ENABLE_RAILS && <aside class="hidden lg:block" aria-label="left rail"><slot name="rail-left" /></aside>}
+      <main id="main" class="min-h-dvh">
+        <slot />
+      </main>
+      {ENABLE_RAILS && <aside class="hidden lg:block" aria-label="right rail"><slot name="rail-right" /></aside>}
+    </div>
+    <Footer stats={stats} statsUrl={statsUrl} />
+
+    {/* ── "connect to THE FEED" — ONE destination, rendered ONCE, sitewide ──────────────
+        `#install-site` used to exist only inside the home hero, which meant the site's
+        single most valuable action was reachable from exactly one of 231 pages. It lives
+        here now, at the end of <body> — deliberately OUTSIDE `#main` and outside the hero's
+        `#content`, because a `position: fixed` overlay inside a TRANSFORMED ancestor is
+        positioned against that ancestor rather than the viewport (the F10(1) bug).
+        Everything that opens it is a plain anchor to this id, so the `:target` fallback
+        holds with JS off. `data-pagefind-ignore` (on the panel itself) keeps the routine
+        prompt out of the search index now that it ships on every page. */}
+    <InstallModal variant="site" id="site" renderTrigger={false} />
+    {!isHome && <ConnectNudge />}
+  </body>
+</html>

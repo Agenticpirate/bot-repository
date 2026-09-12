@@ -16,6 +16,12 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [botteams.io](https://botteams.io/) — Grok Bot teams and bots (Ellelion LLC). Not affiliated with xAI.
 - [teamsmarket.com](https://www.teamsmarket.com/en/teams) — Agent Teams Market (English team pages from sitemap).
 - [usegrokbot.com](https://usegrokbot.com/) — public Grok Bot posts from X.
+- [somi.ai/grok-bots](https://somi.ai/grok-bots) — sitemap grok-bot listing pages
+- [grokbot.dev](https://grokbot.dev/) — JSON API (feed, templates, plugins, use-cases, collections, news) + RSS
+- [grokbothq.xyz](https://grokbothq.xyz/bots) — `/api/v1/index.json` + per-bot Markdown
+- [grokyard.com](https://www.grokyard.com/) — public browse of shareable Grok Bot templates
+- [grokindex.dev](https://grokindex.dev/) — paginated `/api/bots`
+- [gtemplate.net](https://gtemplate.net/) — sitemap bot + blog pages
 
 ### GitHub packs (shallow clone, `.git` stripped)
 
@@ -28,6 +34,8 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [VoltAgent/awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills)
 - [OneRose328/awesome-agentic-workflows](https://github.com/OneRose328/awesome-agentic-workflows)
 - [contentincubator2-ops/open-agent-marketplace](https://github.com/contentincubator2-ops/open-agent-marketplace)
+- [mergisi/awesome-grokbot](https://github.com/mergisi/awesome-grokbot)
+- [ZeroPointRepo/GrokBotDev](https://github.com/ZeroPointRepo/GrokBotDev)
 
 ### Agent job boards
 
@@ -44,7 +52,7 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [n8nworkflows.xyz](https://n8nworkflows.xyz/) — **blocked** by Cloudflare from this host (see ERRORS.md)
 - [crewform.tech](https://crewform.tech/) — homepage only; no public catalog/API
 
-Notes and leftovers: [docs/source-candidates.md](docs/source-candidates.md).
+Notes and leftovers: [docs/source-candidates.md](docs/source-candidates.md), [docs/source-candidates-batch2.md](docs/source-candidates-batch2.md).
 
 ## Attribution
 
@@ -73,6 +81,12 @@ sources/n8nworkflows.xyz/
 sources/teamsmarket.com/
 sources/cursor.com-marketplace/
 sources/crewform.tech/
+sources/somi.ai/
+sources/grokbot.dev/
+sources/grokbothq.xyz/
+sources/grokyard.com/
+sources/grokindex.dev/
+sources/gtemplate.net/
 scripts/
 ```
 
@@ -107,14 +121,23 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | cursor.com-marketplace | 354 |
 | n8nworkflows.xyz | 1 (blocked) |
 | crewform.tech | 1 |
+| somi.ai | 464 |
+| grokbot.dev | 789 |
+| grokbothq.xyz | 851 |
+| grokyard.com | 10 |
+| grokindex.dev | 656 |
+| gtemplate.net | 16 |
+| github/mergisi-awesome-grokbot | 183 |
+| github/ZeroPointRepo-GrokBotDev | 918 |
 
 ## Fetch notes
 
-Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`, `scripts/download_skills_sh.py`.
+Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`, `scripts/download_skills_sh.py`, `scripts/ingest_priority_a.py`.
 
 ## Caps / failures
 
-- **skills.sh** — full skill files via the download API (`files/` + hash). The API allows 60 requests/hour; remaining ids stay pending and are resume-friendly. HTML is saved only for permanent 404s.
+- **skills.sh** — full skill files via the download API (`files/` + hash). The API allows 60 requests/hour; ~577 downloaded, ~19.4k remaining. Resume via `scripts/download_skills_sh.py`.
+- **grokbothq.xyz** — 15 bot slugs ending in `_` have no `.md` variant; HTML saved instead.
 - **cursor.com/marketplace** — index HTML plus per-listing metadata; full listing HTML discarded (duplicate ~1.4 MiB Next.js shells).
 - **n8nworkflows.xyz** — Cloudflare challenge; 0 workflow JSON files.
 - **agentgigs.io** — no unauthenticated job dump.

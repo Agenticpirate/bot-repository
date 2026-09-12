@@ -31,6 +31,14 @@ Do not invent serials or scrape private data.
 | [cursor.com/marketplace](https://cursor.com/marketplace) | index HTML + listing metadata | Full listing HTML discarded (Next.js shells). |
 | [n8nworkflows.xyz](https://n8nworkflows.xyz/) | — | Cloudflare 403; 0 workflow files. |
 | [crewform.tech](https://crewform.tech/) | homepage | No public catalog/API. |
+| [somi.ai](https://somi.ai/grok-bots) | sitemap `/grok-bots/*` | 462 grok-bot HTML pages. |
+| [grokbot.dev](https://grokbot.dev/) | `/api/v1/*.json` + RSS | Full detail JSON for templates/plugins/use-cases/collections/news. |
+| [grokbothq.xyz](https://grokbothq.xyz/bots) | `/api/v1/index.json` + `.md` | 850 bots; 15 underscore slugs HTML-only. |
+| [grokyard.com](https://grokyard.com/) | `/browse` + `/b/<slug>` | 9 public templates; no sitemap/API. |
+| [grokindex.dev](https://grokindex.dev/) | `/api/bots` paged | 655 bots; per-bot HTML skipped (API has descriptions). |
+| [gtemplate.net](https://gtemplate.net/) | sitemap | All 21 URLs. |
+| [mergisi/awesome-grokbot](https://github.com/mergisi/awesome-grokbot) | GitHub shallow clone | `.git` stripped. |
+| [ZeroPointRepo/GrokBotDev](https://github.com/ZeroPointRepo/GrokBotDev) | GitHub shallow clone | `.git` stripped. |
 
 ## Possible later
 

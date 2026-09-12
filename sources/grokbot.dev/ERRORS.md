@@ -1,0 +1,3 @@
+# grokbot.dev errors
+
+None.

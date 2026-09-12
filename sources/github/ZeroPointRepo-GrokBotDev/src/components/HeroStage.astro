@@ -1,0 +1,263 @@
+---
+// Addendum A4 (BINDING) — the living hero. Lifted from
+// `assets/hero-animation/hero-demo.html` per `integration-notes.md`: the stage/bot/paint
+// CSS, the halftone <defs>, the `.content` markup pattern and the entire script IIFE.
+// Dropped, as the notes instruct: the demo topbar, the re-roll and theme-toggle controls
+// and their listeners. Kept, as the notes require: INFLATE 1.10, strokeInset sw/2,
+// dropZone 0.22/0.78, `touch-action: pan-y`, the wheel-listener removal, 10 bots desktop /
+// 6 under 720px, resize reseed-with-the-same-seed, the `?static=1` flag, and the
+// deterministic static pile as a FIRST-CLASS path (reduced motion, no-JS, no-matter).
+//
+// DOM contract (notes §2): #stage is position:relative + overflow:hidden with a real
+// height; #botlayer is pointer-events:none at z-index 1; #content is measured into a
+// static physics body, so EVERYTHING that must never be covered lives inside #content.
+//
+// Token remap (notes §1) happens in ONE place — the `.stage` alias block below. The bots
+// read --ink/--paper/--accent and nothing else.
+//
+// matter.js is self-hosted at /vendor/matter.min.js (no CDN origin). The demo's
+// `onerror="window.__GB_NO_MATTER=1"` attribute is an inline event handler, which §10.7's
+// CSP (`script-src 'self'`, no 'unsafe-inline') would block — the script's own
+// `typeof window.Matter !== 'undefined'` guard already produces the identical fallback,
+// so the attribute is dropped and the static pile still renders. See BUILD-NOTES.
+//
+// Copy: CP-113 (FENCED h1) · CP-002 (subline, money phrase) · CP-003 (primary CTA) ·
+// CP-004 (friction line) · CP-005 + CP-006 (KEEP).
+import BookmarkNudge from './BookmarkNudge.astro';
+import InstallModal from './InstallModal.astro';
+import { CP_102_INSTALL_TITLE, CP_113_HOME_H1 } from '../lib/copy';
+
+// Operator: adopt the coming-soon landing's subtagline here. The §6.11 money phrase
+// ("ready-to-use Grok Bot prompts") is NOT lost — it still ships in the home <title> and
+// og:title (META.home.title), which is what check-keyword-placements scans in dist/index.html.
+const SUBLINE =
+  'Awesome use cases & plugins, curated by Grok Bots from X & YouTube, delivered directly to your Grok Bot.';
+---
+
+{/* F16 — the `#gbHalftone` <pattern> <defs> that stood here is gone with the rest of
+    family v1's paint. Only v1's halftone diamond ever used it, and v1 now renders on
+    /about/, where AboutBotPile declares its own id-namespaced copy. Family v2 has no
+    halftone at all: flat solid fills only. */}
+
+<section class="stage" id="stage" aria-label="Animated bot cluster">
+  <div class="botlayer" id="botlayer" aria-hidden="true"></div>
+
+  <div class="content" id="content">
+    {/* Operator (2026-08-25): "bookmark us" keycap pill above the title — the
+        YouTubeToTranscript pattern. OS-aware (ctrl/⌘) via BookmarkNudge's bundled script. */}
+    <BookmarkNudge variant="hero" />
+    <h1>{CP_113_HOME_H1}</h1>
+    <p class="sub">{SUBLINE}</p>
+
+    {/* Direct round: "browse plugins" CTA removed — the directory IS the next screen. */}
+    {/* 2026-08-22: the PANEL moved to BaseLayout (one `#install-site` sitewide, opened from
+        the header, the nudge and the inline callouts as well as from here). The hero keeps
+        the BUTTON and nothing else — `renderModal={false}` — because two elements carrying
+        the same id is a broken document, and `:target` would open whichever one the parser
+        saw first. The label is CP-102, which is what the literal string here always was. */}
+    <div class="hero-actions">
+      <InstallModal
+        variant="site"
+        id="site"
+        renderTrigger={true}
+        renderModal={false}
+        triggerLabel={CP_102_INSTALL_TITLE}
+      />
+    </div>
+
+    <p class="hero-friction">copy one prompt. your Bot does the rest.</p>
+    {/* F11 — the hero search input is REMOVED by operator directive; the directory sits
+        directly below the hero now, so a search box above it was asking the reader to
+        describe what is already on screen. #content MARKUP ONLY — no bot JS, no .s-* rules. */}
+  </div>
+
+  <span class="hero-seed" id="seedLabel">assembly ····</span>
+  {/* Operator: a barely-visible "drop more bots" control. Hidden by default; hero.js reveals
+      and wires it ONLY when the live physics sim is running (never on the static/no-JS path).
+      The click listener lives in the bundled hero.js, so no inline handler — CSP stays clean. */}
+  <button type="button" class="drop-bots" data-drop-bots hidden>drop more bots</button>
+  {/* Direct round: the "drag a bot" hint is removed — hero.js's hintEl lookups are
+      null-guarded, so no script change is needed. */}
+</section>
+
+<style is:global>
+/* ---------- stage ---------- */
+.stage{
+  position:relative; width:100%;
+  height:clamp(500px, 74vh, 700px); /* direct round: tightened from 82vh/780 — less void below the CTAs, sky kept for the pile */
+  overflow:hidden;
+  touch-action:pan-y;
+  cursor:grab;
+}
+.stage.dragging{cursor:grabbing}
+/* Direct round: on phones the sky was mostly empty — shorter stage so the listing
+   peeks above the fold. Bot count is already 6 under 720px, so the pile still fits. */
+/* Operator (2026-08-27): the bookmark pill made the mobile hero read busy — the pile's
+   top crowded the sponsor bar. ~40px taller on phones; #content is bottom-anchored, so
+   every extra pixel becomes sky ABOVE the pile. The physics re-measures on build/resize,
+   so the sim follows this value with no JS change. */
+@media(max-width:719px){
+  .stage{height:clamp(460px, 62vh, 540px)}
+}
+/* Direct round, operator: the mobile hero read a touch crammed at the top. #content is
+   BOTTOM-anchored, so dropping its `bottom` slides the whole block (h1 → CTA) ~20px lower,
+   opening breathing room above the title. Phones only — desktop centring is unchanged. */
+@media(max-width:719px){
+  .stage .content{ bottom:clamp(20px, 4.5vh, 52px); }
+}
+
+/* bot layer sits *behind* the text block so text is always legible,
+   but physics guarantees they never overlap it anyway. */
+.botlayer{position:absolute; inset:0; z-index:1; pointer-events:none}
+.bot{
+  position:absolute; left:0; top:0;
+  transform-origin:50% 50%;
+  will-change:transform;
+  backface-visibility:hidden;
+}
+.bot svg{display:block; overflow:visible}
+.bot .eyes{transform-box:fill-box; transform-origin:center}
+
+/* F16 — the `.s-solid / .s-accent / .s-outline / .s-halftone` block that stood here is
+   GONE, along with the `#gbHalftone` <defs> above. Those were family v1's paint: ink,
+   paper and one Ash Amber bot, driven by CSS vars so they inverted with the theme.
+   The hero now draws family v2, whose paint is fixed hexes in src/styles/hero-bots.css
+   under `.s2-*` — deliberately theme-INVARIANT, because real Grok Bot avatars do not
+   invert either. Family v1 itself is not deleted: it renders as a decorative static
+   pile on /about/ (components/AboutBotPile.astro), and its paint lives scoped under
+   `.bots-v1` in src/styles/bots-v1.css.
+
+   Note what is NOT dead and must stay: `.bot .eyes` below keeps `transform-box:fill-box;
+   transform-origin:center`, which integration-notes §8 requires — without the CSS half,
+   blinks scale from the wrong origin. */
+
+/* ---------- hero content (a static physics body) ---------- */
+.content{
+  position:absolute; z-index:3;
+  /* F10(1) ROOT CAUSE: this block used `left:50%; transform:translateX(-50%)`, and a
+     TRANSFORMED ancestor becomes the containing block for `position: fixed` descendants.
+     The site-level InstallModal lives inside #content, so its "fixed" overlay was being
+     positioned against THIS box instead of the viewport — which is why the sheet sat at
+     top=125 and ran 35px past the bottom of a 900px viewport while the entry variant (no
+     transformed ancestor) was fine. Centring without a transform is visually identical and
+     #content's measured rect is unchanged, so the A4 physics body is unaffected.
+     NOTE: this is the content block's centring, NOT bot-generation JS or the .s-* paint
+     rules — those stay untouched. */
+  left:0; right:0; margin-inline:auto;
+  /* sits ~6.5vh higher than the first cut — the pile reads as a group ABOVE the
+     type rather than crowding its shoulders. Its live rect is re-measured into a
+     static body on every build/resize, so the sim follows this value. */
+  bottom:clamp(40px,7vh,72px);
+  width:min(880px, calc(100% - 40px));
+  text-align:center;
+  pointer-events:auto;
+}
+.stage .content h1{
+  margin:0 0 14px;
+  font-size:clamp(36px,5.6vw,66px);
+  line-height:.97; letter-spacing:-.045em; font-weight:700;
+}
+.stage .content .sub{margin:0 auto 22px; max-width:520px; color:var(--muted); font-size:clamp(14px,1.6vw,16.5px); line-height:1.5}
+.search{
+  display:flex; align-items:center; gap:10px;
+  background:var(--surface); border:1px solid var(--hair);
+  border-radius:999px; padding:14px 20px; margin:0 auto 16px;
+  max-width:520px; font-family:var(--mono); font-size:14.5px; color:var(--muted);
+  text-align:left;
+}
+.search .cursor{
+  margin-left:auto; width:9px; height:19px; border-radius:2px;
+  background:var(--accent); animation:blink 1.15s steps(1) infinite;
+}
+@keyframes blink{50%{opacity:0}}
+.chips{display:flex; flex-wrap:wrap; gap:8px; justify-content:center}
+.chip{
+  font:500 12px/1 var(--mono); color:var(--muted);
+  border:1px solid var(--hair); border-radius:999px; padding:7px 13px;
+}
+@media(max-width:640px){ .search{padding:12px 16px; font-size:13px} .chips{display:none} }
+
+
+/* ---------- reduced motion ---------- */
+@media (prefers-reduced-motion: reduce){
+  .stage *{animation:none !important; transition:none !important}
+  .search .cursor{animation:none}
+}
+
+/* ---------- token remap (integration-notes §1: remap in ONE place) ---------- */
+.stage{
+  /* --ink / --paper trimmed 2026-08-22 (BUILD-NOTES §M8 housekeeping item 2): dead since
+     family v2 paints from fixed hexes. The remaining aliases below ARE live. */
+  --accent: var(--color-accent);
+  --muted: var(--color-text-muted);
+  --hair: var(--color-border);
+  --surface: var(--color-surface);
+  --sans: var(--font-sans);
+  --mono: var(--font-mono);
+}
+
+/* ---------- real hero content (replaces the demo's fake search + chips) ---------- */
+.stage .content .hero-actions{
+  display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin:0 0 12px;
+}
+.stage .content .hero-friction{
+  margin:0 0 16px; font-family:var(--mono); font-size:var(--text-xs);
+  line-height:1rem; color:var(--muted);
+}
+.stage .content .hero-search{ max-width:520px; margin:0 auto; text-align:left; }
+/* `--sr-hero-inset` is set ONLY by the generated sponsor-rail stylesheet, above the derived
+   rail breakpoint. The stage is full-bleed, so without it this label sits in the gutter and
+   the fixed rails (z-index 20) paint straight over it. The 16px fallback is today's value, so
+   with sponsors off this rule is byte-for-byte equivalent to what it replaced. */
+.stage .hero-seed{
+  position:absolute; z-index:4; right:var(--sr-hero-inset, 16px); top:16px;
+  font:500 11px/1 var(--mono); letter-spacing:.06em; color:var(--muted); opacity:.75;
+}
+@media(max-width:640px){ .stage .hero-seed{display:none} }
+/* Operator: "drop more bots" — barely-visible mono link, top-left, out of the pile's way. */
+.stage .drop-bots{
+  position:absolute; z-index:4; left:var(--sr-hero-inset, 16px); top:16px;
+  background:none; border:0; padding:2px 4px; cursor:pointer;
+  font:500 11px/1 var(--mono); letter-spacing:.04em;
+  color:var(--muted); opacity:.4; transition:opacity .15s;
+}
+.stage .drop-bots:hover, .stage .drop-bots:focus-visible{ opacity:.9; text-decoration:underline; text-underline-offset:3px; }
+/* Operator: the hero stage is full-bleed (the bots roam the whole width). At the rail
+   breakpoint (≥1600px) the sponsor rails run the full height of the side gutters, so pull the
+   assembly label and the drop-bots control IN to the hero container's content edges — otherwise
+   they sit on top of the rails. Aligned to (100vw − container)/2 + the desktop page gutter.
+   These must come AFTER the base `.hero-seed`/`.drop-bots` rules so equal-specificity source
+   order lets the override win. */
+@media(min-width:1600px){
+  .stage .hero-seed{ right: calc((100vw - var(--container-max)) / 2 + 24px); }
+  .stage .drop-bots{ left: calc((100vw - var(--container-max)) / 2 + 24px); }
+}
+/* F3b restored touch drag (hit-tested on touchstart), so the gesture is real again on a
+   phone — the cursor rule is only about not showing a grab cursor where there is no cursor. */
+@media(pointer:coarse){ .stage{cursor:auto} }
+
+</style>
+
+<script>
+  // matter.js is SELF-HOSTED at /vendor/matter.min.js — no CDN origin (A4).
+  // The demo's `onerror="window.__GB_NO_MATTER=1"` is an inline event handler, which
+  // §10.7's CSP (`script-src 'self'`, no 'unsafe-inline') blocks — so the same flag is
+  // set from JS here, preserving the static-pile fallback exactly. Injecting it from the
+  // island also guarantees load order: the sim never boots before Matter is defined.
+  const ensureMatter = () =>
+    new Promise<void>((resolve) => {
+      if ((window as unknown as { Matter?: unknown }).Matter) return resolve();
+      const tag = document.createElement('script');
+      tag.src = '/vendor/matter.min.js';
+      tag.defer = true;
+      tag.addEventListener('load', () => resolve());
+      tag.addEventListener('error', () => {
+        (window as unknown as { __GB_NO_MATTER?: number }).__GB_NO_MATTER = 1;
+        resolve();
+      });
+      document.head.appendChild(tag);
+    });
+
+  await ensureMatter();
+  await import('../scripts/hero.js');
+</script>

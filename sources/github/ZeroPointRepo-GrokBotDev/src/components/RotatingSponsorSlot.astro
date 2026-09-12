@@ -1,0 +1,196 @@
+---
+// Operator: a single ROTATING "sponsored" slot for the hub listing pages (/plugins/ and
+// /use-cases/). It shows ONE sponsor at a time and cycles through ALL sponsors — regardless
+// of whether that sponsor is also listed as a plugin — in a shuffled order, flipping every
+// ~7s. Modelled on canivibecodeit.com / trustmrr.com's top-of-listing sponsor unit.
+//
+// CSP: the rotation runs in a bundled Astro <script> (compiles to a same-origin ES module,
+// covered by §10.7's `script-src 'self'`) — no inline handlers, nothing for audit-scripts to
+// flag. With JS off (or reduced-motion) the first card simply stays put; every sponsor is
+// still reachable from /sponsors/, so no one is hidden behind the animation.
+import { SPONSORS, sponsorHref, sponsorIconPath } from '../lib/sponsors';
+---
+
+{
+  SPONSORS.length > 0 && (
+    <aside class="spotUnit" aria-label="partner" data-rot-slot>
+      <span class="spotUnit__eyebrow">sponsored</span>
+      {/* Grid-stacked: every card shares one cell, so the slot sizes to the tallest card and
+          never reflows as it rotates. Only the [data-active] card is visible/clickable. */}
+      <div class="spotUnit__stack">
+        {SPONSORS.map((s, i) => (
+          <a
+            href={sponsorHref(s)}
+            target="_blank"
+            rel="sponsored noopener"
+            class="spotUnit__card"
+            data-rot-item
+            data-active={i === 0 ? 'true' : undefined}
+            style={`--tint: var(--color-partner-${s.tint}-tint)`}
+          >
+            {sponsorIconPath(s) ? (
+              <img
+                src={sponsorIconPath(s)!}
+                alt=""
+                width="30"
+                height="30"
+                class="spotUnit__icon"
+                loading="lazy"
+              />
+            ) : (
+              <span class="spotUnit__tile" aria-hidden="true">
+                {s.name.charAt(0)}
+              </span>
+            )}
+            <span class="spotUnit__body">
+              <span class="spotUnit__name">{s.name}</span>
+              <span class="spotUnit__tag">{s.tagline}</span>
+            </span>
+            <span class="spotUnit__cta" aria-hidden="true">
+              visit →
+            </span>
+          </a>
+        ))}
+      </div>
+    </aside>
+  )
+}
+
+<style>
+  .spotUnit {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-inline-size: 0;
+  }
+  .spotUnit__eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    opacity: 0.7;
+  }
+  .spotUnit__stack {
+    display: grid;
+    /* Operator: a longer card was pushing the PAGE into horizontal scroll. A grid `auto`
+       track sizes to the widest card's max-content, so a long nowrap tagline widened the
+       whole stack. Pinning the single column to minmax(0, 1fr) makes it exactly the
+       container width (min 0 = free to shrink), so cards can never exceed it — the tagline
+       wraps instead. */
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .spotUnit__card {
+    grid-area: 1 / 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--tint);
+    text-decoration: none;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.45s ease,
+      border-color 0.15s;
+  }
+  .spotUnit__card[data-active] {
+    opacity: 1;
+    visibility: visible;
+  }
+  .spotUnit__card:hover {
+    border-color: var(--color-border-strong);
+  }
+  .spotUnit__icon,
+  .spotUnit__tile {
+    inline-size: 30px;
+    block-size: 30px;
+    border-radius: 7px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .spotUnit__tile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--color-text);
+  }
+  .spotUnit__body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-inline-size: 0;
+  }
+  .spotUnit__name {
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-text);
+    overflow-wrap: anywhere;
+  }
+  .spotUnit__tag {
+    font-size: var(--text-xs);
+    line-height: 1.4;
+    color: var(--color-text-muted);
+    /* Wrap to at most two lines (no one-line ellipsis) so a longer tagline reads well and
+       still can't grow the card horizontally. */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+  }
+  .spotUnit__cta {
+    margin-inline-start: auto;
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-accent-text);
+  }
+  @media (max-width: 479px) {
+    .spotUnit__cta {
+      display: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .spotUnit__card {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  // Shuffle the sponsor order per page-load, then flip the visible card every ~7s.
+  // Bundled module script (same-origin) — CSP clean. Browser Math.random is fine here.
+  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+  document.querySelectorAll<HTMLElement>('[data-rot-slot]').forEach((slot) => {
+    const cards = Array.from(slot.querySelectorAll<HTMLElement>('[data-rot-item]'));
+    if (cards.length < 2) return;
+
+    // Fisher–Yates over the indices so the first card shown is random, then cycle in that order.
+    const order = cards.map((_, i) => i);
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+
+    let pos = 0;
+    const show = (idx: number) =>
+      cards.forEach((card, i) => card.toggleAttribute('data-active', i === idx));
+
+    show(order[0]);
+    if (reduced) return;
+    window.setInterval(() => {
+      pos = (pos + 1) % order.length;
+      show(order[pos]);
+    }, 7000);
+  });
+</script>

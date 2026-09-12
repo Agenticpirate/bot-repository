@@ -1,0 +1,138 @@
+---
+// §4.2.11 Chip + Addendum A5 (category display system).
+// A5 hue law: amber = now/do (state) · sponsor tint = paid (never rendered) ·
+// SLATE = taxonomy. Type is encoded as SHAPE, never hue:
+//   plugin = filled · use-case = outline · collection = dashed.
+// A5 glyph slot: the `glyph` prop is BUILT but unused — chips ship LABEL-ONLY until the
+// operator verdict on per-category signature glyphs lands (A11 item 1).
+import { monoLabel } from '../lib/format';
+import { categoryGlyphSvg, categorySlugFromLabel } from '../lib/categoryGlyphs';
+import type { EntryType } from '../lib/types';
+
+interface Props {
+  variant: 'verified' | 'setup-time' | 'category' | 'tag' | 'integration' | 'type' | 'scouted';
+  label?: string;
+  /** category/integration/type render as links when given (§4.2.11). */
+  href?: string;
+  /** FilterBar active-chip `x` (§4.2.9). */
+  removeHref?: string;
+  /** `verified` chip: the entry's verified_at, rendered visibly as YYYY-MM-DD. */
+  date?: string;
+  /** A5 type-axis shape selector; defaults to a read of `label`. */
+  entryType?: EntryType;
+  /**
+   * A5 PENDING operator verdict — per-category 3x3 signature glyph cut from the logo
+   * grid. Wired now, unused at launch: pass nothing and the chip is label-only.
+   */
+  glyph?: string;
+  class?: string;
+}
+
+const {
+  variant,
+  label,
+  href,
+  removeHref,
+  date,
+  entryType,
+  glyph,
+  class: className = '',
+} = Astro.props;
+
+const isLink =
+  Boolean(href) &&
+  (variant === 'category' ||
+    variant === 'tag' ||
+    variant === 'integration' ||
+    variant === 'type' ||
+    variant === 'scouted');
+
+// Data-driven labels are lowercased in-component at build, never via text-transform (§4.1.3).
+const raw = label ?? (variant === 'verified' && date ? `verified ${date}` : '');
+const text = monoLabel(raw);
+
+const resolvedType: EntryType | undefined =
+  entryType ?? (variant === 'type' ? (monoLabel(raw).replace(' ', '-') as EntryType) : undefined);
+
+const shell = 'inline-flex items-center gap-1 rounded-sm font-mono text-xs lowercase';
+// Link chips: 4x8 padding + 24px floor (WCAG 2.2 SC 2.5.8). Inert spans: 2x8, exempt.
+const sizing = isLink || removeHref ? 'min-h-6 px-2 py-1' : 'px-2 py-0.5';
+
+const skin: Record<Props['variant'], string> = {
+  verified: 'border border-accent bg-accent-tint text-accent-text',
+  'setup-time': 'text-text-muted',
+  category: 'border border-cat-border bg-cat-bg text-cat-text',
+  // A5 hue law: SLATE = taxonomy, so a template tag wears the same skin as a category. What it
+  // must NOT inherit is the per-category signature GLYPH — several template tag labels collide
+  // with category labels (personal, support, data, content, home, health, travel), and a tag
+  // chip carrying a category's glyph would claim a taxonomy the entry is not filed under.
+  tag: 'border border-cat-border bg-cat-bg text-cat-text',
+  integration: 'border border-border-interactive text-text-muted',
+  type: 'border border-border-interactive text-text-muted',
+  scouted: 'text-text-muted',
+};
+
+// A5 type axis — shape only, no hue of its own.
+const typeShape =
+  variant === 'type'
+    ? resolvedType === 'plugin'
+      ? 'border-transparent bg-surface-raised text-text'
+      : resolvedType === 'collection'
+        ? 'border-dashed'
+        : 'border-solid'
+    : '';
+
+const interactive = isLink ? 'hover:border-accent hover:text-accent-text' : '';
+const classes = [shell, sizing, skin[variant], typeShape, interactive, className];
+
+// A5 glyph slot — LIVE (operator verdict, direct round). Category chips derive their 3×3
+// signature glyph from the slug (href wins, label as fallback); an explicit `glyph` prop
+// still overrides. Unknown slugs degrade to label-only — never invent a pattern.
+const derivedSlug =
+  variant === 'category'
+    ? (href?.match(/\/categories\/([a-z0-9-]+)/)?.[1] ?? categorySlugFromLabel(raw))
+    : '';
+const resolvedGlyph = glyph ?? (derivedSlug ? categoryGlyphSvg(derivedSlug) : undefined);
+
+// Accessible names for chip links inside cards (§4.6).
+const ariaLabel = isLink
+  ? variant === 'category'
+    ? `category: ${text}`
+    : variant === 'integration'
+      ? `integration: ${text}`
+      : variant === 'type'
+        ? `type: ${text}`
+        : undefined
+  : undefined;
+---
+
+{
+  variant === 'verified' ? (
+    <span class:list={classes} title={date ? `verified ${date}` : undefined}>
+      <span aria-hidden="true">✓</span>
+      <span aria-hidden="true">{text}</span>
+      <span class="sr-only">{date ? `verified ${date}` : text}</span>
+    </span>
+  ) : isLink ? (
+    <a class:list={classes} href={href} aria-label={ariaLabel} rel={variant === 'scouted' ? 'noopener' : undefined} target={variant === 'scouted' ? '_blank' : undefined}>
+      {resolvedGlyph && <span aria-hidden="true" class="inline-flex" set:html={resolvedGlyph} />}
+      <span>{text}</span>
+    </a>
+  ) : (
+    <span class:list={classes}>
+      {resolvedGlyph && <span aria-hidden="true" class="inline-flex" set:html={resolvedGlyph} />}
+      <span>{text}</span>
+    </span>
+  )
+}
+{
+  removeHref && (
+    <a
+      href={removeHref}
+      class="ml-1 inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm border border-border-interactive font-mono text-xs text-text-muted hover:border-accent hover:text-accent-text"
+      aria-label={`clear ${text} filter`}
+    >
+      <span aria-hidden="true">×</span>
+    </a>
+  )
+}

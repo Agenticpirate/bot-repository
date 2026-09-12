@@ -1,0 +1,228 @@
+---
+// §4.3.10 — /submit/. REWORKED 2026-09-05: the page now LEADS WITH A FORM.
+//
+// It used to be a chooser: three GitHub prefill tiles and some instructions. That is a fine
+// route for a plugin or a written-up use case, and it is still here - but it asked a person who
+// just wants to share their bot to open a pull request, which is why almost nobody did. The
+// form above it asks for ONE field, the share link, and does the rest server-side: it fetches
+// the link, reads the bot's name off it, dedupes against the queue and the live site, and files
+// it for review. Everything else on the form is optional and exists only to credit the sender.
+//
+// Nothing here publishes. POST /api/v1/submissions writes a `pending` row and a human moves it
+// (services/votes-api - bin/review-submissions.ts).
+//
+// ONE ACCENT PER VIEWPORT (A1): the form's submit button is the amber, so the three tiles below
+// are all `outline`. The first tile used to be `solid`; if the form ever leaves this page, that
+// tile takes the accent back.
+//
+// Copy: CP-186 … CP-216 (form + PR section) · CP-057 (KEEP both) · CP-058 · CP-059 · CP-060 · CP-061 (KEEP).
+//
+// F17 NOTE — this page has no <form>: submission is a pull request, and the CTAs are GitHub
+// prefill links. So the directive's "optional youtube_url field, validated against the three
+// URL shapes" lands where a frontmatter field is actually validated — the Zod schema and
+// `scripts/validate.mjs` — and this page documents it in the same instructional voice as the
+// other frontmatter guidance. The validation VOICE that was asked to be preserved is the
+// schema's error voice ("must be a YouTube video URL — youtube.com/watch?v=…, youtu.be/…, or
+// youtube.com/shorts/…"), which reads the way the existing `Unknown integration "x" — must
+// exactly match …` message does.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import MarkGlyph from '../../components/MarkGlyph.astro';
+import Button from '../../components/Button.astro';
+import SectionHeading from '../../components/SectionHeading.astro';
+import ContributeSteps from '../../components/ContributeSteps.astro';
+import SubmitBotForm from '../../components/SubmitBotForm.astro';
+import { CP_215_SUBMIT_PR_HEADING, CP_216_SUBMIT_PR_LEAD } from '../../lib/copy';
+import { META, breadcrumbList, webPage } from '../../lib/seo';
+
+const REPO = 'https://github.com/ZeroPointRepo/GrokBotDev';
+
+// B3 — the "add a file" links PREFILL the GitHub editor with the annotated template (via
+// ?filename=&value=), so a no-clone contributor lands on a file that already validates once
+// they replace the placeholders. Templates mirror CONTRIBUTING.md exactly (status: proposed).
+const USE_CASE_TEMPLATE = `---
+type: use-case
+slug: my-use-case
+headline: "The exciting one-line hook (10-100 chars)"
+summary: "Two to three lines on what the agent does and the specific twist that makes it worth copying — concrete nouns, no fluff. 80-320 chars."
+categories: [marketing]
+format: use-case
+source_tweets:
+  - url: https://x.com/handle/status/1234567890
+    author_handle: handle
+    excerpt: "A short, real quote from the post — not the whole thing."
+    posted_at: "2026-01-01T12:00:00Z"
+author:
+  handle: handle
+  url: https://x.com/handle
+  platform: x
+prompt_provenance: author
+replicability: "How to adapt this to your own stack, in a sentence or two."
+added_at: "2026-01-01T12:00:00Z"
+updated_at: "2026-01-01T12:00:00Z"
+status: proposed
+---
+
+## How it's set up
+
+1. Concrete, numbered steps — at least 300 characters total — so a reader can reproduce it.
+
+## Prompt
+
+\`\`\`text
+The real, complete prompt goes here (>=200 chars). If it's the author's, paste it verbatim and
+keep prompt_provenance: author. Describe the role, sources, constraints, deliverable, and where
+the bot must stop for approval before it sends, posts, pays, or connects an account.
+\`\`\`
+
+## Why it's cool
+
+One paragraph — at least 150 characters — on why this matters: the angle, the twist, what makes it worth copying.
+`;
+
+const PLUGIN_TEMPLATE = `---
+type: plugin
+slug: my-plugin
+name: "My Plugin"
+tagline: "What it gives your Grok Bot, in one line (<=90 chars)."
+category: work
+subcategory: tasks
+install_steps:
+  - "Create an account and get your API key from the dashboard."
+  - "Paste the prompt below into your Grok Bot and give it your key."
+prompt: "Read the docs at https://example.com and integrate via the API/MCP. Never invent an endpoint or field; gate anything that writes, sends, or spends; confirm the connection first."
+works_with: []
+project_url: https://example.com
+x_handle: exampleproduct
+founder:
+  name: Founder Name
+  x_handle: founderhandle
+author:
+  handle: yourhandle
+  url: https://x.com/yourhandle
+  platform: x
+pricing_note: "Free tier; paid plans available."
+setup_minutes: 10
+added_at: "2026-01-01T12:00:00Z"
+updated_at: "2026-01-01T12:00:00Z"
+status: proposed
+---
+
+## What it does
+
+A couple of sentences on what the tool actually gives an agent.
+
+## Use it in Grok Bot
+
+How to wire it up and what to expect. This section plus "What it does" must total at least 400 characters.
+`;
+
+const prefill = (dir: string, filename: string, tpl: string) =>
+  `${REPO}/new/main/content/${dir}?filename=${filename}&value=${encodeURIComponent(tpl)}`;
+
+const tiles = [
+  {
+    title: 'a plugin',
+    body: 'you built something Grok Bots can use. you get your own page and a dofollow link.',
+    cta: 'submit a plugin',
+    href: prefill('plugins', 'my-plugin.md', PLUGIN_TEMPLATE),
+    variant: 'outline' as const,
+  },
+  {
+    title: 'a use case',
+    body: 'you made your Grok Bot do something great. you get a page, and the credit stays yours.',
+    cta: 'submit a use case',
+    href: prefill('use-cases', 'my-use-case.md', USE_CASE_TEMPLATE),
+    variant: 'outline' as const,
+  },
+  {
+    title: 'found it on x?',
+    body: 'someone else built it. put it up and you get scout credit.',
+    cta: 'how to scout',
+    href: '/contribute/#scouting',
+    variant: 'outline' as const,
+  },
+];
+
+const crumbs = [{ label: 'home', href: '/' }, { label: 'submit' }];
+const graph = [webPage('/submit/', META.submit.title, META.submit.description), breadcrumbList(crumbs)];
+---
+
+<BaseLayout title={META.submit.title} description={META.submit.description} graph={graph}>
+  <div class="container-page flex flex-col gap-12 py-12 md:py-16">
+    <header class="flex flex-col gap-4">
+      <Breadcrumbs items={crumbs} />
+      <h1 class="display-track font-display text-3xl text-text md:text-4xl">submit</h1>
+      <p class="max-w-prose text-base text-text-muted">
+        built a Grok Bot worth sharing? send us the link and we do the rest.
+      </p>
+    </header>
+
+    <SubmitBotForm />
+
+    <section class="flex flex-col gap-4">
+      <SectionHeading title={CP_215_SUBMIT_PR_HEADING} variant="sub" level={2} />
+      <p class="max-w-prose text-base text-text-muted">{CP_216_SUBMIT_PR_LEAD}</p>
+      {/* The rulebook — the same file submitters and our reviewing agents read. */}
+      <a
+        href={`${REPO}/blob/main/CONTRIBUTING.md`}
+        target="_blank"
+        rel="noopener"
+        class="flex max-w-prose items-center gap-3 rounded-sm border border-border bg-surface px-4 py-3 text-sm text-text-muted transition-colors hover:border-border-strong"
+      >
+        <MarkGlyph size={12} class="text-accent shrink-0" />
+        <span>
+          <b class="text-text">Read the submission rulebook first.</b> Every field explained, the
+          quality bar, and the Awesome Score — the exact rules our reviewers use.
+        </span>
+        <span class="ml-auto font-mono text-accent-text">→</span>
+      </a>
+    </section>
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
+      {
+        tiles.map((tile) => (
+          <div class="flex flex-col gap-3 rounded-sm border border-border bg-surface p-4">
+            <span class="flex items-center gap-2 font-mono text-sm lowercase text-text">
+              <MarkGlyph size={10} class="text-accent" />
+              {tile.title}
+            </span>
+            <p class="flex-1 text-base text-text-muted">{tile.body}</p>
+            <Button
+              variant={tile.variant}
+              href={tile.href}
+              label={tile.cta}
+              external={tile.href.startsWith('http')}
+            />
+          </div>
+        ))
+      }
+    </div>
+
+    <section id="plugin" class="flex flex-col gap-4">
+      <SectionHeading title="no github account? — a plugin" variant="sub" level={2} />
+      <ContributeSteps
+        steps={[
+          { title: 'copy the frontmatter template', body: 'every field is documented in CONTRIBUTING.md — or use the prefilled “add a file” buttons above.', code: 'content/plugins/<your-slug>.md' },
+          { title: 'open an issue instead', body: 'No GitHub account? Open an issue with the link and we’ll take it from there.' },
+        ]}
+      />
+    </section>
+
+    <section id="use-case" class="flex flex-col gap-4">
+      <SectionHeading title="no github account? — a use case" variant="sub" level={2} />
+      <ContributeSteps
+        steps={[
+          { title: 'copy the frontmatter template', body: 'named-character title, what it does, the prompt, and the post you found it in.', code: 'content/use-cases/<your-slug>.md' },
+          {
+            title: 'found it in a video instead?',
+            body:
+              'add primary_source with kind: youtube-video and the video url — youtube.com/watch, youtu.be/ or youtube.com/shorts/. title and channel are required, so the source stays named even if the player never loads. a timestamp is optional: write it as mm:ss and the page deep-links there.',
+            code: 'primary_source:\n  kind: youtube-video\n  url: "https://www.youtube.com/watch?v=<id>"\n  title: "the video\'s real title"\n  channel: "the channel name"\n  timestamp: "4:12"   # optional',
+          },
+          { title: 'prefer the long version?', body: 'Read /contribute/.' },
+        ]}
+      />
+    </section>
+  </div>
+</BaseLayout>

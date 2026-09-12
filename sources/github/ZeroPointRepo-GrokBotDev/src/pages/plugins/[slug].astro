@@ -1,0 +1,258 @@
+---
+// §4.3.3 — plugin LANDING page.
+// [2] Breadcrumbs (five-level, §6.10) · [3] header block + chips · [4] status side card
+// (lg only; merges into the chip row below) · [5] install/how-to + InstallModal amber
+// primary (B3) + inline PromptBlock + the FENCED CTA sentence · [6] works with ·
+// [7] editorial links, dofollow by status (§5.6 #8) · [8] related · [8a] appears in ·
+// [9] NewsletterRow.
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import Chip from '../../components/Chip.astro';
+import Callout from '../../components/Callout.astro';
+import SectionHeading from '../../components/SectionHeading.astro';
+import PromptBlock from '../../components/PromptBlock.astro';
+import InstallModal from '../../components/InstallModal.astro';
+import ConnectCallout from '../../components/ConnectCallout.astro';
+import ShareBar from '../../components/ShareBar.astro';
+import RelatedList from '../../components/RelatedList.astro';
+import NewsletterRow from '../../components/NewsletterRow.astro';
+import PagefindMeta from '../../components/PagefindMeta.astro';
+import PluginIcon from '../../components/PluginIcon.astro';
+import categories from '../../data/categories.json';
+import {
+  allCollections,
+  allPlugins,
+  appearsIn,
+  editorialRel,
+  integrationSlug,
+  relatedTo,
+  urlOf,
+  toCardEntry,
+} from '../../lib/entries';
+import { isoToDate, setupLabel } from '../../lib/format';
+import { CP_067_CALLOUT_NEEDS_UPDATE, CP_068_CALLOUT_DEPRECATED, CP_112_CTA_SENTENCE, fillCopy } from '../../lib/copy';
+import { SITE, breadcrumbList, entryDescription, entryTitle } from '../../lib/seo';
+
+export async function getStaticPaths() {
+  const plugins = (await getCollection('plugins')).filter((e) => e.data.status !== 'proposed' && e.data.status !== 'demo');
+  return plugins.map((entry) => ({ params: { slug: entry.data.slug }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const d = entry.data;
+
+const [pool, collections] = await Promise.all([allPlugins(), allCollections()]);
+const related = relatedTo(entry as never, pool as never);
+const inCollections = appearsIn(d.slug, collections);
+
+const category = categories.find((c) => c.slug === d.category);
+const sub = category?.subcategories.find((s) => s.slug === d.subcategory);
+const url = `/plugins/${d.slug}/`;
+const rel = editorialRel(entry as never);
+const isDeprecated = d.status === 'deprecated';
+
+// F14 — SHORTENED breadcrumbs (operator directive; supersedes §6.10's five-level trail and
+// §4.3.3/§4.3.5/§4.3.7's `home / lane / category / subcategory / name`). Now exactly
+// `{lane} / {name}`: no home crumb, no category, no subcategory. The BreadcrumbList JSON-LD
+// is built from this same array, so rendered and structured data cannot disagree —
+// consistency over depth, per the brief.
+// SEO: this is still the internal link that keeps `/plugins/`, `/use-cases/` and
+// `/collections/` reachable now that the header no longer links them (F11).
+const crumbs = [{ label: 'plugins', href: '/plugins/' }, { label: d.name }];
+
+const graph = [
+  {
+    '@type': 'SoftwareApplication',
+    name: d.name,
+    description: d.tagline,
+    url: `${SITE}${url}`,
+    applicationCategory: category?.label ?? d.category,
+    softwareRequirements: 'Grok Bot',
+    author: { '@type': 'Person', name: d.author.handle, url: d.author.url },
+    sameAs: [d.project_url, d.repo_url].filter(Boolean),
+    datePublished: d.added_at,
+    dateModified: d.updated_at,
+    isAccessibleForFree: true,
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+      availability: 'https://schema.org/InStock',
+    },
+  },
+  breadcrumbList(crumbs),
+];
+---
+
+<BaseLayout
+  title={entryTitle(d.name, 'plugin')}
+  description={entryDescription(d.tagline, 'plugin')}
+  robots={isDeprecated ? 'noindex,follow' : undefined}
+  ogImage={`${SITE}/og/plugins/${d.slug}.png`}
+  graph={graph}
+>
+  <article class="container-page flex flex-col gap-12 py-12 md:py-16" data-pagefind-body>
+    <Breadcrumbs items={crumbs} />
+
+    {
+      d.status === 'needs-update' && (
+        <Callout variant="warn" title="needs update">
+          {fillCopy(CP_067_CALLOUT_NEEDS_UPDATE, { verified_at: d.verified_at ? isoToDate(d.verified_at) : '—' })}
+        </Callout>
+      )
+    }
+    {isDeprecated && <Callout variant="danger" title="deprecated">{CP_068_CALLOUT_DEPRECATED}</Callout>}
+
+    <PagefindMeta
+      type="plugin"
+      status={d.status}
+      setupMinutes={d.setup_minutes ?? null}
+      verifiedAt={d.verified_at ?? null}
+      url={url}
+    />
+
+    <div class="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+      <header class="flex flex-col gap-4">
+        {/* Operator: the product favicon sits left of the title — the same icon the listing
+            table shows (PluginIcon: local fetched mark, letter-tile fallback). */}
+        <div class="flex items-center gap-4">
+          <PluginIcon slug={d.slug} name={d.name} size="md" />
+          <h1
+            class="display-track font-display text-3xl text-text md:text-4xl"
+            data-pagefind-weight="10"
+            data-pagefind-meta="name"
+          >
+            {d.name}
+          </h1>
+        </div>
+        <p class="text-lg text-text-muted" data-pagefind-meta="tagline">{d.tagline}</p>
+        <div class="flex flex-wrap items-center gap-2">
+          {d.verified_at && d.status === 'live' && (
+            <Chip variant="verified" date={isoToDate(d.verified_at)} />
+          )}
+          {setupLabel(d.setup_minutes) && <Chip variant="setup-time" label={setupLabel(d.setup_minutes)!} />}
+          <span data-pagefind-filter="category">
+            <Chip variant="category" label={category?.label ?? d.category} href={`/categories/${d.category}/`} />
+          </span>
+        </div>
+      </header>
+
+      {/* Operator (2026-08-22): the side card now advertises the PRODUCT — website, its X
+          handle, and the founder's X handle (personal-brand incentive) — instead of the old
+          status/verified/pricing rows (irrelevant here; verified already shows as a chip). */}
+      <aside class="hidden w-70 shrink-0 flex-col gap-3 rounded-sm border border-border bg-surface p-4 font-mono text-sm lg:flex">
+        <span class="text-xs uppercase tracking-wider text-text-muted">links</span>
+        <a
+          href={d.project_url}
+          target="_blank"
+          rel={d.verified_at && d.status === 'live' ? 'noopener' : 'nofollow noopener'}
+          class="text-text hover:text-accent-text hover:underline"
+        >
+          {new URL(d.project_url).host.replace(/^www\./, '')} ↗
+        </a>
+        {d.x_handle && (
+          <a
+            href={`https://x.com/${d.x_handle}`}
+            target="_blank"
+            rel="noopener"
+            class="text-text hover:text-accent-text hover:underline"
+          >
+            @{d.x_handle} <span class="text-text-muted">· 𝕏</span>
+          </a>
+        )}
+        {d.founder && (
+          <div class="flex flex-col gap-0.5 border-t border-dashed border-border pt-3">
+            <span class="text-xs text-text-muted">founder</span>
+            <a
+              href={`https://x.com/${d.founder.x_handle}`}
+              target="_blank"
+              rel="noopener"
+              class="text-text hover:text-accent-text hover:underline"
+            >
+              {d.founder.name ? `${d.founder.name} · ` : ''}@{d.founder.x_handle}
+            </a>
+          </div>
+        )}
+      </aside>
+    </div>
+
+    {/* Operator: share this plugin on X (the intent credits @GrokBotDev via `via=`) + a
+        persistent follow affordance. Neutral, sits under the hero above the install section. */}
+    <ShareBar title={d.name} path={url} kind="plugin" />
+
+    <section class="flex flex-col gap-6">
+      <SectionHeading title="install / how to use" variant="sub" level={2} />
+
+      <div class="flex flex-wrap items-center gap-4">
+        <InstallModal
+          id={d.slug}
+          variant="entry"
+          prompt={d.prompt}
+          installSteps={d.install_steps}
+          entryName={d.name}
+        />
+      </div>
+
+      <ol class="flex flex-col gap-2 border-l border-border pl-4">
+        {
+          d.install_steps.map((step, index) => (
+            <li class="flex gap-3">
+              <span class="font-mono text-sm text-accent-text">{String(index + 1).padStart(2, '0')}</span>
+              <span class="text-base text-text-muted">{step}</span>
+            </li>
+          ))
+        }
+      </ol>
+
+      <div class="prose-body flex max-w-prose flex-col gap-4 text-base text-text">
+        <Content />
+      </div>
+
+      {
+        d.prompt && (
+          <>
+            <PromptBlock prompt={d.prompt} />
+            <p class="text-base text-text">{CP_112_CTA_SENTENCE}.</p>
+          </>
+        )
+      }
+
+      {/* Surface 3 — under the tool summary, at the end of the block that explains what this
+          tool is and how to wire it in. SECONDARY treatment: the amber on this plane belongs
+          to "install in grok bot" at the top of the section (§A1). */}
+      <ConnectCallout context="plugin" />
+    </section>
+
+    {
+      d.works_with.length > 0 && (
+        <section class="flex flex-col gap-4">
+          <SectionHeading title="works with:" variant="sub" />
+          <div class="flex flex-wrap items-center gap-2">
+            {d.works_with.map((tool) => (
+              <span data-pagefind-filter="integration">
+                <Chip variant="integration" label={tool} href={`/integrations/${integrationSlug(tool)}/`} />
+              </span>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    <section class="flex flex-wrap items-center gap-4 font-mono text-sm text-text-muted">
+      <a href={d.project_url} rel={rel} target="_blank" class="hover:text-accent-text">project ↗</a>
+      {d.repo_url && <a href={d.repo_url} rel={rel} target="_blank" class="hover:text-accent-text">repo ↗</a>}
+      <span>
+        by <a href={d.author.url} rel={rel} target="_blank" class="hover:text-accent-text">@{d.author.handle}</a>
+      </span>
+      {d.scouted_by && <span>scouted by @{d.scouted_by.handle}</span>}
+      {d.source_url && <a href={d.source_url} rel={rel} target="_blank" class="hover:text-accent-text">source ↗</a>}
+    </section>
+
+    <RelatedList entries={related.map(toCardEntry)} />
+    <RelatedList entries={inCollections.map(toCardEntry)} variant="appears-in" />
+
+    <NewsletterRow source="plugin-detail" />
+  </article>
+</BaseLayout>

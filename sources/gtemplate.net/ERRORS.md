@@ -1,0 +1,3 @@
+# gtemplate.net errors
+
+None.

@@ -1,0 +1,278 @@
+---
+// §4.2.16 TweetEmbed — SANCTIONED ISLAND #3.
+//
+// ── F5 (operator, Stage 5B) — SUPERSEDES the click-to-load consent model in §10.3,
+// §4.2.16 and §2 Q16 (Ruling 5). The operator saw `/wall/` as a column of consent cards
+// and overruled it: every post renders as a REAL X embed, no click.
+//
+// What replaces the consent click is NOT "load everything up front":
+//   · an IntersectionObserver with a 200px rootMargin, so a 10-embed wall fetches only what
+//     the reader is actually approaching — the perf argument for click-to-load is answered
+//     without making the reader pay a click for it;
+//   · widgets.js injected ONCE per page, and only when the first embed comes into range;
+//   · our styled quote card is still built into the HTML and is the state shown WHILE the
+//     embed loads and PERMANENTLY if it never does (deleted post, blocked network, JS off).
+//
+// The attribution row sits OUTSIDE the swap on purpose: `@handle on x ↗` must survive every
+// failure path, because a use case's whole claim to honesty is that the post it came from is
+// named and reachable (§10.1 item 5).
+//
+// Copy: CP-034 `load tweet from x` is RETIRED by F5 — there is no button any more. The
+// constant stays in `lib/copy.ts` so the pack key still resolves to something readable.
+interface Props {
+  tweetUrl: string;
+  authorHandle: string;
+  /** `source_tweets[].excerpt` (§05) — ≤280 chars, NEVER the full post (§10.6). */
+  excerpt: string;
+  postedAt?: string;
+  /**
+   * WHOSE WORDS THE FALLBACK CONTAINS. Default `quote` — an actual partial quote of the post,
+   * which is what plugins, use cases and news all carry.
+   *
+   * `summary` exists because the Shareable Bots lane is different: its excerpts are OUR
+   * paraphrase of what somebody shared, written that way deliberately so the site never
+   * reproduces tweet copy. Rendering a paraphrase inside a blockquote under "@handle on x"
+   * would attribute our sentence to them, which is precisely the quiet attribution drift §10.1
+   * exists to prevent. In `summary` mode the text renders as a LABELLED summary, not a quote.
+   */
+  excerptKind?: 'quote' | 'summary';
+  class?: string;
+}
+
+const {
+  tweetUrl,
+  authorHandle,
+  excerpt,
+  postedAt,
+  excerptKind = 'quote',
+  class: className = '',
+} = Astro.props;
+
+// Resolved at BUILD time, not in the island: a malformed URL should surface as one card
+// keeping its fallback, never as a runtime parse error that kills the page's whole island.
+const tweetId = tweetUrl.match(/status\/(\d+)/)?.[1] ?? '';
+---
+
+<figure
+  {/* Direct round: the bordered/padded card wrapper is GONE — X's widget is already a
+     self-contained card, so the old figure border made a card-in-a-card. The fallback
+     blockquote keeps its own left border, so it still reads as a quote when the embed
+     hasn't loaded. */}
+  class:list={['tweet-embed flex flex-col gap-2', className]}
+  data-tweet-embed
+  data-tweet-url={tweetUrl}
+  data-tweet-id={tweetId}
+  data-tweet-state="pending"
+>
+  {/* widgets.js renders the real post here. Empty until then, so it takes no space. */}
+  <div class="tweet-embed__mount" data-tweet-mount></div>
+
+  {/* Loading state AND permanent failure state. Never removed from the DOM — only hidden. */}
+  {
+    excerptKind === 'summary' ? (
+      <div class="tweet-embed__fallback tweet-embed__summary" data-tweet-fallback>
+        <p class="tweet-embed__summaryLabel">grokbot.dev summary</p>
+        <p class="text-base text-text">{excerpt}</p>
+      </div>
+    ) : (
+      <blockquote
+        class="tweet-embed__fallback border-l-2 border-l-border-strong pl-4 text-base text-text"
+        data-tweet-fallback
+      >
+        <p>{excerpt}</p>
+      </blockquote>
+    )
+  }
+
+  <figcaption class="flex flex-wrap items-center justify-between gap-3 font-mono text-xs text-text-muted">
+    <a href={tweetUrl} target="_blank" rel="noopener" class="hover:text-accent-text">
+      @{authorHandle} on x <span aria-hidden="true">↗</span>
+    </a>
+    {postedAt && <time datetime={postedAt}>{postedAt.slice(0, 10)}</time>}
+  </figcaption>
+</figure>
+
+<style>
+  /* X sizes its own iframe (max 550px wide) and will happily set an inline width wider than
+     its container. These two rules are what keep the embed inside our card at 390. */
+  .tweet-embed__mount {
+    max-inline-size: 100%;
+  }
+  .tweet-embed__mount :global(iframe),
+  .tweet-embed__mount :global(.twitter-tweet) {
+    max-inline-size: 100% !important;
+    margin-block: 0 !important;
+  }
+
+  /* A summary is ours, so it does not wear the quote rule that a real excerpt does. */
+  .tweet-embed__summary {
+    border-inline-start: 2px dashed var(--color-border);
+    padding-inline-start: 1rem;
+  }
+  .tweet-embed__summaryLabel {
+    margin-block-end: 0.25rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: lowercase;
+    color: var(--color-text-muted);
+  }
+
+  /* Once the real post is on screen the excerpt is a duplicate of it. */
+  .tweet-embed[data-tweet-state='loaded'] .tweet-embed__fallback {
+    display: none;
+  }
+</style>
+
+<script>
+  // SANCTIONED ISLAND #3 — auto-loading X embeds (F5). NOT a new island: this is the same
+  // component that already owned the third-party embed, with the trigger changed from a
+  // click to proximity.
+  const WIDGETS_SRC = 'https://platform.twitter.com/widgets.js';
+  // F12 — a page with MANY embeds (the wall) tightens this so only what is genuinely near
+  // the viewport fetches. The opt-in attribute is the surface's, not the vendor's: F17 added
+  // a second lazy embed (YouTube) to the same pages, and a wall that tuned its X embeds to
+  // 100px while its YouTube frames still fetched at 200px would be one surface with two
+  // different ideas of "near". Renamed from `data-tweet-root-margin` at F17 for that reason;
+  // both components read this one attribute. Everything else keeps F5's 200px.
+  const NEAR_VIEWPORT =
+    document.querySelector<HTMLElement>('[data-embed-root-margin]')?.dataset.embedRootMargin ||
+    '200px';
+  const RENDER_TIMEOUT_MS = 8000;
+
+  interface Widgets {
+    createTweet: (
+      id: string,
+      target: HTMLElement,
+      options?: Record<string, unknown>
+    ) => Promise<HTMLElement | undefined>;
+  }
+  const w = window as unknown as {
+    twttr?: { widgets?: Widgets };
+    grokbotTrack?: (event: string, props?: Record<string, string>) => void;
+  };
+
+  let widgetsPromise: Promise<Widgets | null> | null = null;
+
+  /** Injected ONCE per page, on the first embed that comes into range. */
+  function loadWidgets(): Promise<Widgets | null> {
+    if (widgetsPromise) return widgetsPromise;
+    widgetsPromise = new Promise((resolve) => {
+      if (w.twttr?.widgets) {
+        resolve(w.twttr.widgets);
+        return;
+      }
+      const tag = document.createElement('script');
+      tag.src = WIDGETS_SRC;
+      tag.async = true;
+      // A blocked or offline network must RESOLVE, not hang — every embed downstream of
+      // this promise has to be told to keep its fallback.
+      tag.addEventListener('load', () => resolve(w.twttr?.widgets ?? null));
+      tag.addEventListener('error', () => resolve(null));
+      document.head.appendChild(tag);
+    });
+    return widgetsPromise;
+  }
+
+  /**
+   * The mode the SITE is actually rendering in — deliberately not the OS preference.
+   * `tokens.css` sets `color-scheme: light` on :root and `dark` under [data-theme="dark"],
+   * so the computed value is the site's own answer and it starts tracking a toggle the
+   * moment one ships. Reading `prefers-color-scheme` directly would be wrong TODAY: the
+   * site does not honour it (there is no toggle and no media query — see the dark-mode note
+   * in BUILD-NOTES), so a dark-preferring visitor would get a dark embed inside a light
+   * page. matchMedia stays only as a last resort if `color-scheme` is unreadable.
+   */
+  function siteTheme(): 'light' | 'dark' {
+    const attr = document.documentElement.dataset.theme;
+    if (attr === 'dark' || attr === 'light') return attr;
+    const scheme = getComputedStyle(document.documentElement).colorScheme;
+    if (scheme?.includes('dark') && !scheme.includes('light')) return 'dark';
+    if (scheme?.includes('light')) return 'light';
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  async function render(figure: HTMLElement): Promise<void> {
+    const mount = figure.querySelector<HTMLElement>('[data-tweet-mount]');
+    const id = figure.dataset.tweetId;
+    if (!mount || !id) {
+      figure.dataset.tweetState = 'failed';
+      return;
+    }
+
+    figure.dataset.tweetState = 'loading';
+    figure.setAttribute('aria-busy', 'true');
+
+    const widgets = await loadWidgets();
+    if (!widgets) {
+      // widgets.js never arrived — keep the quote card, permanently.
+      figure.dataset.tweetState = 'failed';
+      figure.removeAttribute('aria-busy');
+      return;
+    }
+
+    // X refuses widths outside 220–550. Clamp to the card so 390 never overflows.
+    const width = Math.max(220, Math.min(550, mount.clientWidth || 550));
+
+    const timeout = new Promise<undefined>((resolve) => {
+      window.setTimeout(() => resolve(undefined), RENDER_TIMEOUT_MS);
+    });
+
+    let el: HTMLElement | undefined;
+    try {
+      el = await Promise.race([
+        widgets.createTweet(id, mount, {
+          theme: siteTheme(),
+          width,
+          align: 'left',
+          conversation: 'none',
+          // Do-Not-Track mode. It does not undo the fact that the embed is a third-party
+          // request (see the §10.8 note in BUILD-NOTES) but it is the strictest setting the
+          // widget offers, and it costs nothing.
+          dnt: true,
+        }),
+        timeout,
+      ]);
+    } catch {
+      el = undefined;
+    }
+
+    figure.removeAttribute('aria-busy');
+    if (el) {
+      // Only now does the excerpt card get hidden. Attribution stays either way.
+      figure.dataset.tweetState = 'loaded';
+      // §9.7 tweet_embed_load — now fires on a real render rather than a consent click.
+      w.grokbotTrack?.('tweet_embed_load', { page: window.location.pathname });
+    } else {
+      // Deleted, protected, timed out, or blocked. The quote card is the answer.
+      figure.dataset.tweetState = 'failed';
+    }
+  }
+
+  const hasObserver = 'IntersectionObserver' in window;
+  const observer = hasObserver
+    ? new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            observer!.unobserve(entry.target);
+            void render(entry.target as HTMLElement);
+          }
+        },
+        { rootMargin: NEAR_VIEWPORT }
+      )
+    : null;
+
+  /** Observe every not-yet-seen embed under `root`. Exposed so F12's wall island can call it
+   *  after appending cards — appended figures are invisible to an observer set up at load. */
+  const scan = (root: ParentNode = document) => {
+    for (const figure of root.querySelectorAll<HTMLElement>('[data-tweet-embed]')) {
+      if (figure.dataset.tweetSeen) continue;
+      figure.dataset.tweetSeen = '1';
+      if (observer) observer.observe(figure);
+      else void render(figure); // no observer: render rather than show nobody a post
+    }
+  };
+
+  (window as unknown as { grokbotScanTweets?: typeof scan }).grokbotScanTweets = scan;
+  scan();
+</script>

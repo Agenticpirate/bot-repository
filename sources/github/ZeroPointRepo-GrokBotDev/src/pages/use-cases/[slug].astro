@@ -1,0 +1,381 @@
+---
+// §4.3.5 — use-case detail.
+// [3] named-character h1 + chips · [4] what it does · [5] how it's set up (+ PromptBlock +
+// FENCED CTA) · [6] why it's cool · [7] the `replicability` field rendered under CP-032's
+// label ("what you need" — the RENDERED LABEL only; the schema field is untouched) ·
+// [8] as seen on <kind> (F17: the block generalised — the PRIMARY source renders through
+//     whichever embed its kind demands, then the remaining credited posts) + the B2 wall
+//     backlink (CP-100) ·
+// [8a] appears in · [9] related.
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import Chip from '../../components/Chip.astro';
+import Callout from '../../components/Callout.astro';
+import SectionHeading from '../../components/SectionHeading.astro';
+import InstallModal from '../../components/InstallModal.astro';
+import ConnectCallout from '../../components/ConnectCallout.astro';
+import ShareBar from '../../components/ShareBar.astro';
+import UpvoteButton from '../../components/UpvoteButton.astro';
+import { allTemplates, templateUrlOf, templatesReferencing } from '../../lib/templates';
+import { CP_167_USE_CASE_SEE_TEMPLATE } from '../../lib/copy';
+import TweetEmbed from '../../components/TweetEmbed.astro';
+import YouTubeEmbed from '../../components/YouTubeEmbed.astro';
+import PromptBlock from '../../components/PromptBlock.astro';
+import RelatedList from '../../components/RelatedList.astro';
+import NewsletterRow from '../../components/NewsletterRow.astro';
+import PagefindMeta from '../../components/PagefindMeta.astro';
+import categories from '../../data/categories.json';
+import {
+  allCollections,
+  allSourcesOf,
+  allUseCases,
+  appearsIn,
+  editorialRel,
+  integrationSlug,
+  primarySourceOf,
+  relatedTo,
+  toCardEntry,
+} from '../../lib/entries';
+import { extractPrompt, isoToDate, setupLabel, splitNamedCharacter } from '../../lib/format';
+import {
+  CP_032_REPLICABILITY_LABEL,
+  CP_067_CALLOUT_NEEDS_UPDATE,
+  CP_068_CALLOUT_DEPRECATED,
+  CP_112_CTA_SENTENCE,
+  fillCopy,
+} from '../../lib/copy';
+import { SITE, breadcrumbList, entryDescription, entryTitle } from '../../lib/seo';
+
+export async function getStaticPaths() {
+  // Unreviewed submissions (`proposed`) and fictional `demo` entries get NO page — they exist
+  // in a PR but are not published until a reviewer flips them to `live`. `deprecated` keeps its
+  // page (for the notice + redirect). This is why a community PR's build stays green: the new
+  // entry validates but doesn't render until it's approved.
+  const useCases = (await getCollection('use-cases')).filter(
+    (e) => e.data.status !== 'proposed' && e.data.status !== 'demo'
+  );
+  return useCases.map((entry) => ({ params: { slug: entry.data.slug }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const d = entry.data;
+
+// The REVERSE cross-link. A template names its use case in `related_use_cases`; this looks the
+// relationship up from the other side, so the 135 existing use-case files needed no edit at
+// all and a use case never has to know a template exists. Renders nothing when there is no
+// match, which is the case for almost every page.
+const asTemplates = templatesReferencing(d.slug, await allTemplates());
+
+const [pool, collections] = await Promise.all([allUseCases(), allCollections()]);
+const related = relatedTo(entry as never, pool as never);
+const inCollections = appearsIn(d.slug, collections);
+
+const primaryCat = ((d.categories as string[] | undefined)?.[0]) ?? d.category;
+const category = categories.find((c) => c.slug === primaryCat);
+const sub = category?.subcategories.find((s) => s.slug === d.subcategory);
+const url = `/use-cases/${d.slug}/`;
+const rel = editorialRel(entry as never);
+const isDeprecated = d.status === 'deprecated';
+const named = splitNamedCharacter(d.name);
+// FINAL model: score eyebrow + headline hero.
+const aScore = d.awesome_score as number | undefined;
+const isGuide = d.format === 'guide';
+const scoreTier =
+  aScore == null ? '' : aScore >= 90 ? 'must-try' : aScore >= 78 ? 'awesome' : aScore >= 65 ? 'solid' : aScore >= 50 ? 'worth a look' : '';
+const heroSummary = (d.summary as string | undefined) ?? d.tagline ?? d.what_it_does ?? '';
+const heroTitle = (d.headline as string | undefined) ?? d.name ?? d.slug;
+// §5.3: exactly one fenced block per use-case body, and it is the prompt.
+const prompt = extractPrompt(entry.body ?? '');
+
+// F17 — the source rail. `allSourcesOf` puts the primary FIRST and then the remaining
+// credited posts in file order; for every entry that predates F17 the primary IS
+// `source_tweets[0]`, so this reproduces the old order exactly. `primary_source` never had
+// to be written into a content file for that to hold — see `primarySourceOf`.
+const sources = allSourcesOf(entry as never);
+const primary = primarySourceOf(entry as never);
+const sourceLabel = primary?.kind === 'youtube-video' ? 'as seen on youtube' : 'as seen on x';
+
+// F14 — SHORTENED breadcrumbs (operator directive; supersedes §6.10's five-level trail and
+// §4.3.3/§4.3.5/§4.3.7's `home / lane / category / subcategory / name`). Now exactly
+// `{lane} / {name}`: no home crumb, no category, no subcategory. The BreadcrumbList JSON-LD
+// is built from this same array, so rendered and structured data cannot disagree —
+// consistency over depth, per the brief.
+// SEO: this is still the internal link that keeps `/plugins/`, `/use-cases/` and
+// `/collections/` reachable now that the header no longer links them (F11).
+const crumbs = [{ label: 'use cases', href: '/use-cases/' }, { label: heroTitle }];
+
+const graph = [
+  {
+    '@type': 'HowTo',
+    name: heroTitle,
+    description: heroSummary,
+    ...(d.setup_minutes ? { totalTime: `PT${d.setup_minutes}M` } : {}),
+    tool: d.integrations,
+    step: [
+      { '@type': 'HowToStep', text: 'Open Grok and create a new Bot.' },
+      { '@type': 'HowToStep', text: 'Copy the prompt and paste it into Grok.' },
+      { '@type': 'HowToStep', text: 'Connect the listed tools, then set the schedule.' },
+    ],
+  },
+  {
+    '@type': 'CreativeWork',
+    name: heroTitle,
+    url: `${SITE}${url}`,
+    genre: category?.label ?? primaryCat,
+    keywords: [
+      primaryCat,
+      d.subcategory,
+      ...d.integrations,
+      'Grok Bot prompt',
+      'ready-to-use Grok Bot prompts',
+    ].filter(Boolean),
+    creator: {
+      '@type': 'Person',
+      name: d.author?.handle ?? d.scouted_by?.handle ?? 'grokbot.dev',
+      ...(d.author?.url ? { url: d.author.url } : {}),
+    },
+    // F17 — every source, not just the X ones. `citation` is the page's machine-readable
+    // claim about where this came from; leaving a YouTube primary out of it would make the
+    // structured data disagree with the rail rendered three feet below it.
+    citation: sources.map((s) => s.url),
+    datePublished: d.added_at,
+    dateModified: d.updated_at,
+    isAccessibleForFree: true,
+  },
+  breadcrumbList(crumbs),
+];
+---
+
+<BaseLayout
+  title={entryTitle(heroTitle, 'use-case')}
+  description={entryDescription(heroSummary, 'use-case')}
+  robots={isDeprecated ? 'noindex,follow' : undefined}
+  ogImage={`${SITE}/og/use-cases/${d.slug}.png`}
+  graph={graph}
+>
+  <article class="container-page flex flex-col gap-8 py-12 md:py-16" data-pagefind-body>
+    <Breadcrumbs items={crumbs} />
+
+    {
+      d.status === 'needs-update' && (
+        <Callout variant="warn" title="needs update">
+          {fillCopy(CP_067_CALLOUT_NEEDS_UPDATE, { verified_at: d.verified_at ? isoToDate(d.verified_at) : '—' })}
+        </Callout>
+      )
+    }
+    {isDeprecated && <Callout variant="danger" title="deprecated">{CP_068_CALLOUT_DEPRECATED}</Callout>}
+
+    <PagefindMeta
+      type="use-case"
+      status={d.status}
+      setupMinutes={d.setup_minutes ?? null}
+      verifiedAt={d.verified_at ?? null}
+      url={url}
+    />
+
+    {/* F13 — the right column beside the title/content was EMPTY on desktop while "as seen on
+        x" sat below the fold. A6 already builds the page rails-capable, so the slot exists;
+        this uses it WITHOUT enabling anything sponsor-shaped (§12.6 / Ruling 7 stand).
+        Below lg the grid collapses to one column and the source block returns to its
+        documented stacked position (§4.3.5 region [8]), so mobile order is unchanged. */}
+    <div class="entryGrid">
+      <div class="entryGrid__main flex flex-col gap-12">
+
+    <header class="flex flex-col gap-3">
+      {(isGuide || aScore != null) && (
+        <div class="font-mono text-sm font-bold text-accent-text">
+          {isGuide ? (
+            <span class="text-text-muted">GUIDE · reference</span>
+          ) : (
+            <>✦ {aScore}{scoreTier && <span class="font-normal lowercase text-text-muted"> · {scoreTier}</span>}</>
+          )}
+        </div>
+      )}
+      <h1
+        class="display-track font-display text-3xl text-text md:text-4xl"
+        data-pagefind-weight="10"
+        data-pagefind-meta="name"
+      >
+        {d.headline ? (
+          d.headline
+        ) : named ? (
+          <>
+            <span class="font-mono">{named.character}</span>
+            <span aria-hidden="true" class="text-text-muted"> · </span>
+            <span>{named.role}</span>
+          </>
+        ) : (
+          heroTitle
+        )}
+      </h1>
+      <p class="text-lg text-text-muted" data-pagefind-meta="tagline">{heroSummary}</p>
+      <div class="flex flex-wrap items-center gap-2">
+        {d.verified_at && d.status === 'live' && <Chip variant="verified" date={isoToDate(d.verified_at)} />}
+        {setupLabel(d.setup_minutes) && <Chip variant="setup-time" label={setupLabel(d.setup_minutes)!} />}
+        <span data-pagefind-filter="category">
+          <Chip variant="category" label={category?.label ?? d.category} href={`/categories/${d.category}/`} />
+        </span>
+        {d.source_tweets.length > 0 && (
+          <Chip variant="scouted" label="scouted on x" href={d.source_tweets[0].url} />
+        )}
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        {d.integrations.map((tool) => (
+          <span data-pagefind-filter="integration">
+            <Chip variant="integration" label={tool} href={`/integrations/${integrationSlug(tool)}/`} />
+          </span>
+        ))}
+      </div>
+    </header>
+
+    <div class="flex flex-wrap items-center gap-4">
+      <InstallModal id={d.slug} variant="entry" prompt={prompt ?? undefined} entryName={heroTitle} />
+      <UpvoteButton slug={d.slug} />
+    </div>
+
+    {
+      asTemplates.length > 0 && (
+        <p class="ucTemplateLink">
+          {asTemplates.map((doc) => (
+            <a href={templateUrlOf(doc)}>{CP_167_USE_CASE_SEE_TEMPLATE}</a>
+          ))}
+        </p>
+      )
+    }
+
+    {/* Operator: share this use case on X (the intent credits @GrokBotDev via `via=`) + a
+        persistent follow affordance on every use-case page. Neutral, secondary to the amber. */}
+    <ShareBar title={heroTitle} path={url} kind="use case" />
+
+    {/* FINAL model: the hero already shows `summary` (which carries what_it_does), so the
+        old standalone "what it does" section rendered the same text twice — removed. */}
+
+    {/* The body carries "## How it's set up", "## Prompt" and "## Why it's cool" (§5.3).
+        Its single fenced block is hidden and re-rendered below through PromptBlock, so the
+        prompt gets its copy button, microhint and the canonical CTA rather than appearing
+        twice on the page. The "## Prompt" heading itself is hidden too (h2:has(+ pre)) —
+        otherwise it renders as an empty orphan heading with its content hoisted away. */}
+    <div class="prose-body prose-body--prompt-hoisted flex max-w-prose flex-col gap-4 text-base text-text">
+      <Content />
+    </div>
+
+    {
+      prompt && (
+        <div class="flex max-w-prose flex-col gap-4">
+          {/* M2b provenance line: only rendered when the prompt is OUR reconstruction, so a
+              reader is never left guessing whether they are looking at the author's text.
+              Nothing ships as `curator` until the operator sanctions that path. */}
+          {d.prompt_provenance === 'curator' && (
+            <p class="font-mono text-xs text-text-muted">
+              prompt reconstructed by the Curator from {d.author ? `@${d.author.handle}` : 'the author'}'s
+              published setup — not their verbatim text
+            </p>
+          )}
+          <PromptBlock prompt={prompt} />
+          <p class="text-base text-text">{CP_112_CTA_SENTENCE}.</p>
+        </div>
+      )
+    }
+
+    {/* Surface 3 — directly under the prompt, which is the highest-intent inch on the page:
+        the reader has the thing in their clipboard and is deciding what happens next. The
+        CTA is deliberately SECONDARY (accent text, no fill) because "install in grok bot"
+        above is this plane's one amber under §A1. */}
+    <ConnectCallout context="use-case" class="max-w-prose" />
+
+    <Callout variant="info" title={CP_032_REPLICABILITY_LABEL}>{d.replicability}</Callout>
+
+      </div>
+
+      {
+        sources.length > 0 && (
+          <aside class="entryGrid__rail flex flex-col gap-4" aria-label="source posts">
+            {/* F17 — the label follows the PRIMARY source's kind. It names where the use case
+                was found, which is what a primary source is; additional credited posts below
+                it each carry their own `@handle on x ↗` row, so nothing is mislabelled at the
+                item level even when an entry mixes kinds. */}
+            <SectionHeading title={sourceLabel} variant="sub" level={2} />
+            <div class="flex flex-col gap-4">
+              {sources.map((source) =>
+                source.kind === 'youtube-video' ? (
+                  <YouTubeEmbed
+                    videoId={source.videoId}
+                    title={source.title}
+                    channel={source.channel}
+                    channelUrl={source.channelUrl}
+                    timestamp={source.timestamp}
+                    startSeconds={source.startSeconds}
+                    postedAt={source.postedAt}
+                  />
+                ) : (
+                  <TweetEmbed
+                    tweetUrl={source.url}
+                    authorHandle={source.authorHandle}
+                    excerpt={source.excerpt}
+                    postedAt={source.postedAt}
+                  />
+                )
+              )}
+            </div>
+            {/* Direct round: the "see it on the wall →" backlink is removed — the operator
+                judged it adds no value on the entry page. CP-100 stays defined for the pack. */}
+          </aside>
+        )
+      }
+    </div>
+
+    <section class="flex flex-wrap items-center gap-4 font-mono text-sm text-text-muted">
+      {d.author && (
+        <span>
+          by <a href={d.author.url} rel={rel} target="_blank" class="hover:text-accent-text">@{d.author.handle}</a>
+        </span>
+      )}
+      {d.scouted_by && <span>scouted by @{d.scouted_by.handle}</span>}
+      {d.cost_note && <span>{d.cost_note}</span>}
+    </section>
+
+    <RelatedList entries={inCollections.map(toCardEntry)} variant="appears-in" />
+    <RelatedList entries={related.map(toCardEntry)} />
+
+    <NewsletterRow source="use-case-detail" />
+  </article>
+</BaseLayout>
+
+<style is:global>
+  /* The prompt is hoisted into PromptBlock (§4.3.5 region 5); §5.3 guarantees the body
+     has exactly one fenced block, so hiding `pre` here can never hide anything else. */
+  .prose-body--prompt-hoisted pre {
+    display: none;
+  }
+
+  /* .prose-body h2 + list styling moved to global.css (2026-08-22) so plugin detail pages
+     get the same treatment. Page-specific rule kept here: the "## Prompt" heading's content
+     is hoisted into PromptBlock below, which carries its own labelled header — so the body
+     heading would sit orphaned above nothing. Hide it. */
+  .prose-body--prompt-hoisted h2:has(+ pre) {
+    display: none;
+  }
+
+  /* F13 — one column below lg (the documented stacked order, §4.3.5 region [8]), two from
+     lg with the source-post rail beside the content. A6 already builds the page
+     rails-capable so the slot exists; nothing sponsor-shaped is enabled (§12.6 stands).
+     `align-items: start` + sticky keeps the posts in view while the prose scrolls, which is
+     the whole point of moving them up here. */
+  .entryGrid { display: grid; gap: 3rem; }
+  @media (min-width: 1024px) {
+    .entryGrid { grid-template-columns: minmax(0, 1fr) 22rem; align-items: start; }
+    .entryGrid__rail {
+      position: sticky;
+      inset-block-start: 1.5rem;
+      /* never taller than the viewport, or sticky silently stops working */
+      max-block-size: calc(100vh - 3rem);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .entryGrid__rail { position: static; }
+  }
+</style>

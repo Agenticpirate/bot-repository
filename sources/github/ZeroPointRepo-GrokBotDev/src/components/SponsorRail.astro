@@ -1,0 +1,74 @@
+---
+// The desktop side rail (operator). Fixed in the side gutter so it never squishes content —
+// but unlike the first cut, the gutter is MADE rather than waited for: `sponsorLayout.railCss`
+// narrows the content column so both rails fit from a DERIVED breakpoint (CONTENT_MIN +
+// SIDE_COST) instead of a typed 1600px that almost no real laptop ever reached.
+//
+// Everything visual lives in the generated stylesheet (SideRailStyles.astro) because the
+// layout depends on that derived breakpoint and a CSS `@media` cannot read a custom property.
+// This file is markup only.
+//
+// A static grid of exactly `plan.slots` cards — no desktop marquee. Sponsors beyond the slot
+// count stay in the DOM but are clipped by the track and marked inert; the shuffle module
+// reshuffles per pageview, so the spare rotates into view instead of never being seen.
+//
+// A5 hue law: sponsor tint = paid, and this is the ONLY place a sponsor tint renders.
+// Links keep rel="sponsored noopener" — that is disclosure, not a display hook, so it stays
+// even though the class names are deliberately generic (adblock neutrality).
+import { splitRails, sponsorHref, sponsorIconPath, type Sponsor } from '../lib/sponsors';
+import { railPlan } from '../lib/sponsorLayout';
+
+interface Props {
+  side: 'left' | 'right';
+}
+const { side } = Astro.props;
+
+const plan = railPlan();
+const { left, right } = splitRails();
+const items: Sponsor[] = side === 'left' ? left : right;
+// Cards actually shown. The rest are clipped by .railTrack and inert until the shuffle
+// promotes them on a later pageview.
+const shown = plan.slots;
+---
+
+{
+  plan.railsMode && items.length > 0 && (
+    <aside
+      class:list={['sideRail', side === 'left' ? 'sideRail--l' : 'sideRail--r']}
+      aria-label="partners"
+      data-pagefind-ignore
+    >
+      <ul class="railTrack" data-rot data-rot-unit={items.length} data-rot-show={shown}>
+        {items.map((s, i) => (
+          <li>
+            <a
+              href={sponsorHref(s)}
+              target="_blank"
+              rel="sponsored noopener"
+              class="railCard"
+              style={`--tint: var(--color-partner-${s.tint}-tint)`}
+              aria-hidden={i >= shown ? 'true' : undefined}
+              tabindex={i >= shown ? -1 : undefined}
+            >
+              {sponsorIconPath(s) ? (
+                <img src={sponsorIconPath(s)!} alt="" width="28" height="28" class="railCard__icon" loading="lazy" />
+              ) : (
+                <span class="railCard__tile" aria-hidden="true">{s.name.charAt(0)}</span>
+              )}
+              <span class="railCard__name">{s.name}</span>
+              <span class="railCard__tag">{s.tagline}</span>
+              <span class="railCard__badge">sponsored</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+      {side === 'right' && (
+        <a href="/sponsors/" class="railCta">
+          <span class="railCta__plus" aria-hidden="true">+</span>
+          <span class="railCta__title">Become a sponsor</span>
+          <span class="railCta__text">Get your tool in front of Grok Bot builders.</span>
+        </a>
+      )}
+    </aside>
+  )
+}

@@ -1,0 +1,60 @@
+---
+// §4.3.1 Home — REDESIGNED at F11 by operator directive: "less is more, home page is
+// everything." The home page IS the directory now.
+//
+// SUPERSESSIONS (logged in BUILD-NOTES M8 · F11):
+//   · §4.3.1 region [4] "featured", [5] the "what's in here" lane tiles (CP-009/010/011/012)
+//     and [6] "latest" are REMOVED. The full listing replaces all three.
+//   · The hero's search input is removed (HeroStage `#content`).
+//   · Collections leave home entirely. `/collections/` still builds, is still in the sitemap,
+//     and is still reachable from entry breadcrumbs — it is only unlinked from home chrome.
+//   · KEPT exactly as specified: the header, the A4 physics hero with its h1 + subline + CTAs
+//     (CP-113 / CP-002 / CP-003 / CP-004), StatBar, NewsletterRow. The §6.11 money phrase
+//     lives in the hero subline, so `check-keyword-placements` is unaffected — verified.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HeroStage from '../components/HeroStage.astro';
+import LatestBots from '../components/LatestBots.astro';
+import HomeDirectory from '../components/HomeDirectory.astro';
+import NewsletterRow from '../components/NewsletterRow.astro';
+import { allPlugins, allUseCases, sortForIndex, urlOf } from '../lib/entries';
+import { allTemplates, templateUrlOf } from '../lib/templates';
+import { META, collectionPage, itemList } from '../lib/seo';
+
+const plugins = sortForIndex(await allPlugins());
+const useCases = sortForIndex(await allUseCases());
+// Operator (2026-08-28): the FULL shareable-bot list lives on home too, uncapped.
+const templates = await allTemplates();
+
+// The ItemList now describes what the page actually lists — the whole directory — rather
+// than the featured/latest slices that no longer exist.
+const graph = [
+  collectionPage('/', META.home.title, META.home.description),
+  itemList([
+    ...useCases.map((e) => ({ url: urlOf(e), name: e.data.name })),
+    ...plugins.map((e) => ({ url: urlOf(e), name: e.data.name })),
+    ...templates.map((t) => ({ url: templateUrlOf(t), name: t.data.name })),
+  ]),
+];
+---
+
+<BaseLayout title={META.home.title} description={META.home.description} graph={graph}>
+  <HeroStage />
+
+  {/* Operator (2026-08-30): a returning visitor should see WHAT'S NEW before anything else, so
+      the freshest bots get one short swipeable row directly under the hero — above the
+      directory, which is a browse surface rather than a recency one.
+
+      It reuses the `templates` already loaded above (no second getCollection), and it is the
+      only surface on the site ordered by `source.posted_at`: `sortTemplates` keys off
+      `added_at`, which the harvester stamps with one constant, so the directory's sections are
+      NOT newest-first and cannot answer this question. See lib/templates `latestTemplates`. */}
+  <LatestBots templates={templates} />
+
+  {/* Direct round: StatBar (counts row) REMOVED from home + dead space tightened —
+      the directory itself is the proof of size now. */}
+  <HomeDirectory plugins={plugins} templates={templates} />
+
+  <div class="container-page pb-12 md:pb-16">
+    <NewsletterRow source="home" />
+  </div>
+</BaseLayout>
