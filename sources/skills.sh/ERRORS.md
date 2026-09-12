@@ -1,21 +1,21 @@
 # skills.sh errors
 
-Updated: 2026-09-12T19:53:47Z
+Updated: 2026-09-12T19:56:41Z
 
 ## Rate limit
 
 Live `GET /api/download/{owner}/{repo}/{slug}` returns HTTP 429 `{"error":"rate_limit_exceeded","message":"Rate limit exceeded. Maximum 60 requests per hour."}` with `Retry-After: 60`.
 
-Target is all 19998 sitemap ids. 17821 have full `files/` + hash. 2143 remain.
+Target is all 19998 sitemap ids. 17869 have full `files/` + hash. 2094 remain.
 Prefer `scripts/fill_skills_sh_from_github.py` for bulk fill. This API client is only for leftovers and stays under the 60/hour cap.
 
 ## Permanent misses
 
-34 ids returned HTTP 404 from the download API; page HTML was saved once.
+35 ids returned HTTP 404 from the download API; page HTML was saved once.
 
 Recent failures / fallbacks:
 
-- `api/git/mws-shared` html_fallback: HTTP 404
-- `api/git/fireworks-tech-graph` html_fallback: HTTP 404
+- `forcedotcom/sf-skills/developing-agentforce` html_fallback: <urlopen error [Errno -3] Temporary failure in name resolution>
+- `api/git/drawio` html_fallback: HTTP 404
 
 Resume: `python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`
