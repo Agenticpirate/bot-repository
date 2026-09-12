@@ -77,7 +77,7 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [agensi.io](https://www.agensi.io/grok-bot-marketplace) — grok marketplace HTML + skill sitemap URLs
 - [claude.com / code.claude.com docs](https://code.claude.com/docs/en/plugins-reference) — official plugin + marketplace docs (HTML/MD)
 - [claude.com/product/cowork](https://claude.com/product/cowork) — Cowork product, plugin guide, blog, /plugins directory
-- Muse hunt — no public Muse Grok gallery; see [docs/muse-research.md](docs/muse-research.md)
+- Muse — **no public store**; Meta Muse Spark cookbooks + edheltzel/Muse + third-party listings. See [docs/muse-research.md](docs/muse-research.md)
 - [cursor.directory](https://cursor.directory/) — **429** this host
 - [marketplace.relevanceai.com](https://marketplace.relevanceai.com/) — sitemap URL list
 - [sigrix.io/marketplace/crews](https://sigrix.io/marketplace/crews) — listing HTML
@@ -86,7 +86,7 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [make.com](https://www.make.com/api/v2/templates/public) — API 401 (login)
 - Activepieces `/v1/templates` — HTML app shell, not JSON
 
-Notes and leftovers: [docs/source-candidates.md](docs/source-candidates.md), [docs/source-candidates-batch2.md](docs/source-candidates-batch2.md), [docs/claude-ecosystem-sources.md](docs/claude-ecosystem-sources.md), [docs/muse-research.md](docs/muse-research.md).
+Notes and leftovers: [docs/source-candidates.md](docs/source-candidates.md), [docs/source-candidates-batch2.md](docs/source-candidates-batch2.md), [docs/source-candidates-batch3-claude-muse-workflows.md](docs/source-candidates-batch3-claude-muse-workflows.md), [docs/claude-ecosystem-sources.md](docs/claude-ecosystem-sources.md), [docs/muse-research.md](docs/muse-research.md).
 
 ## Attribution
 
@@ -207,6 +207,9 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | github/anthropics-healthcare | 127 |
 | github/anthropics-claude-tag-plugins | 82 |
 | muse-research | 4 |
+| dev.meta.ai-cookbook | 16 |
+| github/edheltzel-Muse | 51 |
+| muse-thirdparty | 3 |
 | github/khendzel-awesome-agent-skills | 3 |
 | github/mergisi-awesome-openclaw-agents | 402 |
 | github/michielhdoteth-awesome-ai-agent-tools | 133 |
@@ -228,11 +231,11 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 
 ## Fetch notes
 
-Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`, `scripts/download_skills_sh.py`, `scripts/ingest_priority_a.py`, `scripts/ingest_priority_b.py`, `scripts/ingest_priority_cd.py`, `scripts/ingest_claude_ecosystem.py`.
+Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`, `scripts/download_skills_sh.py`, `scripts/ingest_priority_a.py`, `scripts/ingest_priority_b.py`, `scripts/ingest_priority_cd.py`, `scripts/ingest_claude_ecosystem.py`, `scripts/ingest_batch3.py`, `scripts/download_n8n_official.py`.
 
 ## Caps / failures
 
-- **skills.sh** — full skill files via the download API (`files/` + hash). The API allows 60 requests/hour; **685** downloaded, **19,302** remaining. Resume via `scripts/download_skills_sh.py`.
+- **skills.sh** — full skill files via the download API (`files/` + hash). The API allows 60 requests/hour; **735** downloaded, **19,252** remaining. Resume via `scripts/download_skills_sh.py`.
 - **grokbothq.xyz** — 15 bot slugs ending in `_` have no `.md` variant; HTML saved instead.
 - **cursor.com/marketplace** — index HTML plus per-listing metadata; full listing HTML discarded (duplicate ~1.4 MiB Next.js shells).
 - **n8nworkflows.xyz** — Cloudflare 403 on retry; 0 workflow JSON files.

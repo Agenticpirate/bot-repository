@@ -1,38 +1,35 @@
 # Muse research (disambiguation)
 
-Hunt for public **Muse** agent / bot / template galleries, 2026-09-12. There is **no dedicated public Muse Grok bot marketplace** comparable to grokbot.dev, x.ai/bot/marketplace, or skills.sh.
+**Meta Muse has no public store.** There is no Muse-branded plugin marketplace, bot gallery, or skills registry comparable to x.ai/bot/marketplace, grokbot.dev, skills.sh, or claude.com/plugins.
 
-Snapshots (where a page existed) live under `sources/muse-research/`.
+What exists instead:
+
+1. **Muse Spark cookbooks** on Meta Model API — recipes for Muse Spark, Muse Code, Muse Image, Muse Voice, and Muse Glimmer. Archived under `sources/dev.meta.ai-cookbook/`.
+2. **edheltzel/Muse** — a single third-party agent skill (HTML/slide decks). Archived under `sources/github/edheltzel-Muse/`.
+3. **Other Muse-branded packs** — one-off listings only (`sources/muse-thirdparty/`).
 
 ## Name collisions
 
-| “Muse” | What it actually is | Agent/bot gallery? |
+| “Muse” | What it actually is | Public store? |
 | --- | --- | --- |
-| **Cursor Muse Spark** (`muse-spark-*`) | A Cursor coding-agent model family, not a template site | No |
-| **muse.ai** | Video hosting / player product (`https://muse.ai`) | No — unrelated |
-| **musetemplates.com** | Timed out this host | Unknown; no snapshot |
-| **AgentForge “Muse — Content Machine”** | Single content-agent template at [agentforge.solutions/templates/muse-content-machine](https://agentforge.solutions/templates/muse-content-machine) | One template, not a Muse gallery |
-| **ClaudeMarket “Muse — AI Content Creator”** | [claudemarket.ai/marketplace/muse-content-creator](https://www.claudemarket.ai/marketplace/muse-content-creator) | HTTP **429** this host; appears to be one Claude skill/agent listing |
-| **Meta Muse Spark** GitHub hits | Unofficial API wrappers / Telegram bots for a “Muse Spark” LLM (e.g. `compnew2006/MetaAI-Free-Hermes-Agent`, `kamellperry/meta-muse-spark-api`) | Not xAI Grok; not a template gallery |
-| **alphaparkinc/genpark-meta-muse-*-skill** | Three small “Muse Spark” helper skills (thinking logger, token estimator, multi-app planner) | Skills for a different model, not a Muse bot directory |
+| **Meta Muse Spark / Muse Code / Muse Image / Muse Voice / Muse Glimmer** | Model family + coding CLI + cookbooks on [dev.meta.ai/docs](https://dev.meta.ai/docs/cookbook) | **No.** Docs and recipes only. |
+| **edheltzel/Muse** | GitHub agent skill for diagrams / slide decks | One pack, not a store |
+| **AgentForge “Muse — Content Machine”** | Single content-agent template | One listing |
+| **ClaudeMarket “Muse — AI Content Creator”** | Single Claude listing (HTTP 429 this host) | One listing |
+| **Cursor Muse Spark** (`muse-spark-*`) | Cursor coding-agent model id | No |
+| **muse.ai** | Video hosting product | Unrelated |
+| **musetemplates.com** | Timed out this host | Unknown |
+| Unofficial `muse-spark` GitHub wrappers | Telegram/API shims for a “Muse Spark” LLM | Not a gallery |
 
-## GitHub / web search
+## What was archived
 
-Queries: `muse grok bot`, `muse agent template`, `muse-spark`, plus site fetches above.
-
-- `gh search repos "muse grok bot"` → **0** repos
-- `gh search repos "muse agent template"` → **0** repos
-- `muse-spark` → Cursor/Meta model tooling only (see table)
-- No public “awesome-muse-bots”, “muse-grok-templates”, or xAI Muse marketplace surfaced
-
-## What was saved
-
-| Snapshot | HTTP | Notes |
-| --- | ---: | --- |
-| `sources/muse-research/pages/agentforge-muse-content-machine.html` | 200 | AgentForge content-agent template |
-| `sources/muse-research/pages/claudemarket-muse-content-creator.html` | 429 | Rate-limited body only |
-| `sources/muse-research/pages/muse-ai.html` | 200 | Video product homepage (negative evidence) |
+| Path | Source | Notes |
+| --- | --- | --- |
+| `sources/dev.meta.ai-cookbook/` | https://dev.meta.ai/docs/cookbook + linked Muse Code / agent recipe `.md` | Official cookbooks; `llms.txt` |
+| `sources/github/edheltzel-Muse/` | https://github.com/edheltzel/Muse | Shallow clone, `.git` stripped |
+| `sources/muse-thirdparty/` | AgentForge + ClaudeMarket Muse listings | ClaudeMarket 429 |
+| `sources/muse-research/` | Earlier hunt snapshots (muse.ai, AgentForge, ClaudeMarket) | Negative evidence |
 
 ## Conclusion
 
-Treat **Muse** as a disambiguation problem, not a missing ingest source. If a real Muse Grok / agent-template gallery appears later, add it under `sources/` with a distinct slug and link it from this file. Do not confuse Cursor `muse-spark` model ids or muse.ai video with a bot catalog.
+Do not expect a Muse plugin marketplace. Cite Meta cookbooks for Muse Spark/Code, and treat `edheltzel/Muse` plus AgentForge/ClaudeMarket as isolated third-party packs. Hunt notes for Batch 3: [source-candidates-batch3-claude-muse-workflows.md](source-candidates-batch3-claude-muse-workflows.md).

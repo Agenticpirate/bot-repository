@@ -45,7 +45,10 @@ Do not invent serials or scrape private data.
 | [code.claude.com plugin docs](https://code.claude.com/docs/en/plugins-reference) | HTML + MD snapshots | Official marketplaces listed in plugin-marketplaces.md. |
 | [claude.com/product/cowork](https://claude.com/product/cowork) | HTML snapshots | Product, overview, plugins guide, blog, /plugins. |
 | Claude Code/Cowork extra packs | GitHub shallow clones | See [claude-ecosystem-sources.md](claude-ecosystem-sources.md): official financial/life-sciences/healthcare/tag/commerce + awesome-claude-* galleries + CLAUDE.md templates. |
-| Muse hunt | [muse-research.md](muse-research.md) + `sources/muse-research/` | No Muse Grok gallery; AgentForge/ClaudeMarket/muse.ai disambiguation only. |
+| Muse hunt | [muse-research.md](muse-research.md) + `sources/muse-research/` | No Muse store. Cookbooks + edheltzel/Muse + third-party only. |
+| [dev.meta.ai cookbooks](https://dev.meta.ai/docs/cookbook) | HTML + MD + llms.txt | Muse Spark / Muse Code recipes; no plugin store. |
+| [edheltzel/Muse](https://github.com/edheltzel/Muse) | GitHub shallow clone | Single Muse-branded skill. |
+| Muse third-party listings | `sources/muse-thirdparty/` | AgentForge 200; ClaudeMarket 429. |
 
 ## Possible later
 
