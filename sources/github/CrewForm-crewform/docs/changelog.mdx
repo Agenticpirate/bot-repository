@@ -1,0 +1,218 @@
+---
+title: "Changelog"
+description: "All notable changes to CrewForm."
+---
+
+# Changelog
+
+All notable changes to CrewForm will be documented here.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## [1.9.3] — 2026-05-14
+
+### Added
+
+- **CrewForm CLI (`npx crewform`)** — Standalone command-line tool for running AI agents locally without the web platform:
+  - **12 Commands** — `run`, `chat`, `init`, `validate`, `tools`, `login`, `logout`, `whoami`, `agents`, `teams`, `pull`, `push`
+  - **Local Agent Execution** — Run agents from JSON config files with streaming output, Ollama auto-detection, and 16 LLM provider support
+  - **Pipeline Teams** — Multi-agent pipeline execution with sequential steps, fan-out (parallel branches), merge agents, and configurable failure handling
+  - **MCP Client Integration** — Connect to MCP servers via `stdio`, `sse`, or `streamable-http` transports (`--mcp` flag)
+  - **Interactive Chat** — REPL with conversation history, token/cost tracking, and `/clear`, `/history`, `/stats`, `/exit` commands
+  - **Platform API Mode** — `crewform login` to authenticate, browse workspace agents/teams, `pull` configs locally, and `push` tasks remotely
+  - **Config Compatibility** — Accepts inline JSON and full `crewform-export` v1 format from the web app
+  - **Built-in Tools** — `web_search`, `http_request`, `code_interpreter`, `read_file`, `grammar_check`
+  - **Zero-Config Start** — `crewform init` scaffolds agent or team configs with Ollama model auto-detection
+  - **CI/CD Friendly** — `--json`, `--quiet`, stdin/stdout piping, and `CREWFORM_API_KEY` env var support
+
+### Documentation
+
+- New [CLI Tool](/cli) guide added to docs
+
+## [1.9.2] — 2026-05-08
+
+### Added
+
+- **Google Workspace Gateway** — OAuth 2.0 integration with 4 output destinations: Google Sheets (row append), Gmail (send from your account), Google Docs (auto-create documents), Google Calendar (create review events)
+- **Notion Output Route** — Create pages in a Notion database with task results
+- **GitHub Issues Output Route** — Create issues with labels and assignees
+- **Email (Resend) Output Route** — Managed email delivery with HTML templates
+- **SMTP Email Output Route** — Self-hosted email via nodemailer
+- **Linear Output Route** — Create issues via GraphQL with team label resolution
+- **Serverless Cron Evaluation** — Edge Function + pg_cron replaces always-on task runner for trigger scheduling (runs every 30 min)
+- **Canvas Logic Nodes** — Conditional (If-Else) and HTTP Request nodes with branching edges
+- **Human-Readable Cron Labels** — Friendly labels like "Every weekday at 9:00 AM" across all UIs
+- **Stale Model Validation** — Warning badge on deprecated model IDs
+- **Docker Research Crew** — Compose edition for research workflows
+
+### Fixed
+
+- Dependency vulnerabilities, canvas logic connections, bypass edge suppression, ESLint compliance
+
+### Documentation
+
+- Output Routes docs updated with 9 new destination types
+- Total output destinations: **16** (HTTP, Slack, Discord, Telegram, Teams, Asana, Trello, Notion, GitHub, Email, SMTP, Linear, Google Sheets, Gmail, Google Docs, Google Calendar)
+
+## [1.9.1] — 2026-04-23
+
+### Added
+
+- **7-Day Team Trial** — Every new signup gets full Team-tier access for 7 days with dashboard trial banner
+- **Coolify Deployment Guide** — Step-by-step docs for Coolify v4 deployment
+- **Cloudflare Turnstile** — Bot protection on login and signup forms
+
+### Fixed
+
+- Trial feature gating with `useEELicense` hook fallback
+- Auth callback PKCE timeout handling
+
+## [1.9.0] — 2026-04-22
+
+### Added
+
+- **Workflow Templates** — Reusable workflow blueprints that bundle agents, teams, and triggers into single installable packages with `{{variable}}` placeholders
+- **Template Marketplace** — Browse, filter, and install published templates by category from the Marketplace → Templates tab
+- **One-Click Install** — Fill in variables and CrewForm auto-creates all agents, team config, and pipeline steps
+- **Create Template Wizard** — 4-step wizard (Select → Variables → Metadata → Publish) from the Marketplace header or Agent Detail page
+- **Variable Auto-Detection** — Wizard scans agent prompts for `{{variable}}` patterns and generates variable definitions
+- **5 Starter Templates** — Weekly Sports Coach, Content Research Pipeline, Daily News Digest, Code Review Assistant, Weekly Report Generator
+- **Template Triggers** — Templates can include CRON schedules or webhook triggers
+
+### Documentation
+
+- New **Workflow Templates** guide added to docs
+
+## [1.8.2] — 2026-04-11
+
+### Added
+
+- **AG-UI Multi-Step Wizards** — Agents can orchestrate complex, stateful, branching user interactions with 5 input types (approval, confirm_data, choice, text_input, form), conditional branching, and cancellation support
+- **Marketplace: Creator Analytics** — Comprehensive usage dashboard for template authors: install trend charts (30-day), rating distribution, per-agent performance table, and recent reviews feed
+- **Navigation: Settings Sub-Navigation** — 14 settings tabs migrated to collapsible sidebar groups with URL-based routing (`/settings/:tab`)
+- **Navigation: Admin Panel Sub-Navigation** — 8 admin tabs migrated to collapsible sidebar group with URL-based routing (`/admin/:tab`)
+
+### Changed
+
+- Settings and Admin pages now use sidebar sub-navigation instead of horizontal tab bars
+- TopBar shows per-section titles for all Settings and Admin sub-pages
+
+## [1.8.1] — 2026-04-10
+
+### Added
+
+- **Canvas: Copy/Paste Nodes** — `Ctrl+C` / `Ctrl+V` to duplicate agent nodes with auto-connection
+- **Canvas: Sticky Notes** — Right-click annotations with 5 color presets and persistence
+- **Canvas: Node I/O Inspector** — Click any agent node to inspect input/output data
+- **Canvas: Autosave Infrastructure** — Draft config support for Save vs. Publish workflow
+
+### Fixed
+
+- Canvas node blur, copy/paste reliability, sticky note persistence across navigation
+- Orchestrator final answer aggregation and webhook output consistency
+
+## [1.8.0] — 2026-04-08
+
+### Added
+
+- **Embeddable Chat Widget** — Drop-in `<script>` tag to embed any CrewForm agent as a floating chat bubble on any website, with streaming responses, domain whitelisting, customizable themes, and session history
+- **Knowledge Base Enhancements** — Upgraded retrieval pipeline with interactive Retrieval Testing UI, metadata tag filtering (GIN-indexed), and hybrid search combining vector + full-text with reranking
+- **Agent/Team Export & Import** — Portable JSON data format for sharing configurations. Export agents or entire teams (with all member agents embedded). Import with automatic ID remapping
+- **AG-UI Rich Interactions** — Agents can pause execution and request user input: Approval, Data Confirmation, or Choice Selection — with glassmorphism modal, countdown timer, and 5-minute timeout
+- **Marketplace Agent README** — Published agents can include rich Markdown documentation with live preview editor
+- **License Key Validation** — HMAC-SHA256 cryptographic verification with 24-hour re-validation and 7-day offline grace period
+- **Observability & Tracing** — Opt-in OpenTelemetry + Langfuse integration for tracing LLM calls, tool invocations, and team runs
+
+### Changed
+
+- AG-UI health endpoint now reports version `1.1`
+
+## [1.7.1] — 2026-04-01
+
+### Added
+
+- **MCP Server Publishing** — Expose CrewForm agents as MCP tools so Claude Desktop, Cursor, and other MCP clients can call them directly. New `/mcp` endpoint with Streamable HTTP transport, `tools/list` and `tools/call` support
+- **MCP API Key Generation** — Generate, regenerate, and revoke MCP API keys from the UI with one-click copy
+- **MCP Connection Config** — Auto-generated config snippet for Claude Desktop / Cursor with copy button
+- **Ollama Auto-Discovery** — Dynamically detect installed Ollama models and merge them into the model selector
+- **Custom Base URL** — Per-provider base URL for Ollama, enabling remote instances on different hosts
+- **MCP Publish Toggle** — Per-agent opt-in/opt-out button on agent detail pages
+
+### Changed
+
+- LLM providers updated to 16 (Ollama with auto-discovery and custom base URL)
+- Task runner dynamically resolves Ollama base URLs from API key records
+
+## [1.7.0] — 2026-03-30
+
+### Added
+
+- **Visual Builder — Execution Observability** — Live per-node execution state visualization (idle/running/completed/failed) with pulsing border glow, status badges, and icon overlays on agent nodes
+- **On-Canvas Detail Popups** — Click any agent node to inspect its details, step configuration, and execution status in a glassmorphism floating card (replaces sidebar-only inspection)
+- **Right-Click Context Menus** — Context-aware actions (Delete, Auto-layout, Set as Brain, Fit View) for nodes and canvas background
+- **Execution Timeline** — Horizontal step-by-step progress rail below the canvas with clickable steps that pan the camera to specific agents
+- **Smooth Camera Following** — Canvas auto-pans to the currently executing agent node during runs, with debounced smooth transitions
+- **Glassmorphism Node Styling** — All node types (Agent, Start, End) upgraded with frosted glass backgrounds, hover lift effects, and gradient inner glow
+- **Live Transcript Panel** — Real-time inter-agent message feed during execution with filter buttons (All/Delegations/Results/System), tool call expansion, and auto-scroll
+- **Tool/MCP Activity Heatmap** — Aggregated tool usage statistics showing call counts, success rates, and average durations with color-coded health bars
+- **Enhanced Keyboard Shortcuts** — `F` (fit view), `L` (auto-layout), `T` (transcript), `?` (shortcuts help), `Ctrl+A` (select all), `Escape` (close all) with centralized handler
+- **Keyboard Shortcuts Overlay** — Glassmorphism help modal listing all available shortcuts, grouped by Navigation/Editing/Panels/Interaction
+- **Searchable Agent Sidebar** — Search/filter input (auto-appears when there are more than 5 agents) with agent count badge and filtered results
+- **Animated Edge Flow** — Dashed-to-solid edge animation during execution state transitions
+- **Start Node Idle Pulse** — Subtle breathing animation on the Play icon when idle
+
+## [1.5.0] — 2026-03-27
+
+### Added
+
+- **Canvas Undo/Redo** — Full undo/redo support with `Ctrl+Z` / `Ctrl+Shift+Z` and toolbar buttons (30-entry history stack)
+- **Canvas Auto-Layout** — One-click dagre-based graph layout (top-to-bottom for pipeline/orchestrator, left-to-right for collaboration)
+- **Canvas Position Persistence** — Node positions saved to config and restored on reload
+- **Per-Task Token Breakdown** — Prompt vs completion token split with stacked bar chart on Analytics page
+- **Cost Forecasting** — 30-day cost projection using linear regression with trend indicator
+- **Model Performance Comparison** — Compare models by speed, cost/run, and tokens/run with inline mini-bars
+- **Marketplace Category Filters** — 8 preset category groups for browsing agents (Customer Support, Content Creation, Data Analysis, etc.)
+
+## [1.3.0] — 2026-03-27
+
+### Added
+
+- **Tier-Based Feature Limits** — Knowledge Base document limits (Free: 3, Pro: 25, Team+: Unlimited) and A2A Publishing gated to Pro+ plans
+- **Embedding Provider Fallback** — KB processing now falls back across available providers (OpenAI → OpenRouter) when quota is exceeded
+- **Product Screenshot Gallery** — 6 product screenshots added to README and landing page
+- **Pricing Table Updates** — MCP Protocol, AG-UI Protocol, Knowledge Base, A2A Consume/Publish rows added to all pricing surfaces
+
+### Fixed
+
+- **Knowledge Base Upload Pipeline** — Fixed silent upload failures (missing storage RLS policies), processing errors no longer stuck on "pending", edge function auth resolved
+- **Upload Button Styling** — Fixed button text color for brand consistency
+
+### Changed
+
+- **LLM Providers** — Updated from 14 to 15 providers (Ollama added)
+- **Landing Page Pricing** — Updated with KB limits, MCP, and A2A features per tier
+
+## [0.1.0] — 2026-03-09
+
+### Added
+
+- **Agent Management** — Create, configure, and monitor AI agents from a visual UI with system prompts, model selection, and tools
+- **Pipeline Mode** — Chain agents together in sequential workflows with automatic handoffs
+- **Orchestrator Mode** — Brain agent coordinates sub-agents via delegation trees *(Pro)*
+- **Collaboration Mode** — Agents discuss and debate tasks in real-time conversation threads *(Team)*
+- **Single Tasks** — Send a prompt to any agent and get results in real-time
+- **Agent Marketplace** — Browse and install community-built agent templates
+- **BYOK (Bring Your Own Key)** — Connect your own API keys from 14 providers: OpenAI, Anthropic, Google Gemini, Groq, Mistral, Cohere, NVIDIA NIM, Perplexity, Together, OpenRouter, HuggingFace, MiniMax, Moonshot, Venice
+- **Team Memory** — Shared pgvector semantic search across agents *(Team)*
+- **RBAC** — Role-based access control and workspace member invitations *(Team)*
+- **Messaging Channels** — Trigger agents from Discord (slash commands), Slack, Telegram, Email, and Trello
+- **Output Routes** — Deliver results to Discord, Slack, webhooks, MS Teams, Asana, Trello, and Email
+- **Zapier Integration** — Connect CrewForm to 7,000+ apps with triggers and actions
+- **Real-Time Execution** — Live task execution updates via Supabase Realtime
+- **Usage Tracking** — Monitor token usage, costs, and performance per agent and task
+- **Self-Hosting** — Docker Compose deployment for production
+- **AES-256-GCM Encryption** — Secure API key storage
+- **Row-Level Security** — Workspace-scoped data isolation via Supabase RLS
+- **REST API** — Full CRUD via Supabase Edge Functions with API key authentication
+- **Mintlify Docs** — Documentation site at docs.crewform.tech
+- **Landing Page** — Marketing site with provider/integration marquees, feature grid, and pricing

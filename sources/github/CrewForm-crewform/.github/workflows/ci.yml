@@ -1,0 +1,162 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CrewForm — CI Pipeline
+# ─────────────────────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 CrewForm
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Frontend: Build, Lint, Test ─────────────────────────────────────────
+  build-and-test:
+    name: Build, Lint & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm run test -- --run
+
+      - name: Build
+        run: npm run build
+
+  # ── Task Runner: Lint & Test ────────────────────────────────────────────
+  task-runner-test:
+    name: Task Runner — Lint & Test
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: task-runner
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: task-runner/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npx vitest run
+
+  # ── E2E: Playwright (manual trigger) ────────────────────────────────────
+  e2e:
+    name: E2E — Playwright
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        run: npx playwright test
+        env:
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+  # ── Sensitive Doc Guard ─────────────────────────────────────────────────
+  doc-guard:
+    name: Sensitive Doc Guard
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Block sensitive documents
+        run: |
+          BLOCKED_PATTERNS="ROADMAP\.md|MONETIZATION\.md|FUNCTIONAL_REQ|THREAT_MODEL|PROJECT_SCOPE|TECHNICAL_CONSTRAINTS|DOC_SPLIT"
+          FOUND=$(find . -type f -name "*.md" | grep -iE "$BLOCKED_PATTERNS" | grep -v node_modules | grep -v CHANGELOG || true)
+          if [ -n "$FOUND" ]; then
+            echo "❌ Sensitive document(s) detected in public repo!"
+            echo ""
+            echo "These files belong in crewform-docs (private), not here:"
+            echo "$FOUND"
+            echo ""
+            echo "See internal/DOC_SPLIT_PLAN.md for details."
+            exit 1
+          fi
+          echo "✅ No sensitive docs found — all clear"
+
+  # ── AGPL Licence Header Check ───────────────────────────────────────────
+  licence-check:
+    name: AGPL Licence Headers
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check AGPL headers on source files
+        run: |
+          MISSING=""
+          for f in $(find src -name "*.ts" -o -name "*.tsx" | grep -v node_modules | grep -v ".d.ts"); do
+            if ! head -1 "$f" | grep -q "SPDX-License-Identifier"; then
+              MISSING="$MISSING\n  $f"
+            fi
+          done
+          if [ -n "$MISSING" ]; then
+            echo "❌ Missing AGPL licence header in:"
+            echo -e "$MISSING"
+            echo ""
+            echo "Add to the top of each file:"
+            echo "// SPDX-License-Identifier: AGPL-3.0-or-later"
+            echo "// Copyright (C) 2026 CrewForm"
+            exit 1
+          fi
+          echo "✅ All source files have AGPL headers"

@@ -1,0 +1,400 @@
+/**
+ * check_patterns tool - Check for anti-patterns and deprecations
+ */
+
+import { readFile, readdir, realpath, stat } from "fs/promises";
+import { existsSync } from "fs";
+import { join } from "path";
+import type { CheckPatternsInput, CheckPatternsOutput, PatternIssue } from "../types.js";
+
+interface Pattern {
+  name: string;
+  pattern: RegExp;
+  message: string;
+  severity: "error" | "warning";
+  fix?: string;
+}
+
+const PATTERNS: Pattern[] = [
+  // Storage patterns
+  {
+    name: "hass.data[DOMAIN]",
+    pattern: /hass\.data\s*\[\s*DOMAIN\s*\]/g,
+    message: "Use entry.runtime_data instead of hass.data[DOMAIN]",
+    severity: "warning",
+    fix: "entry.runtime_data",
+  },
+  {
+    name: "hass.data.setdefault",
+    pattern: /hass\.data\.setdefault\s*\(\s*DOMAIN/g,
+    message: "Use entry.runtime_data instead of hass.data.setdefault(DOMAIN, ...)",
+    severity: "warning",
+  },
+
+  // Old ServiceInfo imports
+  {
+    name: "old-zeroconf-import",
+    pattern: /from homeassistant\.components\.zeroconf import.*ServiceInfo/g,
+    message:
+      "Import ZeroconfServiceInfo from homeassistant.helpers.service_info.zeroconf (changed in 2025.1)",
+    severity: "warning",
+  },
+  {
+    name: "old-ssdp-import",
+    pattern: /from homeassistant\.components\.ssdp import.*ServiceInfo/g,
+    message:
+      "Import SsdpServiceInfo from homeassistant.helpers.service_info.ssdp (changed in 2025.1)",
+    severity: "warning",
+  },
+  {
+    name: "old-dhcp-import",
+    pattern: /from homeassistant\.components\.dhcp import.*ServiceInfo/g,
+    message:
+      "Import DhcpServiceInfo from homeassistant.helpers.service_info.dhcp (changed in 2025.1)",
+    severity: "warning",
+  },
+
+  // Blocking I/O
+  {
+    name: "blocking-requests",
+    pattern: /\brequests\.(get|post|put|delete|patch|head)\s*\(/g,
+    message: "Use aiohttp instead of blocking requests library",
+    severity: "error",
+  },
+  {
+    name: "blocking-sleep",
+    pattern: /\btime\.sleep\s*\(/g,
+    message: "Use asyncio.sleep instead of blocking time.sleep",
+    severity: "error",
+  },
+  {
+    name: "blocking-urlopen",
+    pattern: /\burllib\.request\.urlopen\s*\(/g,
+    message: "Use aiohttp instead of blocking urllib",
+    severity: "error",
+  },
+
+  // Deprecated type syntax
+  {
+    name: "typing-List",
+    pattern: /\bList\s*\[/g,
+    message: "Use list[] instead of List[] (Python 3.9+)",
+    severity: "warning",
+  },
+  {
+    name: "typing-Dict",
+    pattern: /\bDict\s*\[/g,
+    message: "Use dict[] instead of Dict[] (Python 3.9+)",
+    severity: "warning",
+  },
+  {
+    name: "typing-Optional",
+    pattern: /\bOptional\s*\[/g,
+    message: "Use X | None instead of Optional[X] (Python 3.10+)",
+    severity: "warning",
+  },
+  {
+    name: "typing-Union",
+    pattern: /\bUnion\s*\[/g,
+    message: "Use X | Y instead of Union[X, Y] (Python 3.10+)",
+    severity: "warning",
+  },
+  {
+    name: "typing-Tuple",
+    pattern: /\bTuple\s*\[/g,
+    message: "Use tuple[] instead of Tuple[] (Python 3.9+)",
+    severity: "warning",
+  },
+  {
+    name: "typing-Set",
+    pattern: /\bSet\s*\[/g,
+    message: "Use set[] instead of Set[] (Python 3.9+)",
+    severity: "warning",
+  },
+
+  // Blocking I/O - additional.
+  // Regex + message kept in sync with scripts/check-patterns.py blocking-open so
+  // the MCP tool and the script/hook agree: one level of nested parens is allowed
+  // (so open(os.path.join(a, b)).read() matches) and only the chained-on-one-line
+  // open(...).read(...) form is flagged.
+  {
+    name: "blocking-open",
+    pattern: /\bopen\s*\((?:[^()]|\([^()]*\))+\)\.read\s*\(/g,
+    message: "Use aiofiles or hass.async_add_executor_job for file I/O",
+    severity: "warning",
+  },
+
+  // Old USB import
+  {
+    name: "old-usb-import",
+    pattern: /from homeassistant\.components\.usb import.*ServiceInfo/g,
+    message:
+      "Import UsbServiceInfo from homeassistant.helpers.service_info.usb (changed in 2025.1)",
+    severity: "warning",
+  },
+
+  // Deprecated async patterns
+  {
+    name: "yield-from",
+    pattern: /\byield\s+from\b/g,
+    message: "Use 'await' instead of 'yield from' for coroutines",
+    severity: "warning",
+  },
+  {
+    name: "asyncio-coroutine",
+    pattern: /@asyncio\.coroutine/g,
+    message: "Use 'async def' instead of @asyncio.coroutine decorator",
+    severity: "error",
+  },
+
+  // Options flow patterns
+  {
+    name: "options-flow-init",
+    pattern: /class\s+\w*OptionsFlow[^:]*:[^}]*def\s+__init__\s*\([^)]*config_entry/g,
+    message: "OptionsFlow __init__ storing config_entry is deprecated (HA 2025.12+)",
+    severity: "warning",
+  },
+
+  // Coordinator patterns
+  {
+    name: "coordinator-no-generic",
+    pattern: /class\s+\w+Coordinator\s*\(\s*DataUpdateCoordinator\s*\)/g,
+    message: "DataUpdateCoordinator should have a generic type parameter",
+    severity: "warning",
+  },
+
+  // Service registration in wrong place
+  {
+    name: "service-in-setup-entry",
+    // Bound the gap to the async_setup_entry body by stopping at the next top-level
+    // def — Python has no braces for the old [^}]* to stop on, so it spanned the whole
+    // file and false-matched a register call in any later function.
+    pattern:
+      /async_setup_entry(?:(?!\n(?:async )?def )[\s\S])*?hass\.services\.async_register/g,
+    message: "Services should be registered in async_setup, not async_setup_entry",
+    severity: "warning",
+  },
+];
+
+// Precompute the byte offset at which each line starts. lineStarts[i] is the
+// index in `content` of the first character of line (i+1). Built once per file so
+// a match offset can be mapped to a line number by binary search instead of
+// re-slicing the whole prefix per match (F148: that was O(matches * filesize)).
+function computeLineStarts(content: string): number[] {
+  const starts = [0];
+  for (let i = 0; i < content.length; i++) {
+    if (content.charCodeAt(i) === 10 /* \n */) {
+      starts.push(i + 1);
+    }
+  }
+  return starts;
+}
+
+// Return the 1-based line number containing `offset`, via binary search over the
+// precomputed line-start offsets.
+function lineNumberAt(lineStarts: number[], offset: number): number {
+  let lo = 0;
+  let hi = lineStarts.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (lineStarts[mid] <= offset) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  return lo + 1;
+}
+
+// Inline suppression markers (F154): a flagged line carrying one of these
+// (typically as a trailing comment) is skipped — an escape-hatch so intentional
+// anti-patterns in fixtures/legacy snippets don't recur as errors on every write.
+const IGNORE_MARKER = /#\s*(?:noqa:\s*ha-dev|ha-dev:\s*ignore)\b/;
+
+async function checkFile(filePath: string): Promise<PatternIssue[]> {
+  const issues: PatternIssue[] = [];
+
+  const content = await readFile(filePath, "utf-8");
+  const lines = content.split("\n");
+  const lineStarts = computeLineStarts(content);
+
+  for (const pattern of PATTERNS) {
+    // Reset regex state
+    pattern.pattern.lastIndex = 0;
+
+    let match;
+    while ((match = pattern.pattern.exec(content)) !== null) {
+      // Find line number (binary search over precomputed line offsets — see F148)
+      const lineNum = lineNumberAt(lineStarts, match.index);
+
+      // Skip if in a comment. This is a regex-based heuristic, not an AST: it does not
+      // understand `#` inside string literals or multi-line triple-quoted blocks, so
+      // suppression here is best-effort.
+      const line = lines[lineNum - 1] || "";
+      if (line.trim().startsWith("#")) {
+        continue;
+      }
+      // Honor an inline suppression marker on the matched line (F154).
+      if (IGNORE_MARKER.test(line)) {
+        continue;
+      }
+      // Also skip matches that fall after an inline `#` comment on the same line.
+      const lineStart = content.lastIndexOf("\n", match.index - 1) + 1;
+      const columnInLine = match.index - lineStart;
+      const hashIndex = line.indexOf("#");
+      if (hashIndex !== -1 && hashIndex < columnInLine) {
+        continue;
+      }
+
+      issues.push({
+        file: filePath,
+        line: lineNum,
+        pattern: pattern.name,
+        message: pattern.message,
+        severity: pattern.severity,
+        fix: pattern.fix,
+      });
+    }
+  }
+
+  // File-level check: the future-annotations import must be evaluated per FILE,
+  // not per line. The old per-line PATTERN false-positived on every `def` even
+  // when the import was present at the top of the file. Mirrors the Python
+  // check-patterns.py FILE_LEVEL_CHECKS: warn once when a typed def exists
+  // without the import.
+  if (
+    !content.includes("from __future__ import annotations") &&
+    /\bdef\s+\w+\s*\([^)]*:\s*\w+/.test(content)
+  ) {
+    issues.push({
+      file: filePath,
+      line: 1,
+      pattern: "missing-future-annotations",
+      message: "Add 'from __future__ import annotations' at top of file",
+      severity: "warning",
+    });
+  }
+
+  // File-level check: a concrete entity class with no unique_id. Ported from the
+  // Python check-patterns.py FILE_LEVEL_CHECKS missing-unique-id (F158) so the
+  // MCP tool and the script/hook flag the same files. Only concrete platform
+  // entity classes are flagged; base classes (CoordinatorEntity, etc.)
+  // intentionally delegate unique_id to subclasses.
+  if (
+    /class\s+\w+\([^)]*\b(?:Sensor|Switch|BinarySensor|Light|Cover|Climate|Button|Number|Select|Fan|Lock|MediaPlayer|Vacuum|Event|Text|Update|Image|Siren|Lawn[Mm]ower)Entity/.test(
+      content
+    ) &&
+    !/_attr_unique_id\s*=|self\.unique_id\s*=|def\s+unique_id\b|async_set_unique_id\s*\(|unique_id\s*=/.test(
+      content
+    )
+  ) {
+    issues.push({
+      file: filePath,
+      line: 1,
+      pattern: "missing-unique-id",
+      message: "Entity class may be missing unique_id",
+      severity: "warning",
+    });
+  }
+
+  return issues;
+}
+
+// Test fixtures intentionally contain anti-patterns, so exclude them by default
+// (F154) to keep the PostToolUse hook from reporting them as real errors.
+const excludeDirs = new Set([
+  ".git",
+  "__pycache__",
+  ".venv",
+  "venv",
+  "node_modules",
+  "tests",
+]);
+
+function isTestFile(name: string): boolean {
+  return name.startsWith("test_") && name.endsWith(".py");
+}
+
+async function checkDirectory(dirPath: string): Promise<PatternIssue[]> {
+  const issues: PatternIssue[] = [];
+  // Track resolved real paths so a symlink cycle does not recurse forever (F149).
+  const visited = new Set<string>();
+
+  async function walk(dir: string): Promise<void> {
+    // Resolve symlinks to a canonical path and skip dirs already visited; on a
+    // realpath failure fall back to the lexical path so the walk still proceeds.
+    let real: string;
+    try {
+      real = await realpath(dir);
+    } catch {
+      real = dir;
+    }
+    if (visited.has(real)) {
+      return;
+    }
+    visited.add(real);
+
+    // F149: an unreadable dir (permissions, broken symlink) must skip and let the
+    // rest of the scan continue, not abort the whole check_patterns call.
+    let entries;
+    try {
+      entries = await readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      const fullPath = join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        if (!excludeDirs.has(entry.name)) {
+          await walk(fullPath);
+        }
+      } else if (entry.isFile() && entry.name.endsWith(".py") && !isTestFile(entry.name)) {
+        const fileIssues = await checkFile(fullPath);
+        issues.push(...fileIssues);
+      }
+    }
+  }
+
+  await walk(dirPath);
+  return issues;
+}
+
+export async function handleCheckPatterns(
+  input: CheckPatternsInput
+): Promise<CheckPatternsOutput> {
+  if (!existsSync(input.path)) {
+    throw new Error(`Path not found: ${input.path}`);
+  }
+
+  const pathStat = await stat(input.path);
+  let issues: PatternIssue[];
+
+  if (pathStat.isDirectory()) {
+    issues = await checkDirectory(input.path);
+  } else {
+    issues = await checkFile(input.path);
+  }
+
+  // Sort by severity (errors first) then by file/line
+  issues.sort((a, b) => {
+    if (a.severity !== b.severity) {
+      return a.severity === "error" ? -1 : 1;
+    }
+    if (a.file !== b.file) {
+      return a.file.localeCompare(b.file);
+    }
+    return a.line - b.line;
+  });
+
+  const summary = {
+    errors: issues.filter((i) => i.severity === "error").length,
+    warnings: issues.filter((i) => i.severity === "warning").length,
+  };
+
+  return {
+    issues,
+    summary,
+  };
+}

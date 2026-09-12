@@ -1,0 +1,154 @@
+name: Update Skills Catalog
+
+on:
+  schedule:
+    # Run daily at 6:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a new release'
+        required: false
+        default: false
+        type: boolean
+      full_refresh:
+        description: 'Force full refresh (ignore state, fetch all providers)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  update-catalog:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install pyyaml
+      
+      - name: Run aggregation script
+        run: |
+          if [ "${{ inputs.full_refresh }}" == "true" ]; then
+            echo "Running FULL REFRESH mode..."
+            python scripts/aggregate.py
+          else
+            echo "Running INCREMENTAL mode..."
+            python scripts/aggregate.py --incremental
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y.%m.%d')" >> $GITHUB_OUTPUT
+      
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet catalog.json; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Copy catalog files to docs directory
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          cp catalog.json catalog.min.json bundles.json docs/
+          mkdir -p docs/exports
+          cp -r exports/* docs/exports/ 2>/dev/null || true
+      
+      - name: Commit changes
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add catalog.json catalog.min.json CHANGELOG.md aggregation_state.json docs/catalog.json docs/catalog.min.json docs/bundles.json exports/ docs/exports/
+          git commit -m "Update catalog - ${{ steps.date.outputs.date }}"
+          git push
+      
+      - name: Create Release
+        if: steps.changes.outputs.changed == 'true' || inputs.create_release == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.date.outputs.date }}
+          name: Skills Catalog v${{ steps.date.outputs.date }}
+          body: |
+            ## Agent Skills Catalog v${{ steps.date.outputs.date }}
+            
+            ### 📦 Core Catalog
+            | File | Description |
+            |------|-------------|
+            | [catalog.json](https://github.com/${{ github.repository }}/releases/download/v${{ steps.date.outputs.date }}/catalog.json) | Full catalog (pretty printed) |
+            | [catalog.min.json](https://github.com/${{ github.repository }}/releases/download/v${{ steps.date.outputs.date }}/catalog.min.json) | Full catalog (minified) |
+            | [CHANGELOG.md](https://github.com/${{ github.repository }}/releases/download/v${{ steps.date.outputs.date }}/CHANGELOG.md) | Version history |
+            
+            ### 🌐 Ecosystem Exports
+            | File | Description |
+            |------|-------------|
+            | [claude-skills.json](https://github.com/${{ github.repository }}/releases/download/v${{ steps.date.outputs.date }}/claude-skills.json) | Claude Code skills (quality ≥ 50) |
+            | [copilot-skills.json](https://github.com/${{ github.repository }}/releases/download/v${{ steps.date.outputs.date }}/copilot-skills.json) | GitHub Copilot skills (quality ≥ 50) |
+            | [mcp-compatible.json](https://github.com/${{ github.repository }}/releases/download/v${{ steps.date.outputs.date }}/mcp-compatible.json) | MCP-compatible skills |
+            | [premium-skills.json](https://github.com/${{ github.repository }}/releases/download/v${{ steps.date.outputs.date }}/premium-skills.json) | Premium skills (quality ≥ 70) |
+            | [active-skills.json](https://github.com/${{ github.repository }}/releases/download/v${{ steps.date.outputs.date }}/active-skills.json) | Recently maintained skills |
+            | [index.json](https://github.com/${{ github.repository }}/releases/download/v${{ steps.date.outputs.date }}/index.json) | Exports index with CDN URLs |
+            
+            ### 🏷️ Badge Endpoints
+            | Badge | URL |
+            |-------|-----|
+            | ![Skills](https://img.shields.io/endpoint?url=https://cdn.jsdelivr.net/gh/${{ github.repository }}@v${{ steps.date.outputs.date }}/exports/badge-skills.json) | `exports/badge-skills.json` |
+            | ![Providers](https://img.shields.io/endpoint?url=https://cdn.jsdelivr.net/gh/${{ github.repository }}@v${{ steps.date.outputs.date }}/exports/badge-providers.json) | `exports/badge-providers.json` |
+            | ![Quality](https://img.shields.io/endpoint?url=https://cdn.jsdelivr.net/gh/${{ github.repository }}@v${{ steps.date.outputs.date }}/exports/badge-quality.json) | `exports/badge-quality.json` |
+            
+            ### 🔗 CDN URLs
+            ```
+            # Latest (always up-to-date)
+            https://cdn.jsdelivr.net/gh/${{ github.repository }}@main/catalog.json
+            https://cdn.jsdelivr.net/gh/${{ github.repository }}@main/exports/claude-skills.json
+            https://cdn.jsdelivr.net/gh/${{ github.repository }}@main/exports/badge-skills.json
+            
+            # Pinned to this version
+            https://cdn.jsdelivr.net/gh/${{ github.repository }}@v${{ steps.date.outputs.date }}/catalog.json
+            https://cdn.jsdelivr.net/gh/${{ github.repository }}@v${{ steps.date.outputs.date }}/exports/claude-skills.json
+            ```
+          files: |
+            catalog.json
+            catalog.min.json
+            CHANGELOG.md
+            exports/claude-skills.json
+            exports/copilot-skills.json
+            exports/mcp-compatible.json
+            exports/premium-skills.json
+            exports/active-skills.json
+            exports/index.json
+            exports/badge-skills.json
+            exports/badge-providers.json
+            exports/badge-quality.json
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Summary
+        run: |
+          echo "## Catalog Update Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Date**: ${{ steps.date.outputs.date }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Changes detected**: ${{ steps.changes.outputs.changed }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f catalog.json ]; then
+            TOTAL=$(python -c "import json; print(json.load(open('catalog.json'))['total_skills'])")
+            echo "- **Total skills**: $TOTAL" >> $GITHUB_STEP_SUMMARY
+          fi

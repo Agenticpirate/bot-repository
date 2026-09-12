@@ -1,0 +1,616 @@
+/**
+ * Tests for SMS action commands (send-sms, schedule-sms, sms-status).
+ *
+ * Uses a fake `telnyx` binary (same pattern as telnyx-cli-flags.test.ts) that
+ * logs the Go CLI args it receives and returns canned JSON for the
+ * `messages send|schedule|retrieve|cancel-scheduled` subcommands.
+ */
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import { execFileSync, spawn } from "node:child_process";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, chmodSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const cliRoot = join(__dirname, "..");
+const cliBin = join(cliRoot, "bin", "telnyx-agent.ts");
+
+function setupFakeTelnyx(): { fakeTelnyx: string; logPath: string; env: NodeJS.ProcessEnv } {
+  const tempDir = mkdtempSync(join(tmpdir(), "telnyx-agent-sms-"));
+  const binDir = join(tempDir, "bin");
+  const logPath = join(tempDir, "args.jsonl");
+  mkdirSync(binDir, { recursive: true });
+
+  const fakeTelnyx = join(binDir, "telnyx");
+  writeFileSync(
+    fakeTelnyx,
+    `#!/usr/bin/env node
+const fs = require("node:fs");
+const args = process.argv.slice(2);
+fs.appendFileSync(process.env.TELNYX_FAKE_ARGS_LOG, JSON.stringify(args) + "\\n");
+
+const command = args.filter((a) => a !== "--format" && a !== "json");
+function flag(f) { const i = command.indexOf(f); return i >= 0 ? command[i + 1] : null; }
+function flags(f) { const out = []; for (let i = 0; i < command.length; i++) { if (command[i] === f && i + 1 < command.length) out.push(command[i + 1]); } return out; }
+
+// Realistic Telnyx message resources: delivery state is reported per
+// recipient in data.to[].status — there is NO top-level status field.
+if (command[0] === "messages" && command[1] === "send") {
+  console.log(JSON.stringify({ data: { id: "msg-123", record_type: "message", type: flag("--type"), from: { phone_number: flag("--from"), carrier: "", line_type: "" }, to: [{ phone_number: flag("--to"), status: "queued", carrier: "", line_type: "" }] } }));
+} else if (command[0] === "messages" && command[1] === "send-number-pool") {
+  console.log(JSON.stringify({ data: { id: "pool-123", record_type: "message", type: flag("--type"), from: { phone_number: "+131****0099" }, to: [{ phone_number: flag("--to"), status: "queued" }] } }));
+} else if (command[0] === "messages" && command[1] === "send-with-alphanumeric-sender") {
+  console.log(JSON.stringify({ data: { id: "alpha-123", record_type: "message", type: "SMS", from: { alphanumeric_sender_id: flag("--from") }, to: [{ phone_number: flag("--to"), status: "queued" }] } }));
+} else if (command[0] === "messages" && command[1] === "send-group-mms") {
+  const recipients = flags("--to").map((p) => ({ phone_number: p, status: "queued", carrier: "", line_type: "" }));
+  console.log(JSON.stringify({ data: { id: "grp-789", record_type: "message", type: "MMS", from: { phone_number: flag("--from") }, to: recipients } }));
+} else if (command[0] === "messages" && command[1] === "schedule") {
+  console.log(JSON.stringify({ data: { id: "sched-456", record_type: "message", from: { phone_number: flag("--from") }, to: [{ phone_number: flag("--to"), status: "scheduled" }], send_at: flag("--send-at") } }));
+} else if (command[0] === "messages" && command[1] === "retrieve") {
+  console.log(JSON.stringify({ data: { id: flag("--id"), record_type: "message", direction: "outbound", to: [{ phone_number: "+13125550001", status: "delivered" }] } }));
+} else if (command[0] === "messages" && command[1] === "cancel-scheduled") {
+  console.log(JSON.stringify({ data: { id: flag("--id"), record_type: "message", to: [{ phone_number: "+13125550001", status: "cancelled" }] } }));
+} else {
+  console.log(JSON.stringify({ data: {} }));
+}
+`,
+  );
+  chmodSync(fakeTelnyx, 0o755);
+
+  return {
+    fakeTelnyx,
+    logPath,
+    env: {
+      ...process.env,
+      PATH: `${binDir}:${process.env.PATH}`,
+      TELNYX_CLI_PATH: fakeTelnyx,
+      TELNYX_FAKE_ARGS_LOG: logPath,
+    },
+  };
+}
+
+function readLoggedArgs(logPath: string): string[][] {
+  if (!existsSync(logPath)) return [];
+  return readFileSync(logPath, "utf8")
+    .trim()
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+}
+
+function runAgent(args: string[], env: NodeJS.ProcessEnv): string {
+  return execFileSync("npx", ["tsx", cliBin, ...args], {
+    cwd: cliRoot,
+    encoding: "utf8",
+    env,
+    timeout: 30000,
+  });
+}
+
+function runAgentExpectingFailure(args: string[], env: NodeJS.ProcessEnv, expected: RegExp): void {
+  try {
+    runAgent(args, env);
+    assert.fail("expected command to fail (non-zero exit), but it succeeded");
+  } catch (err: any) {
+    assert.ok(
+      err && err.status !== undefined && err.status !== 0,
+      `expected non-zero exit, got ${err?.status}`,
+    );
+    const output = `${err.stderr ?? ""}${err.stdout ?? ""}`;
+    assert.match(output, expected);
+  }
+}
+
+function assertFlagValue(args: string[], flag: string, value: string): void {
+  const index = args.indexOf(flag);
+  assert.notEqual(index, -1, `expected ${flag} in ${args.join(" ")}`);
+  assert.equal(args[index + 1], value, `expected ${flag} ${value} in ${args.join(" ")}`);
+}
+
+// --- REST-path test infra (send-group-mms now calls POST /messages/group_mms
+// directly, AIF-335). The mock API runs in-process, so the CLI must be spawned
+// asynchronously to keep the event loop free to serve it. ---
+
+function runAgentAsync(args: string[], env: NodeJS.ProcessEnv): Promise<{ status: number | null; stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn("npx", ["tsx", cliBin, ...args], { cwd: cliRoot, env });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (d) => (stdout += d.toString()));
+    child.stderr.on("data", (d) => (stderr += d.toString()));
+    const timer = setTimeout(() => {
+      child.kill("SIGKILL");
+      reject(new Error(`timeout running: ${args.join(" ")}`));
+    }, 30000);
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    child.on("close", (status) => {
+      clearTimeout(timer);
+      resolve({ status, stdout, stderr });
+    });
+  });
+}
+
+interface RecordedRequest {
+  method: string;
+  path: string;
+  body: Record<string, unknown> | undefined;
+}
+
+interface MockApi {
+  baseUrl: string;
+  requests: RecordedRequest[];
+  close: () => Promise<void>;
+}
+
+type RouteResponder = (req: RecordedRequest) => { status?: number; json: unknown } | undefined;
+
+function startMockApi(responder: RouteResponder): Promise<MockApi> {
+  const requests: RecordedRequest[] = [];
+  return new Promise((resolve) => {
+    const server = createServer((req: IncomingMessage, res: ServerResponse) => {
+      let raw = "";
+      req.on("data", (c) => (raw += c.toString()));
+      req.on("end", () => {
+        const parsed = new URL(req.url ?? "/", "http://127.0.0.1");
+        const record: RecordedRequest = {
+          method: req.method ?? "GET",
+          path: parsed.pathname,
+          body: raw ? (JSON.parse(raw) as Record<string, unknown>) : undefined,
+        };
+        requests.push(record);
+        const out = responder(record);
+        if (out) {
+          res.writeHead(out.status ?? 200, { "content-type": "application/json" });
+          res.end(JSON.stringify(out.json));
+        } else {
+          res.writeHead(404, { "content-type": "application/json" });
+          res.end(JSON.stringify({ errors: [{ code: "10005", title: "not found", detail: `no route for ${record.method} ${record.path}` }] }));
+        }
+      });
+    });
+    server.listen(0, "127.0.0.1", () => {
+      const addr = server.address();
+      const port = typeof addr === "object" && addr ? addr.port : 0;
+      resolve({
+        baseUrl: `http://127.0.0.1:${port}`,
+        requests,
+        close: () => new Promise((done) => server.close(() => done())),
+      });
+    });
+  });
+}
+
+function restEnv(mock: MockApi): NodeJS.ProcessEnv {
+  return { ...process.env, TELNYX_API_KEY: "KEY_fake_test", TELNYX_API_BASE_URL: mock.baseUrl };
+}
+
+describe("SMS action commands", () => {
+  it("send-sms constructs messages send args with --type SMS", () => {
+    const fake = setupFakeTelnyx();
+
+    const out = runAgent(
+      ["send-sms", "--from", "+13125550000", "--to", "+13125550001", "--text", "Hello!", "--json"],
+      fake.env,
+    );
+
+    const data = JSON.parse(out);
+    assert.equal(data.message_id, "msg-123");
+    assert.equal(data.status, "queued");
+    assert.equal(data.type, "SMS");
+
+    const calls = readLoggedArgs(fake.logPath);
+    const sendCall = calls.find((a) => a.slice(0, 2).join(" ") === "messages send");
+    assert.ok(sendCall, "should call messages send");
+    assertFlagValue(sendCall, "--from", "+13125550000");
+    assertFlagValue(sendCall, "--to", "+13125550001");
+    assertFlagValue(sendCall, "--text", "Hello!");
+    assertFlagValue(sendCall, "--type", "SMS");
+    assert.ok(!sendCall.includes("--media-url"), "SMS should not include --media-url");
+  });
+
+  it("send-sms with --media-url sends MMS (--type MMS)", () => {
+    const fake = setupFakeTelnyx();
+
+    const out = runAgent(
+      [
+        "send-sms",
+        "--from", "+13125550000",
+        "--to", "+13125550001",
+        "--text", "see this",
+        "--media-url", "https://example.com/img.png",
+        "--json",
+      ],
+      fake.env,
+    );
+
+    const data = JSON.parse(out);
+    assert.equal(data.type, "MMS");
+
+    const calls = readLoggedArgs(fake.logPath);
+    const sendCall = calls.find((a) => a.slice(0, 2).join(" ") === "messages send");
+    assert.ok(sendCall, "should call messages send");
+    assertFlagValue(sendCall, "--type", "MMS");
+    assertFlagValue(sendCall, "--media-url", "https://example.com/img.png");
+  });
+
+  it("send-sms passes optional flags through to the Go CLI", () => {
+    const fake = setupFakeTelnyx();
+
+    runAgent(
+      [
+        "send-sms",
+        "--from", "+13125550000",
+        "--to", "+13125550001",
+        "--text", "hi",
+        "--messaging-profile-id", "prof-1",
+        "--webhook-url", "https://example.com/wh",
+        "--subject", "Sub",
+        "--json",
+      ],
+      fake.env,
+    );
+
+    const calls = readLoggedArgs(fake.logPath);
+    const sendCall = calls.find((a) => a.slice(0, 2).join(" ") === "messages send");
+    assert.ok(sendCall);
+    assertFlagValue(sendCall, "--messaging-profile-id", "prof-1");
+    assertFlagValue(sendCall, "--webhook-url", "https://example.com/wh");
+    assertFlagValue(sendCall, "--subject", "Sub");
+  });
+
+  it("send-sms without --from sends from a number pool with exact generated CLI argv", () => {
+    const fake = setupFakeTelnyx();
+    const out = runAgent([
+      "send-sms",
+      "--messaging-profile-id", "prof-pool",
+      "--to", "+131****0001",
+      "--text", "Pool hello",
+      "--json",
+    ], fake.env);
+
+    const data = JSON.parse(out);
+    assert.equal(data.message_id, "pool-123");
+    assert.equal(data.sender_mode, "number-pool");
+    assert.equal(data.from, "+131****0099");
+    assert.deepEqual(readLoggedArgs(fake.logPath), [[
+      "messages", "send-number-pool",
+      "--messaging-profile-id", "prof-pool",
+      "--to", "+131****0001",
+      "--type", "SMS",
+      "--text", "Pool hello",
+      "--format", "json",
+    ]]);
+    assert.equal(
+      readFileSync(fake.logPath, "utf8"),
+      JSON.stringify(readLoggedArgs(fake.logPath)[0]) + "\n",
+      "the argv mock log must contain exactly one newline-terminated call",
+    );
+  });
+
+  it("send-sms routes an alphanumeric --from through the dedicated generated action", () => {
+    const fake = setupFakeTelnyx();
+    const out = runAgent([
+      "send-sms",
+      "--from", "MyCompany",
+      "--messaging-profile-id", "prof-alpha",
+      "--to", "+131****0001",
+      "--text", "Alpha hello",
+      "--webhook-url", "https://example.com/status",
+      "--json",
+    ], fake.env);
+
+    const data = JSON.parse(out);
+    assert.equal(data.message_id, "alpha-123");
+    assert.equal(data.sender_mode, "alphanumeric");
+    assert.deepEqual(readLoggedArgs(fake.logPath), [[
+      "messages", "send-with-alphanumeric-sender",
+      "--from", "MyCompany",
+      "--messaging-profile-id", "prof-alpha",
+      "--text", "Alpha hello",
+      "--to", "+131****0001",
+      "--webhook-url", "https://example.com/status",
+      "--format", "json",
+    ]]);
+  });
+
+  it("send-sms treats a short-code --from as a phone-number sender, not alphanumeric", () => {
+    const fake = setupFakeTelnyx();
+    const out = runAgent([
+      "send-sms",
+      "--from", "80001",
+      "--to", "+131****0001",
+      "--text", "Short code hello",
+      "--json",
+    ], fake.env);
+
+    const data = JSON.parse(out);
+    assert.equal(data.sender_mode, "phone-number");
+    const [args] = readLoggedArgs(fake.logPath);
+    assert.deepEqual(args.slice(0, 2), ["messages", "send"]);
+    assert.ok(args.includes("80001"));
+  });
+
+  it("send-sms requires a messaging profile for pooled and alphanumeric sends", () => {
+    const fake = setupFakeTelnyx();
+    runAgentExpectingFailure(
+      ["send-sms", "--to", "+131****0001", "--text", "pool", "--json"],
+      fake.env,
+      /--messaging-profile-id is required when sending from a number pool/,
+    );
+    runAgentExpectingFailure(
+      ["send-sms", "--from", "MyCompany", "--to", "+131****0001", "--text", "alpha", "--json"],
+      fake.env,
+      /--messaging-profile-id is required for an alphanumeric/,
+    );
+    assert.deepEqual(readLoggedArgs(fake.logPath), []);
+  });
+
+  it("send-sms rejects MMS for an alphanumeric sender", () => {
+    const fake = setupFakeTelnyx();
+    runAgentExpectingFailure([
+      "send-sms", "--from", "MyCompany", "--messaging-profile-id", "prof-alpha",
+      "--to", "+131****0001", "--media-url", "https://example.com/photo.jpg", "--json",
+    ], fake.env, /support SMS text only/);
+    assert.deepEqual(readLoggedArgs(fake.logPath), []);
+  });
+
+  it("send-group-mms POSTs /v2/messages/group_mms with a JSON to[] array (AIF-335)", async () => {
+    const mock = await startMockApi((req) => {
+      if (req.method === "POST" && req.path === "/messages/group_mms") {
+        const recipients = (req.body?.to as string[]) ?? [];
+        return {
+          json: {
+            data: {
+              id: "grp-789",
+              record_type: "message",
+              type: "MMS",
+              from: { phone_number: req.body?.from as string },
+              to: recipients.map((p) => ({ phone_number: p, status: "queued", carrier: "", line_type: "" })),
+            },
+          },
+        };
+      }
+      return undefined;
+    });
+    try {
+      const { status, stdout } = await runAgentAsync(
+        [
+          "send-group-mms",
+          "--from", "+131****0000",
+          "--to", "+131****0001,+131****0002,+131****0003",
+          "--text", "Group hi!",
+          "--json",
+        ],
+        restEnv(mock),
+      );
+      assert.equal(status, 0, `expected success, stdout=${stdout}`);
+      const data = JSON.parse(stdout);
+      assert.equal(data.message_id, "grp-789");
+      assert.equal(data.status, "queued");
+      assert.equal(data.type, "MMS");
+      assert.deepEqual(data.to, ["+131****0001", "+131****0002", "+131****0003"]);
+      // AIF-335: the CLI must flag that the group id is not queryable.
+      assert.equal(data.id_queryable, false);
+      assert.match(data.note, /not resolvable/i);
+      assert.equal(data.recipient_statuses.length, 3);
+
+      // Exactly one REST call to the un-doubled group_mms path.
+      assert.equal(mock.requests.length, 1);
+      const reqRec = mock.requests[0];
+      assert.equal(reqRec.path, "/messages/group_mms");
+      assert.equal(reqRec.body?.from, "+131****0000");
+      // Recipients travel as a JSON array, not a comma-separated string.
+      assert.deepEqual(reqRec.body?.to, ["+131****0001", "+131****0002", "+131****0003"]);
+      assert.equal(reqRec.body?.text, "Group hi!");
+      assert.equal(reqRec.body?.media_urls, undefined);
+      // The group-MMS schema does not accept messaging_profile_id.
+      assert.equal(reqRec.body?.messaging_profile_id, undefined);
+    } finally {
+      await mock.close();
+    }
+  });
+
+  it("send-group-mms sends media_urls[] when --media-url is provided (AIF-335)", async () => {
+    const mock = await startMockApi((req) => {
+      if (req.method === "POST" && req.path === "/messages/group_mms") {
+        const recipients = (req.body?.to as string[]) ?? [];
+        return {
+          json: {
+            data: {
+              id: "grp-790",
+              record_type: "message",
+              type: "MMS",
+              from: { phone_number: req.body?.from as string },
+              to: recipients.map((p) => ({ phone_number: p, status: "queued" })),
+            },
+          },
+        };
+      }
+      return undefined;
+    });
+    try {
+      const { status, stdout } = await runAgentAsync(
+        [
+          "send-group-mms",
+          "--from", "+131****0000",
+          "--to", "+131****0001,+131****0002",
+          "--media-url", "https://example.com/cat.png",
+          "--json",
+        ],
+        restEnv(mock),
+      );
+      assert.equal(status, 0);
+      const data = JSON.parse(stdout);
+      assert.equal(data.type, "MMS");
+      assert.deepEqual(mock.requests[0].body?.media_urls, ["https://example.com/cat.png"]);
+      assert.equal(mock.requests[0].body?.text, undefined);
+    } finally {
+      await mock.close();
+    }
+  });
+
+  it("send-group-mms rejects --messaging-profile-id (not in the group MMS schema)", () => {
+    const fake = setupFakeTelnyx();
+
+    runAgentExpectingFailure(
+      [
+        "send-group-mms",
+        "--from", "+131****0000",
+        "--to", "+131****0001,+131****0002",
+        "--text", "hi",
+        "--messaging-profile-id", "prof-1",
+        "--json",
+      ],
+      fake.env,
+      /--messaging-profile-id is not supported for group MMS/,
+    );
+
+    const calls = readLoggedArgs(fake.logPath);
+    assert.ok(
+      !calls.some((a) => a.slice(0, 2).join(" ") === "messages send-group-mms"),
+      "should not invoke the Go CLI when an unsupported flag is passed",
+    );
+  });
+
+  it("send-group-mms fails without --from", () => {
+    const fake = setupFakeTelnyx();
+
+    runAgentExpectingFailure(
+      ["send-group-mms", "--to", "+131****0001,+131****0002", "--text", "hi", "--json"],
+      fake.env,
+      /--from is required/,
+    );
+  });
+
+  it("send-group-mms fails without --to", () => {
+    const fake = setupFakeTelnyx();
+
+    runAgentExpectingFailure(
+      ["send-group-mms", "--from", "+131****0000", "--text", "hi", "--json"],
+      fake.env,
+      /--to is required/,
+    );
+  });
+
+  // schedule-sms was REST-swapped from Go CLI to POST /v2/messages with send_at.
+  // Tests for the REST path are in tests/schedule-sms-rest.test.ts
+
+  it("sms-status retrieve calls messages retrieve", () => {
+    const fake = setupFakeTelnyx();
+
+    const out = runAgent(["sms-status", "--id", "msg-123", "--json"], fake.env);
+
+    const data = JSON.parse(out);
+    assert.equal(data.message_id, "msg-123");
+    assert.equal(data.status, "delivered");
+
+    const calls = readLoggedArgs(fake.logPath);
+    const retrieveCall = calls.find((a) => a.slice(0, 2).join(" ") === "messages retrieve");
+    assert.ok(retrieveCall, "should call messages retrieve");
+    assertFlagValue(retrieveCall, "--id", "msg-123");
+    assert.ok(
+      !calls.some((a) => a.slice(0, 2).join(" ") === "messages cancel-scheduled"),
+      "should not call cancel-scheduled",
+    );
+  });
+
+  it("sms-status --cancel calls messages cancel-scheduled", () => {
+    const fake = setupFakeTelnyx();
+
+    const out = runAgent(["sms-status", "--id", "sched-456", "--cancel", "--json"], fake.env);
+
+    const data = JSON.parse(out);
+    assert.equal(data.message_id, "sched-456");
+    assert.equal(data.status, "cancelled");
+    assert.equal(data.cancelled, true);
+
+    const calls = readLoggedArgs(fake.logPath);
+    const cancelCall = calls.find((a) => a.slice(0, 2).join(" ") === "messages cancel-scheduled");
+    assert.ok(cancelCall, "should call messages cancel-scheduled");
+    assertFlagValue(cancelCall, "--id", "sched-456");
+    assert.ok(
+      !calls.some((a) => a.slice(0, 2).join(" ") === "messages retrieve"),
+      "should not call retrieve",
+    );
+  });
+
+  it("sms-status --cancel false retrieves and never cancels", () => {
+    const fake = setupFakeTelnyx();
+    const out = runAgent(["sms-status", "--id", "msg-123", "--cancel", "false", "--json"], fake.env);
+
+    const data = JSON.parse(out);
+    assert.equal(data.message_id, "msg-123");
+    assert.equal(data.status, "delivered");
+    assert.equal(data.cancelled, undefined);
+
+    const calls = readLoggedArgs(fake.logPath);
+    assert.ok(calls.some((a) => a.slice(0, 2).join(" ") === "messages retrieve"));
+    assert.ok(!calls.some((a) => a.slice(0, 2).join(" ") === "messages cancel-scheduled"));
+  });
+
+  it("sms-status --cancel true cancels a scheduled message", () => {
+    const fake = setupFakeTelnyx();
+    const out = runAgent(["sms-status", "--id", "sched-456", "--cancel", "true", "--json"], fake.env);
+
+    const data = JSON.parse(out);
+    assert.equal(data.cancelled, true);
+    const calls = readLoggedArgs(fake.logPath);
+    assert.ok(calls.some((a) => a.slice(0, 2).join(" ") === "messages cancel-scheduled"));
+    assert.ok(!calls.some((a) => a.slice(0, 2).join(" ") === "messages retrieve"));
+  });
+
+  it("derives status from recipient entries (data.to[].status)", async () => {
+    const { deriveMessageStatus, recipientStatuses } = await import("../src/utils/message-status.ts");
+
+    // Real send/retrieve responses carry status per recipient, not top-level.
+    assert.equal(
+      deriveMessageStatus({ to: [{ phone_number: "+1", status: "queued" }] }, "submitted"),
+      "queued",
+    );
+    // Multiple distinct recipient statuses are all surfaced.
+    assert.equal(
+      deriveMessageStatus(
+        { to: [{ phone_number: "+1", status: "delivered" }, { phone_number: "+2", status: "sending_failed" }] },
+        "unknown",
+      ),
+      "delivered, sending_failed",
+    );
+    // Defensive: top-level status honored if recipients carry none.
+    assert.equal(deriveMessageStatus({ status: "cancelled", to: [] }, "unknown"), "cancelled");
+    // Fallback only when the response has no status information at all.
+    assert.equal(deriveMessageStatus({}, "unknown"), "unknown");
+
+    assert.deepEqual(recipientStatuses({ to: [{ phone_number: "+1", status: "queued" }] }), [
+      { phone_number: "+1", status: "queued" },
+    ]);
+    assert.deepEqual(recipientStatuses({ to: "not-an-array" }), []);
+  });
+
+  it("help text includes SMS commands", () => {
+    const out = execFileSync("npx", ["tsx", cliBin, "help"], {
+      cwd: cliRoot,
+      encoding: "utf8",
+      timeout: 30000,
+    });
+    assert.match(out, /send-sms/);
+    assert.match(out, /send-group-mms/);
+    assert.match(out, /schedule-sms/);
+    assert.match(out, /sms-status/);
+    assert.match(out, /number pool/);
+    assert.match(out, /alphanumeric sender ID/);
+  });
+
+  it("capabilities registers number-pool and alphanumeric SMS actions", () => {
+    const fake = setupFakeTelnyx();
+    const data = JSON.parse(runAgent(["capabilities", "--json"], fake.env));
+    const actions = data.api_capabilities["📱 Messaging"][0].actions;
+    assert.ok(actions.includes("send_sms_from_number_pool"));
+    assert.ok(actions.includes("send_sms_with_alphanumeric_sender"));
+  });
+});

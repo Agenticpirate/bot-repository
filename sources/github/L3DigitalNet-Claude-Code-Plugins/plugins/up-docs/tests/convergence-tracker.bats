@@ -1,0 +1,252 @@
+#!/usr/bin/env bats
+load helpers
+
+setup() {
+    setup_test_env
+    export UP_DOCS_TRACKER_STATE="$TEST_TMPDIR/tracker-state.json"
+}
+
+teardown() {
+    unset UP_DOCS_TRACKER_STATE
+    unset CLAUDE_CODE_SESSION_ID
+    teardown_test_env
+}
+
+@test "init returns status=initialized" {
+    run bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e . >/dev/null 2>&1
+    [ "$(echo "$output" | jq -r '.status')" = "initialized" ]
+}
+
+@test "start-phase creates phase entry" {
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+    run bash "$SCRIPTS_DIR/convergence-tracker.sh" start-phase 1
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e . >/dev/null 2>&1
+    [ "$(echo "$output" | jq -r '.status')" = "started" ]
+}
+
+@test "record-iteration increments iteration count" {
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" start-phase 1
+
+    run bash -c 'echo "{\"findings\":[\"a\"],\"fixes_applied\":1}" | bash "$SCRIPTS_DIR/convergence-tracker.sh" record-iteration 1'
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e . >/dev/null 2>&1
+    [ "$(echo "$output" | jq -r '.iteration')" = "1" ]
+
+    run bash -c 'echo "{\"findings\":[\"b\"],\"fixes_applied\":1}" | bash "$SCRIPTS_DIR/convergence-tracker.sh" record-iteration 1'
+    [ "$status" -eq 0 ]
+    [ "$(echo "$output" | jq -r '.iteration')" = "2" ]
+}
+
+@test "check-convergence with zero findings returns converged=true" {
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" start-phase 1
+    echo '{"findings":[],"fixes_applied":0}' | bash "$SCRIPTS_DIR/convergence-tracker.sh" record-iteration 1
+
+    run bash "$SCRIPTS_DIR/convergence-tracker.sh" check-convergence 1
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e . >/dev/null 2>&1
+    [ "$(echo "$output" | jq -r '.converged')" = "true" ]
+}
+
+@test "check-convergence with findings returns converged=false" {
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" start-phase 1
+    echo '{"findings":["issue-a"],"fixes_applied":1}' | bash "$SCRIPTS_DIR/convergence-tracker.sh" record-iteration 1
+
+    run bash "$SCRIPTS_DIR/convergence-tracker.sh" check-convergence 1
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e . >/dev/null 2>&1
+    [ "$(echo "$output" | jq -r '.converged')" = "false" ]
+}
+
+@test "check-oscillation with <3 iterations returns oscillating=false" {
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" start-phase 1
+    echo '{"findings":["a"],"fixes_applied":1}' | bash "$SCRIPTS_DIR/convergence-tracker.sh" record-iteration 1
+    echo '{"findings":[],"fixes_applied":0}' | bash "$SCRIPTS_DIR/convergence-tracker.sh" record-iteration 1
+
+    run bash "$SCRIPTS_DIR/convergence-tracker.sh" check-oscillation 1
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e . >/dev/null 2>&1
+    [ "$(echo "$output" | jq -r '.oscillating')" = "false" ]
+    [[ "$output" == *"fewer than 3 iterations"* ]]
+}
+
+@test "reset clears state" {
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" start-phase 1
+
+    run bash "$SCRIPTS_DIR/convergence-tracker.sh" reset
+    [ "$status" -eq 0 ]
+    [ "$(echo "$output" | jq -r '.status')" = "reset" ]
+
+    # After reset, status should return the template (empty phases)
+    run bash "$SCRIPTS_DIR/convergence-tracker.sh" status
+    [ "$status" -eq 0 ]
+    [ "$(echo "$output" | jq '.phases | length')" = "0" ]
+}
+
+@test "oscillation detection with oscillating data" {
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" start-phase 1
+
+    # iter 1: finding with key "X" present (objects with .key for finding_keys)
+    echo '{"findings":[{"key":"X"}],"fixes_applied":1}' | bash "$SCRIPTS_DIR/convergence-tracker.sh" record-iteration 1
+    # iter 2: finding "X" absent
+    echo '{"findings":[],"fixes_applied":0}' | bash "$SCRIPTS_DIR/convergence-tracker.sh" record-iteration 1
+    # iter 3: finding "X" reappears
+    echo '{"findings":[{"key":"X"}],"fixes_applied":1}' | bash "$SCRIPTS_DIR/convergence-tracker.sh" record-iteration 1
+
+    run bash "$SCRIPTS_DIR/convergence-tracker.sh" check-oscillation 1
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e . >/dev/null 2>&1
+    [ "$(echo "$output" | jq -r '.oscillating')" = "true" ]
+}
+
+@test "max_iterations_reached status" {
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" start-phase 1
+
+    # Record 10 iterations each with findings (max_iterations defaults to 10)
+    for i in $(seq 1 10); do
+        echo "{\"findings\":[\"issue-$i\"],\"fixes_applied\":1}" \
+          | bash "$SCRIPTS_DIR/convergence-tracker.sh" record-iteration 1
+    done
+
+    run bash "$SCRIPTS_DIR/convergence-tracker.sh" check-convergence 1
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e . >/dev/null 2>&1
+    [ "$(echo "$output" | jq -r '.max_iterations_reached')" = "true" ]
+    [ "$(echo "$output" | jq -r '.converged')" = "false" ]
+}
+
+@test "check-convergence updates phase status to converged" {
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" start-phase 1
+    echo '{"findings":[],"fixes_applied":0}' | bash "$SCRIPTS_DIR/convergence-tracker.sh" record-iteration 1
+
+    # Trigger convergence check which should update internal state
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" check-convergence 1
+
+    # Now verify via status that the phase is marked converged
+    run bash "$SCRIPTS_DIR/convergence-tracker.sh" status
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e . >/dev/null 2>&1
+    [ "$(echo "$output" | jq -r '.phases["1"].status')" = "converged" ]
+}
+
+@test "record-iteration on un-started phase exits 1" {
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+
+    run bash -c 'echo "{\"findings\":[],\"fixes_applied\":0}" | bash "$SCRIPTS_DIR/convergence-tracker.sh" record-iteration 99'
+    [ "$status" -eq 1 ]
+}
+
+@test "record-iteration accumulates changes_applied" {
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+    bash "$SCRIPTS_DIR/convergence-tracker.sh" start-phase 1
+
+    echo '{"findings":["a","b","c"],"fixes_applied":3}' | bash "$SCRIPTS_DIR/convergence-tracker.sh" record-iteration 1
+    echo '{"findings":["d","e"],"fixes_applied":2}' | bash "$SCRIPTS_DIR/convergence-tracker.sh" record-iteration 1
+
+    run bash "$SCRIPTS_DIR/convergence-tracker.sh" status
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e . >/dev/null 2>&1
+    [ "$(echo "$output" | jq '.phases["1"].changes_applied')" = "5" ]
+}
+
+@test "record-iteration stores touched_pages as a path list (round-trip)" {
+  bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+  bash "$SCRIPTS_DIR/convergence-tracker.sh" start-phase 1
+  echo '{"fixes_applied":1,"touched_pages":["wiki/a.md","wiki/b.md"]}' \
+    | bash "$SCRIPTS_DIR/convergence-tracker.sh" record-iteration 1
+  run bash "$SCRIPTS_DIR/convergence-tracker.sh" status
+  [ "$status" -eq 0 ]
+  [ "$(echo "$output" | jq -c '.phases["1"].touched_pages')" = '["wiki/a.md","wiki/b.md"]' ]
+  [ "$(echo "$output" | jq '.phases["1"].pages_touched')" = "2" ]
+  [ "$(echo "$output" | jq '.phases["1"].changes_applied')" = "1" ]  # CR-005: not double-counted
+}
+
+@test "pages_touched is len of the latest touched_pages (not a running max)" {
+  bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+  bash "$SCRIPTS_DIR/convergence-tracker.sh" start-phase 1
+  echo '{"touched_pages":["wiki/a.md","wiki/b.md","wiki/c.md"]}' \
+    | bash "$SCRIPTS_DIR/convergence-tracker.sh" record-iteration 1
+  echo '{"touched_pages":["wiki/a.md"]}' \
+    | bash "$SCRIPTS_DIR/convergence-tracker.sh" record-iteration 1
+  run bash "$SCRIPTS_DIR/convergence-tracker.sh" status
+  [ "$(echo "$output" | jq '.phases["1"].pages_touched')" = "1" ]
+}
+
+@test "record-iteration de-duplicates touched_pages preserving order" {
+  bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+  bash "$SCRIPTS_DIR/convergence-tracker.sh" start-phase 1
+  echo '{"touched_pages":["wiki/a.md","wiki/a.md","wiki/b.md"]}' \
+    | bash "$SCRIPTS_DIR/convergence-tracker.sh" record-iteration 1
+  run bash "$SCRIPTS_DIR/convergence-tracker.sh" status
+  [ "$(echo "$output" | jq -c '.phases["1"].touched_pages')" = '["wiki/a.md","wiki/b.md"]' ]
+}
+
+@test "touched-pages subcommand emits the latest set for a phase" {
+  bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+  bash "$SCRIPTS_DIR/convergence-tracker.sh" start-phase 2
+  echo '{"touched_pages":["wiki/x.md"]}' \
+    | bash "$SCRIPTS_DIR/convergence-tracker.sh" record-iteration 2
+  run bash "$SCRIPTS_DIR/convergence-tracker.sh" touched-pages 2
+  [ "$status" -eq 0 ]
+  [ "$(echo "$output" | jq -c '.')" = '["wiki/x.md"]' ]
+}
+
+@test "invalid subcommand exits 1" {
+    run bash "$SCRIPTS_DIR/convergence-tracker.sh" bogus-command
+    [ "$status" -eq 1 ]
+}
+
+@test "session-scoped default keeps state across separate process invocations" {
+    # Simulate three separate `bash convergence-tracker.sh ...` calls within one
+    # Claude Code session. The session-id env var is the same; the state file
+    # must be the same file across the three subprocesses.
+    export CLAUDE_CODE_SESSION_ID="test-session-abc"
+    unset UP_DOCS_TRACKER_STATE
+    export TMPDIR="$TEST_TMPDIR"
+
+    run bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+    [ "$status" -eq 0 ]
+    run bash "$SCRIPTS_DIR/convergence-tracker.sh" start-phase 1
+    [ "$status" -eq 0 ]
+    run bash "$SCRIPTS_DIR/convergence-tracker.sh" status
+    [ "$status" -eq 0 ]
+    [ "$(echo "$output" | jq '.phases | length')" = "1" ]
+}
+
+@test "concurrent sessions are isolated by CLAUDE_CODE_SESSION_ID" {
+    unset UP_DOCS_TRACKER_STATE
+    export TMPDIR="$TEST_TMPDIR"
+
+    CLAUDE_CODE_SESSION_ID="session-A" bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+    CLAUDE_CODE_SESSION_ID="session-A" bash "$SCRIPTS_DIR/convergence-tracker.sh" start-phase 1
+    CLAUDE_CODE_SESSION_ID="session-B" bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+
+    # Session A should still have phase 1 started; session B should be fresh.
+    run bash -c 'CLAUDE_CODE_SESSION_ID="session-A" bash "$SCRIPTS_DIR/convergence-tracker.sh" status'
+    [ "$status" -eq 0 ]
+    [ "$(echo "$output" | jq '.phases | length')" = "1" ]
+
+    run bash -c 'CLAUDE_CODE_SESSION_ID="session-B" bash "$SCRIPTS_DIR/convergence-tracker.sh" status'
+    [ "$status" -eq 0 ]
+    [ "$(echo "$output" | jq '.phases | length')" = "0" ]
+}
+
+@test "explicit UP_DOCS_TRACKER_STATE wins over CLAUDE_CODE_SESSION_ID" {
+    local explicit="$TEST_TMPDIR/explicit-state.json"
+    export UP_DOCS_TRACKER_STATE="$explicit"
+    export CLAUDE_CODE_SESSION_ID="ignored-session"
+
+    run bash "$SCRIPTS_DIR/convergence-tracker.sh" init
+    [ "$status" -eq 0 ]
+    [ -f "$explicit" ]
+}

@@ -1,0 +1,3 @@
+# wookat/mcp-index
+
+None.

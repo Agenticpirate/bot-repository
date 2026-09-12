@@ -1,0 +1,243 @@
+---
+import coworkPacks from '../data/cowork-packs.json';
+
+interface Props {
+  featured?: boolean;
+  limit?: number;
+}
+
+const { featured = false, limit } = Astro.props;
+
+let displayPacks = coworkPacks.packs;
+if (featured) {
+  displayPacks = displayPacks.filter(p => p.featured);
+}
+if (limit) {
+  displayPacks = displayPacks.slice(0, limit);
+}
+
+// The page build must generate this projection before the component renders.
+const manifest = (await import('../data/cowork-manifest.json')).default;
+if (!manifest || !Array.isArray(manifest.bundles) || !Array.isArray(manifest.plugins)) {
+  throw new Error('Cowork manifest is missing bundle or plugin data');
+}
+
+// Map bundle data by category for enrichment
+const bundleMap = new Map();
+if (manifest?.bundles) {
+  for (const b of manifest.bundles) {
+    bundleMap.set(b.category, b);
+  }
+}
+
+// Map individual plugin data by name for SaaS packs
+const pluginMap = new Map();
+if (manifest?.plugins) {
+  for (const p of manifest.plugins) {
+    pluginMap.set(p.name, p);
+  }
+}
+
+---
+
+<style>
+  .cowork-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .cowork-card {
+    background: var(--card);
+    border: 2px solid var(--brand-light-gray, #e5e7eb);
+    border-radius: 0;
+    padding: 1.5rem;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .cowork-card:hover {
+    border-color: var(--primary);
+    
+    transform: translateY(-2px);
+  }
+
+  .cowork-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .cowork-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0;
+    font-family: var(--font-body);
+  }
+
+  .cowork-description {
+    color: var(--brand-mid-gray, #6b7280);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin: 0;
+    flex: 1;
+  }
+
+  .cowork-stats {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .cowork-stat {
+    background: var(--brand-light, #f8f9fa);
+    padding: 0.2rem 0.6rem;
+    border-radius: 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--brand-mid-gray, #6b7280);
+  }
+
+  .cowork-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--brand-light-gray, #e5e7eb);
+    margin-top: auto;
+  }
+
+  .download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    background: var(--primary);
+    color: #0a0a0c;
+    border: none;
+    border-radius: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.1s;
+    font-family: var(--font-body);
+  }
+
+  .download-btn:hover {
+    background: var(--primary-dark);
+    transform: scale(1.02);
+  }
+
+  .download-btn:active {
+    transform: scale(0.98);
+  }
+
+  .download-size {
+    font-size: 0.75rem;
+    opacity: 0.85;
+  }
+
+  @media (max-width: 768px) {
+    .cowork-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="cowork-grid">
+  {displayPacks.map(pack => {
+    // For individual SaaS packs, use plugin data; for category bundles, use bundle data
+    const isSaasPack = pack.isSaasPack;
+    const plugin = isSaasPack ? pluginMap.get(pack.packName) : null;
+    const bundle = !isSaasPack ? bundleMap.get(pack.category) : null;
+
+    // Determine download path and stats
+    const downloadRecord = isSaasPack ? plugin : bundle;
+    if (!downloadRecord?.path || !downloadRecord.sizeFormatted) {
+      throw new Error(`Cowork manifest has no complete download record for ${pack.id}`);
+    }
+    const downloadPath = downloadRecord.path;
+    const downloadName = isSaasPack ? `${pack.packName}.zip` : `${pack.category}.zip`;
+    const sizeFormatted = downloadRecord.sizeFormatted;
+    const bundleSkillCount = bundle?.totalSkills;
+    const hasBundleSkills = typeof bundleSkillCount === 'number' && bundleSkillCount > 0;
+    const pluginSkillCount = plugin?.skills;
+    const hasPluginSkills = typeof pluginSkillCount === 'number' && pluginSkillCount > 0;
+
+    return (
+      <div class="cowork-card" data-pack-id={pack.id}>
+        <div class="cowork-header">
+          <h3 class="cowork-title">{pack.name}</h3>
+        </div>
+
+        <p class="cowork-description">{pack.description}</p>
+
+        {bundle && (
+          <div class="cowork-stats">
+            <span class="cowork-stat" data-count-provenance="cowork-package-local">{bundle.pluginCount.toLocaleString()} Cowork-package-local plugins</span>
+            {hasBundleSkills && <span class="cowork-stat" data-count-provenance="cowork-package-local">{bundleSkillCount.toLocaleString()} Cowork-package-local skills</span>}
+          </div>
+        )}
+
+        {plugin && (
+          <div class="cowork-stats">
+            {hasPluginSkills && <span class="cowork-stat" data-count-provenance="cowork-package-local">{pluginSkillCount.toLocaleString()} Cowork-package-local skills</span>}
+            {plugin.commands > 0 && <span class="cowork-stat" data-count-provenance="cowork-package-local">{plugin.commands.toLocaleString()} Cowork-package-local commands</span>}
+          </div>
+        )}
+
+        <div class="cowork-footer">
+          <span class="cowork-stat">
+            {sizeFormatted}
+          </span>
+          <a
+            href={downloadPath}
+            download={downloadName}
+            class="download-btn"
+            data-category={pack.category}
+            data-pack={pack.packName || ''}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" role="img" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download
+          </a>
+        </div>
+      </div>
+    );
+  })}
+</div>
+
+<script is:inline>
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.download-btn');
+    if (!btn) return;
+    const category = btn.dataset.category;
+    if (!category) return;
+
+    const toast = document.createElement('div');
+    toast.textContent = 'Downloading ' + category + ' pack...';
+    toast.style.cssText = 'position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:#1a1a1a;color:white;padding:1rem 1.5rem;border-radius: 0;font-size:0.9rem;z-index:1000;animation:coworkFade 2.5s ease-in-out;';
+    document.body.appendChild(toast);
+    setTimeout(function() { toast.remove(); }, 2500);
+
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'download', { event_category: 'cowork', event_label: category });
+    }
+    if (window.trackEvent) {
+      window.trackEvent('download_click', { category: category, source: 'cowork_grid' });
+    }
+  });
+</script>
+
+<style is:global>
+  @keyframes coworkFade {
+    0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+    15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+  }
+</style>

@@ -1,0 +1,163 @@
+# GitHub Actions workflow to build standalone executables
+# Builds for Windows, macOS (ARM), and Linux
+# Creates release with downloadable binaries
+
+name: Build Standalone Executables
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v0.1.0)'
+        required: false
+        default: 'dev'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux-x64
+            artifact: skillsdir-linux-x64
+          - os: macos-latest
+            name: macos-arm64
+            artifact: skillsdir-macos-arm64
+          # Note: macOS-13 (Intel) runners retired Jan 2025
+          # Intel Mac users can run ARM binary via Rosetta 2
+          - os: windows-latest
+            name: windows-x64
+            artifact: skillsdir-windows-x64.exe
+
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -e ".[validation]"
+
+      - name: Build executable
+        run: python scripts/build_standalone.py --with-validation
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/skills*
+          retention-days: 30
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main  # Checkout main branch, not the tag
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: binaries
+
+      - name: Display structure
+        run: ls -la binaries/*/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: binaries/*/*
+          generate_release_notes: true
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew Formula SHA256
+        run: |
+          # Calculate SHA256 for each binary
+          ARM64_SHA=$(sha256sum binaries/skillsdir-macos-arm64/skillsdir-macos-arm64 | cut -d' ' -f1)
+          LINUX_SHA=$(sha256sum binaries/skillsdir-linux-x64/skillsdir-linux-x64 | cut -d' ' -f1)
+          
+          # Extract version from tag
+          VERSION=${GITHUB_REF#refs/tags/v}
+          
+          # Create updated formula
+          # Note: Intel Macs use ARM binary via Rosetta 2 (macOS-13 runners retired)
+          cat > homebrew-tap/Formula/skillsdir.rb << EOF
+          # Homebrew formula for Agent Skills CLI
+          class Skillsdir < Formula
+            desc "The package manager for AI agent skills"
+            homepage "https://github.com/dmgrok/agent-plugins"
+            version "$VERSION"
+            license "MIT"
+
+            on_macos do
+              # ARM64 binary works on both ARM and Intel (via Rosetta 2)
+              url "https://github.com/dmgrok/agent-plugins/releases/download/v$VERSION/skillsdir-macos-arm64"
+              sha256 "$ARM64_SHA"
+            end
+
+            on_linux do
+              url "https://github.com/dmgrok/agent-plugins/releases/download/v$VERSION/skillsdir-linux-x64"
+              sha256 "$LINUX_SHA"
+            end
+
+            def install
+              if OS.mac?
+                bin.install "skillsdir-macos-arm64" => "skillsdir"
+              else
+                bin.install "skillsdir-linux-x64" => "skillsdir"
+              end
+            end
+
+            test do
+              assert_match "skillsdir", shell_output("#{bin}/skillsdir --version")
+            end
+          end
+          EOF
+          
+          echo "Updated Formula/skillsdir.rb with version $VERSION"
+          cat homebrew-tap/Formula/skillsdir.rb
+
+      - name: Commit Formula Update to Main Repo
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update Homebrew formula for ${{ github.ref_name }}"
+          file_pattern: homebrew-tap/Formula/skillsdir.rb
+
+      - name: Push Formula to Tap Repository
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Clone the tap repository
+          git clone https://x-access-token:${GITHUB_TOKEN}@github.com/dmgrok/homebrew-tap.git tap-repo
+          
+          # Copy the updated formula
+          cp homebrew-tap/Formula/skillsdir.rb tap-repo/Formula/skillsdir.rb
+          
+          # Commit and push
+          cd tap-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/skills.rb
+          git commit -m "chore: update formula for ${{ github.ref_name }}" || echo "No changes to commit"
+          git push origin main

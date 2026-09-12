@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Pre-release sanity checks. Run by release-doctor workflow on PRs to main.
+
+set -eu
+
+errors=()
+
+# Check no internal URLs leaked into publishable files
+INTERNAL_HITS=$(grep -r "\.query\.prod\.telnyx\.io\|\.query\.dev\.telnyx\.io\|\.service\.consul\|\.internal\.telnyx" \
+  tools/python/telnyx_agent_toolkit/ tools/typescript/src/ cli/src/ \
+  --include="*.py" --include="*.ts" -l 2>/dev/null || true)
+
+if [[ -n "$INTERNAL_HITS" ]]; then
+  errors+=("Internal URLs found in publishable source files: $INTERNAL_HITS")
+fi
+
+# Check Python tool count matches TypeScript
+PY_COUNT=$(python3 -c "
+import sys; sys.path.insert(0, 'tools/python')
+from telnyx_agent_toolkit.shared.constants import TOOL_DEFINITIONS
+print(len(TOOL_DEFINITIONS))
+" 2>/dev/null || echo "?")
+
+if ! TS_COUNT=$(cd tools/typescript && npx tsx -e "
+import { TOOL_DEFINITIONS } from './src/shared/constants.ts';
+console.log(Object.keys(TOOL_DEFINITIONS).length);
+"); then
+  echo "Failed to extract the TypeScript tool count. Run 'npm ci' in tools/typescript and retry." >&2
+  exit 1
+fi
+
+if [[ "$PY_COUNT" != "?" && "$TS_COUNT" != "?" && "$PY_COUNT" != "$TS_COUNT" ]]; then
+  errors+=("Tool count mismatch: Python=$PY_COUNT TypeScript=$TS_COUNT")
+fi
+
+lenErrors=${#errors[@]}
+
+if [[ $lenErrors -gt 0 ]]; then
+  echo -e "Found the following errors in the release environment:\n"
+  for error in "${errors[@]}"; do
+    echo -e "- $error\n"
+  done
+  exit 1
+fi
+
+echo "The environment is ready to push releases!"

@@ -1,0 +1,266 @@
+export type TaskStatus = 'pending' | 'dispatched' | 'running' | 'waiting_for_input' | 'completed' | 'failed' | 'cancelled';
+export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+// ─── AG-UI Interaction Types ────────────────────────────────────────────────
+
+export type InteractionType = 'approval' | 'confirm_data' | 'choice' | 'wizard';
+
+export interface InteractionChoice {
+    id: string;
+    label: string;
+    description?: string;
+}
+
+export interface InteractionContext {
+    interactionId: string;
+    type: InteractionType;
+    title: string;
+    description?: string;
+    data?: Record<string, unknown>;
+    choices?: InteractionChoice[];
+    requestedAt: number;
+    timeoutMs: number;
+    /** Wizard-specific: the full wizard definition */
+    wizard?: WizardDefinition;
+}
+
+export interface InteractionResponse {
+    interactionId: string;
+    approved?: boolean;
+    data?: Record<string, unknown>;
+    selectedOptionId?: string;
+    /** Wizard-specific: which step this response is for */
+    wizardStepId?: string;
+    /** Wizard-specific: complete wizard cancelled by user */
+    wizardCancelled?: boolean;
+    respondedAt: number;
+}
+
+// ─── AG-UI Wizard Types ─────────────────────────────────────────────────────
+
+export interface WizardField {
+    key: string;
+    label: string;
+    type: 'text' | 'number' | 'email' | 'textarea' | 'select' | 'toggle';
+    required?: boolean;
+    options?: { value: string; label: string }[];
+    placeholder?: string;
+    defaultValue?: unknown;
+}
+
+export interface WizardCondition {
+    /** stepId of a prior step whose response we inspect */
+    dependsOnStep: string;
+    /** Which response field to check (e.g. 'selectedOptionId', 'approved', or a data key) */
+    field: string;
+    operator: 'equals' | 'not_equals' | 'contains';
+    value: unknown;
+}
+
+export interface WizardStep {
+    stepId: string;
+    type: 'approval' | 'confirm_data' | 'choice' | 'text_input' | 'form';
+    title: string;
+    description?: string;
+    data?: Record<string, unknown>;
+    choices?: InteractionChoice[];
+    /** For 'form' type: dynamic form fields */
+    fields?: WizardField[];
+    /** For 'text_input' type: input placeholder */
+    placeholder?: string;
+    /** Conditional visibility — skip step if condition is not met */
+    condition?: WizardCondition;
+}
+
+export interface WizardDefinition {
+    steps: WizardStep[];
+    /** Title shown in the wizard header */
+    title: string;
+    description?: string;
+}
+
+export interface WizardStepResponse {
+    stepId: string;
+    approved?: boolean;
+    data?: Record<string, unknown>;
+    selectedOptionId?: string;
+    textInput?: string;
+}
+
+export interface WizardResult {
+    completed: boolean;
+    responses: WizardStepResponse[];
+}
+
+export interface Task {
+    id: string;
+    workspace_id: string;
+    title: string;
+    description: string;
+    status: TaskStatus;
+    priority: TaskPriority;
+    assigned_agent_id: string | null;
+    assigned_team_id: string | null;
+    result: string | null;
+    error: string | null;
+    metadata: Record<string, unknown> | null;
+    interaction_context: InteractionContext | null;
+    created_by: string;
+    created_at: string;
+    updated_at: string;
+    claimed_by_runner: string | null;
+}
+
+export interface Agent {
+    id: string;
+    workspace_id: string;
+    name: string;
+    description: string;
+    provider: 'Anthropic' | 'OpenAI' | 'Google' | 'Mistral' | 'Groq' | 'Cohere' | 'OpenRouter' | 'Ollama';
+    model: string;
+    system_prompt: string;
+    temperature: number;
+    max_tokens: number | null;
+    tags: string[];
+    tools: string[];
+    fallback_model: string | null;
+    output_route_ids: string[] | null;
+    config: Record<string, unknown>;
+    voice_profile: VoiceProfileInline | null;
+    voice_profile_id: string | null;
+    output_template_id: string | null;
+    is_mcp_published: boolean;
+}
+
+export interface VoiceProfileInline {
+    tone?: string;
+    custom_instructions?: string;
+    output_format_hints?: string;
+}
+
+export interface ApiKey {
+    id: string;
+    workspace_id: string;
+    provider: string;
+    encrypted_key: string;
+    base_url: string | null;
+}
+
+export interface TokenUsage {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    costEstimateUSD: number;
+}
+
+// ─── Team Run Types ──────────────────────────────────────────────────────────
+
+export type TeamRunStatus = 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
+
+export interface TeamRun {
+    id: string;
+    team_id: string;
+    workspace_id: string;
+    status: TeamRunStatus;
+    input_task: string;
+    output: string | null;
+    current_step_idx: number | null;
+    tokens_total: number;
+    cost_estimate_usd: number;
+    started_at: string | null;
+    completed_at: string | null;
+    error_message: string | null;
+    delegation_depth: number;
+    created_by: string;
+    created_at: string;
+    updated_at: string;
+    claimed_by_runner: string | null;
+}
+
+export interface PipelineStep {
+    agent_id: string;
+    step_name: string;
+    instructions: string;
+    expected_output: string;
+    on_failure: 'retry' | 'stop' | 'skip';
+    max_retries: number;
+    type?: 'sequential' | 'fan_out';
+    parallel_agents?: string[];
+    merge_agent_id?: string;
+    fan_out_failure?: 'fail_fast' | 'continue_on_partial';
+    merge_instructions?: string;
+}
+
+export interface PipelineConfig {
+    steps: PipelineStep[];
+    auto_handoff: boolean;
+}
+
+export interface OrchestratorConfig {
+    brain_agent_id: string;
+    worker_agent_ids: string[];
+    quality_threshold: number;
+    routing_strategy: string;
+    planner_enabled: boolean;
+    max_delegation_depth: number;
+}
+
+export type SpeakerSelection = 'round_robin' | 'llm_select' | 'facilitator';
+export type TerminationCondition = 'consensus' | 'max_turns' | 'facilitator_decision';
+
+export interface CollaborationConfig {
+    agent_ids: string[];
+    speaker_selection: SpeakerSelection;
+    max_turns: number;
+    termination_condition: TerminationCondition;
+    consensus_phrase: string;
+    facilitator_agent_id?: string;
+}
+
+export interface TeamConfig {
+    mode: 'pipeline' | 'orchestrator' | 'collaboration';
+    config: PipelineConfig | OrchestratorConfig | CollaborationConfig;
+}
+
+export interface TeamHandoffContext {
+    input: string;
+    previous_output: string | null;
+    step_index: number;
+    step_name: string;
+    accumulated_outputs: string[];
+    team_memories?: string[];
+    fan_out_results?: FanOutBranchResult[];
+}
+
+export interface FanOutBranchResult {
+    agent_id: string;
+    agent_name: string;
+    status: 'completed' | 'failed';
+    output: string | null;
+    error?: string;
+    usage: TokenUsage;
+}
+
+// ─── Orchestrator Types ──────────────────────────────────────────────────────
+
+export type DelegationStatus = 'pending' | 'running' | 'completed' | 'revision_requested' | 'failed';
+
+export interface Delegation {
+    id: string;
+    team_run_id: string;
+    worker_agent_id: string;
+    instruction: string;
+    worker_output: string | null;
+    status: DelegationStatus;
+    revision_count: number;
+    revision_feedback: string | null;
+    quality_score: number | null;
+    parent_delegation_id: string | null;
+    created_at: string;
+    completed_at: string | null;
+}
+
+export interface OrchestratorToolCall {
+    name: 'delegate_to_worker' | 'request_revision' | 'accept_result' | 'final_answer';
+    arguments: Record<string, unknown>;
+}

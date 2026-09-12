@@ -1,0 +1,34 @@
+# Pre-release sanity checks — runs on PRs to main.
+# Mirrors the pattern from telnyx-python and telnyx-node.
+name: Release Doctor
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  release_doctor:
+    name: release doctor
+    runs-on: ubuntu-latest
+    if: >-
+      github.repository == 'team-telnyx/ai' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release'))
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Install TypeScript dependencies
+        working-directory: tools/typescript
+        run: npm ci
+
+      - name: Check release environment
+        run: bash ./.github/bin/check-release-environment

@@ -1,0 +1,67 @@
+name: Release
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force_publish:
+        description: 'Force publish to PyPI (skip release-please check)'
+        type: boolean
+        default: false
+      tag:
+        description: 'Tag to publish (required if force_publish is true)'
+        type: string
+        default: ''
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          release-type: python
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true' || inputs.force_publish == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read          # checkout
+      id-token: write         # OIDC for PyPI trusted publishing
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag || needs.release-please.outputs.tag_name }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Build all distributions (3 packages)
+        run: |
+          # Build order matters: skillport-core first (others depend on it)
+          # NOTE: `--package` requires a uv workspace; this repo uses per-package projects.
+          uv build --out-dir dist/ --clear packages/skillport-core
+          uv build --out-dir dist/ .
+          uv build --out-dir dist/ packages/skillport-mcp
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          print-hash: true
+          skip-existing: true

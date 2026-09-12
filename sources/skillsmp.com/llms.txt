@@ -1,0 +1,258 @@
+# SkillsMP - Agent Skills Marketplace
+
+> SkillsMP is a community-driven platform aggregating 2,000,000+ open-source Agent Skills from GitHub. Search by keyword, browse by category or occupation, and discover skills for Claude Code, Codex CLI, ChatGPT, and other SKILL.md-based agent workflows.
+
+Key information:
+- This is an independent community project, NOT affiliated with Anthropic
+- All skills are open source and sourced from GitHub repositories
+- Supports 9 languages: English, Chinese, Japanese, Korean, Spanish, French, German, Portuguese, Arabic (English uses unprefixed URLs; other locale paths are /zh, /ja, /ko, /es, /fr, /de, /pt, /ar)
+- Provides a free REST API — keyword search works without authentication
+
+## Main Pages
+
+- [Homepage](https://skillsmp.com/): Search and browse open-source Agent Skills with keyword search and filters
+- [Agent Skills Directory](https://skillsmp.com/skills): Browse the Agent Skills directory by task intent, category, creator, and repository
+- [Categories](https://skillsmp.com/categories): Browse skills organized by domain (Development, AI & ML, DevOps, etc.)
+- [Occupations](https://skillsmp.com/occupations): Browse skills by SOC occupation (Software Developers, Data Scientists, etc.)
+- [Timeline](https://skillsmp.com/timeline): View skill updates and growth trends over time
+- [Search](https://skillsmp.com/search): Advanced search with filters for marketplace.json, stars, and update time
+- [Changelog](https://skillsmp.com/changelog): Platform updates, new features, and improvements
+- Skill detail route: `https://skillsmp.com/creators/{owner}/{repo}/{routeSlug}`. Use the API response's `skillUrl` as the authoritative canonical URL; do not build a detail URL from `id`.
+- [Occupation Detail](https://skillsmp.com/occupations/{slug}): Skills relevant to a specific occupation with SOC classification
+
+## User Features (requires login)
+
+Sign in with Google or GitHub to access personalized features:
+- [Favorites](https://skillsmp.com/favorites): Save and organize your favorite skills
+- [History](https://skillsmp.com/history): Track your recently viewed skills
+- API Key Management: Generate API keys for programmatic access
+
+## Documentation
+
+- [Docs](https://skillsmp.com/docs): Getting started guide and official documentation links
+- [API Docs](https://skillsmp.com/docs/api): REST API documentation with examples
+- [Developer Portal](https://skillsmp.com/developers): Quickstart, MCP setup, sandbox, rate limits
+- [Agent Authentication](https://skillsmp.com/developers#agent-auth): Step-by-step auth guide for AI agents
+- [Webhooks](https://skillsmp.com/developers#webhooks): Polling patterns, timeline feed, webhook roadmap
+- [FAQ](https://skillsmp.com/docs/faq): Frequently asked questions about skills, installation, and quality
+- [About](https://skillsmp.com/about): Our mission and what we do
+
+## REST API
+
+Base URL: `https://skillsmp.com`
+
+SkillsMP provides a free REST API for programmatic access. Keyword search works without authentication.
+
+Full interactive documentation with code examples: https://skillsmp.com/docs/api
+
+### Quick Start
+
+Anonymous (no setup needed):
+```
+curl "https://skillsmp.com/api/v1/skills/search?q=playwright"
+```
+
+Authenticated (higher limits):
+```
+curl "https://skillsmp.com/api/v1/skills/search?q=playwright" \
+  -H "Authorization: Bearer sk_live_your_api_key"
+```
+
+### REST Search Rate Limits
+
+These configured limits apply only to `GET /api/v1/skills/search`. They do not apply to the MCP server.
+
+| Tier | Daily | Per-Minute | Available Endpoints |
+|------|-------|------------|---------------------|
+| Anonymous (no API key) | 50 | 10 | Keyword Search |
+| Authenticated (API key) | 500 | 30 | Keyword Search |
+
+Get your free API key at https://skillsmp.com/docs/api (requires login). Daily counters reset at midnight UTC; minute windows reset separately.
+
+Responses admitted to the REST search handler include:
+- `X-RateLimit-Daily-Limit` — your daily request limit
+- `X-RateLimit-Daily-Remaining` — remaining requests for today
+- `X-RateLimit-Minute-Limit` — per-minute burst limit (search endpoint)
+- `X-RateLimit-Minute-Remaining` — remaining requests this minute
+
+### REST API Authentication
+
+Pass your API key via the Authorization header:
+```
+Authorization: Bearer sk_live_your_api_key
+```
+
+### REST API Agent Authentication
+
+AI agents (Claude, ChatGPT, autonomous pipelines) authenticate with long-lived API keys — no OAuth or user interaction needed at runtime.
+
+1. A human owner signs in at https://skillsmp.com/auth/login and generates an API key from the Developer Portal.
+2. Store the key in your agent's secret manager (env var, vault, KMS). Never put it in client-side code or URLs.
+3. Send `Authorization: Bearer <key>` on every request.
+4. On HTTP 429, inspect `error.code`: `RATE_LIMITED` includes `Retry-After`; `DAILY_QUOTA_EXCEEDED` resets at 00:00 UTC and does not include `Retry-After`.
+5. Set a descriptive `User-Agent` (e.g. `SkillsMPClient/1.0 (+https://your-agent.example)`) so we can reach you on issues.
+6. Prefer MCP (https://skillsmp.com/mcp) over hand-rolled REST for tool-calling agents.
+
+Full guide: https://skillsmp.com/developers#agent-auth
+
+### Webhooks
+
+SkillsMP does not currently emit outbound webhooks or provide a catalog-wide change feed. For scoped monitoring, agents can poll:
+
+- Saved keyword search: `GET /api/v1/skills/search?q=playwright&sortBy=recent&limit=50` (replace `playwright` with a concrete query; results cover only that query)
+- Timeline trends: `GET /api/timeline?granularity=daily&limit=30`
+- MCP polling: call `search_skills` with a concrete query on a timer — no inbound endpoint required
+
+Outbound webhooks for new-skill and update events are on the roadmap. Details: https://skillsmp.com/developers#webhooks
+
+### Endpoints
+
+#### 1. Keyword Search — `GET /api/v1/skills/search`
+
+Anonymous or authenticated. Database-backed full-text search.
+
+Parameters:
+- `q` (required): Search keywords (max 200 chars, must contain at least one letter or number)
+- `page`: Page number (default: 1, max: 50)
+- `limit`: Results per page (default: 20, max: 50)
+- `sortBy`: `stars` or `recent` (default: `recent`)
+- `category`: Filter by category slug (e.g. `data-ai`, `devops`, `web-scraping`)
+- `occupation`: Filter by SOC occupation slug (e.g. `software-developers`)
+
+Browse available category slugs: https://skillsmp.com/categories
+Browse available occupation slugs: https://skillsmp.com/occupations
+
+Examples:
+- `/api/v1/skills/search?q=playwright&sortBy=stars&limit=10`
+- `/api/v1/skills/search?q=automation&occupation=software-developers`
+- `/api/v1/skills/search?q=testing&category=testing-qa&page=2`
+
+### Response Format
+
+All successful responses:
+```json
+{
+  "success": true,
+  "data": {
+    "skills": [
+      {
+        "id": "author-repo-skill-md",
+        "name": "skill-name",
+        "author": "github-username",
+        "description": "What this skill does",
+        "githubUrl": "https://github.com/author/repo",
+        "skillUrl": "https://skillsmp.com/creators/author/repo/skills-skill-name",
+        "stars": 42,
+        "updatedAt": "1775714881"
+      }
+    ],
+    "pagination": { "page": 1, "limit": 20, "total": 150 }
+  },
+  "meta": {
+    "requestId": "uuid",
+    "responseTimeMs": 123
+  }
+}
+```
+
+Error responses:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable description"
+  }
+}
+```
+
+Error codes:
+| Code | HTTP | Description |
+|------|------|-------------|
+| INVALID_API_KEY | 401 | The provided API key is invalid |
+| MISSING_QUERY | 400 | Query parameter `q` is required |
+| INVALID_QUERY | 400 | Query must contain at least one letter or number |
+| DAILY_QUOTA_EXCEEDED | 429 | Daily quota exceeded, resets at midnight UTC |
+| RATE_LIMITED | 429 | Too many requests per minute |
+| INTERNAL_ERROR | 500 | Internal server error |
+
+## Categories
+
+Skills are organized into 12 main domains with 50+ subcategories, and also classified by SOC (Standard Occupational Classification) occupations:
+
+| Domain | Description |
+|--------|-------------|
+| Development | Frontend, Backend, Mobile, Full-Stack, Scripting |
+| Data & AI | LLM, Machine Learning, Data Analysis, Data Engineering |
+| DevOps | CI/CD, Containers, Cloud, Monitoring |
+| Testing & Security | Testing, Code Quality, Security Auditing |
+| Tools | CLI Tools, IDE Plugins, Automation, Debugging |
+| Documentation | Technical Docs, Knowledge Base, Education |
+| Databases | SQL, NoSQL, Database Tools |
+| Content & Media | Documents, Media Processing, Design, Content Creation |
+| Business | E-commerce, Payment, Business Apps |
+| Research | Academic, Scientific Computing, Lab Tools |
+| Blockchain | Smart Contracts, DeFi, Web3 Tools |
+| Lifestyle | Arts & Crafts, Gaming, Health & Fitness |
+
+Browse all categories at https://skillsmp.com/categories
+
+## Skill Format
+
+Skills follow the open SKILL.md standard:
+- SKILL.md file with YAML frontmatter (required: name, description)
+- Skills can include scripts/, references/, and assets/ directories
+
+## Installation
+
+- `/plugin add <github-url>` — one-command install in Claude Code
+- Manual: Clone repo and copy skill folder to ~/.claude/skills/ (personal) or .claude/skills/ (project)
+
+## MCP Server
+
+SkillsMP exposes a Model Context Protocol (MCP) server for native AI agent integration.
+
+Endpoint: `https://skillsmp.com/mcp` (Streamable HTTP)
+
+Configuration:
+```json
+{
+  "mcpServers": {
+    "skillsmp": {
+      "type": "streamable-http",
+      "url": "https://skillsmp.com/mcp"
+    }
+  }
+}
+```
+
+Available tools: search_skills, get_skill, list_categories
+
+MCP access and limits:
+- No API key or account is required; REST API keys do not increase MCP limits.
+- There is no daily MCP quota.
+- MCP ingress: 50 POST requests per 10 seconds per client IP.
+- Valid tool use: 30 `tools/call` requests per 60 seconds per client IP.
+- Every POST consumes ingress capacity. A valid tool call also consumes one tool-call unit; `initialize`, `tools/list`, and other non-tool requests consume ingress only.
+- On HTTP 429, honor `Retry-After` before retrying.
+
+Discovery endpoints:
+- MCP Manifest: https://skillsmp.com/.well-known/mcp
+- Server Card: https://skillsmp.com/.well-known/mcp/server-card.json
+- A2A Agent Card: https://skillsmp.com/.well-known/agent-card.json
+- OpenAPI Spec: https://skillsmp.com/openapi.json
+- API Catalog (RFC 9727): https://skillsmp.com/.well-known/api-catalog
+- Developer Portal: https://skillsmp.com/developers
+
+## Pricing
+
+SkillsMP is completely free. No paid tiers. See: https://skillsmp.com/pricing.md
+
+## Optional
+
+- [Full Documentation (single file)](https://skillsmp.com/llms-full.txt): Complete docs for AI agents
+- [Agent Integration Guide](https://skillsmp.com/agents.md): How agents should interact with SkillsMP
+- [GitHub Repository](https://github.com/anthropics/claude-code): Official Claude Code repository
+- [Official Skills Documentation](https://docs.anthropic.com/en/docs/claude-code/skills): Anthropic's guide to Claude Code skills
+- [Privacy Policy](https://skillsmp.com/privacy): Our privacy practices
+- [Terms of Service](https://skillsmp.com/terms): Terms and conditions

@@ -1,0 +1,499 @@
+# Channels (Inbound Messaging)
+
+Channels let users trigger CrewForm agents and teams directly from messaging platforms. Send a message — CrewForm creates a task, runs the agent, and replies in the same conversation.
+
+Supported platforms:
+
+| Platform | Trigger method | Reply method |
+|----------|---------------|-------------|
+| [Telegram](#telegram) | Any message or `/ask` | Bot reply in the same chat |
+| [Slack](#slack) | Any message in the connected channel | Thread reply |
+| [Discord](./discord-integration.md) | `/ask` slash command | Follow-up message (deferred) |
+| [Email](#email) | Email to a dedicated inbound address | Reply email via Resend |
+| [Trello](#trello) | Card created or moved to trigger list | Comment on the original card |
+| [Linear](#linear) | Issue created, state change, or label applied | Comment on the original issue |
+
+---
+
+## How Channels Work
+
+Each channel is a **two-way bridge** between a messaging platform and a CrewForm agent or team:
+
+```
+User sends message
+       │
+       ▼
+Platform webhook → CrewForm Edge Function
+       │
+       ▼
+Task / Team Run created (status: dispatched)
+       │
+       ▼
+Task Runner picks up → Agent executes
+       │
+       ▼
+Result sent back to originating chat
+```
+
+Channels are separate from [Output Routes](./output-routes.md). Output routes push results to destinations proactively; channels are two-way — they accept inbound messages *and* send replies back to the originating conversation.
+
+---
+
+## Managed Bot vs Bring Your Own Bot (BYOB)
+
+All channel platforms (except Email, Trello, and Linear) support two modes:
+
+### Managed Bot
+CrewForm hosts and operates the bot. You connect your chat to it using a **connect code** generated in Settings. Fast to set up — no bot registration needed.
+
+Requires `TELEGRAM_BOT_TOKEN`, `SLACK_BOT_TOKEN`, or `DISCORD_BOT_TOKEN` to be set in your Supabase Edge Function secrets (or `.env` for self-hosted). These are set by default in the CrewForm cloud.
+
+### Bring Your Own Bot (BYOB)
+Register your own bot application, paste its credentials into CrewForm, and CrewForm uses your bot instead. Full control over name, avatar, and permissions. Required if your org policy prohibits third-party bots.
+
+---
+
+## Telegram
+
+### Managed Bot Setup
+
+1. **Create the channel** in CrewForm:
+   - Go to **Settings → Channels → New Channel → Telegram**
+   - Toggle **Managed Bot** ON
+   - Set a **Default Agent** or **Default Team**
+   - Save — a **connect code** is generated
+
+2. **Link your Telegram chat:**
+   - Open the chat, group, or channel in Telegram
+   - Send: `/connect <your_connect_code>`
+   - The bot replies: `✅ Connected! Messages in this chat will be routed to your configured agent.`
+
+3. **Send tasks:**
+   - Any text message is routed to the agent
+   - Or use `/ask <prompt>` to be explicit
+
+### BYOB Setup
+
+1. Create a bot via [@BotFather](https://t.me/BotFather) → `/newbot` → copy the **Bot Token**
+2. In CrewForm: **Settings → Channels → New Channel → Telegram**
+3. Toggle **Managed Bot** OFF
+4. Paste the **Bot Token** and your **Chat ID**
+5. Set the **Webhook URL** on your bot:
+   ```bash
+   curl -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook" \
+     -d "url=https://<your-supabase-project>.supabase.co/functions/v1/channel-telegram"
+   ```
+
+### How Messages Are Handled
+
+| Message | Behaviour |
+|---------|-----------|
+| `/connect <code>` | Links the chat to the CrewForm channel |
+| `/ask <prompt>` | Routes the prompt to the configured agent/team |
+| Any other text | Routed to the configured agent/team |
+| Other `/commands` | Ignored silently |
+
+The bot sends a **typing indicator** (`...`) while the task is being processed, then replies with the result in the same chat.
+
+### Required Environment Variables (Self-Hosted)
+
+| Variable | Description |
+|----------|-------------|
+| `TELEGRAM_BOT_TOKEN` | Managed bot token (for managed mode) |
+
+---
+
+## Slack
+
+### Managed Bot Setup
+
+1. **Create the channel** in CrewForm:
+   - Go to **Settings → Channels → New Channel → Slack**
+   - Toggle **Managed Bot** ON
+   - Set a **Default Agent** or **Default Team**
+   - Save — a **connect code** is generated
+
+2. **Invite the bot to your Slack channel:**
+   - In Slack, type `/invite @CrewForm` in the target channel
+
+3. **Link the Slack channel:**
+   - In the Slack channel, send: `connect <your_connect_code>`
+   - The bot replies: `✅ Connected! Messages in this channel will now be routed to your configured agent.`
+
+4. **Send tasks:**
+   - Any message in the channel is routed to the agent
+
+### BYOB Setup
+
+1. Create a Slack app at [api.slack.com/apps](https://api.slack.com/apps)
+2. Enable **Event Subscriptions** and add `message.channels` (or `message.groups` for private channels) under **Subscribe to bot events**
+3. Set the **Request URL** to:
+   ```
+   https://<your-supabase-project>.supabase.co/functions/v1/channel-slack
+   ```
+   Slack will send a `url_verification` challenge — CrewForm responds to it automatically.
+4. Go to **OAuth & Permissions** → add scopes: `chat:write`, `reactions:add`, `channels:history`
+5. Install the app to your workspace and copy the **Bot User OAuth Token** (`xoxb-...`)
+6. In CrewForm: **Settings → Channels → New Channel → Slack**
+   - Toggle **Managed Bot** OFF
+   - Paste the **Bot Token** and **Channel ID**
+
+### How Messages Are Handled
+
+| Message | Behaviour |
+|---------|-----------|
+| `connect <code>` | Links the Slack channel to CrewForm |
+| Any other message | Routed to the configured agent/team |
+| Bot messages | Ignored (prevents loops) |
+
+When a task is received, the bot reacts to the message with ⏳ (`:hourglass_flowing_sand:`) to indicate processing. When the task completes, the result is posted as a **thread reply** to the original message.
+
+### Required Environment Variables (Self-Hosted)
+
+| Variable | Description |
+|----------|-------------|
+| `SLACK_BOT_TOKEN` | Managed bot token (for managed mode) |
+
+---
+
+## Discord
+
+Discord channels use slash commands (`/connect` and `/ask`) instead of plain text triggers.
+
+Full setup instructions are in the dedicated **[Discord Integration guide](./discord-integration.md)**, covering:
+- Managed bot flow (invite → connect code → `/connect` → `/ask`)
+- BYOB flow (custom Discord app, Ed25519 signature verification, slash command registration)
+- Deferred responses and the "thinking…" indicator
+- Troubleshooting
+
+### Required Environment Variables (Self-Hosted)
+
+| Variable | Description |
+|----------|-------------|
+| `DISCORD_BOT_TOKEN` | Managed bot token |
+| `DISCORD_PUBLIC_KEY` | Ed25519 public key for signature verification |
+
+---
+
+## Email
+
+Email channels accept inbound emails and route them as tasks to a configured agent or team. Replies are sent back to the sender via [Resend](https://resend.com).
+
+### How It Works
+
+1. Emails arrive at a dedicated inbound address (e.g. `agent@mail.yourapp.com`)
+2. Resend receives the email and fires an `email.received` webhook to CrewForm
+3. CrewForm fetches the email body via the Resend API, creates a task, and runs the agent
+4. The agent's result is sent back as a reply email to the original sender
+
+### Setup
+
+#### 1. Configure Resend Inbound
+
+1. Sign up at [resend.com](https://resend.com) and add your domain
+2. Add an MX record to your domain DNS:
+   ```
+   Type: MX
+   Name: mail  (or your inbound subdomain)
+   Value: inbound-smtp.us-east-1.resend.com
+   Priority: 10
+   TTL: 300
+   ```
+   This routes emails sent to `@mail.yourdomain.com` through Resend.
+
+3. In the Resend dashboard → **Inbound** → **Add Webhook**:
+   - Event: `email.received`
+   - URL:
+     ```
+     https://<your-supabase-project>.supabase.co/functions/v1/channel-email
+     ```
+
+#### 2. Create the Channel in CrewForm
+
+1. Go to **Settings → Channels → New Channel → Email**
+2. Set the **Inbound Address** — the full email address or prefix that should trigger this channel (e.g. `agent@mail.yourdomain.com`)
+3. Set a **Default Agent** or **Default Team**
+4. Save
+
+Emails sent to the configured inbound address are now routed to your agent.
+
+#### 3. Configure Reply Sending
+
+Set these as Supabase Edge Function secrets (or `.env` for self-hosted):
+
+| Variable | Description |
+|----------|-------------|
+| `RESEND_API_KEY` | Your Resend API key (for fetching email bodies and sending replies) |
+| `RESEND_FROM_ADDRESS` | Reply-from address, e.g. `CrewForm <noreply@crewform.tech>` |
+
+### How Emails Are Processed
+
+| Email content | Used as |
+|--------------|---------|
+| Subject | Task title (also included in the prompt) |
+| Plain text body | Prompt body |
+| HTML body (fallback) | HTML tags stripped, plain text used |
+| To address | Matched against configured `inbound_address` |
+
+> **Attachments:** Email attachments are not currently included in the agent prompt. Only the subject and body are used.
+
+### Reply Format
+
+The agent's result is sent back as an email reply:
+
+- **From:** `RESEND_FROM_ADDRESS`
+- **To:** Original sender
+- **Subject:** `Re: <original subject>`
+- **Body:** Agent result in a styled HTML block
+
+Results over 10,000 characters are truncated in the reply email.
+
+### Routing Multiple Agents
+
+You can create multiple email channels with different inbound addresses to route different types of emails to different agents:
+
+| Inbound Address | Agent |
+|----------------|-------|
+| `support@mail.yourdomain.com` | Support Triage Agent |
+| `research@mail.yourdomain.com` | Research Analyst |
+| `report@mail.yourdomain.com` | Report Generator |
+
+### Required Environment Variables (Self-Hosted)
+
+| Variable | Description |
+|----------|-------------|
+| `RESEND_API_KEY` | Resend API key (fetching bodies + sending replies) |
+| `RESEND_FROM_ADDRESS` | Sender address for reply emails |
+
+---
+
+## Trello
+
+Trello channels trigger agents when cards are created or moved to a specific list on a Trello board. Agent results are posted back as **comments** on the original card, and the card is optionally moved to a review list.
+
+Trello channels are always **BYOB** — you provide your own API Key and Token (similar to Email).
+
+### Setup
+
+#### 1. Get Trello API Credentials
+
+1. Go to [trello.com/power-ups/admin](https://trello.com/power-ups/admin)
+2. Create or select a Power-Up to get your **API Key**
+3. From the API key page, click the **Token** link to generate a token with read/write access
+
+#### 2. Find Your Board and List IDs
+
+1. **Board ID** — open the board in Trello; the short ID is in the URL: `https://trello.com/b/<BOARD_ID>/...`
+2. **List IDs** — use the Trello API:
+   ```bash
+   curl "https://api.trello.com/1/boards/<BOARD_ID>/lists?key=<KEY>&token=<TOKEN>"
+   ```
+   You'll need:
+   - **Trigger List ID** — cards created or moved here start agent tasks
+   - **Review List ID** *(optional)* — completed cards are moved here after results are posted
+
+#### 3. Create the Channel in CrewForm
+
+1. Go to **Settings → Channels → New Channel → Trello**
+2. Enter your **API Key**, **Token**, **Board ID**, **Trigger List ID**, and optionally a **Review List ID**
+3. Set a **Default Agent** or **Default Team**
+4. Save — CrewForm registers a webhook on the board automatically via the `trello-webhook-register` Edge Function
+
+### How Cards Are Handled
+
+| Card event | Behaviour |
+|------------|----------|
+| Card created in the trigger list | Task created with card name as title, card description as prompt |
+| Card moved to the trigger list | Task created with card name as title, card description as prompt |
+| Card created in other lists | Ignored |
+| Card moved between other lists | Ignored |
+
+When the agent completes the task:
+
+1. The result is posted as a **comment** on the original Trello card
+2. If a **Review List** is configured, the card is moved there
+3. A `trello_card_mappings` record links the Trello card to the CrewForm task
+
+### Bidirectional Flow with Output Routes
+
+Trello channels work with [Trello Output Routes](./output-routes.md#trello) for a full round-trip:
+
+```
+Card moved to "AI Work" list
+       │
+       ▼
+CrewForm creates task + card mapping
+       │
+       ▼
+Agent processes the prompt
+       │
+       ▼
+Result posted as comment on card
+       │
+       ▼
+Card moved to "Review" list
+```
+
+> **Tip:** Create two lists on your board — "AI Work" (trigger) and "Review" (review) — for a clean Kanban workflow with your AI agents.
+
+### Webhook Management
+
+When you create a Trello channel, CrewForm automatically registers a webhook on your board via the Trello API. When you delete the channel, the webhook is unregistered.
+
+If you need to manually manage webhooks, use the `trello-webhook-register` Edge Function:
+
+```bash
+# Register
+curl -X POST "https://<your-project>.supabase.co/functions/v1/trello-webhook-register" \
+  -H "Authorization: Bearer <supabase-anon-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"action": "register", "channelId": "<channel-uuid>"}'
+
+# Unregister
+curl -X POST "https://<your-project>.supabase.co/functions/v1/trello-webhook-register" \
+  -H "Authorization: Bearer <supabase-anon-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"action": "unregister", "channelId": "<channel-uuid>"}'
+```
+
+### Required Environment Variables (Self-Hosted)
+
+No additional environment variables are needed — all Trello credentials (API Key, Token) are stored per-channel in the database.
+
+---
+
+## Linear
+
+Linear channels trigger CrewForm agents when issues are created, moved to a specific state, or labelled. Agent results are posted back as **comments** on the original Linear issue, and the issue is optionally moved to a "Done" state.
+
+Linear channels are always **BYOB** — you provide a Linear Personal API Key.
+
+### Setup
+
+#### 1. Get a Linear Personal API Key
+
+1. Go to [linear.app/settings/api](https://linear.app/settings/api)
+2. Click **Create key** → give it a label (e.g. "CrewForm")
+3. Copy the key (`lin_api_...`)
+
+#### 2. Find Your Team ID
+
+1. In Linear, go to **Settings → Teams → [Your Team]**
+2. The Team ID (UUID) is visible in the URL: `https://linear.app/<workspace>/settings/teams/<TEAM_ID>`
+
+#### 3. Create the Channel in CrewForm
+
+1. Go to **Settings → Channels → New Channel → Linear**
+2. Enter your **Personal API Key** and **Team ID**
+3. Configure triggers:
+   - **Trigger On** — comma-separated list: `create`, `state_change`, `label`
+   - **Trigger States** *(optional)* — comma-separated state names, e.g. `Triage,Todo`
+   - **Trigger Labels** *(optional)* — comma-separated label names, e.g. `crewform,ai-task`
+   - **Done State** *(optional)* — move the issue to this state when the agent completes (e.g. `Done`)
+4. Set a **Default Agent** or **Default Team**
+5. Save — CrewForm automatically registers a webhook on your Linear team via the `linear-webhook-register` Edge Function
+
+### Trigger Configuration
+
+You can combine multiple trigger types for fine-grained control:
+
+| Trigger | Config | Behaviour |
+|---------|--------|-----------|
+| `create` | `trigger_on: create` | Agent runs on every new issue in the team |
+| `state_change` | `trigger_on: state_change` + `trigger_states: Triage` | Agent runs when an issue is moved to "Triage" |
+| `label` | `trigger_on: label` + `trigger_labels: crewform` | Agent runs when the "crewform" label is added |
+
+> **Tip:** Use `state_change` or `label` triggers to avoid processing every new issue. For example, label issues with "ai-task" to selectively trigger your agent.
+
+### How Issues Are Handled
+
+| Issue event | Behaviour |
+|-------------|-----------|
+| Issue created in the team | Task created (if `create` trigger is active) |
+| Issue moved to a trigger state | Task created (if `state_change` trigger is active) |
+| Trigger label added to an issue | Task created (if `label` trigger is active) |
+| Issue already mapped to a task | Skipped (no duplicate processing) |
+
+When the agent completes the task:
+
+1. The result is posted as a **comment** on the original Linear issue
+2. If a **Done State** is configured, the issue is moved to that state
+3. A `linear_issue_mappings` record links the Linear issue to the CrewForm task
+
+### Bidirectional Flow
+
+Linear channels provide a full round-trip:
+
+```
+Issue created / state changed / label added
+       │
+       ▼
+CrewForm creates task + issue mapping
+       │
+       ▼
+Agent processes the prompt (issue description)
+       │
+       ▼
+Result posted as comment on issue
+       │
+       ▼
+Issue moved to "Done" state (optional)
+```
+
+### Priority Mapping
+
+Linear issue priorities are mapped to CrewForm task priorities:
+
+| Linear Priority | CrewForm Priority |
+|----------------|-------------------|
+| No priority (0) | Low |
+| Urgent (1) | Urgent |
+| High (2) | High |
+| Medium (3) | Medium |
+| Low (4) | Low |
+
+### Webhook Management
+
+When you create a Linear channel, CrewForm automatically registers a webhook on your Linear team via the Linear GraphQL API. The webhook secret is stored in the channel config for HMAC signature verification.
+
+If you need to manually manage webhooks, use the Linear API:
+
+```bash
+# List webhooks
+curl -X POST https://api.linear.app/graphql \
+  -H "Authorization: lin_api_..." \
+  -H "Content-Type: application/json" \
+  -d '{"query": "{ webhooks { nodes { id url enabled } } }"}'
+```
+
+### Required Environment Variables (Self-Hosted)
+
+No additional environment variables are needed — the Linear API Key is stored per-channel in the database.
+
+---
+
+## Message Log
+
+All inbound and outbound channel messages are logged. View them in **Settings → Channels → [Channel Name] → Message Log**:
+
+| Column | Description |
+|--------|-------------|
+| Direction | Inbound (user → CrewForm) or Outbound (CrewForm → user) |
+| Preview | First 200 characters of the message |
+| Task / Run | Link to the associated task or team run |
+| Status | `delivered` or `failed` |
+| Timestamp | When the message was sent or received |
+
+---
+
+## Choosing Managed Bot vs BYOB
+
+| | Managed Bot | BYOB |
+|--|-------------|------|
+| **Setup time** | ~2 minutes | 15–30 minutes |
+| **Bot name/avatar** | CrewForm branded | Fully customisable |
+| **Token management** | Handled by CrewForm | You manage the bot |
+| **Works for self-hosted?** | Requires env var set | ✅ Full control |
+| **Multi-workspace** | Shared bot | Dedicated per workspace |
+
+For most teams, Managed Bot is the right starting point. Switch to BYOB if you need a branded bot, organisation-specific permissions, or if your team policy requires it.

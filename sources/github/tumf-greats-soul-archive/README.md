@@ -1,0 +1,299 @@
+# Greats Soul Archive
+
+A community repository of **OpenClaw-style `IDENTITY.md` and `SOUL.md`** profiles for historical greats, philosophers, scientists, and high-impact builders.
+
+## Why this exists
+
+We want a world where you can *pick a mind* and have a real conversation:
+
+- Talk to **Plato** about justice.
+- Ask **Feynman** to explain something until it’s actually clear.
+- Stress-test a product idea with **Jobs**-level taste.
+
+Not as fan fiction — but as *usable agent configurations*.
+
+This repo is the missing layer between biography and behavior: a compact, practical description of how a person thinks, decides, speaks, and fails.
+
+## Principles
+
+- **Separate sources (facts) from interpretation (agent persona).**
+  - `SOUL.md` / `IDENTITY.md` = an operational persona (how to act), grounded in sources
+- Prefer clarity over cleverness.
+- Make uncertainty explicit.
+- Be especially conservative for living people.
+
+## Repo structure
+
+```
+people/<slug>/
+  IDENTITY.md   # short nameplate
+  SOUL.md       # operating principles & style
+
+fiction/
+  public-domain/<slug>/
+  inspired/<slug>/
+```
+
+See: `fiction/_guide.md`
+
+## Use cases
+
+- Build a bot where users can choose a profile and **chat with their favorite philosopher**.
+- Use `SOUL.md` as a “thinking style adapter” for writing, decision memos, or reviews.
+- Teach: show how different mental models respond to the same prompt.
+
+## Index
+
+<!-- INDEX:START -->
+
+### People
+
+**Builders / Business**
+- [Andy Grove](people/andy-grove/)
+- [Bill Gates](people/bill-gates/)
+- [Charlie Munger](people/charlie-munger/)
+- [Elon Musk](people/elon-musk/)
+- [Howard Schultz](people/howard-schultz/)
+- [Indra Nooyi](people/indra-nooyi/)
+- [Jack Ma](people/jack-ma/)
+- [Jack Welch](people/jack-welch/)
+- [Jeff Bezos](people/jeff-bezos/)
+- [Jensen Huang](people/jensen-huang/)
+- [Marc Andreessen](people/marc-andreessen/)
+- [Mary Barra](people/mary-barra/)
+- [Masayoshi Son](people/masayoshi-son/)
+- [Oprah Winfrey](people/oprah-winfrey/)
+- [Paul Graham](people/paul-graham/)
+- [Peter Thiel](people/peter-thiel/)
+- [Pony Ma](people/pony-ma/)
+- [Ray Dalio](people/ray-dalio/)
+- [Reid Hoffman](people/reid-hoffman/)
+- [Sam Altman](people/sam-altman/)
+- [Satya Nadella](people/satya-nadella/)
+- [Sheryl Sandberg](people/sheryl-sandberg/)
+- [Steve Jobs](people/steve-jobs/)
+- [Tim Cook](people/tim-cook/)
+- [Warren Buffett](people/warren-buffett/)
+
+**Politics / Statecraft**
+- [Abraham Lincoln](people/abraham-lincoln/)
+- [Angela Merkel](people/angela-merkel/)
+- [Augustus](people/augustus/)
+- [Cardinal Richelieu](people/cardinal-richelieu/)
+- [Catherine the Great](people/catherine-the-great/)
+- [Charles-Maurice de Talleyrand](people/talleyrand/)
+- [Franklin D. Roosevelt](people/franklin-d-roosevelt/)
+- [Harry Hopkins](people/harry-hopkins/)
+- [Julius Caesar](people/julius-caesar/)
+- [Lee Kuan Yew](people/lee-kuan-yew/)
+- [Mahatma Gandhi](people/mahatma-gandhi/)
+- [Margaret Thatcher](people/margaret-thatcher/)
+- [Nelson Mandela](people/nelson-mandela/)
+- [Otto von Bismarck](people/otto-von-bismarck/)
+- [Queen Elizabeth I](people/queen-elizabeth-i/)
+- [Sokollu Mehmed Pasha](people/sokollu-mehmed-pasha/)
+- [Theodore Roosevelt](people/theodore-roosevelt/)
+- [Thomas Cromwell](people/thomas-cromwell/)
+- [Tokugawa Ieyasu](people/tokugawa-ieyasu/)
+- [Toyotomi Hidenaga](people/toyotomi-hidenaga/)
+- [Winston Churchill](people/winston-churchill/)
+
+**Military / Strategy**
+- [Alexander the Great](people/alexander-the-great/)
+- [Carl von Clausewitz](people/carl-von-clausewitz/)
+- [George C. Marshall](people/george-c-marshall/)
+- [Hannibal](people/hannibal/)
+- [Kuroda Kanbei](people/kuroda-kanbei/)
+- [Marcus Agrippa](people/marcus-agrippa/)
+- [Miyamoto Musashi](people/miyamoto-musashi/)
+- [Napoleon Bonaparte](people/napoleon-bonaparte/)
+- [Oda Nobunaga](people/oda-nobunaga/)
+- [Sun Tzu](people/sun-tzu/)
+- [Zhuge Liang](people/zhuge-liang/)
+
+**Philosophy**
+- [Aristotle](people/aristotle/)
+- [Confucius](people/confucius/)
+- [David Hume](people/david-hume/)
+- [Derek Parfit](people/derek-parfit/)
+- [Epictetus](people/epictetus/)
+- [Friedrich Nietzsche](people/friedrich-nietzsche/)
+- [Hannah Arendt](people/hannah-arendt/)
+- [Immanuel Kant](people/immanuel-kant/)
+- [John Rawls](people/john-rawls/)
+- [John Stuart Mill](people/john-stuart-mill/)
+- [Karl Popper](people/karl-popper/)
+- [Kierkegaard](people/kierkegaard/)
+- [Ludwig Wittgenstein](people/ludwig-wittgenstein/)
+- [Marcus Aurelius](people/marcus-aurelius/)
+- [Michel Foucault](people/michel-foucault/)
+- [Plato](people/plato/)
+- [René Descartes](people/rene-descartes/)
+- [Seneca](people/seneca/)
+- [Simone de Beauvoir](people/simone-de-beauvoir/)
+- [Socrates](people/socrates/)
+- [Spinoza](people/spinoza/)
+- [Thomas Kuhn](people/thomas-kuhn/)
+
+**Science / Math**
+- [Ada Lovelace](people/ada-lovelace/)
+- [Albert Einstein](people/albert-einstein/)
+- [Barbara McClintock](people/barbara-mcclintock/)
+- [Carl Sagan](people/carl-sagan/)
+- [Charles Darwin](people/charles-darwin/)
+- [Donald Knuth](people/donald-knuth/)
+- [Emmy Noether](people/emmy-noether/)
+- [Galileo Galilei](people/galileo-galilei/)
+- [Isaac Newton](people/isaac-newton/)
+- [James Clerk Maxwell](people/james-clerk-maxwell/)
+- [John von Neumann](people/john-von-neumann/)
+- [Leonardo da Vinci](people/leonardo-da-vinci/)
+- [Marie Curie](people/marie-curie/)
+- [Max Planck](people/max-planck/)
+- [Michael Faraday](people/michael-faraday/)
+- [Niels Bohr](people/niels-bohr/)
+- [Nikola Tesla](people/nikola-tesla/)
+- [Richard Feynman](people/richard-feynman/)
+- [Rosalind Franklin](people/rosalind-franklin/)
+- [Srinivasa Ramanujan](people/srinivasa-ramanujan/)
+- [Stephen Hawking](people/stephen-hawking/)
+- [Thomas Edison](people/thomas-edison/)
+- [Vannevar Bush](people/vannevar-bush/)
+
+**Computing / Software**
+- [Alan Kay](people/alan-kay/)
+- [Alan Turing](people/alan-turing/)
+- [Bjarne Stroustrup](people/bjarne-stroustrup/)
+- [Brendan Eich](people/brendan-eich/)
+- [Claude Shannon](people/claude-shannon/)
+- [Dennis Ritchie](people/dennis-ritchie/)
+- [Grace Hopper](people/grace-hopper/)
+- [Guido van Rossum](people/guido-van-rossum/)
+- [James Gosling](people/james-gosling/)
+- [John Carmack](people/john-carmack/)
+- [Ken Thompson](people/ken-thompson/)
+- [Linus Torvalds](people/linus-torvalds/)
+- [Margaret Hamilton](people/margaret-hamilton/)
+
+**Economics / Social Science**
+- [Adam Smith](people/adam-smith/)
+- [Amos Tversky](people/amos-tversky/)
+- [Daniel Kahneman](people/daniel-kahneman/)
+- [Elinor Ostrom](people/elinor-ostrom/)
+- [Herbert A. Simon](people/herbert-a-simon/)
+- [Jean-Baptiste Colbert](people/jean-baptiste-colbert/)
+- [John Maynard Keynes](people/john-maynard-keynes/)
+- [Milton Friedman](people/milton-friedman/)
+
+**Art / Literature**
+- [Fyodor Dostoevsky](people/fyodor-dostoevsky/)
+- [Haruki Murakami](people/haruki-murakami/)
+- [James Joyce](people/james-joyce/)
+- [Jane Austen](people/jane-austen/)
+- [Leo Tolstoy](people/leo-tolstoy/)
+- [Virginia Woolf](people/virginia-woolf/)
+- [William Shakespeare](people/william-shakespeare/)
+
+### Assistants / Sidekicks
+
+- [Cardinal Richelieu](people/cardinal-richelieu/)
+- [Charles-Maurice de Talleyrand](people/talleyrand/)
+- [Detective With a Heart (Inspired)](fiction/inspired/detective-with-heart/)
+- [Dr. John Seward](fiction/public-domain/john-seward/)
+- [Dr. John Watson](fiction/public-domain/john-watson/)
+- [Eccentric Genius Inventor (Inspired)](fiction/inspired/eccentric-genius-inventor/)
+- [Faithful Companion (Archetype)](fiction/inspired/samwise-archetype/)
+- [Gentle Healer / Logistics Lead (Inspired)](fiction/inspired/gentle-healer-logistics/)
+- [George C. Marshall](people/george-c-marshall/)
+- [Harry Hopkins](people/harry-hopkins/)
+- [Horatio](fiction/public-domain/horatio/)
+- [Idol Producer / Coach (Inspired)](fiction/inspired/idol-producer-coach/)
+- [Jean-Baptiste Colbert](people/jean-baptiste-colbert/)
+- [Kuroda Kanbei](people/kuroda-kanbei/)
+- [Magic Academy Professor (Inspired)](fiction/inspired/magic-academy-professor/)
+- [Marcus Agrippa](people/marcus-agrippa/)
+- [Mecha Operations Tactician (Inspired)](fiction/inspired/mecha-operations-tactician/)
+- [Mina Harker](fiction/public-domain/mina-harker/)
+- [Quiet Samurai Mentor (Inspired)](fiction/inspired/quiet-samurai-mentor/)
+- [Sancho Panza](fiction/public-domain/sancho-panza/)
+- [Shōgi Master Strategist (Inspired)](fiction/inspired/shogi-master-strategist/)
+- [Sokollu Mehmed Pasha](people/sokollu-mehmed-pasha/)
+- [Streetwise Fixer (Inspired)](fiction/inspired/streetwise-fixer/)
+- [Thomas Cromwell](people/thomas-cromwell/)
+- [Toyotomi Hidenaga](people/toyotomi-hidenaga/)
+- [Tsundere Analyst (Inspired)](fiction/inspired/tsundere-analyst/)
+- [Vannevar Bush](people/vannevar-bush/)
+- [Virgil (Dante’s guide)](fiction/public-domain/virgil/)
+- [Zhuge Liang](people/zhuge-liang/)
+
+### Fiction
+
+**Public domain**
+- *comedy*
+  - [Sancho Panza](fiction/public-domain/sancho-panza/)
+- *drama*
+  - [Dorian Gray](fiction/public-domain/dorian-gray/)
+  - [Ebenezer Scrooge](fiction/public-domain/ebenezer-scrooge/)
+  - [Friday](fiction/public-domain/friday/)
+  - [Horatio](fiction/public-domain/horatio/)
+  - [Patroclus](fiction/public-domain/patroclus/)
+- *fantasy*
+  - [Alice](fiction/public-domain/alice/)
+  - [Virgil (Dante’s guide)](fiction/public-domain/virgil/)
+- *horror*
+  - [Count Dracula](fiction/public-domain/dracula/)
+  - [Dr. John Seward](fiction/public-domain/john-seward/)
+  - [Mina Harker](fiction/public-domain/mina-harker/)
+  - [Professor Abraham Van Helsing](fiction/public-domain/abraham-van-helsing/)
+- *mystery*
+  - [Dr. John Watson](fiction/public-domain/john-watson/)
+  - [Sherlock Holmes](fiction/public-domain/sherlock-holmes/)
+- *scifi*
+  - [Frankenstein’s Creature](fiction/public-domain/frankensteins-creature/)
+  - [Victor Frankenstein](fiction/public-domain/frankenstein/)
+
+**Inspired-by (modern works)**
+- *drama*
+  - [Idol Producer / Coach (Inspired)](fiction/inspired/idol-producer-coach/)
+  - [Streetwise Fixer (Inspired)](fiction/inspired/streetwise-fixer/)
+- *fantasy*
+  - [Faithful Companion (Archetype)](fiction/inspired/samwise-archetype/)
+  - [Gentle Healer / Logistics Lead (Inspired)](fiction/inspired/gentle-healer-logistics/)
+  - [Magic Academy Professor (Inspired)](fiction/inspired/magic-academy-professor/)
+- *mystery*
+  - [Detective With a Heart (Inspired)](fiction/inspired/detective-with-heart/)
+- *other*
+  - [Quiet Samurai Mentor (Inspired)](fiction/inspired/quiet-samurai-mentor/)
+  - [Shōgi Master Strategist (Inspired)](fiction/inspired/shogi-master-strategist/)
+  - [Shōnen Determination Hero (Inspired)](fiction/inspired/shonen-determination-hero/)
+  - [Tsundere Analyst (Inspired)](fiction/inspired/tsundere-analyst/)
+- *scifi*
+  - [Cyberpunk Hacker-Detective (Inspired)](fiction/inspired/cyberpunk-hacker-detective/)
+  - [Eccentric Genius Inventor (Inspired)](fiction/inspired/eccentric-genius-inventor/)
+  - [Mecha Operations Tactician (Inspired)](fiction/inspired/mecha-operations-tactician/)
+<!-- INDEX:END -->
+
+## Contributing
+
+PRs welcome — add a new person in ~10 minutes:
+
+1. Create: `people/<slug>/`
+3. Open a PR
+
+See: `CONTRIBUTING.md`
+
+## Translations
+
+- English: `README.md`
+- Japanese: `README_ja.md`
+
+(Additional languages welcome: `README_<lang>.md`)
+
+## Notes / Disclaimer
+
+- This is not academic history; it’s an **agent-design artifact**.
+- Avoid defamation/harassment.
+
+## License
+
+CC0 1.0

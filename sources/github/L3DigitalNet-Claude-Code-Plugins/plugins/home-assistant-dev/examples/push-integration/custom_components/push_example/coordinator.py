@@ -1,0 +1,164 @@
+"""Coordinator for Push Example integration.
+
+Demonstrates push-based updates without DataUpdateCoordinator.
+Uses callbacks to notify entities of state changes.
+"""
+from __future__ import annotations
+
+import asyncio
+import logging
+import random
+from typing import Any
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_HOST
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_send
+
+from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
+
+# Signal for push updates
+SIGNAL_UPDATE = f"{DOMAIN}_update"
+
+
+class PushCoordinator:
+    """Coordinator that handles push-based updates.
+
+    Unlike DataUpdateCoordinator, this doesn't poll.
+    Instead, it maintains a connection and receives pushed updates.
+    """
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Initialize the coordinator."""
+        self.hass = hass
+        self.entry = entry
+        self._host = entry.data[CONF_HOST]
+
+        # Current state
+        self.data: dict[str, Any] = {}
+        self.connected = False
+        self.device_info: dict[str, Any] = {}
+
+        # Connection management
+        self._connection_task: asyncio.Task | None = None
+        self._reconnect_task: asyncio.Task | None = None
+        self._reconnect_interval = 30
+        self._should_reconnect = True
+
+    async def async_connect(self) -> None:
+        """Establish connection to the device."""
+        try:
+            # In a real integration, connect to WebSocket/MQTT/etc.
+            # self._client = await MyPushClient.connect(self._host)
+            # self._client.on_message = self._handle_message
+
+            # Simulated connection
+            self.device_info = {
+                "serial": "PUSH123",
+                "name": "Push Device",
+                "model": "Push Pro",
+            }
+            self.connected = True
+            _LOGGER.info("Connected to push device at %s", self._host)
+
+            # Start listening for updates as a tracked background task so Home
+            # Assistant cancels it on unload (avoids 'Detected untracked task'
+            # warnings and a post-unload leak).
+            self._connection_task = self.entry.async_create_background_task(
+                self.hass, self._listen_loop(), name=f"{DOMAIN}_listen"
+            )
+
+        except Exception:
+            self.connected = False
+            # Re-raise so an initial connect failure surfaces as ConfigEntryNotReady in
+            # async_setup_entry; the reconnect path below handles post-setup failures.
+            raise
+
+    async def async_disconnect(self) -> None:
+        """Disconnect from the device."""
+        self._should_reconnect = False
+
+        if self._connection_task:
+            self._connection_task.cancel()
+            try:
+                await self._connection_task
+            except asyncio.CancelledError:
+                pass
+
+        if self._reconnect_task:
+            self._reconnect_task.cancel()
+            try:
+                await self._reconnect_task
+            except asyncio.CancelledError:
+                pass
+
+        # In a real integration: await self._client.disconnect()
+        self.connected = False
+        _LOGGER.info("Disconnected from push device")
+
+    async def _listen_loop(self) -> None:
+        """Listen for pushed updates.
+
+        In a real integration, this would be handled by the client library's
+        callback mechanism. This simulates periodic push updates.
+
+        This loop only runs while connected: a lost connection breaks out (below)
+        and _schedule_reconnect owns recovery by calling async_connect again, which
+        spawns a fresh listen loop on success. Reconnection lives in
+        _schedule_reconnect, not here.
+        """
+        while self._should_reconnect:
+            try:
+                # Simulate receiving a push update every 10 seconds
+                await asyncio.sleep(10)
+
+                # Simulated push data
+                self.data = {
+                    "temperature": round(20 + random.uniform(-2, 2), 1),
+                    "motion": random.choice([True, False]),
+                    "last_update": self.hass.loop.time(),
+                }
+
+                # Notify all entities of the update
+                self._notify_update()
+
+            except asyncio.CancelledError:
+                break
+            except Exception as err:
+                _LOGGER.error("Connection lost: %s", err)
+                self.connected = False
+                self._schedule_reconnect()
+                break
+
+    @callback
+    def _notify_update(self) -> None:
+        """Notify entities of new data."""
+        async_dispatcher_send(self.hass, SIGNAL_UPDATE)
+
+    def _schedule_reconnect(self) -> None:
+        """Schedule a reconnection attempt."""
+        if not self._should_reconnect:
+            return
+
+        async def reconnect() -> None:
+            await asyncio.sleep(self._reconnect_interval)
+            if self._should_reconnect and not self.connected:
+                _LOGGER.info("Attempting to reconnect...")
+                try:
+                    await self.async_connect()
+                except Exception as err:
+                    _LOGGER.error("Reconnect failed: %s", err)
+                    self._schedule_reconnect()
+
+        # Track the reconnect task (and let HA cancel it on unload) so a pending
+        # reconnect can't call async_connect after the entry is gone.
+        self._reconnect_task = self.entry.async_create_background_task(
+            self.hass, reconnect(), name=f"{DOMAIN}_reconnect"
+        )
+
+    @property
+    def available(self) -> bool:
+        """Return True if connected."""
+        return self.connected

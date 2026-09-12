@@ -1,0 +1,158 @@
+/**
+ * Tests for SafetyChecker
+ */
+
+import { SafetyChecker } from '../src/safety.js';
+
+describe('SafetyChecker', () => {
+  const defaultConfig = {
+    allowServiceCalls: true,
+    blockedServices: ['homeassistant.restart'],
+    requireDryRun: true,
+  };
+
+  describe('checkServiceCall', () => {
+    it('should block always-blocked services', () => {
+      const checker = new SafetyChecker(defaultConfig);
+      const result = checker.checkServiceCall('homeassistant', 'stop', false);
+
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toContain('always blocked');
+    });
+
+    it('should block configured blocked services', () => {
+      const checker = new SafetyChecker(defaultConfig);
+      const result = checker.checkServiceCall('homeassistant', 'restart', false);
+
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toContain('blocked list');
+    });
+
+    it('should block wildcard-matched services without catching other domains', () => {
+      const checker = new SafetyChecker({ ...defaultConfig, blockedServices: ['light.*'] });
+
+      expect(checker.checkServiceCall('light', 'turn_on', true).allowed).toBe(false);
+      expect(checker.checkServiceCall('light', 'turn_off', true).allowed).toBe(false);
+      expect(checker.checkServiceCall('switch', 'turn_on', true).allowed).toBe(true);
+    });
+
+    it('should treat the dot in a wildcard pattern as a literal', () => {
+      const checker = new SafetyChecker({ ...defaultConfig, blockedServices: ['light.*'] });
+
+      // 'lightx' must not match 'light.*' — the escaped dot is literal, not "any char".
+      expect(checker.checkServiceCall('lightx', 'turn_on', true).allowed).toBe(true);
+    });
+
+    it('should require dry-run for non-safe domains', () => {
+      const checker = new SafetyChecker(defaultConfig);
+      const result = checker.checkServiceCall('light', 'turn_on', false);
+
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toContain('Dry-run mode is required');
+    });
+
+    it('should allow dry-run calls', () => {
+      const checker = new SafetyChecker(defaultConfig);
+      const result = checker.checkServiceCall('light', 'turn_on', true);
+
+      expect(result.allowed).toBe(true);
+    });
+
+    it('should allow safe domains without dry-run', () => {
+      const checker = new SafetyChecker(defaultConfig);
+      const result = checker.checkServiceCall('input_boolean', 'turn_on', false);
+
+      expect(result.allowed).toBe(true);
+    });
+
+    it('should warn about dangerous services', () => {
+      const checker = new SafetyChecker({
+        ...defaultConfig,
+        blockedServices: [],
+      });
+      const result = checker.checkServiceCall('recorder', 'purge', true);
+
+      expect(result.allowed).toBe(true);
+      expect(result.warning).toContain('modify system state');
+    });
+
+    it('should block all service calls when disabled', () => {
+      const checker = new SafetyChecker({
+        ...defaultConfig,
+        allowServiceCalls: false,
+      });
+      const result = checker.checkServiceCall('light', 'turn_on', true);
+
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toContain('disabled');
+    });
+  });
+
+  describe('redactSensitiveData', () => {
+    it('should redact password fields', () => {
+      const checker = new SafetyChecker(defaultConfig);
+      const data = { username: 'admin', password: 'secret123' };
+      const redacted = checker.redactSensitiveData(data);
+
+      expect(redacted.username).toBe('admin');
+      expect(redacted.password).toBe('**REDACTED**');
+    });
+
+    it('should redact nested sensitive fields', () => {
+      const checker = new SafetyChecker(defaultConfig);
+      const data = {
+        config: {
+          api_key: 'abc123',
+          host: 'example.com',
+        },
+      };
+      const redacted = checker.redactSensitiveData(data);
+
+      expect((redacted.config as Record<string, unknown>).api_key).toBe('**REDACTED**');
+      expect((redacted.config as Record<string, unknown>).host).toBe('example.com');
+    });
+
+    it('should preserve array structure while redacting inside object elements', () => {
+      const checker = new SafetyChecker(defaultConfig);
+      const data = { items: [{ password: 'x' }] };
+      const redacted = checker.redactSensitiveData(data);
+
+      // The array must stay an array, not be coerced to an index-keyed object
+      // ({0: ...}) by recursing through Object.entries.
+      expect(Array.isArray(redacted.items)).toBe(true);
+      const items = redacted.items as Array<Record<string, unknown>>;
+      expect(items).toHaveLength(1);
+      expect(items[0].password).toBe('**REDACTED**');
+    });
+  });
+
+  describe('getSafetyInfo', () => {
+    it('should report settings and blockedCount (config blocked + always-blocked)', () => {
+      const checker = new SafetyChecker(defaultConfig);
+      const info = checker.getSafetyInfo();
+
+      expect(info.serviceCallsEnabled).toBe(true);
+      expect(info.dryRunRequired).toBe(true);
+      // defaultConfig has 1 blocked service; ALWAYS_BLOCKED has 3 entries.
+      expect(info.blockedCount).toBe(1 + 3);
+    });
+  });
+
+  describe('isSafeDomain', () => {
+    it('should identify safe domains', () => {
+      const checker = new SafetyChecker(defaultConfig);
+
+      expect(checker.isSafeDomain('input_boolean')).toBe(true);
+      expect(checker.isSafeDomain('input_number')).toBe(true);
+      expect(checker.isSafeDomain('counter')).toBe(true);
+    });
+
+    it('should identify unsafe domains', () => {
+      const checker = new SafetyChecker(defaultConfig);
+
+      expect(checker.isSafeDomain('light')).toBe(false);
+      expect(checker.isSafeDomain('switch')).toBe(false);
+      expect(checker.isSafeDomain('homeassistant')).toBe(false);
+    });
+  });
+});
