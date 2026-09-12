@@ -1,0 +1,38 @@
+{
+  "name": "netresearch-marketplace-site",
+  "version": "0.1.0",
+  "description": "GitHub Pages storytelling site for the Netresearch Claude Code Marketplace.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fetch:readmes": "node scripts/fetch-readmes.js",
+    "og:generate": "node scripts/generate-og-images.js",
+    "check:orphans": "node scripts/check-orphans.js",
+    "check:categories": "node scripts/check-categories.js",
+    "check:seo": "node scripts/check-seo-copy.js",
+    "check:hreflang": "node scripts/check-hreflang.js",
+    "check": "npm run check:categories && npm run check:orphans && npm run check:seo && npm run check:install",
+    "test:visual": "playwright test",
+    "test:visual:update": "playwright test --update-snapshots",
+    "prebuild": "npm run check:categories && npm run og:generate",
+    "build:once": "eleventy",
+    "build": "npm run build:once",
+    "build:all": "npm run fetch:readmes && npm run check && npm run build:once && npm run check:hreflang",
+    "dev": "eleventy --serve --port=8080",
+    "preview": "npx http-server _site -p 8080 -c-1",
+    "clean": "rm -rf _site",
+    "check:install": "node --test tests/install-methods.test.js"
+  },
+  "devDependencies": {
+    "@11ty/eleventy": "^3.0.0",
+    "@playwright/test": "^1.60.0",
+    "http-server": "^14.1.1"
+  },
+  "engines": {
+    "node": ">=20.10.0"
+  },
+  "dependencies": {
+    "@octokit/rest": "^22.0.1",
+    "sharp": "^0.35.0"
+  }
+}

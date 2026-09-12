@@ -1,0 +1,115 @@
+name: Refresh visual snapshots
+
+# Manually regenerate the Playwright visual-regression baselines and open a PR
+# with the updated PNGs. The baselines are environment-specific
+# (chromium-desktop-linux), so they must be generated on a runner that matches
+# CI — this job mirrors the pages.yml visual-regression build exactly
+# (fetch READMEs + OG images + build) before running --update-snapshots.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    # A full pass (install, browsers, fetch, build, snapshots) takes ~4 minutes.
+    # Without a bound, a hung step holds the runner until the 6-hour ceiling.
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Setup Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: site/.nvmrc
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      # apt has no default timeout on package acquisition, so a mirror that
+      # accepts the connection and then stops responding blocks forever instead
+      # of failing. That is what hung this job (#99): `--with-deps` shells out
+      # to `apt-get update`, which stalled on its first mirror fetch for twenty
+      # minutes. Playwright owns that apt invocation, so the bound goes into
+      # apt's own config where the child process picks it up.
+      - name: Bound apt acquisition
+        working-directory: ${{ github.workspace }}
+        run: |
+          sudo tee /etc/apt/apt.conf.d/99-ci-timeouts >/dev/null <<'CONF'
+          Acquire::Retries "3";
+          Acquire::http::Timeout "30";
+          Acquire::https::Timeout "30";
+          Acquire::ftp::Timeout "30";
+          CONF
+
+      - name: Install Playwright browsers
+        # Belt and braces: if a stall survives the apt bound, `timeout` ends the
+        # attempt rather than the job. Output is deliberately not discarded —
+        # a silent stall is what made this take three runs to diagnose.
+        run: |
+          for attempt in 1 2 3; do
+            if timeout 300 ./node_modules/.bin/playwright install --with-deps chromium; then
+              exit 0
+            fi
+            echo "::warning::playwright install attempt ${attempt} did not complete within 300s"
+          done
+          echo "::error::playwright install did not complete in three attempts"
+          exit 1
+
+      - name: Restore README cache
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: site/cache/skills-readme
+          key: skills-readme-${{ hashFiles('.claude-plugin/marketplace.json', 'site/scripts/fetch-readmes.js', 'site/scripts/parse-readme.js') }}
+          restore-keys: |
+            skills-readme-
+
+      - name: Fetch READMEs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run fetch:readmes
+
+      - name: Generate OG images
+        run: npm run og:generate
+
+      - name: Build
+        run: npm run build
+
+      - name: Update snapshots
+        run: npm run test:visual:update
+
+      - name: Open PR if snapshots changed
+        working-directory: ${{ github.workspace }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git diff --quiet -- site/tests/visual; then
+            echo "Snapshots already current — nothing to refresh."
+            exit 0
+          fi
+          branch="chore/refresh-visual-snapshots-${GITHUB_RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add site/tests/visual
+          git commit --signoff \
+            -m "chore(visual): refresh Playwright visual-regression snapshots" \
+            -m "Regenerated on CI after marketplace.json content changes so the visual-regression gate (a deploy dependency on main) passes again."
+          git push origin "$branch"
+          gh pr create --base main --head "$branch" \
+            --title "chore(visual): refresh visual-regression snapshots" \
+            --body "Automated snapshot refresh (\`workflow_dispatch\` of refresh-visual-snapshots.yml, run ${GITHUB_RUN_ID}).
+
+          The landing/detail baselines went stale after marketplace.json content changes (removed plugin card, edited descriptions, value_type facet), which failed the \`visual-regression\` job and skipped the Pages \`deploy\` on main. These PNGs were regenerated on a runner matching CI (full build + \`test:visual:update\`), so the gate passes again.
+
+          Review the image diffs, then merge to restore the Pages deploy. If PR checks did not start (GITHUB_TOKEN-created PR), close and reopen to trigger them."

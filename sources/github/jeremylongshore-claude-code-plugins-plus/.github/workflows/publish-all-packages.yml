@@ -1,0 +1,276 @@
+name: '[Manual] Publish All @intentsolutionsio Packages'
+
+# One-shot mass publish. Manual trigger only — never runs on push.
+# Intended to be used once to seed the npm namespace after PR A (scaffolding)
+# lands. Subsequent changes are handled by `publish-changed-packages.yml`.
+#
+# Safety:
+#   1. Phase 1 runs `npm publish --dry-run` on every candidate. Any failure
+#      aborts before a single real publish happens.
+#   2. Phase 2 publishes only @intentsolutionsio/* scoped packages. The 12
+#      pre-existing non-scoped packages (axiom, pr-to-spec, etc.) are left
+#      alone to avoid republishing under the wrong name.
+#   3. Packages already published at their current version are skipped (so
+#      re-running is idempotent and safe).
+#   4. continue-on-error per package: one bad package doesn't block the rest.
+#   5. Batched with a 2s throttle to stay under npm's publish rate limits.
+#
+# Required inputs when dispatching:
+#   - confirm: must be the literal string "publish all" to prevent accidents.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "publish all" to confirm (case-sensitive)'
+        required: true
+        type: string
+      dry_run_only:
+        description: 'Stop after dry-run phase (recommended for first run)'
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  actions: read
+  checks: read
+  contents: read
+  id-token: write # npm provenance
+
+jobs:
+  guard:
+    name: Guard — confirm intent
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+    steps:
+      - name: Verify confirmation string
+        run: |
+          if [ "${{ inputs.confirm }}" != "publish all" ]; then
+            echo "❌ Confirmation string did not match. Aborting."
+            echo "   Got: '${{ inputs.confirm }}'"
+            echo "   Expected: 'publish all'"
+            exit 1
+          fi
+          echo "✅ Confirmation verified."
+          echo "Dry-run only: ${{ inputs.dry_run_only }}"
+
+      - name: Resolve exact canonical main SHA
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          test "$REPOSITORY" = 'jeremylongshore/tons-of-skills-marketplace'
+          SHA=$(gh api "repos/$REPOSITORY/commits/main" --jq '.sha')
+          test -n "$SHA"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "Pinned publication SHA: $SHA"
+
+  preflight:
+    name: Exact-SHA required-check preflight
+    runs-on: ubuntu-latest
+    needs: guard
+    steps:
+      - name: Check out trusted preflight implementation
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: main
+          persist-credentials: false
+          sparse-checkout: scripts/npm-publication-preflight.mjs
+
+      - name: Re-query required checks before any credential-capable job
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLISH_SHA: ${{ needs.guard.outputs.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          node scripts/npm-publication-preflight.mjs \
+            --repo "$REPOSITORY" \
+            --sha "$PUBLISH_SHA" \
+            --timeout-seconds 120 \
+            --poll-seconds 5 \
+            --json
+
+  enumerate:
+    name: Enumerate publishable packages
+    runs-on: ubuntu-latest
+    needs: [guard, preflight]
+    outputs:
+      count: ${{ steps.list.outputs.count }}
+      packages_json: ${{ steps.list.outputs.packages_json }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.guard.outputs.sha }}
+          fetch-depth: 0
+
+      - name: List @intentsolutionsio packages under plugins/
+        id: list
+        run: |
+          set -euo pipefail
+          # The shared resolver is the publisher boundary. It excludes a
+          # candidate with an applicable .source.json before dry-run, build,
+          # version changes, token use, or registry contact.
+          node scripts/publish-candidate-report.mjs \
+            --all \
+            --scope '@intentsolutionsio/' \
+            --json > /tmp/publish-report.json
+          jq -r '.mirrorSkipped[] | "Mirror skipped: \(.name) [\(.reasonCode)]"' /tmp/publish-report.json
+          jq -r '.refused[] | "Refused: \(.name) [\(.reasonCode)]"' /tmp/publish-report.json
+          jq -r '.firstPartyCandidates[] | "First-party candidate: \(.name)@\(.version)"' /tmp/publish-report.json
+          jq -c '.firstPartyCandidates' /tmp/publish-report.json > /tmp/packages.json
+
+          COUNT=$(jq length /tmp/packages.json)
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          # Emit as JSON string (jq -c ensures single line)
+          echo "packages_json=$(jq -c . /tmp/packages.json)" >> "$GITHUB_OUTPUT"
+          echo "Found $COUNT publishable @intentsolutionsio/* packages"
+          # Use jq slice instead of `| head -20` — SIGPIPE under `set -o pipefail`
+          # was aborting the whole step even though the listing succeeded.
+          jq -r '.[:20] | .[] | "  \(.name)@\(.version)  (\(.dir))"' /tmp/packages.json
+          if [ "$COUNT" -gt 20 ]; then
+            echo "  ... and $((COUNT - 20)) more"
+          fi
+
+  dry-run:
+    name: Phase 1 — dry-run all
+    runs-on: ubuntu-latest
+    needs: [guard, enumerate, preflight]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.guard.outputs.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Dry-run publish every package
+        env:
+          PACKAGES_JSON: ${{ needs.enumerate.outputs.packages_json }}
+        run: |
+          set -euo pipefail
+          FAIL=0
+          FAIL_LIST=()
+          printf '%s' "$PACKAGES_JSON" | jq -c '.[]' | while read -r row; do
+            NAME=$(echo "$row" | jq -r '.name')
+            DIR=$(echo "$row" | jq -r '.dir')
+            VERSION=$(echo "$row" | jq -r '.version')
+            if ! (cd "$DIR" && npm publish --dry-run --access public > /tmp/npm-dryrun.log 2>&1); then
+              echo "❌ dry-run FAIL: $NAME@$VERSION ($DIR)"
+              tail -20 /tmp/npm-dryrun.log || true
+              FAIL=$((FAIL+1))
+              FAIL_LIST+=("$NAME")
+            else
+              echo "✓ $NAME@$VERSION"
+            fi
+          done
+          if [ "$FAIL" -gt 0 ]; then
+            echo ""
+            echo "❌ $FAIL package(s) failed dry-run. Aborting."
+            exit 1
+          fi
+          echo ""
+          echo "✅ All dry-runs passed."
+
+  publish:
+    name: Phase 2 — real publish
+    runs-on: ubuntu-latest
+    needs: [guard, enumerate, preflight, dry-run]
+    if: ${{ inputs.dry_run_only == false && needs.guard.result == 'success' && needs.enumerate.result == 'success' && needs.preflight.result == 'success' && needs.dry-run.result == 'success' }}
+    environment: npm-production
+    outputs:
+      publication_report: ${{ steps.publish.outputs.publication_report }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.guard.outputs.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Publish every package (skip already-published versions)
+        id: publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PACKAGES_JSON: ${{ needs.enumerate.outputs.packages_json }}
+          GH_TOKEN: ${{ github.token }}
+          PUBLISH_SHA: ${{ needs.guard.outputs.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PUBLISH_SHA"
+          CURRENT_MAIN=$(gh api "repos/${{ github.repository }}/commits/main" --jq '.sha')
+          test "$CURRENT_MAIN" = "$PUBLISH_SHA"
+          PUBLISHED=0
+          SKIPPED=0
+          FAILED=0
+          FAIL_NAMES=()
+          PUBLISHED_JSON='[]'
+          while read -r row; do
+            NAME=$(echo "$row" | jq -r '.name')
+            DIR=$(echo "$row" | jq -r '.dir')
+            VERSION=$(echo "$row" | jq -r '.version')
+
+            # Check if this exact version already exists on npm
+            HTTP=$(curl -s -o /dev/null -w '%{http_code}' \
+              "https://registry.npmjs.org/$(echo "$NAME" | sed 's/@/%40/;s|/|%2F|')/$VERSION")
+            if [ "$HTTP" = "200" ]; then
+              echo "⊙ skip (already published): $NAME@$VERSION"
+              SKIPPED=$((SKIPPED+1))
+              continue
+            fi
+
+            if (cd "$DIR" && npm publish --access public --provenance); then
+              echo "✓ published: $NAME@$VERSION"
+              PUBLISHED=$((PUBLISHED+1))
+              PUBLISHED_JSON=$(jq -cn --argjson prior "$PUBLISHED_JSON" --arg name "$NAME" --arg version "$VERSION" --arg package_path "$DIR" \
+                '$prior + [{channel:"npm", name:$name, version:$version, package_path:$package_path}]')
+            else
+              echo "❌ publish FAILED: $NAME@$VERSION"
+              FAIL_NAMES+=("$NAME")
+              FAILED=$((FAILED+1))
+            fi
+
+            # Throttle — stay under npm's 5/sec rate limit comfortably
+            sleep 2
+          done < <(printf '%s' "$PACKAGES_JSON" | jq -c '.[]')
+
+          echo ""
+          echo "=== Mass publish summary ==="
+          echo "  published: $PUBLISHED"
+          echo "  skipped (already on npm): $SKIPPED"
+          echo "  failed: $FAILED"
+          if [ "$FAILED" -gt 0 ]; then
+            echo ""
+            echo "Failed packages (investigate individually):"
+            printf '  - %s\n' "${FAIL_NAMES[@]}"
+            exit 1
+          fi
+          if [ "$PUBLISHED" -gt 0 ]; then
+            printf '%s' "$PUBLISHED_JSON" > /tmp/completed-publications.json
+            node scripts/build-publication-report.mjs \
+              --completed /tmp/completed-publications.json \
+              --out /tmp/publication-report.json \
+              --sbom-dir /tmp/publication-sboms
+            echo "publication_report=$(jq -c . /tmp/publication-report.json)" >> "$GITHUB_OUTPUT"
+          fi
+
+  emit-publication-evidence:
+    name: Emit signed evidence for every completed mass publication
+    needs: [guard, publish]
+    if: ${{ needs.publish.result == 'success' && needs.publish.outputs.publication_report != '' }}
+    uses: ./.github/workflows/emit-publication-evidence.yml
+    permissions:
+      actions: read
+      checks: read
+      contents: write
+      id-token: write
+    with:
+      source_sha: ${{ needs.guard.outputs.sha }}
+      publication_report: ${{ needs.publish.outputs.publication_report }}

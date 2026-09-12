@@ -10,6 +10,7 @@ This repository is a mirror for research and citation. **Canonical pages live on
 
 - [really.bot](https://really.bot/) — serialized public log of finished jobs (HTML + JSON + Markdown twins).
 - [x.ai Grok Bot Marketplace](https://x.ai/bot/marketplace) — official templates; slugs from [sitemap.xml](https://x.ai/sitemap.xml).
+- [xai-org/plugin-marketplace](https://github.com/xai-org/plugin-marketplace) — official Grok Build plugins (distinct from Bot marketplace).
 
 ### Directories / teams
 
@@ -46,6 +47,9 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [anthropics/financial-services](https://github.com/anthropics/financial-services), [life-sciences](https://github.com/anthropics/life-sciences), [healthcare](https://github.com/anthropics/healthcare), [claude-tag-plugins](https://github.com/anthropics/claude-tag-plugins), [commerce-agents](https://github.com/anthropics/commerce-agents), [claude-desktop-buddy](https://github.com/anthropics/claude-desktop-buddy)
 - [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills), [hesreallyhim/awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code), [wshobson/agents](https://github.com/wshobson/agents), [VoltAgent/awesome-claude-code-subagents](https://github.com/VoltAgent/awesome-claude-code-subagents)
 - [travisvn/awesome-claude-skills](https://github.com/travisvn/awesome-claude-skills), [BehiSecc/awesome-claude-skills](https://github.com/BehiSecc/awesome-claude-skills), [ccplugins/awesome-claude-code-plugins](https://github.com/ccplugins/awesome-claude-code-plugins), [abhishekray07/claude-md-templates](https://github.com/abhishekray07/claude-md-templates)
+- [davila7/claude-code-templates](https://github.com/davila7/claude-code-templates), [obra/superpowers](https://github.com/obra/superpowers), [jeremylongshore/claude-code-plugins-plus](https://github.com/jeremylongshore/claude-code-plugins-plus)
+- [Chat2AnyLLM/awesome-claude-plugins](https://github.com/Chat2AnyLLM/awesome-claude-plugins), [daymade/claude-code-skills](https://github.com/daymade/claude-code-skills), [netresearch/claude-code-marketplace](https://github.com/netresearch/claude-code-marketplace), [ananddtyagi/cc-marketplace](https://github.com/ananddtyagi/cc-marketplace)
+- Cowork starters: [TheCraigHewitt/cowork-starter-pack](https://github.com/TheCraigHewitt/cowork-starter-pack), [jitangupta/cowork-boilerplate](https://github.com/jitangupta/cowork-boilerplate), [helgejo/cowork-template](https://github.com/helgejo/cowork-template), [machine-costas/claude-projects-templates](https://github.com/machine-costas/claude-projects-templates)
 - [khendzel/awesome-agent-skills](https://github.com/khendzel/awesome-agent-skills)
 - [mergisi/awesome-openclaw-agents](https://github.com/mergisi/awesome-openclaw-agents)
 - [michielhdoteth/awesome-ai-agent-tools](https://github.com/michielhdoteth/awesome-ai-agent-tools)
@@ -176,6 +180,19 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | grokindex.dev | 656 |
 | gtemplate.net | 16 |
 | github/mergisi-awesome-grokbot | 183 |
+| github/xai-org-plugin-marketplace | 16 |
+| github/DominikTobureto-awesome-grok-build | 51 |
+| github/LifeJiggy-Awesome-Grok-Skills | 789 |
+| github/GuBeLa-grok-agents-hub | 66 |
+| github/rdmgator12-awesome-grok-bot-plugins | 15 |
+| aitmpl.com | 1880 |
+| claudskills.com | 9 |
+| skillsboard.sh | 52 |
+| claudemarketplaces.com | 10 |
+| awesome-skills.com | 6 |
+| claudecowork.im | 3927 |
+| madewithclaude.com | 2 |
+| claudebuilds.com | 2 |
 | github/ZeroPointRepo-GrokBotDev | 918 |
 | botdirectory.ai | 646 |
 | botmarket.bot | 701 |

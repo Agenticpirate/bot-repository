@@ -1,0 +1,7 @@
+PROJECT: [project-name]
+LAST UPDATED: [date]
+
+CURRENT STATUS: FOLDER_CREATED
+
+HISTORY:
+- FOLDER_CREATED → [date] [time]
