@@ -9,8 +9,8 @@ This repository is a mirror for research and citation. **Canonical pages live on
 | Item | Status |
 | --- | ---: |
 | **catalog.json rows** | **219,578** |
-| **skills.sh downloaded** (files + hash) | **943** / 19,998 |
-| **skills.sh remaining** | **19,043** |
+| **skills.sh downloaded** (files + hash) | **992** / 19,998 |
+| **skills.sh remaining** | **18,993** |
 | skills.sh API cap | 60/hour (client budget 50/batch) |
 | SkillsMP SKILL.md (search GitHub raw + sitemap raw) | 1,957 + 1,695 |
 | souls.directory SOUL.md | 910 on disk (789 cataloged) |
