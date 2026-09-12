@@ -1,12 +1,12 @@
 # skills.sh errors
 
-Updated: 2026-09-12T18:11:40Z
+Updated: 2026-09-12T18:13:52Z
 
 ## Rate limit
 
 Live `GET /api/download/{owner}/{repo}/{slug}` returns HTTP 429 `{"error":"rate_limit_exceeded","message":"Rate limit exceeded. Maximum 60 requests per hour."}` with `Retry-After: 60`.
 
-Target is all 19998 sitemap ids. 2709 have full `files/` + hash. 17253 remain.
+Target is all 19998 sitemap ids. 2711 have full `files/` + hash. 17251 remain.
 At 50 successful downloads/hour this is a multi-day resume job. The downloader is resume-friendly and stays under the cap.
 
 ## Permanent misses
@@ -15,6 +15,6 @@ At 50 successful downloads/hour this is a multi-day resume job. The downloader i
 
 Recent failures / fallbacks:
 
-- `aaron-he-zhu/seo-geo-claude-skills/geo-content-optimizer` rate_limited: HTTP 429 rate_limit_exceeded (60/hour)
+- `forcedotcom/sf-skills/platform-list-view-generate` rate_limited: HTTP 429 rate_limit_exceeded (60/hour)
 
 Resume: `python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`
