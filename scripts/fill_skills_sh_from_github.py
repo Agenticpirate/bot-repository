@@ -767,6 +767,10 @@ def raw_probe(owner: str, repo: str, items: list[dict]) -> dict:
             f".claude/skills/{slug}/SKILL.md",
             f".agents/skills/{slug}/SKILL.md",
             f"agents/skills/{slug}/SKILL.md",
+            f"plugins/{slug}/skills/{slug}/SKILL.md",
+            f"plugins/{slug}/SKILL.md",
+            f"packages/{slug}/SKILL.md",
+            f"packages/skills/{slug}/SKILL.md",
             f"{slug}/SKILL.md",
             "SKILL.md",
         ]
@@ -964,7 +968,7 @@ def write_progress_and_index(
         "other_filled": filled["other"],
         "html_fallback_404": n404,
         "html_fallback_this_batch": 0,
-        "failed": batch_stats.get("failed_repos", 0),
+        "failed": int(prev.get("failed") or 0),
         "rate_limited_this_batch": 0,
         "remaining": remaining,
         "concurrency": batch_stats.get("workers"),
@@ -1005,6 +1009,11 @@ def main() -> int:
         action="store_true",
         help="probe remaining slugs via raw.githubusercontent.com only (includes already-cloned repos)",
     )
+    parser.add_argument(
+        "--trees-leftovers",
+        action="store_true",
+        help="Git Trees + raw for remaining slugs (includes already-cloned repos)",
+    )
     parser.add_argument("--update-catalog", action="store_true")
     parser.add_argument("--reports-only", action="store_true")
     parser.add_argument("--min-skills", type=int, default=0, help="only repos with at least N pending")
@@ -1013,7 +1022,7 @@ def main() -> int:
 
     grouped = load_pending()
     skip_404 = load_miss_repos()
-    skip_done = set() if args.raw_leftovers else load_done_repos()
+    skip_done = set() if (args.raw_leftovers or args.trees_leftovers) else load_done_repos()
     repos = sorted(grouped.items(), key=lambda kv: (-len(kv[1]), kv[0]))
     if skip_404:
         repos = [r for r in repos if r[0] not in skip_404]
@@ -1056,9 +1065,25 @@ def main() -> int:
     def work(pair: tuple[str, list[dict]]) -> dict:
         owner_repo, items = pair
         try:
-            if args.raw_leftovers:
+            if args.raw_leftovers or args.trees_leftovers:
                 owner, repo = owner_repo.split("/", 1)
                 pending = [i for i in items if not has_files(i["dest"])]
+                if args.trees_leftovers:
+                    result = trees_and_raw(owner, repo, pending, token)
+                    leftover = [i for i in pending if i["id"] in set(result["missed"])]
+                    if leftover:
+                        probed = raw_probe(owner, repo, leftover)
+                        result["filled"] += probed["filled"]
+                        result["missed"] = probed["missed"]
+                        if probed["filled"]:
+                            result["via"] = "trees+raw-leftovers"
+                    return {
+                        "repo": owner_repo,
+                        "filled": result["filled"],
+                        "missed": len(result["missed"]),
+                        "via": result["via"],
+                        "pending": len(pending),
+                    }
                 probed = raw_probe(owner, repo, pending)
                 return {
                     "repo": owner_repo,
