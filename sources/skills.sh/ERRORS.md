@@ -1,12 +1,12 @@
 # skills.sh errors
 
-Updated: 2026-09-12T15:49:47Z
+Updated: 2026-09-12T15:51:58Z
 
 ## Rate limit
 
 Live `GET /api/download/{owner}/{repo}/{slug}` returns HTTP 429 `{"error":"rate_limit_exceeded","message":"Rate limit exceeded. Maximum 60 requests per hour."}` with `Retry-After: 60`.
 
-Target is all 19998 sitemap ids. 1712 have full `files/` + hash. 18267 remain.
+Target is all 19998 sitemap ids. 1714 have full `files/` + hash. 18265 remain.
 At 50 successful downloads/hour this is a multi-day resume job. The downloader is resume-friendly and stays under the cap.
 
 ## Permanent misses
@@ -15,7 +15,6 @@ At 50 successful downloads/hour this is a multi-day resume job. The downloader i
 
 Recent failures / fallbacks:
 
-- `flutter/agent-plugins/flutter-implementing-navigation-and-routing` html_fallback: HTTP 404
-- `github/awesome-copilot/project-workflow-analysis-blueprint-generator` rate_limited: HTTP 429 rate_limit_exceeded (60/hour)
+- `phuryn/pm-skills/prioritization-frameworks` rate_limited: HTTP 429 rate_limit_exceeded (60/hour)
 
 Resume: `python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`
