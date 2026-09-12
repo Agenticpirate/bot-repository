@@ -8,7 +8,7 @@ This repository is a mirror for research and citation. **Canonical pages live on
 
 | Item | Status |
 | --- | ---: |
-| **catalog.json rows** | **221,859** |
+| **catalog.json rows** | **221,940** |
 | **x.ai marketplace bots** | **71** (refreshed 2026-09-12; 0 new slugs) |
 | **x.ai marketplace plugins** | **27** (Grok Build catalog @ 9963e48) |
 | **skills.sh downloaded** (files + hash) | **18,561** / 19,998 |
@@ -38,6 +38,7 @@ GitHub bulk fill: `python3 scripts/fill_skills_sh_from_github.py --workers 24`
 - [grokyard.com](https://www.grokyard.com/) — public browse of shareable Grok Bot templates
 - [grokindex.dev](https://grokindex.dev/) — paginated `/api/bots`
 - [gtemplate.net](https://gtemplate.net/) — sitemap bot + blog pages
+- [Agenthunt](https://agent-hunt.netlify.app/) — personal AI agent launch directory (**58** listings; updates twice daily). Hash `#ezail` highlights [Ezail](https://www.ezail.com/). (`sources/agent-hunt.netlify.app/`, plus `sources/ezail.com/`)
 
 ### GitHub packs (shallow clone, `.git` stripped)
 
@@ -90,6 +91,7 @@ GitHub bulk fill: `python3 scripts/fill_skills_sh_from_github.py --workers 24`
 - [cursor.com/marketplace](https://cursor.com/marketplace) — public plugin/agent/skill listings (index HTML + per-listing metadata)
 - [n8nworkflows.xyz](https://n8nworkflows.xyz/) — **blocked** by Cloudflare from this host (see ERRORS.md)
 - [crewform.tech](https://crewform.tech/) — homepage only; no public catalog/API
+- [vellum.ai/skills](https://www.vellum.ai/skills) — public assistant skills catalog (75 titles; compact snapshot via Agenthunt outbound discovery)
 - [botdirectory.ai](https://botdirectory.ai/) — full `/api/bots.json` (645) + OpenAPI + RSS
 - [botmarket.bot](https://botmarket.bot/) — `/v1/agents` (200) + `/v1/skills` (500); offset ignored
 - [a2a-registry.org](https://www.a2a-registry.org/) — public /browse agents + agent cards
@@ -169,6 +171,10 @@ sources/dev.meta.ai-cookbook/
 sources/muse-thirdparty/
 sources/claude.com-plugins/
 sources/n8n.io-workflows/
+sources/agent-hunt.netlify.app/
+sources/ezail.com/
+sources/vellum.ai/
+sources/moldable.sh/
 sources/agentskill.sh/
 sources/clawhub.ai/
 sources/agensi.io/
@@ -363,10 +369,14 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | bolna.ai | 3 |
 | app.kuchhbhi.in | 2 |
 | nodesphereai | 1 (NXDOMAIN) |
+| agent-hunt.netlify.app | 59 |
+| ezail.com | 7 |
+| vellum.ai | 10 |
+| moldable.sh | 5 |
 
 ## Fetch notes
 
-Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`, `scripts/download_skills_sh.py`, `scripts/ingest_priority_a.py`, `scripts/ingest_priority_b.py`, `scripts/ingest_priority_cd.py`, `scripts/ingest_claude_ecosystem.py`, `scripts/ingest_batch3.py`, `scripts/download_n8n_official.py`, `scripts/archive_claude_skills_latest.py`, `scripts/finish_claude_skills_latest.py`, `scripts/ingest_batch4.py`, `scripts/deepen_batch4.py`, `scripts/fast_secondary.py`.
+Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`, `scripts/download_skills_sh.py`, `scripts/ingest_priority_a.py`, `scripts/ingest_priority_b.py`, `scripts/ingest_priority_cd.py`, `scripts/ingest_claude_ecosystem.py`, `scripts/ingest_batch3.py`, `scripts/download_n8n_official.py`, `scripts/archive_claude_skills_latest.py`, `scripts/finish_claude_skills_latest.py`, `scripts/ingest_batch4.py`, `scripts/deepen_batch4.py`, `scripts/fast_secondary.py`, `scripts/archive_agent_hunt.py`.
 
 ## Caps / failures
 

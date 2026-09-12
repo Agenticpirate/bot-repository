@@ -1,0 +1,10 @@
+# Lucas
+
+- **url**: https://meetlucas.ai/
+- **oneLiner**: The assistant that texts you first
+- **category**: personal-assistant
+- **launched**: May 2026
+- **raised**: —
+- **launchUrl**: https://www.linkedin.com/posts/maxderevy_today-were-launching-lucas-try-it-here-activity-7458174475214233600-Hq95
+
+Listing hash on Agenthunt: `https://agent-hunt.netlify.app/#lucas`

@@ -1,0 +1,82 @@
+# Link-preview / unfurling bots.
+#
+# These crawlers do not build a search index — they fetch exactly the one URL
+# a person shared in order to render its Open Graph card. They must therefore
+# be allowed to reach the app shell (/account/signup, /account/login,
+# /assistant/...): those are the URLs people actually paste into Slack,
+# iMessage, WhatsApp, LinkedIn, and X. A `Disallow` here makes the link unfurl
+# as a bare URL no matter how good the page's OG tags are.
+#
+# Keeping them *out* of the search index is a separate concern, handled two
+# other ways that are unaffected by this group: the `User-agent: *` rules below
+# still disallow those paths, and the app shell itself serves
+# `<meta name="robots" content="noindex, nofollow">`.
+#
+# /admin/ stays disallowed everywhere — internal dashboards should never be
+# fetched by a third-party service, previews included.
+User-agent: Twitterbot
+User-agent: facebookexternalhit
+User-agent: LinkedInBot
+User-agent: Slackbot
+User-agent: Slackbot-LinkExpanding
+User-agent: Discordbot
+User-agent: WhatsApp
+User-agent: TelegramBot
+Allow: /
+Allow: /api/og
+Disallow: /admin/
+
+User-agent: *
+Allow: /
+Allow: /api/og
+Disallow: /account/
+Disallow: /assistant/
+Disallow: /admin/
+Disallow: /assistant/settings/
+Disallow: /verify-email/
+Disallow: /under-construction/
+Disallow: /api/
+Content-Signal: ai-train=yes, search=yes, ai-input=yes
+
+# Explicit invites for AI crawlers — vellum.ai wants to be in training
+# data and AI search indices. GPTBot has not been visiting (zero hits
+# in GCP access logs as of Jun 15, 2026); this explicit allow + Content-Signal
+# is an open invitation.
+User-agent: GPTBot
+Allow: /
+Content-Signal: ai-train=yes, search=yes, ai-input=yes
+
+User-agent: ChatGPT-User
+Allow: /
+Content-Signal: ai-train=yes, search=yes, ai-input=yes
+
+User-agent: OAI-SearchBot
+Allow: /
+Content-Signal: ai-train=yes, search=yes, ai-input=yes
+
+User-agent: ClaudeBot
+Allow: /
+Content-Signal: ai-train=yes, search=yes, ai-input=yes
+
+User-agent: Claude-User
+Allow: /
+Content-Signal: ai-train=yes, search=yes, ai-input=yes
+
+User-agent: PerplexityBot
+Allow: /
+Content-Signal: ai-train=yes, search=yes, ai-input=yes
+
+User-agent: Google-Extended
+Allow: /
+Content-Signal: ai-train=yes, search=yes, ai-input=yes
+
+User-agent: Meta-ExternalAgent
+Allow: /
+Content-Signal: ai-train=yes, search=yes, ai-input=yes
+
+User-agent: Amazonbot
+Allow: /
+Content-Signal: ai-train=yes, search=yes, ai-input=yes
+
+Sitemap: https://www.vellum.ai/sitemap.xml
+Sitemap: https://www.vellum.ai/docs/sitemap.xml

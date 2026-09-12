@@ -49,6 +49,7 @@ Do not invent serials or scrape private data.
 | [dev.meta.ai cookbooks](https://dev.meta.ai/docs/cookbook) | HTML + MD + llms.txt | Muse Spark / Muse Code recipes; no plugin store. |
 | [edheltzel/Muse](https://github.com/edheltzel/Muse) | GitHub shallow clone | Single Muse-branded skill. |
 | Muse third-party listings | `sources/muse-thirdparty/` | AgentForge 200; ClaudeMarket 429. |
+| [Agenthunt](https://agent-hunt.netlify.app/) | `/agents.json` (58) | Updates twice daily. Per-agent `meta.json` + `agent.md`. `#ezail` → [Ezail](https://www.ezail.com/) (`sources/ezail.com/`). Outbound discovery archived [Vellum skills](https://www.vellum.ai/skills) + [Moldable bots](https://moldable.sh/bots). |
 
 ## Possible later
 

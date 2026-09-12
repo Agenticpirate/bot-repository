@@ -1,0 +1,10 @@
+# Vellum
+
+- **url**: https://www.vellum.ai/
+- **oneLiner**: An assistant that knows you deeply and belongs to no one else
+- **category**: personal-assistant
+- **launched**: Mar 2023
+- **raised**: Raised $5M
+- **launchUrl**: https://techcrunch.com/2023/07/11/prompt-engineering-startup-vellum-ai/
+
+Listing hash on Agenthunt: `https://agent-hunt.netlify.app/#vellum`
