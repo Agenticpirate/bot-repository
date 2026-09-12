@@ -44,6 +44,7 @@ Do not invent serials or scrape private data.
 | [alexclowe/awesome-claude-cowork-plugins](https://github.com/alexclowe/awesome-claude-cowork-plugins) | GitHub shallow clone | Profession-specific Cowork plugins. |
 | [code.claude.com plugin docs](https://code.claude.com/docs/en/plugins-reference) | HTML + MD snapshots | Official marketplaces listed in plugin-marketplaces.md. |
 | [claude.com/product/cowork](https://claude.com/product/cowork) | HTML snapshots | Product, overview, plugins guide, blog, /plugins. |
+| Claude Code/Cowork extra packs | GitHub shallow clones | See [claude-ecosystem-sources.md](claude-ecosystem-sources.md): official financial/life-sciences/healthcare/tag/commerce + awesome-claude-* galleries + CLAUDE.md templates. |
 
 ## Possible later
 

@@ -42,6 +42,9 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [anthropics/knowledge-work-plugins](https://github.com/anthropics/knowledge-work-plugins) — official Cowork + Code role plugins
 - [anthropics/claude-for-legal](https://github.com/anthropics/claude-for-legal)
 - [alexclowe/awesome-claude-cowork-plugins](https://github.com/alexclowe/awesome-claude-cowork-plugins)
+- [anthropics/financial-services](https://github.com/anthropics/financial-services), [life-sciences](https://github.com/anthropics/life-sciences), [healthcare](https://github.com/anthropics/healthcare), [claude-tag-plugins](https://github.com/anthropics/claude-tag-plugins), [commerce-agents](https://github.com/anthropics/commerce-agents), [claude-desktop-buddy](https://github.com/anthropics/claude-desktop-buddy)
+- [ComposioHQ/awesome-claude-skills](https://github.com/ComposioHQ/awesome-claude-skills), [hesreallyhim/awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code), [wshobson/agents](https://github.com/wshobson/agents), [VoltAgent/awesome-claude-code-subagents](https://github.com/VoltAgent/awesome-claude-code-subagents)
+- [travisvn/awesome-claude-skills](https://github.com/travisvn/awesome-claude-skills), [BehiSecc/awesome-claude-skills](https://github.com/BehiSecc/awesome-claude-skills), [ccplugins/awesome-claude-code-plugins](https://github.com/ccplugins/awesome-claude-code-plugins), [abhishekray07/claude-md-templates](https://github.com/abhishekray07/claude-md-templates)
 - [khendzel/awesome-agent-skills](https://github.com/khendzel/awesome-agent-skills)
 - [mergisi/awesome-openclaw-agents](https://github.com/mergisi/awesome-openclaw-agents)
 - [michielhdoteth/awesome-ai-agent-tools](https://github.com/michielhdoteth/awesome-ai-agent-tools)
@@ -187,6 +190,20 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | github/alexclowe-awesome-claude-cowork-plugins | 409 |
 | claude.com-docs | 10 |
 | claude.com-cowork | 6 |
+| github/hesreallyhim-awesome-claude-code | 18 |
+| github/travisvn-awesome-claude-skills | 3 |
+| github/ComposioHQ-awesome-claude-skills | 896 |
+| github/VoltAgent-awesome-claude-code-subagents | 190 |
+| github/ccplugins-awesome-claude-code-plugins | 708 |
+| github/anthropics-claude-desktop-buddy | 6 |
+| github/abhishekray07-claude-md-templates | 14 |
+| github/BehiSecc-awesome-claude-skills | 2 |
+| github/anthropics-life-sciences | 72 |
+| github/anthropics-commerce-agents | 112 |
+| github/wshobson-agents | 1076 |
+| github/anthropics-financial-services | 324 |
+| github/anthropics-healthcare | 127 |
+| github/anthropics-claude-tag-plugins | 82 |
 | github/khendzel-awesome-agent-skills | 3 |
 | github/mergisi-awesome-openclaw-agents | 402 |
 | github/michielhdoteth-awesome-ai-agent-tools | 133 |
