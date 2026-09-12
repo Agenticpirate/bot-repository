@@ -200,7 +200,7 @@ Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/A
 
 ## Caps / failures
 
-- **skills.sh** — full skill files via the download API (`files/` + hash). The API allows 60 requests/hour; **635** downloaded, **19,352** remaining. Resume via `scripts/download_skills_sh.py`.
+- **skills.sh** — full skill files via the download API (`files/` + hash). The API allows 60 requests/hour; **685** downloaded, **19,302** remaining. Resume via `scripts/download_skills_sh.py`.
 - **grokbothq.xyz** — 15 bot slugs ending in `_` have no `.md` variant; HTML saved instead.
 - **cursor.com/marketplace** — index HTML plus per-listing metadata; full listing HTML discarded (duplicate ~1.4 MiB Next.js shells).
 - **n8nworkflows.xyz** — Cloudflare 403 on retry; 0 workflow JSON files.
