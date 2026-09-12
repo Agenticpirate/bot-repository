@@ -2,6 +2,7 @@
 # Run skills.sh 50-download batches until 429 or remaining < 100.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+empty_429=0
 while true; do
   set +e
   python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog
@@ -47,14 +48,29 @@ PY
     git add README.md catalog.json sources/skills.sh
     git commit -m "Download skills.sh skill files (hourly batch +${BATCH}; ${OK} total)
 
-${BATCH} downloaded this pass, ${FALLBACK} HTML 404 fallbacks. ${REM} remaining. INDEX updated."
-    git push -u origin main
+${BATCH} downloaded this pass, ${FALLBACK} HTML 404 fallbacks. ${REM} remaining. INDEX updated." || true
+    for i in 1 2 3 4; do
+      git pull --rebase origin main || true
+      if git push -u origin main; then
+        break
+      fi
+      sleep $((4 * 2 ** (i-1)))
+      if [[ "$i" -eq 4 ]]; then
+        echo "PUSH_FAILED"
+        exit 4
+      fi
+    done
   fi
   if [[ "${REM}" -lt 100 ]]; then
     echo "DONE_REMAINING_${REM}"
     exit 0
   fi
   if [[ "${LIMITED}" != "0" ]]; then
+    if [[ "${BATCH}" == "0" ]]; then
+      empty_429=$((empty_429 + 1))
+    else
+      empty_429=0
+    fi
     wait_s="$(python3 - << 'PY'
 import json, time
 from pathlib import Path
@@ -67,11 +83,16 @@ else:
     print(max(5, int(ra - now) + 5))
 PY
 )"
-    if [[ "${wait_s}" -gt 180 ]]; then
+    if [[ "${empty_429}" -ge 2 ]]; then
+      wait_s=480
+    fi
+    if [[ "${wait_s}" -gt 900 ]]; then
       echo "RATE_LIMITED_LONG_WAIT_${wait_s}"
       exit 3
     fi
-    echo "RATE_LIMITED short wait ${wait_s}s then resume"
+    echo "RATE_LIMITED wait ${wait_s}s empty_429=${empty_429} then resume"
     sleep "${wait_s}"
+  else
+    empty_429=0
   fi
 done
