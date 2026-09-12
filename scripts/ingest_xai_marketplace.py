@@ -9,6 +9,7 @@ catalog rows.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import random
 import re
@@ -92,6 +93,18 @@ def http_get(url: str) -> bytes:
                 break
             time.sleep(min(20.0, (2 ** (attempt - 1)) + random.random()))
     raise RuntimeError(f"failed after {RETRIES} attempts: {url}: {last_err}")
+
+
+def slugs_from_html(html: str) -> list[str]:
+    found = re.findall(r"/bot/marketplace/bots/([a-z0-9-]+)", html, flags=re.I)
+    return list(dict.fromkeys(found))
+
+
+def template_revision(template: dict | None) -> str | None:
+    if not template:
+        return None
+    blob = json.dumps(template, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    return hashlib.sha256(blob).hexdigest()
 
 
 def parse_sitemap_bots(xml_bytes: bytes) -> list[str]:
@@ -314,12 +327,25 @@ def _jsonld_description(blocks: list) -> str | None:
 def process_bot(slug: str) -> dict:
     url = f"{BOT_PREFIX}{slug}"
     dest = ROOT / "bots" / slug
+    prev_rev = None
+    prev_meta = dest / "meta.json"
+    if prev_meta.is_file():
+        try:
+            prev_rev = json.loads(prev_meta.read_text(encoding="utf-8")).get("revision")
+        except (OSError, json.JSONDecodeError):
+            prev_rev = None
+    if prev_rev is None and (dest / "template.json").is_file():
+        try:
+            prev_rev = template_revision(json.loads((dest / "template.json").read_text(encoding="utf-8")))
+        except (OSError, json.JSONDecodeError):
+            prev_rev = None
     try:
         raw = http_get(url)
         html = raw.decode("utf-8", errors="replace")
         write_bytes(dest / "page.html", raw)
         template = extract_template(html, slug)
         jsonld = extract_jsonld(html)
+        revision = template_revision(template)
         if template:
             write_json(dest / "template.json", template)
         if jsonld:
@@ -346,6 +372,7 @@ def process_bot(slug: str) -> dict:
             "instructions_present": bool(str((template or {}).get("instructions") or "").strip()),
             "memories_count": len((template or {}).get("memories") or []),
             "skills_count": len((template or {}).get("skills") or []),
+            "revision": revision,
             "local": {
                 "page": f"sources/x.ai-bot-marketplace/bots/{slug}/page.html",
                 "template": f"sources/x.ai-bot-marketplace/bots/{slug}/template.json"
@@ -355,7 +382,14 @@ def process_bot(slug: str) -> dict:
             },
         }
         write_json(dest / "meta.json", meta)
-        return {"ok": True, "slug": slug, "has_template": bool(template), "meta": meta}
+        return {
+            "ok": True,
+            "slug": slug,
+            "has_template": bool(template),
+            "updated": bool(revision and revision != prev_rev),
+            "new": prev_rev is None,
+            "meta": meta,
+        }
     except Exception as exc:  # noqa: BLE001
         return {"ok": False, "slug": slug, "error": str(exc), "has_template": False}
 
@@ -371,9 +405,11 @@ def write_index(slugs: list[str], results: list[dict]) -> None:
         "Official public catalog of Grok Bot templates. "
         f"Canonical index: [{MARKETPLACE_URL}]({MARKETPLACE_URL}).",
         "",
+        f"- Tab: **Bots** (Grok Bot Marketplace templates)",
+        f"- Plugins tab / Grok Build catalog: [sources/x.ai-bot-marketplace-plugins/](../x.ai-bot-marketplace-plugins/INDEX.md)",
         f"- Sitemap: {SITEMAP_URL}",
         f"- Archived at: {utc_now()}",
-        f"- Slugs in sitemap: {len(slugs)}",
+        f"- Slugs in sitemap + listing pages: {len(slugs)}",
         f"- Pages downloaded: {len(ok)}",
         f"- `template.json` extracted: {len(templates)}",
         f"- Failures: {len(fails)}",
@@ -467,16 +503,35 @@ def main() -> int:
     print(f"sitemap slugs: {len(slugs)}", flush=True)
 
     print("fetching marketplace index…", flush=True)
-    write_bytes(meta_dir / "marketplace.html", http_get(MARKETPLACE_URL))
+    market_html = http_get(MARKETPLACE_URL)
+    write_bytes(meta_dir / "marketplace.html", market_html)
+    extra = slugs_from_html(market_html.decode("utf-8", errors="replace"))
 
     cat_dir = ROOT / "categories"
     for cat in CATEGORY_SLUGS:
         url = f"{MARKETPLACE_URL}/{cat}"
         print(f"category {cat}", flush=True)
         try:
-            write_bytes(cat_dir / f"{cat}.html", http_get(url))
+            body = http_get(url)
+            write_bytes(cat_dir / f"{cat}.html", body)
+            extra.extend(slugs_from_html(body.decode("utf-8", errors="replace")))
         except Exception as exc:  # noqa: BLE001
             write_text(cat_dir / f"{cat}.ERROR.txt", str(exc))
+
+    for slug in extra:
+        if slug and slug not in slugs:
+            slugs.append(slug)
+    write_json(
+        meta_dir / "slugs.json",
+        {
+            "source": SITEMAP_URL,
+            "fetched_at": utc_now(),
+            "count": len(slugs),
+            "slugs": slugs,
+            "urls": [f"{BOT_PREFIX}{s}" for s in slugs],
+        },
+    )
+    print(f"listing slugs after categories: {len(slugs)}", flush=True)
 
     results: list[dict] = []
     print(f"fetching {len(slugs)} bot pages (concurrency={CONCURRENCY})…", flush=True)
@@ -505,6 +560,8 @@ def main() -> int:
     print(
         f"catalog kept={len(kept)} marketplace={len(extra)} total={len(kept)+len(extra)} "
         f"templates={sum(1 for r in results if r.get('has_template'))} "
+        f"new={sum(1 for r in results if r.get('new'))} "
+        f"updated={sum(1 for r in results if r.get('updated'))} "
         f"fail={sum(1 for r in results if not r.get('ok'))}",
         flush=True,
     )

@@ -8,7 +8,9 @@ This repository is a mirror for research and citation. **Canonical pages live on
 
 | Item | Status |
 | --- | ---: |
-| **catalog.json rows** | **219,578** |
+| **catalog.json rows** | **221,859** |
+| **x.ai marketplace bots** | **71** (refreshed 2026-09-12; 0 new slugs) |
+| **x.ai marketplace plugins** | **27** (Grok Build catalog @ 9963e48) |
 | **skills.sh downloaded** (files + hash) | **3,205** / 19,998 |
 | **skills.sh remaining** | **16,755** |
 | skills.sh API cap | 60/hour (client budget 50/batch) |
@@ -23,8 +25,8 @@ Resume skills.sh: `python3 scripts/download_skills_sh.py --concurrency 1 --hourl
 ### Verified jobs / official marketplace
 
 - [really.bot](https://really.bot/) — serialized public log of finished jobs (HTML + JSON + Markdown twins).
-- [x.ai Grok Bot Marketplace](https://x.ai/bot/marketplace) — official templates; slugs from [sitemap.xml](https://x.ai/sitemap.xml).
-- [xai-org/plugin-marketplace](https://github.com/xai-org/plugin-marketplace) — official Grok Build plugins (distinct from Bot marketplace).
+- [x.ai Grok Bot Marketplace](https://x.ai/bot/marketplace) — **Bots** tab templates; slugs from [sitemap.xml](https://x.ai/sitemap.xml) (`sources/x.ai-bot-marketplace/`).
+- [Grok Marketplace Plugins](https://grok.com/bot/marketplace/plugins) / [xai-org/plugin-marketplace](https://github.com/xai-org/plugin-marketplace) — **Plugins** tab / Grok Build catalog (`sources/x.ai-bot-marketplace-plugins/`).
 
 ### Directories / teams
 
@@ -134,6 +136,7 @@ sources/botteams.io/
 sources/github/<owner-repo>/
 sources/usegrokbot.com/
 sources/x.ai-bot-marketplace/
+sources/x.ai-bot-marketplace-plugins/
 sources/openjobs.bot/
 sources/agentgigs.io/
 sources/agoraagents.xyz/
