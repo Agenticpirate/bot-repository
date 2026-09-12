@@ -37,6 +37,14 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [mergisi/awesome-grokbot](https://github.com/mergisi/awesome-grokbot)
 - [ZeroPointRepo/GrokBotDev](https://github.com/ZeroPointRepo/GrokBotDev)
 - [agent-packs/registry](https://github.com/agent-packs/registry)
+- [anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official)
+- [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community)
+- [khendzel/awesome-agent-skills](https://github.com/khendzel/awesome-agent-skills)
+- [mergisi/awesome-openclaw-agents](https://github.com/mergisi/awesome-openclaw-agents)
+- [michielhdoteth/awesome-ai-agent-tools](https://github.com/michielhdoteth/awesome-ai-agent-tools)
+- [difyhub/workflows](https://github.com/difyhub/workflows)
+- [shamspias/awesome-dify-agents](https://github.com/shamspias/awesome-dify-agents)
+- FlowiseAI agentflowsv2 path extract
 
 ### Agent job boards
 
@@ -61,6 +69,13 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [agentskill.sh](https://agentskill.sh/) — public `/api/skills` slice (count reports 275k)
 - [clawhub.ai](https://clawhub.ai/) — OpenAPI + skills/packages API
 - [agensi.io](https://www.agensi.io/grok-bot-marketplace) — grok marketplace HTML + skill sitemap URLs
+- [cursor.directory](https://cursor.directory/) — **429** this host
+- [marketplace.relevanceai.com](https://marketplace.relevanceai.com/) — sitemap URL list
+- [sigrix.io/marketplace/crews](https://sigrix.io/marketplace/crews) — listing HTML
+- [marketplace.dify.ai/templates](https://marketplace.dify.ai/templates) — listing HTML
+- Coze / Botpress / Voiceflow / Zapier Agents / Gumloop / Pipedream — public listing HTML
+- [make.com](https://www.make.com/api/v2/templates/public) — API 401 (login)
+- Activepieces `/v1/templates` — HTML app shell, not JSON
 
 Notes and leftovers: [docs/source-candidates.md](docs/source-candidates.md), [docs/source-candidates-batch2.md](docs/source-candidates-batch2.md).
 
@@ -97,6 +112,15 @@ sources/grokbothq.xyz/
 sources/grokyard.com/
 sources/grokindex.dev/
 sources/gtemplate.net/
+sources/botdirectory.ai/
+sources/botmarket.bot/
+sources/a2a-registry.org/
+sources/openagentskill.com/
+sources/skillselion.com/
+sources/claude-plugins.dev/
+sources/agentskill.sh/
+sources/clawhub.ai/
+sources/agensi.io/
 scripts/
 ```
 
@@ -149,17 +173,40 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | github/agent-packs-registry | 119 |
 | clawhub.ai | 2539 |
 | agensi.io | 4001 |
+| github/anthropics-claude-plugins-official | 309 |
+| github/anthropics-claude-plugins-community | 90 |
+| github/khendzel-awesome-agent-skills | 3 |
+| github/mergisi-awesome-openclaw-agents | 402 |
+| github/michielhdoteth-awesome-ai-agent-tools | 133 |
+| cursor.directory | 1 (HTTP 429) |
+| marketplace.relevanceai.com | 846 |
+| sigrix.io | 1 |
+| marketplace.dify.ai | 1 |
+| github/difyhub-workflows | 28 |
+| github/shamspias-awesome-dify-agents | 4 |
+| github/FlowiseAI-Flowise-agentflowsv2 | 14 |
+| coze.com | 1 |
+| botpress.com | 1 |
+| voiceflow.com | 1 |
+| zapier.com-agents | 1 |
+| make.com | 1 |
+| gumloop.com | 1 |
+| activepieces.com | 1 |
+| pipedream.com | 1 |
 
 ## Fetch notes
 
-Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`, `scripts/download_skills_sh.py`, `scripts/ingest_priority_a.py`.
+Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`, `scripts/download_skills_sh.py`, `scripts/ingest_priority_a.py`, `scripts/ingest_priority_b.py`, `scripts/ingest_priority_cd.py`.
 
 ## Caps / failures
 
 - **skills.sh** — full skill files via the download API (`files/` + hash). The API allows 60 requests/hour; ~577 downloaded, ~19.4k remaining. Resume via `scripts/download_skills_sh.py`.
 - **grokbothq.xyz** — 15 bot slugs ending in `_` have no `.md` variant; HTML saved instead.
 - **cursor.com/marketplace** — index HTML plus per-listing metadata; full listing HTML discarded (duplicate ~1.4 MiB Next.js shells).
-- **n8nworkflows.xyz** — Cloudflare challenge; 0 workflow JSON files.
+- **n8nworkflows.xyz** — Cloudflare 403 on retry; 0 workflow JSON files.
+- **cursor.directory** — HTTP 429 (including Chrome TLS impersonation).
+- **make.com** `/api/v2/templates/public` — 401 not logged in; templates HTML 403.
+- **claude-plugins.dev / skillselion / agentskill.sh / clawhub / openagentskill / agensi** — see each ERRORS.md for list-API caps.
 - **agentgigs.io** — no unauthenticated job dump.
 - **crewform.tech** — no public catalog/API.
 - **openjobs.bot** `/api/jobs?status=open` was empty at snapshot; full `/api/jobs` history was saved.

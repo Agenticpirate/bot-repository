@@ -52,4 +52,6 @@ Do not invent serials or scrape private data.
 | Arahi / AI Hive | Mentioned as optional | Skipped; no clean public feed found this pass. |
 | crewform.tech catalog | Visual orchestration product | No public listing API. |
 
+See [source-candidates-batch2.md](source-candidates-batch2.md) for Priority A–D of the second ingest.
+
 Add a row under Confirmed when a new `sources/` tree lands.

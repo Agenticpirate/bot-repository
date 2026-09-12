@@ -30,19 +30,27 @@ Second ingest list. Priority A is archived on `main`. B–D are attempted in fol
 | clawhub.ai | 1538 skills + 1000 packages (page caps) | Cursor pagination residual. |
 | agensi.io | grok marketplace HTML + 5722 skill URLs | Per-skill HTML not fetched. |
 
-## Priority C — Cursor/Claude/GitHub packs
+## Priority C — Cursor/Claude/GitHub packs (archived)
 
-| Source | Planned entry |
+| Source | Notes |
 | --- | --- |
-| cursor.directory | public listings |
-| anthropics/claude-plugins-official | shallow clone |
-| anthropics/claude-plugins-community | shallow clone |
-| khendzel/awesome-agent-skills | shallow clone |
-| mergisi/awesome-openclaw-agents | shallow clone |
-| michielhdoteth/awesome-ai-agent-tools | shallow clone |
+| cursor.directory | HTTP 429; challenge HTML saved. |
+| anthropics/claude-plugins-official | Shallow clone, 309 catalog rows. |
+| anthropics/claude-plugins-community | Shallow clone, 90 rows. |
+| khendzel/awesome-agent-skills | Shallow clone, 3 rows. |
+| mergisi/awesome-openclaw-agents | Shallow clone, 402 rows. |
+| michielhdoteth/awesome-ai-agent-tools | Shallow clone, 133 rows. |
 
-## Priority D — workflow / agent template platforms
+## Priority D — workflow platforms (public catalogs only)
 
-Public catalogs only. Retry n8nworkflows.xyz if Cloudflare allows.
-
-Relevance AI, Sigrix, Dify (+ GitHub packs), Coze, Botpress, Voiceflow, Zapier Agents, Make.com `/api/v2/templates/public`, Gumloop, Activepieces `/v1/templates`, Pipedream, FlowiseAI agentflowsv2 path extract.
+| Source | Notes |
+| --- | --- |
+| marketplace.relevanceai.com | Sitemap 846 URLs (no per-page HTML). |
+| sigrix.io/marketplace/crews | Listing HTML. |
+| marketplace.dify.ai/templates | Listing HTML. |
+| difyhub/workflows + shamspias/awesome-dify-agents | Shallow clones. |
+| Coze / Botpress hub / Voiceflow / Zapier Agents / Gumloop / Pipedream | Public HTML only. |
+| make.com API | 401 login required. |
+| Activepieces /v1/templates | HTML shell. |
+| FlowiseAI agentflowsv2 | 13 JSON templates extracted. |
+| n8nworkflows.xyz | Still Cloudflare 403. |
