@@ -1,0 +1,338 @@
+---
+name: setup
+description: SETUP COMMAND - Execute TodoWrite FIRST, then Check -> Gate -> Install -> Verify. TRIGGERS - itp setup, install dependencies, check prerequisites
+allowed-tools: Read, Bash(brew:*), Bash(npm:*), Bash(uv:*), Bash(which:*), Bash(command -v:*), Bash(PLUGIN_DIR:*), Bash(source:*), AskUserQuestion, TodoWrite, TodoRead
+argument-hint: "[--check | --install | --yes]"
+disable-model-invocation: false
+---
+
+<!--
+ADR: 2025-12-05-itp-setup-todowrite-workflow
+-->
+
+# ITP Setup
+
+Verify and install dependencies required by the `/itp:go` workflow using TodoWrite-driven interactive workflow.
+
+---
+
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
+## MANDATORY FIRST ACTION
+
+**YOUR FIRST ACTION MUST BE TodoWrite with the template below.**
+
+DO NOT:
+
+- Run any checks before TodoWrite
+- Skip the interactive gate
+- Install without user confirmation
+
+**Execute this TodoWrite template EXACTLY:**
+
+```
+TodoWrite with todos:
+- "Setup: Bootstrap cc-plugin-root resolver" | pending | "Bootstrapping path resolver"
+- "Setup: Detect platform (macOS/Linux)" | pending | "Detecting platform"
+- "Setup: Check Core Tools (uv, gh, prettier)" | pending | "Checking Core Tools"
+- "Setup: Check Code Audit Tools (ruff, semgrep, jscpd, gitleaks)" | pending | "Checking Audit Tools"
+- "Setup: Check Release Tools (node, semantic-release)" | pending | "Checking Release Tools"
+- "Setup: Present findings and disclaimer" | pending | "Presenting findings"
+- "Setup: GATE - Await user decision" | pending | "Awaiting user decision"
+- "Setup: Install missing tools (if confirmed)" | pending | "Installing missing tools"
+- "Setup: Verify installation" | pending | "Verifying installation"
+```
+
+**After TodoWrite completes, proceed to Phase 1 below.**
+
+---
+
+## Phase 1: Preflight Check
+
+Mark each todo as `in_progress` before starting, `completed` when done.
+
+### Todo 0: Bootstrap the `cc-plugin-root` resolver
+
+Every later step resolves plugin paths with `cc-plugin-root`, so install it first. This is the ONE
+place a marketplace-mirror path is hardcoded — it is the bootstrap, and by definition cannot use the
+resolver it is installing. Idempotent; safe to re-run.
+
+```bash
+/usr/bin/env bash << 'SETUP_EOF'
+set -euo pipefail
+if command -v cc-plugin-root >/dev/null 2>&1; then
+  echo "cc-plugin-root: already on PATH ($(command -v cc-plugin-root))"
+  exit 0
+fi
+SRC="$HOME/.claude/plugins/marketplaces/cc-skills/scripts/cc-plugin-root"
+if [[ ! -f "$SRC" ]]; then
+  echo "cc-plugin-root: not found at $SRC — update the marketplace first:" >&2
+  echo "  claude plugin marketplace update cc-skills" >&2
+  exit 1
+fi
+mkdir -p "$HOME/.local/bin"
+chmod +x "$SRC"
+ln -sfn "$SRC" "$HOME/.local/bin/cc-plugin-root"
+echo "cc-plugin-root: linked -> $HOME/.local/bin/cc-plugin-root"
+command -v cc-plugin-root >/dev/null 2>&1 \
+  || echo "WARNING: ~/.local/bin is not on PATH — add it to your shell profile." >&2
+SETUP_EOF
+```
+
+**Why it exists**: the `CLAUDE_PLUGIN_ROOT` placeholder is not a shell variable — Claude Code substitutes it only
+inside plugin manifests and sets it only in hook/MCP subprocess environments, so a skill that uses it
+gets an empty string. `cc-plugin-root <plugin>` reads `~/.claude/plugins/installed_plugins.json` and
+prints the live install path instead. See the
+[skill-plugin-root guard spoke](../../../itp-hooks/docs/skill-plugin-root-guard.md).
+
+### Todo 1: Detect Platform
+
+```bash
+/usr/bin/env bash << 'SETUP_EOF'
+PLUGIN_DIR="$(cc-plugin-root itp)"
+source "$PLUGIN_DIR/scripts/install-dependencies.sh" --detect-only
+SETUP_EOF
+```
+
+Platform detection sets: `OS`, `PM` (package manager), `HAS_MISE`
+
+### Todo 2: Check Core Tools
+
+Check each tool using `command -v`:
+
+| Tool     | Check                 | Required |
+| -------- | --------------------- | -------- |
+| uv       | `command -v uv`       | Yes      |
+| gh       | `command -v gh`       | Yes      |
+| prettier | `command -v prettier` | Yes      |
+
+Record findings:
+
+- Found: `[OK] uv (installed)` -> mark completed
+- Missing: `[x] prettier (missing)` -> note for Phase 3
+
+### Todo 3: Check Code Audit Tools
+
+| Tool     | Check                 | Required        |
+| -------- | --------------------- | --------------- |
+| ruff     | `command -v ruff`     | For code-audit  |
+| semgrep  | `command -v semgrep`  | For code-audit  |
+| jscpd    | `command -v jscpd`    | For code-audit  |
+| gitleaks | `command -v gitleaks` | For secret-scan |
+
+### Todo 4: Check Release Tools
+
+| Tool             | Check                            | Required      |
+| ---------------- | -------------------------------- | ------------- |
+| node             | `command -v node`                | For release   |
+| semantic-release | `npx semantic-release --version` | For release   |
+| doppler          | `command -v doppler`             | For PyPI only |
+
+---
+
+## Phase 2: Present Findings (Interactive Gate)
+
+### Todo 5: Present Findings
+
+**IMPORTANT: Use mise-first commands when available**
+
+When presenting missing tool installation commands:
+
+- If `HAS_MISE=true` (detected in Todo 1): Show mise commands
+- If `HAS_MISE=false`: Show platform package manager commands (brew/apt)
+
+**Mise command reference (use when HAS_MISE=true):**
+
+| Tool     | mise command                     | Notes                          |
+| -------- | -------------------------------- | ------------------------------ |
+| gitleaks | `mise use --global gitleaks`     |                                |
+| ruff     | `mise use --global ruff`         |                                |
+| uv       | `mise use --global uv`           |                                |
+| gh       | `brew install gh`                | **NEVER mise** (iTerm2 issues) |
+| semgrep  | `mise use --global semgrep`      |                                |
+| node     | `mise use --global node`         |                                |
+| doppler  | `mise use --global doppler`      |                                |
+| prettier | `mise use --global npm:prettier` |                                |
+| jscpd    | `npm i -g jscpd` (npm only)      |                                |
+
+> **Warning**: gh CLI must be installed via Homebrew, not mise. mise-installed gh causes iTerm2 tab spawning issues with Claude Code. [ADR](/docs/adr/2026-01-12-mise-gh-cli-incompatibility.md)
+
+**Display summary format (versions derived from actual tool output):**
+
+```
+=== SETUP PREFLIGHT COMPLETE ===
+
+Found: X tools | Missing: Y tools
+
+Your existing installations:
+[OK] uv (<derived from: uv --version>)
+[OK] gh (<derived from: gh --version>)
+[x] gitleaks (missing)
+...
+
+Note: This plugin is developed against latest tool versions.
+Your existing installations are respected.
+
+Missing tools will be installed via mise (detected):
+  gitleaks -> mise use --global gitleaks
+```
+
+**If HAS_MISE=false, show platform commands instead:**
+
+```
+Missing tools will be installed via brew:
+  gitleaks -> brew install gitleaks
+```
+
+**IMPORTANT**: Version numbers must be derived dynamically from running the actual tool's version command. Never hardcode version numbers.
+
+### Todo 6: GATE - Await User Decision
+
+**If missing tools exist, STOP and ask user:**
+
+Use AskUserQuestion with these options:
+
+```
+question: "Would you like to install the missing tools?"
+header: "Install"
+options:
+  - label: "Install missing"
+    description: "Automatically install all missing tools"
+  - label: "Skip"
+    description: "Show manual install commands and exit"
+```
+
+**IMPORTANT**: Do NOT proceed to Phase 3 until user responds.
+
+**If ALL tools present**: Mark todo completed, skip to "All set!" message, mark todos 7-8 as N/A.
+
+---
+
+## Phase 3: Installation (Conditional)
+
+### Todo 7: Install Missing Tools
+
+**Only execute if**:
+
+- User selected "Install missing"
+- OR `--install` flag was passed (skip interactive gate)
+
+Run installation commands for missing tools only:
+
+```bash
+/usr/bin/env bash << 'SETUP_EOF_2'
+PLUGIN_DIR="$(cc-plugin-root itp)"
+bash "$PLUGIN_DIR/scripts/install-dependencies.sh" --install
+SETUP_EOF_2
+```
+
+**If user selected "Skip"**:
+
+- Display manual install commands
+- Mark todo as skipped
+- Exit cleanly
+
+### Todo 8: Verify Installation
+
+Re-run checks to confirm tools are now available:
+
+```bash
+/usr/bin/env bash << 'PREFLIGHT_EOF'
+PLUGIN_DIR="$(cc-plugin-root itp)"
+bash "$PLUGIN_DIR/scripts/install-dependencies.sh" --check
+PREFLIGHT_EOF
+```
+
+Mark todo completed only if verification passes.
+
+---
+
+## Flag Handling
+
+| Flag        | Behavior                                    |
+| ----------- | ------------------------------------------- |
+| (none)      | Default: Check -> Gate -> Ask permission    |
+| `--check`   | Same as default (hidden alias)              |
+| `--install` | Check -> Skip gate -> Install automatically |
+| `--yes`     | Alias for `--install`                       |
+
+Parse `$ARGUMENTS` for flags:
+
+```bash
+case "$ARGUMENTS" in
+  *--install*|*--yes*)
+    SKIP_GATE=true
+    ;;
+  *)
+    SKIP_GATE=false
+    ;;
+esac
+```
+
+---
+
+## Edge Cases
+
+| Case                              | Handling                                                          |
+| --------------------------------- | ----------------------------------------------------------------- |
+| All tools present                 | Todos 1-5 complete, Todo 6 shows "All set!", Todos 7-8 marked N/A |
+| Some missing, user says "install" | Todos 7-8 execute normally                                        |
+| Some missing, user says "skip"    | Show manual commands, mark todos 7-8 as skipped                   |
+| `--install` flag passed           | Skip Todo 6 gate, proceed directly to install                     |
+| macOS vs Linux                    | Todo 1 detects platform, install commands adapt                   |
+
+## Troubleshooting
+
+### semantic-release not found
+
+```bash
+# Install globally with npm
+npm i -g semantic-release@25
+
+# Or use npx (no global install needed)
+npx semantic-release --version
+```
+
+### Permission errors with npm
+
+```bash
+/usr/bin/env bash << 'CONFIG_EOF'
+# Fix npm permissions
+mkdir -p ~/.npm-global
+npm config set prefix '~/.npm-global'
+
+# Add to your shell config
+SHELL_RC="$([[ "$SHELL" == */zsh ]] && echo ~/.zshrc || echo ~/.bashrc)"
+echo 'export PATH=~/.npm-global/bin:$PATH' >> "$SHELL_RC"
+source "$SHELL_RC"
+CONFIG_EOF
+```
+
+---
+
+## Next Steps
+
+Nothing to install. The itp-hooks hooks are shipped in `plugins/itp-hooks/hooks/hooks.json` and Claude Code loads them from the plugin itself — enabling the `itp-hooks` plugin is the whole installation step. The `/itp:tether` installer that used to inject them into `~/.claude/settings.json` was retired in issue #127 because that second registration made every matching event fire the hook twice.
+
+### What the shipped hooks provide
+
+- **PreToolUse guards**: the Write/Edit orchestrator (version, shell-safety, TypeScript-version, hoisted-deps, mise-hygiene and more), plus per-tool Bash guards
+- **PostToolUse reminder**: prompts ADR sync after Bash/Write/Edit/MultiEdit
+
+**IMPORTANT:** A newly enabled plugin's hooks take effect after a Claude Code session restart.
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path (Glob for this skill's name) before editing. All corrections target THIS file and its sibling references/ — never other documentation.
+1. **What failed?** — Fix the instruction that caused it. If it could recur, add it as an anti-pattern.
+2. **What worked better than expected?** — Promote it to recommended practice. Document why.
+3. **What drifted?** — Any script, reference, or external dependency that no longer matches reality gets fixed now.
+4. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.
+
+---
+
+---

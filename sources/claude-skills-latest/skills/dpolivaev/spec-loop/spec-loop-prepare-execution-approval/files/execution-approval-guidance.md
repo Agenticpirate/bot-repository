@@ -1,0 +1,309 @@
+# Execution-approval guidance for task-file work
+
+This file is the authoritative source for task-file review readiness,
+execution-approval-seeking behavior, readiness checks, diagram-first
+presentation, duplication removal, and response rules for task-file
+implementation and investigation work.
+
+It reuses the full `spec-loop-plan-task` bundle for shared workflow
+conventions.
+
+Optional compact examples:
+- [examples/example-task-session-state-boundary.md](examples/example-task-session-state-boundary.md)
+- [examples/example-task-serialized-payload-change.md](examples/example-task-serialized-payload-change.md)
+
+Use the examples as pattern collections, not as required task size.
+
+## 1. Source of truth
+
+Refresh the relevant `spec-loop-plan-task` bundle requirements in the
+active context.
+
+Use the active task or active subtask as the controlling specification
+for the current increment. Re-read only the current increment and the
+sections that control approval readiness. Do not inflate future
+subtasks.
+
+Capture any new readiness-check decisions in the same task so it stays
+internally consistent.
+
+## 2. Allowed user-facing outcomes
+
+Only these outcomes are allowed.
+
+### A. Task review may proceed
+
+Polish the task for human design review before showing it to the user.
+
+If the next action is the internal execution-approval gate, ask the
+User to approve the planned implementation or investigation.
+`Execution approval` is an internal workflow term; do not use that
+phrase in user-facing approval requests.
+
+Use approval language such as:
+- for implementation work:
+  `The task is ready to implement after your approval.`
+  `Please review it and tell me whether to implement it.`
+- for investigation work:
+  `The investigation plan is ready to run after your approval.`
+  `Please review it and tell me whether to run the investigation.`
+
+Do not say only `ready for review`, because `review` is overloaded
+between design review and post-execution review state.
+
+### B. Review is blocked
+
+Do not show the task as reviewable and do not ask for execution
+approval.
+
+State clearly that the task is not yet review ready, and list the exact
+missing items.
+
+### C. Clarification is required
+
+If any important open decision remains during approval
+preparation, the task is not review ready.
+
+Keep the work in PLAN, invoke [spec-loop-clarify-task/SKILL.md](../spec-loop-clarify-task/SKILL.md) in
+the same turn, and ask only the exact questions still needed to resolve
+those open decisions through that workflow.
+
+Approval preparation and any clarification it invokes both stay in
+PLAN. They do not freeze the active task.
+
+## 3. Readiness loop
+
+Before seeking execution approval, repair and revise the active task
+in place as needed for the current work item.
+
+If readiness checks fail, use this branch order:
+1. If the failure is directly fixable in the active task, fix it and
+   re-run the readiness checks.
+2. If the failure can be resolved from existing evidence, update the
+   active task and re-run the readiness checks.
+3. If compaction is needed, use
+   [spec-loop-compact-task-file/SKILL.md](../spec-loop-compact-task-file/SKILL.md), then resume this skill.
+4. If any important open decision remains, use outcome C
+   immediately.
+5. Use outcome B only for non-question blockers that remain after the
+   applicable direct fixes and evidence-based updates, or when the
+   user explicitly asked for status-only feedback.
+
+Do not silently restructure task files. For a no-subtask
+implementation task, check this before approval: is it clearly safe to
+review, implement, test, and accept this as one piece?
+
+If not, the task is not approval-ready. Do not seek execution
+approval. List the visible slices or the uncertainty. If one rewrite is
+obvious, recommend it. Ask whether to apply it now, unless the User
+already rejected that rewrite for the same work item. Continue without
+asking only when the no-subtask structure is clearly right.
+
+Use the same ask-first rule when splitting the active subtask may make
+the work clearer, safer, or easier to review and test.
+
+If the User agrees, restructure in place, keep only genuinely shared
+context at task level, move subtask-specific Research, Analysis,
+Design, Test specification, and Findings into the relevant subtask,
+avoid parallel task-level and subtask-level restatements of the same
+material, then use [spec-loop-compact-task-file/SKILL.md](../spec-loop-compact-task-file/SKILL.md) and
+resume this skill.
+
+After restructuring and compaction and before re-running readiness
+checks, verify that no needed content was lost or moved incorrectly,
+that no meaning changed unintentionally, that shared and
+subtask-specific content now have one authoritative location at the
+correct level, and that no contradictory duplicate statements remain.
+
+Then re-run readiness checks and continue approval preparation. If the
+User declines, continue approval preparation on the current
+structure.
+
+## 4. Research and Design review-preparation rules
+
+Make the Research and Design sections reviewer-friendly without losing
+planning precision.
+
+For diagram, non-diagram-text, and ordering rules in **Research** and
+**Design**, follow [spec-loop-plan-task/task-file-path-guidance.md](../spec-loop-plan-task/task-file-path-guidance.md)
+as the source of truth.
+
+During approval preparation, apply those rules to both main-task and
+subtask **Research** and **Design** sections. They do not override the
+task context hygiene rules against duplication across task and subtask
+levels.
+
+Include PlantUML displayed-text escape rules for Creole markup in that
+check: when a sequence is intended as displayed diagram text and would
+otherwise match Creole markup, escape it with `~`; for example, use
+`~--` instead of raw `--` for a literal dash pair in diagram text. Do
+not apply displayed-text escaping to PlantUML syntax.
+
+Approval is blocked if those rules are violated.
+
+Preferred review surface:
+- diagrams first for structure, boundaries, and interaction; and
+- compact supporting inventories only where diagrams are weak.
+
+Canonical ownership by information kind:
+- non-diagrammable design decisions and approvals -> compact decision
+  lists;
+- diagrammable content in **Research** and **Design** -> diagrams;
+- exact external identifiers or other precise inventories the diagram
+  cannot carry clearly -> compact lists or tables; and
+- unresolved questions and remaining gaps -> explicit gap lists.
+
+Draft scaffolding may exist temporarily, but the approval-prepared task
+should remove or shrink duplicated content. Before approval seeking,
+use [spec-loop-compact-task-file/SKILL.md](../spec-loop-compact-task-file/SKILL.md) when needed, then resume
+this skill.
+
+The Design section prepared for approval must contain no placeholders.
+Do not leave role stand-ins, candidate names, temporary labels,
+abstract aliases, or generic structural placeholders in Design
+non-diagram text, diagrams, tables, or lists. If an exact intended
+name is not yet known, approval-seeking is blocked.
+
+Keep both a diagram and a table only when each adds distinct value. If
+a table only restates the diagram, remove it or reduce it to the exact
+information the diagram cannot carry cleanly.
+
+If a class diagram exists, review-relevant methods and fields of
+displayed types must appear in it, not only in non-diagram text,
+lists, or tables. Text blocks such as `X contract:` or `Y fields:` are
+duplication unless they add information the diagram cannot carry
+cleanly.
+
+Approval is blocked if those members are missing from the class
+diagram.
+
+Approval is blocked if any PlantUML class diagram violates the
+class-diagram packaging rules from
+[spec-loop-plan-task/task-file-path-guidance.md](../spec-loop-plan-task/task-file-path-guidance.md),
+including missing `set separator none`, zero or multiple top-level
+package blocks, package blocks outside the single outer package tree,
+or connector endpoints not declared inside that package tree.
+
+## 5. Readiness checks
+
+Before showing the task to the user for evaluation or seeking
+execution approval, check at least these items for the current
+increment:
+- the task is the correct active artifact and the current increment is
+  clear;
+- the work kind is clear: implementation work or investigation work;
+- `Research`, `Scenario` and `Glossary` when required, `Design`, and
+  `Test specification` are complete enough for the current increment;
+- for implementation work:
+  - Research records the living-project-document list, if one exists,
+    the relevant entries or collections checked, and any existing
+    project glossary;
+  - any question required by the project-list rules is resolved;
+  - Design lists each required action under `Living project documents`
+    with its path or paths, role, action, and required facts or
+    contract; and
+  - `None affected` is allowed only when Research explicitly confirms
+    that no existing project glossary or other relevant listed living
+    project document is affected. Block approval if the Design item or
+    a required action is missing;
+- for implementation work, when an `Implementation notes` section is
+  present, it describes the current implementation state and is clearly
+  distinguishable from the current target-state plan; approval is
+  blocked if it is stale or if it presents target-only content as
+  already implemented;
+- for investigation work, Scope states the investigation boundary and
+  expected output, Constraints forbid shipping product, test, build,
+  config, runtime, or coupled documentation changes, Research records
+  starting evidence and known facts, Design describes the investigation
+  approach, Test specification is `N/A` unless explicit checks are
+  needed, and `Findings` is absent before execution;
+- approval preparation has completed the pre-approval term-reduction,
+  term-classification, and glossary-repair pass required by
+  [spec-loop-plan-task/scenario-and-glossary-guidance.md](../spec-loop-plan-task/scenario-and-glossary-guidance.md),
+  and has recorded the result by repairing canonical sections rather
+  than by
+  adding a separate classification table unless the User asked for
+  one;
+- approval is blocked if coined terms remain where existing canonical
+  terms or ordinary prose would preserve review-relevant precision;
+- approval is blocked when a proposed glossary term is semantically
+  identical to an existing abstraction unless the task reuses its
+  current name or Design includes a refactoring proposal naming the
+  current abstraction, target term, and intended rename or
+  restructuring;
+- approval is blocked if any new review-relevant term introduced in
+  `Design`, diagrams, or `Test specification` remains unclassified or
+  ambiguously classified;
+- qualifying shared domain terms appear in `Scenario` and, when they
+  are a delta for the current increment, in task `Glossary`;
+  qualifying exact external technical terms appear in task `Glossary`
+  when the exact external type or API is part of the reviewed
+  contract; approval is blocked if required canonical repairs are
+  missing;
+- for implementation work, internal implementation terms are not used
+  in `Scenario`, task `Glossary`, or behavior-level diagrams and
+  prose;
+- no unresolved essential doubts remain about scope, behavior,
+  constraints, naming, or structural boundaries;
+- the approval-preparation rules in section 4 and all applicable
+  Research, Design, and diagram requirements from the
+  `spec-loop-plan-task` bundle are satisfied at the correct main-task
+  or subtask level;
+- when task `Glossary` is present, its focused Mermaid visual glossary
+  is in sync with the text glossary; approval is blocked if they
+  diverge, including disagreement, omission, or stale mismatch, on
+  terms, relationships, boundaries, actors, or flows;
+- markdown structure is renderer-safe under the Task-file
+  Constitution formatting rules, especially in list-item sections that
+  contain fenced blocks;
+- the active task file's current main-task/subtask structure is a good
+  fit for the current increment;
+- for a no-subtask implementation task, approval preparation has
+  verified that one-piece structure is clearly right, or the User
+  already rejected the relevant rewrite for this work item;
+- initial backlog tasks and subtasks created by
+  [spec-loop-plan-work-breakdown/SKILL.md](../spec-loop-plan-work-breakdown/SKILL.md)
+  are excluded from current-increment readiness checks until they
+  become current;
+- work breakdown checks use
+  [spec-loop-plan-work-breakdown/SKILL.md](../spec-loop-plan-work-breakdown/SKILL.md).
+
+## 6. Diagram choice
+
+Use the smallest diagram set that makes the increment reviewable.
+Typical choices:
+- class diagram when current or target class design, structural
+  ownership, or review-relevant members matter;
+- component diagram for subsystem or plugin boundaries; and
+- sequence diagram when runtime flow or control handoff matters.
+
+Do not add diagrams for decoration. Use them only when they make the
+review faster and clearer.
+
+When a compact identifier list is enough, do not turn it into a second
+structural artifact.
+
+## 7. Interaction with `spec-loop-plan-task`
+
+`spec-loop-plan-task` owns first classification, planning-form
+selection, and task drafting. This skill is its user-facing review and
+approval-seeking companion.
+
+That means:
+- do not replace `spec-loop-plan-task`;
+- do not duplicate `spec-loop-plan-task`,
+  [common-task-guidance.md](../spec-loop-plan-task/common-task-guidance.md), or task-file path guidance ownership
+  here; and
+- add only the approval-preparation delta.
+
+After execution approval, post-approval handling depends on work kind:
+- implementation work uses
+  [spec-loop-implementation-flow/SKILL.md](../spec-loop-implementation-flow/SKILL.md);
+- investigation work stays under the `spec-loop-plan-task` task-file
+  path: perform only the approved investigation, record final output in
+  `Findings`, satisfy any `Test specification`, and move the task or
+  subtask to `review`.
+
+If new structural decisions emerge during readiness checking, update
+the task in place and keep the conversation in PLAN until the gaps are
+resolved.

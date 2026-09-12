@@ -1,0 +1,244 @@
+#!/bin/bash
+
+# WordPress Plugin Scaffolding Script
+# Creates a new WordPress plugin from templates
+# Usage: scaffold-plugin.sh [--dry-run]
+#   --dry-run: print what would be created without touching the filesystem.
+#              Inputs can still be piped via stdin (the prompts still fire).
+
+set -e
+
+# Parse --dry-run from argv (anywhere). No other flags are accepted.
+DRY_RUN=0
+for arg in "$@"; do
+    case "$arg" in
+        --dry-run) DRY_RUN=1 ;;
+        --help|-h)
+            echo "Usage: scaffold-plugin.sh [--dry-run]"
+            exit 0
+            ;;
+        *)
+            echo "Error: unknown argument '$arg'" >&2
+            echo "Usage: scaffold-plugin.sh [--dry-run]" >&2
+            exit 1
+            ;;
+    esac
+done
+
+dry_run_echo() { [ "$DRY_RUN" = "1" ] && echo "DRY-RUN: $*"; }
+
+echo "======================================"
+echo "WordPress Plugin Scaffolding Tool"
+if [ "$DRY_RUN" = "1" ]; then
+    echo "  (DRY-RUN mode — no filesystem changes)"
+fi
+echo "======================================"
+echo ""
+
+# Check if we're in the right directory
+if [ ! -d "../../templates" ]; then
+    echo "Error: This script must be run from the skills/wordpress-plugin-core/scripts/ directory"
+    exit 1
+fi
+
+# Get plugin information
+read -p "Plugin Name (e.g., My Awesome Plugin): " PLUGIN_NAME
+read -p "Plugin Slug (e.g., my-awesome-plugin): " PLUGIN_SLUG
+read -p "Plugin Prefix (4-5 chars, e.g., myap_): " PLUGIN_PREFIX
+read -p "Plugin Author: " PLUGIN_AUTHOR
+read -p "Plugin URI: " PLUGIN_URI
+read -p "Author URI: " AUTHOR_URI
+read -p "Description: " PLUGIN_DESC
+
+# Validate PLUGIN_SLUG against WordPress slug convention to prevent
+# path traversal and sed-injection via untrusted user input.
+# Slugs must be lowercase alphanumeric, optionally with internal hyphens,
+# and cannot start or end with a hyphen.
+if [[ ! "$PLUGIN_SLUG" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
+    echo "Error: Invalid plugin slug '$PLUGIN_SLUG'." >&2
+    echo "       Slugs must be lowercase alphanumeric (a-z, 0-9, -), cannot" >&2
+    echo "       start or end with a hyphen, and cannot contain '/', '..'," >&2
+    echo "       or special characters." >&2
+    exit 1
+fi
+
+# Choose architecture
+echo ""
+echo "Select plugin architecture:"
+echo "1) Simple (functional programming)"
+echo "2) OOP (object-oriented, singleton)"
+echo "3) PSR-4 (modern, namespaced with Composer)"
+read -p "Choice (1-3): " ARCH_CHOICE
+
+# Set template directory
+case $ARCH_CHOICE in
+    1)
+        TEMPLATE_DIR="../../templates/plugin-simple"
+        ARCH_NAME="simple"
+        ;;
+    2)
+        TEMPLATE_DIR="../../templates/plugin-oop"
+        ARCH_NAME="oop"
+        ;;
+    3)
+        TEMPLATE_DIR="../../templates/plugin-psr4"
+        ARCH_NAME="psr4"
+        ;;
+    *)
+        echo "Invalid choice"
+        exit 1
+        ;;
+esac
+
+# Set destination directory
+DEST_DIR="$HOME/wp-content/plugins/$PLUGIN_SLUG"
+
+# Canonicalize paths and assert DEST_DIR is strictly under
+# $HOME/wp-content/plugins/. This is defense-in-depth against any future
+# input-validation regression: even if the slug check above were weakened,
+# this real-path comparison would still block escapes to /etc, $HOME, etc.
+PLUGINS_DIR_REAL="$(cd "$HOME/wp-content/plugins" 2>/dev/null && pwd -P)" || {
+    echo "Error: \$HOME/wp-content/plugins does not exist. Create it first." >&2
+    exit 1
+}
+DEST_DIR_REAL="$(cd "$DEST_DIR" 2>/dev/null && pwd -P || true)"
+if [[ -n "$DEST_DIR_REAL" ]] && [[ "$DEST_DIR_REAL" != "$PLUGINS_DIR_REAL"/* ]]; then
+    echo "Error: resolved destination '$DEST_DIR_REAL' is outside the plugins dir." >&2
+    exit 1
+fi
+
+# Check if destination exists
+if [ -d "$DEST_DIR" ]; then
+    echo "Error: Plugin directory already exists: $DEST_DIR"
+    exit 1
+fi
+
+# In dry-run mode, print the full plan and exit before any mutation.
+# Validation (slug regex + canonical-path bound check) has already run
+# above, so the dry-run is a faithful preview of what would happen.
+if [ "$DRY_RUN" = "1" ]; then
+    # DEST_DIR may legitimately not exist yet in dry-run; compute the
+    # intended real path by normalizing the parent.
+    DEST_DIR_REAL="${PLUGINS_DIR_REAL}/${PLUGIN_SLUG}"
+    dry_run_echo "would scaffold plugin '$PLUGIN_SLUG' at '$DEST_DIR_REAL'"
+    dry_run_echo "would create parent directory: $PLUGINS_DIR_REAL (if absent)"
+    dry_run_echo "would copy template dir: $TEMPLATE_DIR -> $DEST_DIR_REAL"
+    if [ -d "$TEMPLATE_DIR" ]; then
+        # List template files (relative to template dir) so the user can see
+        # exactly what would land on disk.
+        ( cd "$TEMPLATE_DIR" && find . -type f | sed 's|^\./||' ) | while read -r f; do
+            dry_run_echo "  + $f"
+        done
+    else
+        # The template dir is relative to CWD; report that we could not
+        # enumerate it but the validation has already accepted the choice.
+        dry_run_echo "  (template dir '$TEMPLATE_DIR' not enumerable from CWD; files would be those under it)"
+    fi
+    case "$ARCH_NAME" in
+        simple) dry_run_echo "would rename my-simple-plugin.php -> ${PLUGIN_SLUG}.php" ;;
+        oop)    dry_run_echo "would rename my-oop-plugin.php -> ${PLUGIN_SLUG}.php" ;;
+        psr4)   dry_run_echo "would rename my-psr4-plugin.php -> ${PLUGIN_SLUG}.php" ;;
+    esac
+    dry_run_echo "would sed-substitute placeholders (name, slug, prefix, author, URIs, description) in copied files"
+    dry_run_echo "would mkdir -p ${DEST_DIR_REAL}/assets/css ${DEST_DIR_REAL}/assets/js"
+    if [ "$ARCH_NAME" = "psr4" ] && command -v composer &> /dev/null; then
+        dry_run_echo "would run 'composer install' inside $DEST_DIR_REAL"
+    fi
+    echo ""
+    echo "DRY-RUN complete; no files modified."
+    exit 0
+fi
+
+echo ""
+echo "Creating plugin from $ARCH_NAME template..."
+
+# Copy template
+cp -r "$TEMPLATE_DIR" "$DEST_DIR"
+
+# Function to replace placeholders in a file
+replace_in_file() {
+    local file="$1"
+
+    # Skip vendor directory if it exists
+    if [[ "$file" == *"/vendor/"* ]]; then
+        return
+    fi
+
+    # Only process text files
+    if file "$file" | grep -q text; then
+        # Use `|` as sed delimiter for belt-and-suspenders: even though the
+        # slug is charset-validated above, other fields (name, description,
+        # author) are free-form user input and could contain '/' or '&'.
+        sed -i "s|My Simple Plugin|$PLUGIN_NAME|g" "$file"
+        sed -i "s|My OOP Plugin|$PLUGIN_NAME|g" "$file"
+        sed -i "s|My PSR-4 Plugin|$PLUGIN_NAME|g" "$file"
+        sed -i "s|my-simple-plugin|$PLUGIN_SLUG|g" "$file"
+        sed -i "s|my-oop-plugin|$PLUGIN_SLUG|g" "$file"
+        sed -i "s|my-psr4-plugin|$PLUGIN_SLUG|g" "$file"
+        sed -i "s|mysp_|${PLUGIN_PREFIX}|g" "$file"
+        sed -i "s|MYSP_|${PLUGIN_PREFIX^^}|g" "$file"
+        sed -i "s|myop_|${PLUGIN_PREFIX}|g" "$file"
+        sed -i "s|MYOP_|${PLUGIN_PREFIX^^}|g" "$file"
+        sed -i "s|mypp_|${PLUGIN_PREFIX}|g" "$file"
+        sed -i "s|MYPP_|${PLUGIN_PREFIX^^}|g" "$file"
+        sed -i "s|MyPSR4Plugin|${PLUGIN_PREFIX^}Plugin|g" "$file"
+        sed -i "s|My_OOP_Plugin|${PLUGIN_PREFIX^}Plugin|g" "$file"
+        sed -i "s|Your Name|$PLUGIN_AUTHOR|g" "$file"
+        sed -i "s|https://example.com/my-simple-plugin/|$PLUGIN_URI|g" "$file"
+        sed -i "s|https://example.com/my-oop-plugin/|$PLUGIN_URI|g" "$file"
+        sed -i "s|https://example.com/my-psr4-plugin/|$PLUGIN_URI|g" "$file"
+        sed -i "s|https://example.com/|$AUTHOR_URI|g" "$file"
+        sed -i "s|A simple WordPress plugin demonstrating functional programming pattern with security best practices.|$PLUGIN_DESC|g" "$file"
+        sed -i "s|An object-oriented WordPress plugin using singleton pattern with security best practices.|$PLUGIN_DESC|g" "$file"
+        sed -i "s|A modern WordPress plugin using PSR-4 autoloading with Composer and namespaces.|$PLUGIN_DESC|g" "$file"
+    fi
+}
+
+# Replace placeholders in all files
+echo "Replacing placeholders..."
+find "$DEST_DIR" -type f | while read -r file; do
+    replace_in_file "$file"
+done
+
+# Rename main plugin file
+cd "$DEST_DIR"
+if [ "$ARCH_NAME" = "simple" ]; then
+    mv my-simple-plugin.php "$PLUGIN_SLUG.php"
+elif [ "$ARCH_NAME" = "oop" ]; then
+    mv my-oop-plugin.php "$PLUGIN_SLUG.php"
+elif [ "$ARCH_NAME" = "psr4" ]; then
+    mv my-psr4-plugin.php "$PLUGIN_SLUG.php"
+fi
+
+# Create asset directories
+mkdir -p assets/css assets/js
+
+# For PSR-4, run composer install if composer is available
+if [ "$ARCH_NAME" = "psr4" ] && command -v composer &> /dev/null; then
+    echo "Running composer install..."
+    composer install
+fi
+
+echo ""
+echo "✅ Plugin created successfully!"
+echo ""
+echo "Location: $DEST_DIR"
+echo ""
+echo "Next steps:"
+echo "1. Activate plugin in WordPress admin"
+echo "2. Create assets/css/ and assets/js/ files as needed"
+if [ "$ARCH_NAME" = "psr4" ]; then
+    echo "3. Run 'composer install' if not already done"
+    echo "4. Add new classes to src/ directory"
+fi
+echo ""
+echo "Security reminder:"
+echo "- All files have ABSPATH checks ✅"
+echo "- Unique prefix ($PLUGIN_PREFIX) applied ✅"
+echo "- Remember to:"
+echo "  - Sanitize all input"
+echo "  - Escape all output"
+echo "  - Use nonces for forms/AJAX"
+echo "  - Check capabilities"
+echo "  - Use prepared statements for database"
+echo ""

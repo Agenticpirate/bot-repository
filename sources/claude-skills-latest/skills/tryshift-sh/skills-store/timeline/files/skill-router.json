@@ -1,0 +1,91 @@
+{
+  "id": "timeline",
+  "name": "Timeline",
+  "description": "Read home timeline, user tweets, and mentions.",
+  "actions": {
+    "home": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://api.x.com",
+        "path": "/2/users/{userId}/timelines/reverse_chronological",
+        "auth": { "mode": "bearer" }
+      },
+      "output": {
+        "responseSelect": "data",
+        "responseMap": {
+          "tweets": {
+            "$each": "$data",
+            "map": {
+              "id": "$item.id",
+              "text": "$item.text",
+              "createdAt": "$item.created_at"
+            }
+          },
+          "count": {
+            "$length": "$data"
+          },
+          "nextToken": {
+            "$value": "$response.meta.next_token",
+            "$default": null
+          }
+        }
+      }
+    },
+    "user-tweets": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://api.x.com",
+        "path": "/2/users/{userId}/tweets",
+        "auth": { "mode": "bearer" }
+      },
+      "output": {
+        "responseSelect": "data",
+        "responseMap": {
+          "tweets": {
+            "$each": "$data",
+            "map": {
+              "id": "$item.id",
+              "text": "$item.text",
+              "createdAt": "$item.created_at"
+            }
+          },
+          "count": {
+            "$length": "$data"
+          },
+          "nextToken": {
+            "$value": "$response.meta.next_token",
+            "$default": null
+          }
+        }
+      }
+    },
+    "mentions": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://api.x.com",
+        "path": "/2/users/{userId}/mentions",
+        "auth": { "mode": "bearer" }
+      },
+      "output": {
+        "responseSelect": "data",
+        "responseMap": {
+          "tweets": {
+            "$each": "$data",
+            "map": {
+              "id": "$item.id",
+              "text": "$item.text",
+              "createdAt": "$item.created_at"
+            }
+          },
+          "count": {
+            "$length": "$data"
+          },
+          "nextToken": {
+            "$value": "$response.meta.next_token",
+            "$default": null
+          }
+        }
+      }
+    }
+  }
+}

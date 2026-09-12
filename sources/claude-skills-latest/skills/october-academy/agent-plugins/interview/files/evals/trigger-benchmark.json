@@ -1,0 +1,272 @@
+{
+ "about": "clarify:interview auto-trigger DISCRIMINATION measurement. This is NOT end-to-end triggering on a live machine (impossible here — see trigger-eval-README.md); it isolates the skill description's discriminative power under a controlled catalog. Each labeled query was routed by a judge model choosing ONE skill (or none) from trigger-eval-catalog.json. Recompute the headline metrics from per_case with score_trigger.py --check.",
+ "method": {
+  "eval_set": "trigger-eval-set.json (20 cases: 11 positive, 9 negative; 14 core carried from iteration-3, 6 adversarial boundary probes)",
+  "catalog": "trigger-eval-catalog.json (clarify x3 real descriptions + 10 realistic distractors)",
+  "judges": [
+   "sonnet",
+   "haiku"
+  ],
+  "runs_per_model": 3,
+  "n_judge_runs": 120,
+  "scoring": "predicted_trigger = (chosen == 'clarify:interview'); precision/recall on that class over all judge-runs; case-level = majority vote per case",
+  "date": "2026-07-11"
+ },
+ "overall": {
+  "precision": 0.968,
+  "recall": 0.909,
+  "f1": 0.938,
+  "TP": 60,
+  "FP": 2,
+  "FN": 6,
+  "TN": 52
+ },
+ "per_model": {
+  "sonnet": {
+   "precision": 0.935,
+   "recall": 0.879,
+   "tp": 29,
+   "fp": 2,
+   "fn": 4,
+   "tn": 25
+  },
+  "haiku": {
+   "precision": 1,
+   "recall": 0.939,
+   "tp": 31,
+   "fp": 0,
+   "fn": 2,
+   "tn": 27
+  }
+ },
+ "case_level": {
+  "correct": 19,
+  "total": 20,
+  "accuracy": 0.95
+ },
+ "misses": [
+  {
+   "id": "a3",
+   "query": "the export is broken, can you look into it",
+   "should_trigger": true,
+   "trigger_votes": "3/6",
+   "routes": {
+    "investigate": 3,
+    "clarify:interview": 3
+   }
+  }
+ ],
+ "per_case": [
+  {
+   "id": "c1",
+   "batch": "core",
+   "query": "요구사항 정리해줘 — 알림 기능을 만들려고 하는데 뭐부터 정해야 할지 모르겠어",
+   "should_trigger": true,
+   "trigger_votes": "6/6",
+   "routes": {
+    "clarify:interview": 6
+   }
+  },
+  {
+   "id": "c2",
+   "batch": "core",
+   "query": "이 기능 스펙 좀 명확히 하고 싶어. 인터뷰해줘",
+   "should_trigger": true,
+   "trigger_votes": "6/6",
+   "routes": {
+    "clarify:interview": 6
+   }
+  },
+  {
+   "id": "c3",
+   "batch": "core",
+   "query": "ask me questions before building this — I want a settings page but haven't thought it through",
+   "should_trigger": true,
+   "trigger_votes": "6/6",
+   "routes": {
+    "clarify:interview": 6
+   }
+  },
+  {
+   "id": "c4",
+   "batch": "core",
+   "query": "대시보드 만들어줘. 아직 요구사항이 좀 모호하긴 해",
+   "should_trigger": true,
+   "trigger_votes": "5/6",
+   "routes": {
+    "clarify:interview": 5,
+    "null": 1
+   }
+  },
+  {
+   "id": "c5",
+   "batch": "core",
+   "query": "spec this out with me: CSV import for the admin",
+   "should_trigger": true,
+   "trigger_votes": "6/6",
+   "routes": {
+    "clarify:interview": 6
+   }
+  },
+  {
+   "id": "c6",
+   "batch": "core",
+   "query": "고객 문의 자동 분류 기능을 붙이고 싶은데 나도 아직 뭘 원하는지 잘 몰라. 질문해줘",
+   "should_trigger": true,
+   "trigger_votes": "6/6",
+   "routes": {
+    "clarify:interview": 6
+   }
+  },
+  {
+   "id": "c7",
+   "batch": "core",
+   "query": "interview me about what I actually need for the auth flow",
+   "should_trigger": true,
+   "trigger_votes": "5/6",
+   "routes": {
+    "clarify:interview": 5,
+    "null": 1
+   }
+  },
+  {
+   "id": "c8",
+   "batch": "core",
+   "query": "결제 재시도 로직 요구사항 인터뷰 시작해줘",
+   "should_trigger": true,
+   "trigger_votes": "6/6",
+   "routes": {
+    "clarify:interview": 6
+   }
+  },
+  {
+   "id": "c9",
+   "batch": "core",
+   "query": "src/app.js 40번째 줄에서 TypeError: cannot read properties of undefined (reading 'map') 나는 버그 고쳐줘",
+   "should_trigger": false,
+   "trigger_votes": "0/6",
+   "routes": {
+    "investigate": 6
+   }
+  },
+  {
+   "id": "c10",
+   "batch": "core",
+   "query": "신규 요금제 론칭 계획의 전략적 블라인드스팟을 분석해줘",
+   "should_trigger": false,
+   "trigger_votes": "0/6",
+   "routes": {
+    "clarify:unknown": 6
+   }
+  },
+  {
+   "id": "c11",
+   "batch": "core",
+   "query": "이 글을 발표 슬라이드로 바꾸는 게 나을지 형식을 고민 중이야",
+   "should_trigger": false,
+   "trigger_votes": "0/6",
+   "routes": {
+    "clarify:metamedium": 5,
+    "null": 1
+   }
+  },
+  {
+   "id": "c12",
+   "batch": "core",
+   "query": "로그인 버튼 색상 시안 몇 개 보여줘 — 보면 알 것 같아",
+   "should_trigger": false,
+   "trigger_votes": "0/6",
+   "routes": {
+    "none": 1,
+    "design-mockup": 5
+   }
+  },
+  {
+   "id": "c13",
+   "batch": "core",
+   "query": "README에 설치 방법 섹션 추가해줘",
+   "should_trigger": false,
+   "trigger_votes": "0/6",
+   "routes": {
+    "doc-writer": 6
+   }
+  },
+  {
+   "id": "c14",
+   "batch": "core",
+   "query": "npm test가 왜 실패하는지 원인 좀 봐줘",
+   "should_trigger": false,
+   "trigger_votes": "0/6",
+   "routes": {
+    "none": 2,
+    "run-tests": 1,
+    "investigate": 3
+   }
+  },
+  {
+   "id": "a1",
+   "batch": "adversarial",
+   "query": "이 프로젝트 타입스크립트로 전환해줘",
+   "should_trigger": true,
+   "trigger_votes": "6/6",
+   "routes": {
+    "clarify:interview": 6
+   }
+  },
+  {
+   "id": "a2",
+   "batch": "adversarial",
+   "query": "make it faster",
+   "should_trigger": true,
+   "trigger_votes": "5/6",
+   "routes": {
+    "none": 1,
+    "clarify:interview": 5
+   }
+  },
+  {
+   "id": "a3",
+   "batch": "adversarial",
+   "query": "the export is broken, can you look into it",
+   "should_trigger": true,
+   "trigger_votes": "3/6",
+   "routes": {
+    "investigate": 3,
+    "clarify:interview": 3
+   }
+  },
+  {
+   "id": "a4",
+   "batch": "adversarial",
+   "query": "내용 vs 형식 중에 뭘 바꿔야 할지 관점을 잡아줘",
+   "should_trigger": false,
+   "trigger_votes": "0/6",
+   "routes": {
+    "clarify:metamedium": 6
+   }
+  },
+  {
+   "id": "a5",
+   "batch": "adversarial",
+   "query": "이 요구사항 명세서 문서를 리뷰하고 빠진 항목 짚어줘",
+   "should_trigger": false,
+   "trigger_votes": "2/6",
+   "routes": {
+    "clarify:interview": 2,
+    "clarify:unknown": 2,
+    "none": 2
+   }
+  },
+  {
+   "id": "a6",
+   "batch": "adversarial",
+   "query": "내가 놓치고 있는 가정이 뭔지 4분면으로 점검해줘",
+   "should_trigger": false,
+   "trigger_votes": "0/6",
+   "routes": {
+    "clarify:unknown": 5,
+    "null": 1
+   }
+  }
+ ]
+}

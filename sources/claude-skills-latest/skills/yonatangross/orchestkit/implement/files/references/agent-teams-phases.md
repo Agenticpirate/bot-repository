@@ -1,0 +1,119 @@
+# Agent Teams Phase Alternatives
+
+This reference consolidates Agent Teams mode instructions for Phases 4, 5, 6, and 6b of the implement workflow.
+
+## Phase 4 — Agent Teams Architecture Design
+
+In Agent Teams mode, form a team instead of spawning 5 independent Tasks. Teammates message architecture decisions to each other in real-time:
+
+```python
+# CC 2.1.178+: one implicit team per session — no TeamCreate.
+# Spawn teammates directly via Agent(name=...). Requires
+# CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 (set in ork.settings.json).
+
+# Spawn 4 teammates (5th role — UX — is lead-managed or optional)
+Agent(subagent_type="ork:backend-system-architect", name="backend-architect",
+     team_name="implement-{feature-slug}", model=MODEL_OVERRIDE,
+     prompt="Design backend architecture. Message frontend-dev when API contract ready.")
+
+Agent(subagent_type="ork:frontend-ui-developer", name="frontend-dev",
+     team_name="implement-{feature-slug}", model=MODEL_OVERRIDE,
+     prompt="Design frontend architecture. Wait for API contract from backend-architect.")
+
+Agent(subagent_type="ork:test-generator", name="test-engineer",
+     team_name="implement-{feature-slug}", model=MODEL_OVERRIDE,
+     prompt="Plan test strategy. Start fixtures immediately, tests as contracts stabilize.")
+
+Agent(subagent_type="ork:code-quality-reviewer", name="code-reviewer",
+     team_name="implement-{feature-slug}", model=MODEL_OVERRIDE,
+     prompt="Review architecture decisions as they're shared. Flag issues to author directly.")
+```
+
+See [Agent Teams Full-Stack Pipeline](agent-teams-full-stack.md) for complete spawn prompts and messaging templates.
+
+> **Fallback:** If team formation fails, fall back to 5 independent Task spawns (standard Phase 4).
+
+---
+
+## Phase 5 — Agent Teams Implementation
+
+In Agent Teams mode, teammates are already formed from Phase 4. They transition from architecture to implementation and message contracts to each other:
+
+- **backend-architect** implements the API and messages `frontend-dev` with the contract (types + routes) as soon as endpoints are defined — not after full implementation.
+- **frontend-dev** starts building UI layout immediately, then integrates API hooks once the contract arrives.
+- **test-engineer** writes tests incrementally as contracts stabilize. Reports failing tests directly to the responsible teammate.
+- **code-reviewer** reviews code as it lands. Flags issues to the author directly.
+
+Optionally set up per-teammate worktrees to prevent file conflicts:
+
+```python
+# Lead sets up worktrees (for features with > 5 files).
+# INSIDE the repo at .worktrees/<task> — a sibling ../{project}-backend is outside
+# the session's project directory, so the teammate's cd is silently bounced back to
+# the primary tree and it commits there instead (platform#9870, #3319).
+Bash("git worktree add .worktrees/backend  -b feat/{feature}/backend  origin/main")
+Bash("git worktree add .worktrees/frontend -b feat/{feature}/frontend origin/main")
+Bash("git worktree add .worktrees/tests    -b feat/{feature}/tests    origin/main")
+
+# Include worktree path in teammate messages
+SendMessage(to="backend-architect",
+    message="Work in .worktrees/backend/. Run pwd to confirm before editing. "
+            "Commit to feat/{feature}/backend.")
+```
+
+See [Team Worktree Setup](team-worktree-setup.md) for complete worktree guide.
+
+> **Fallback:** If teammate coordination breaks down, shut down the team and fall back to 5 independent Task spawns (standard Phase 5).
+
+---
+
+## Phase 6 — Agent Teams Integration
+
+In Agent Teams mode, the code-reviewer teammate has already been reviewing code during implementation (Phase 5). Integration verification is lighter:
+
+- **code-reviewer** produces final APPROVE/REJECT verdict based on cumulative review.
+- **Lead** runs integration tests across the merged codebase (or merged worktrees).
+- No need for separate security-auditor spawn — code-reviewer covers security checks. For high-risk features, spawn a `security-auditor` teammate in Phase 4.
+
+```python
+# Lead runs integration after merging worktrees
+Bash("npm test && npm run typecheck && npm run lint")
+
+# Collect code-reviewer verdict
+SendMessage(to="code-reviewer",
+    message="All code merged. Please provide final APPROVE/REJECT verdict.")
+```
+
+> **Fallback:** If code-reviewer verdict is unclear, fall back to 4 independent Task spawns (standard Phase 6).
+
+---
+
+## Phase 6b — Team Teardown (Agent Teams Only)
+
+After Phase 6 completes in Agent Teams mode, tear down the team:
+
+### 1. Merge Worktrees (if used)
+
+```bash
+git checkout feat/{feature}
+git merge --squash feat/{feature}/backend && git commit -m "feat({feature}): backend"
+git merge --squash feat/{feature}/frontend && git commit -m "feat({feature}): frontend"
+git merge --squash feat/{feature}/tests && git commit -m "test({feature}): test suite"
+```
+
+### 2. Shut Down Teammates
+
+```python
+```
+
+### 3. Clean Up
+
+```python
+# CC 2.1.178+: no TeamDelete — teammates wind down at turn end
+# (press Ctrl+F twice to stop lingering background teammates).
+
+# Worktree cleanup (CC 2.1.72)
+ExitWorktree(action="keep")  # Keep branch for PR
+```
+
+> Phases 7-10 (Scope Creep, E2E Verification, Documentation, Reflection) are the same in both modes — the team is already disbanded.

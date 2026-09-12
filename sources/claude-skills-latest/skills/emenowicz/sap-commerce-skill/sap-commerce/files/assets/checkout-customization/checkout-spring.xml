@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    checkout-spring.xml
+    Import once into the storefront web context. Its existing component scan
+    must include com.example.storefront.controllers; do not register the controller twice.
+-->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="
+           http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!-- Custom Checkout Facade -->
+    <alias name="defaultCustomCheckoutFacade" alias="customCheckoutFacade"/>
+    <bean id="defaultCustomCheckoutFacade"
+          class="com.example.facades.impl.DefaultCustomCheckoutFacade">
+        <property name="cartService" ref="cartService"/>
+        <property name="modelService" ref="modelService"/>
+        <property name="availableOptions">
+            <list>
+                <value>standard</value>
+                <value>gift-wrap</value>
+            </list>
+        </property>
+    </bean>
+
+    <!-- Checkout Step Configuration -->
+    <bean id="customCheckoutStep"
+          class="de.hybris.platform.acceleratorstorefrontcommons.checkout.steps.CheckoutStep">
+        <property name="checkoutGroup" ref="defaultCheckoutGroup"/>
+        <property name="checkoutStepValidator" ref="deliveryMethodCheckoutStepValidator"/>
+        <property name="transitions">
+            <map>
+                <entry key="previous" value="redirect:/checkout/multi/delivery-method"/>
+                <entry key="current" value="redirect:/checkout/multi/custom-step"/>
+                <entry key="next" value="redirect:/checkout/multi/payment-method"/>
+            </map>
+        </property>
+        <property name="progressBarId" value="customStep"/>
+    </bean>
+
+    <!-- Register custom step in checkout group -->
+    <bean id="customCheckoutGroupConfiguration"
+          class="org.springframework.beans.factory.config.MethodInvokingBean">
+        <property name="targetObject">
+            <bean class="org.springframework.beans.factory.config.PropertyPathFactoryBean">
+                <property name="targetObject" ref="defaultCheckoutGroup"/>
+                <property name="propertyPath" value="checkoutStepMap"/>
+            </bean>
+        </property>
+        <property name="targetMethod" value="put"/>
+        <property name="arguments">
+            <list>
+                <value>custom-step</value>
+                <ref bean="customCheckoutStep"/>
+            </list>
+        </property>
+    </bean>
+
+</beans>

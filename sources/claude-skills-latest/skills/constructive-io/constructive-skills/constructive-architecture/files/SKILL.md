@@ -1,0 +1,145 @@
+---
+name: constructive-architecture
+description: "Constructive platform architecture: core model, platform baseline, endpoint map, control plane vs data plane tokens, provisioning flow, data-module/policy pairing, and Authz policy types. Load for the platform mental model before schema or provisioning decisions."
+metadata:
+  author: constructive-io
+  version: "1.0.0"
+---
+
+# Constructive Platform Architecture Overview
+
+Concise reference for agents that need platform details beyond the phase instructions.
+
+## Core Model
+
+- Constructive is a PostgreSQL-first app platform with generated GraphQL APIs.
+- Users are organizations. A user's personal org is created at sign-up, and `user.id` is the org id used by entity-scoped tables.
+- App developers should work through SDK-level APIs, not raw SQL internals.
+
+## Platform Baseline
+
+Before app provisioning begins, the local `constructive` database must already be a real Constructive platform deployment.
+
+Minimum proof:
+
+- `metaschema_public.database` exists
+- `http://auth.localhost:3000/graphql` responds as the platform auth endpoint
+- `http://api.localhost:3000/graphql` responds as the platform API endpoint
+
+If that baseline is missing, Phase 1 is incomplete. Do not inspect internals with SQL to compensate.
+
+## Endpoint Map
+
+| Endpoint | Purpose | Auth |
+|----------|---------|------|
+| `http://auth.localhost:3000/graphql` | Platform auth (sign-up, sign-in) | None |
+| `http://api.localhost:3000/graphql` | Platform API (database creation) | Platform JWT |
+| `http://modules.localhost:3000/graphql` | Platform modules API (module and entity-type provisioning) | Platform JWT |
+| `http://auth-<subdomain>.localhost:3000/graphql` | Per-database auth | None |
+| `http://api-<subdomain>.localhost:3000/graphql` | Per-database app (data) API | Per-database JWT |
+| `http://admin-<subdomain>.localhost:3000/graphql` | Per-database admin API | Per-database JWT |
+
+The `<subdomain>` is a platform-assigned random identifier (e.g., `b16-fatal-rose-mosquito`), **not** the database name — never derive hostnames from the app slug. Query your endpoints by `databaseId` via the SDK: `db.domain.findMany` (hostnames), `db.api.findMany` (surfaces), `db.query.resolveRoute({ requestHost })` to verify — then write the returned values into `.env` (see `constructive-secrets-config` §4.3).
+
+The per-database data endpoint is `api-<subdomain>` — the server routes to the correct database off the `Host` header (the path is always `/graphql`).
+
+Node.js caveat: `*.localhost` does not resolve reliably in Node.js. The SDK handles Host header routing automatically for both Node.js and browser environments.
+
+Frontend caveat: the sandbox template only manages the platform (`schema-builder`) token. A platform token does not authenticate `api-<subdomain>` (per-database data) calls. If your frontend uses per-database app endpoints, it must establish and store a separate per-database app session via `auth-<subdomain>`.
+
+## Control Plane vs Data Plane
+
+Every operation belongs to one of two planes, and each plane has its own token. The plane decides which endpoint and which bearer a call needs.
+
+| | Control plane | Data plane |
+|---|---|---|
+| Endpoints | `auth.<host>`, `api.<host>`, `modules.<host>` (platform) | `auth-<subdomain>.<host>`, `api-<subdomain>.<host>`, `admin-<subdomain>.<host>` |
+| Token | Platform account JWT (platform sign-in) | Per-database app JWT (sign-in via `auth-<subdomain>`) or an API key minted on that database |
+| Operations | Database creation, module provisioning, entity-type provisioning (`entityTypeProvision`), domains, codegen sources | App data CRUD, app users and sessions, principals, API keys, `verifyPassword`, step-up |
+
+A platform token never authenticates a data-plane call. Each database issues its own JWTs from its own auth module — the two token families have different issuers and audiences, and the data API validates only its own. The reverse also holds: a per-database token or API key cannot call the platform API. When a flow crosses planes (for example: provision an entity type, then mint a key scoped to its rows), it must hold both tokens and send each to its own plane.
+
+API keys are data-plane credentials: a key minted on one database authenticates `api-<subdomain>` for that database only. See [`constructive-principals`](../constructive-principals/SKILL.md) for the mint flow, and [`constructive-entities` → orm-provisioning.md](../constructive-entities/references/orm-provisioning.md) for control-plane entity-type provisioning.
+
+## Provisioning Flow
+
+Phase 2.3 uses **TypeScript Blueprints** (`BlueprintDefinition` from `node-type-registry`) with `@constructive-io/sdk` for programmatic provisioning. Agents write typed schema modules, then run two scripts.
+
+1. Run `pnpm run create-db` — signs up via auth API, provisions database with an **explicit module list** (the `email-password` flow's module list — never `modules: ['all']`, which silently installs nothing; see gotchas.md PROVISION-001), writes credentials to `.env`.
+2. Run `pnpm run provision`:
+   - *(SQL only)* Configure database-level settings (`deterministic_ids`, `simple_schema_names`, `schema_use_underscores`) via `ALTER DATABASE`
+   - Run schema modules (each defines a `BlueprintDefinition` and calls `provisionBlueprint()`)
+   - *(SQL only)* Apply post-provisioning workarounds (`auto-verify-email`, `fix-membership-defaults`) via direct SQL
+   - *(SQL only)* Reset provision-only settings (deterministic IDs)
+3. Generate schema, SDK, and CLI from the live app endpoint (Phase 2.4).
+4. Build the frontend against the generated SDK (Phase 2.5+).
+
+> Steps marked *(SQL only)* require a direct PostgreSQL connection and are included in the `provision.ts` template behind a `pgAvailable` guard. If the agent only has GraphQL API access, they are skipped automatically.
+
+The resulting app tables must live in the Constructive-managed schema family for the database, not in a custom side schema.
+
+In local runs this commonly looks like:
+
+- app tables in `<prefix>-app-public`
+- membership defaults in `<prefix>-memberships-public`
+
+These are different schemas, but they share the same Constructive-managed prefix.
+
+## Data Module and Policy Pairing
+
+| Data Module (`nodeType`) | Preferred Policy (`policyType`) | Fields Created |
+|--------------------------|----------------------------------|----------------|
+| `DataId` | Any | `id` |
+| `DataDirectOwner` | `AuthzDirectOwner` | `id`, `owner_id` |
+| `DataEntityMembership` | `AuthzEntityMembership` | `id`, `entity_id` |
+| `DataOwnershipInEntity` | `AuthzEntityMembership` (and/or `AuthzMemberOwner` for an owner-only arm) | `id`, `owner_id`, `entity_id` |
+| `DataTimestamps` | Any | `id`, `created_at`, `updated_at` |
+| `DataPeoplestamps` | Any | `id`, `created_by`, `updated_by` |
+| `DataPrincipalstamps` | Any | `id`, `created_by_principal`, `updated_by_principal` |
+| `DataPublishable` | `AuthzPublishable` | `id`, `is_published`, `published_at` |
+| `DataSoftDelete` | Any | `id`, `deleted_at`, `is_deleted` |
+
+Notes:
+
+- Every Data module creates `id` by default.
+- When composing modules on one table, use `nodeData: { include_id: false }` on the second and later calls.
+- `DataPeoplestamps` only adds user FKs when `include_user_fk: true`.
+- `DataPeoplestamps` (human, `current_user_id()`) and `DataPrincipalstamps` (acting principal — agent/API key/service, `current_principal_id()`) are independent and opt-in; compose both to record human owner and acting principal. Principal columns never carry a user FK.
+
+## Authz Policy Types
+
+Read the `constructive-security` skill for the full list of 14 valid Authz* policy types, their configs, and semantics. Read the `constructive-db-data-modules` skill for the Data* → Authz* pairing table.
+
+There is no `AuthzOwnershipInEntity` type. `DataOwnershipInEntity` pairs with `AuthzEntityMembership` and/or `AuthzMemberOwner`. Do not pair it with a bare `AuthzDirectOwner`: permissive policies are ORed, so the owner arm would keep granting access after the owner is removed from the entity. `AuthzDirectOwner` is for personal tables with no membership context.
+
+Prefer `AuthzEntityMembership` over `AuthzMembership` for entity-scoped app data.
+
+### Common Policy Configurations (Quick Reference)
+
+For the full 14-type reference including `AuthzComposite`, read the `constructive-security` skill. Below are the 7 types most likely needed in typical apps.
+
+| policyType | policyData | Use Case |
+|---|---|---|
+| `AuthzEntityMembership` | `{ "entity_field": "entity_id", "membership_type": 2 }` | Org-scoped data: all org members can access. Default choice for most app tables |
+| `AuthzDirectOwner` | `{ "entity_field": "owner_id" }` | Personal data with no membership context: only the row creator can access. Not for membership-scoped tables — use `AuthzMemberOwner` / `AuthzAppMemberOwner` there |
+| `AuthzMemberOwner` | `{ "owner_field": "owner_id", "entity_field": "entity_id", "membership_type": 2 }` | Owner-private rows inside an org: creator can access only while still a member |
+| `AuthzDirectOwnerAny` | `{ "entity_fields": ["sender_id", "receiver_id"] }` | Multi-owner: any of the listed user fields grants access (same membership caveat as `AuthzDirectOwner`) |
+| `AuthzAllowAll` | `{}` | Public reference data. WARNING: any authenticated user can read AND write |
+| `AuthzPublishable` | `{}` | Draft/published gating. Combine with an identity policy |
+| `AuthzDenyAll` | `{}` | Explicitly block a privilege |
+
+#### Membership Type Values
+
+- `1` = App scope (global membership)
+- `2` = Org scope (entity-bound membership) — use this for most app data
+- `3` = Group scope
+
+## App Brief Mapping
+
+When `build/app-brief.yaml` is present:
+
+- `naming.db_name` drives the database name. Per-database endpoints are platform-assigned (discovered from `create-db.ts` output).
+- `naming.*_package` values drive package names used in examples and generated code.
+- `app.workspace_root` defines where the app is built.
+- `data_model.tables` and `data_model.relations` define the schema to provision.
+- `acceptance.required_flows` defines what the app-specific UI must satisfy.

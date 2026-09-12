@@ -1,0 +1,82 @@
+{
+  "expectations": [
+    {
+      "text": "Cadence trap resolved: final spec is a once-daily morning digest the user runs/receives, not real-time monitoring or per-product push alerts — traceable to an asked question",
+      "passed": true,
+      "evidence": "R1.q5_timing offered schedule / real-time / on-demand / no-preference; user chose 'On a schedule (once a day) — 아침에 한 번이면 충분해요. 발주는 어차피 오전에 몰아서 해요.' Final spec: owner opens a local page each morning for a once-a-day 발주 glance; explicitly no real-time monitoring and no push (dashboard-only). Cadence trap resolved, traceable to R1.q5."
+    },
+    {
+      "text": "Integration honored: the data source is the daily POS CSV email attachment (the requester's only access path) — no invented API/DB integration, traceable to a question about where inventory data lives",
+      "passed": true,
+      "evidence": "R1.q1_data_source ('Where does the inventory/stock data currently live? … the single most important question') elicited the user's Other: '샵플 POS에서 매일 아침 7시에 재고 현황 CSV 이메일이 오는데, 그 첨부파일 받아쓰는 거예요.' Spec locks data = Shopl POS daily ~7am CSV email attachment via manual drop; auto-inbox-fetch and API/DB access were explicitly declined as too fragile. No invented integration. Traceable to R1.q1."
+    },
+    {
+      "text": "Threshold trap resolved: reorder criterion is the per-product 안전재고 column already in the CSV — a global fixed threshold (e.g. 'under 10') is not silently adopted; the user's Other correction or an asked question lands it",
+      "passed": true,
+      "evidence": "R1.q4_threshold listed a global fixed number ('One fixed number for everything, e.g. alert when qty < 10') as option 1; user rejected it via Other: '상품마다 달라요. CSV에 안전재고 칸이 있어요.' Spec low rule = current_stock <= safety_stock using the per-product 안전재고 column; no global threshold number appears in the summary (grep-confirmed). User's Other correction lands the per-product criterion."
+    },
+    {
+      "text": "Already-ordered exclusion is interviewer-raised (user never volunteers it) and lands as a decision or assumption, including how the ordered-state gets recorded",
+      "passed": false,
+      "evidence": "None of the 14 questions (R1 q1–q6, R2 q1–q5, R3 q1–q3) raises excluding already-ordered / awaiting-restock items, and the final spec never mentions it (grep for 발주한/입고/pending/ordered returns only 'pending answers' bookkeeping in state.md). The brief's designed unknown-unknown ('발주한 건 빼야죠' + 발주 기록 시트 병행 입력) was never surfaced, so the digest would re-nag items already on order — directly undercutting the '아침 10분 내 발주 결정' goal. Trap missed."
+    },
+    {
+      "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption; values appearing only in unselected option text are recorded as assumptions, never as decided",
+      "passed": true,
+      "evidence": "Every Locked-decision row traces to an answer or a disclosed assistant default: users/access·state·sort·out-of-stock·notification → user picks (R2.q4, R2.q5, R2.q3 '품절 맨 위', R1.q3+R3.q1 dashboard-only); ingestion·blank-safety → user-confirmed defaults (R3.q3 'Both defaults sound good'); low-rule (<=)·column-picker·web-page form → assistant defaults disclosed inline ('either fine per user', 'You decide', 'Chosen because the owner could not provide…'). Encoding/delimiter/schema are flagged UNCONFIRMED residual risk, not asserted as decided. No value laundered from unselected-option text; no fabricated global threshold."
+    },
+    {
+      "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+      "passed": true,
+      "evidence": "R1 leads with the highest-leverage forks: data source (q1, flagged 'single most important'), form factor / deliverable shape (q2), notify channel + who (q3), what-counts-as-low threshold (q4), cadence (q5), and scale/context (q6). All architecture- and scope-defining; zero administrative detail (no naming, wording, or colour questions)."
+    },
+    {
+      "text": "Interview surfaces at least one material unknown-unknown the user never stated, and it lands in the final spec as a decision or explicit assumption",
+      "passed": true,
+      "evidence": "Interviewer-raised considerations the user never volunteered that landed in the spec: 품절(0)-vs-임박 separate/top pinning (R2.q3 → 'pinned at very top'), blank/zero 안전재고 handling (R2.q3/R3.q3 → 'skip unless stock is 0' decision), and Korean encoding/mojibake risk (→ defensive-parse mitigation + top residual risk). At-least-one bar met. (The marquee already-ordered UU was missed — reflected in the D2 rubric score.)"
+    },
+    {
+      "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+      "passed": false,
+      "evidence": "Residual unknowns are cleanly separated (a strong 'Known-unknown / biggest residual risk' section: CSV schema, encoding, delimiter, identifier granularity) and Out-of-scope is explicit — but user decisions and assistant assumptions/defaults are BLENDED into one 'Locked decisions' table. Assistant 'you decide'/'recommend' defaults (one-time column picker, the <= low-rule pick, the single-web-page form factor) sit under the 'decisions' header with only inline provenance, not a distinct assumptions category. The required three-way partition is incomplete."
+    },
+    {
+      "text": "With no codebase to inspect (greenfield), questions ground in the user's actual situation and vocabulary (solo shop owner, no developer, spreadsheet-level skills) and never re-ask facts derivable from the request itself",
+      "passed": true,
+      "evidence": "Empty-dir greenfield; R1.q1 leads with the data-source/integration axis rather than re-asking anything derivable from '재고 부족하면 알려주는 거'. After R1 the questions ground tightly in the user's real vocabulary (샵플, 안전재고, CSV, 발주, 편집숍, 품절). Lone weakness: R2.q2 asked a spreadsheet-level owner with no file in hand to paste the header row and identify UTF-8 vs EUC-KR / comma-vs-tab (unanswerable → '잘 모르겠어요'), but the interviewer recovered with a recommend-default and a runtime column picker rather than a re-ask."
+    }
+  ],
+  "rubric_scores": {
+    "D1_leverage": {
+      "score": 2,
+      "evidence": "R1 opens on the biggest architecture forks in leverage order — data source (q1, explicitly 'single most important'), deliverable form (q2), threshold (q4), cadence (q5) — and never touches administrative detail. Leading with 'where does the data live' is what surfaced the Shopl-CSV-email reality immediately."
+    },
+    "D2_unknown_unknowns": {
+      "score": 1,
+      "evidence": "Cleared the 'at least one' bar with genuine interviewer-raised items that landed (품절 top-pinning, blank/zero 안전재고 default, encoding/mojibake mitigation). But missed the eval's marquee unknown-unknown — excluding already-ordered/awaiting-restock items and recording the ordered-state — which the brief flags as the never-volunteered UU and which is central to the 'morning 발주 in 10 min' success criterion. Edge-case UUs caught; the workflow UU that makes the digest actually usable was not surfaced."
+    },
+    "D3_territory": {
+      "score": 2,
+      "evidence": "Greenfield-aware; led with the data-source axis instead of re-asking request-derivable facts, and grounded post-R1 questions in the user's actual situation vocabulary (샵플/안전재고/CSV/발주/편집숍/품절). Lone smudge — an over-technical header/encoding/delimiter ask to a non-technical, no-file owner — was mitigated by a recommend-default + column picker, not a re-ask, so it stays a 2."
+    },
+    "D4_economy": {
+      "score": 1,
+      "evidence": "Options were plausible hypotheses with recommend-defaults for 'you decide', but economy was loose: R1 ran 6 questions, q6 (SKU count / stack context) and R2.q2 (paste-the-header ask to an owner with no file) were low-yield/unanswerable, and R2.q3 bundled the low-rule + 0-stock + blank-safety into one item with a mixed option/free-text format. Some filler and awkward bundling; not tight."
+    },
+    "D5_honest_synthesis": {
+      "score": 1,
+      "evidence": "Decisions are accurately recorded and residual unknowns are honestly and thoroughly separated (CSV-schema/encoding risk called out as the top residual + acceptance test), but there is no clean decision/assumption partition — assistant 'you decide' defaults are folded into the 'Locked decisions' table with only inline provenance rather than a distinct assumptions category. No fabrication and no laundered value → kept at 1, not 0."
+    },
+    "total": 7
+  },
+  "summary": {
+    "passed": 7,
+    "failed": 2,
+    "total": 9,
+    "pass_rate": 0.78
+  },
+  "eval_feedback": "Strong baseline (without_skill) run that nails three of the four scoped traps by leading R1 with the data-source axis: cadence (once-daily morning list, not real-time), integration (Shopl daily CSV email attachment, auto-fetch/API explicitly declined), and threshold (per-product 안전재고 column, global 'qty<10' option rejected via user Other) all resolve cleanly and traceably. It fails the two traps that reward disciplined synthesis: the already-ordered/awaiting-restock exclusion — the eval's marquee unknown-unknown — is never raised in any of the 14 questions and never enters the spec, so the digest would re-nag items already on order; and the final spec blends user decisions with assistant 'you decide' defaults in one 'Locked decisions' table, so the decision/assumption partition (D5) is incomplete even though residual unknowns are separated honestly. No fabrication (no laundered unselected-option values, no invented threshold). Assertions 7/9 (0.78); rubric 7/10 (D1 2 / D2 1 / D3 2 / D4 1 / D5 1). D2 and D4 are the baseline's soft spots — exactly the axes the skill is expected to lift.",
+  "timing": {
+    "rounds": 3
+  }
+}

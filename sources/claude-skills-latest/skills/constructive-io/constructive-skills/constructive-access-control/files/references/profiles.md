@@ -1,0 +1,267 @@
+# Profiles
+
+Profiles are reusable capability bundles — named roles like "Editor", "Viewer", or "Manager" that package a set of capabilities together. When assigned to a membership, the profile's capabilities are added to that member's effective access.
+
+## How Profiles Work
+
+```
+Profile "Editor"
+  └── includes: invoke_agents, write_files, execute_graphs
+
+Member assigned "Editor" profile
+  └── effective capabilities = profile capabilities ∪ direct grants ∪ defaults
+```
+
+- Each profile contains a set of named capabilities
+- Assigning a profile to a membership adds those capabilities to the member's effective access
+- A member can have at most **one profile** per scope (but can also have direct grants on top)
+- Admins and owners always have full capabilities regardless of profile
+
+## Enabling Profiles
+
+Profiles are enabled per entity type. You must explicitly opt in.
+
+### Via Blueprint
+
+```json
+{
+  "entity_types": [
+    {
+      "name": "Organization",
+      "prefix": "org",
+      "hasProfiles": true
+    }
+  ]
+}
+```
+
+### Via ORM
+
+```typescript
+await db.entityTypeProvision.create({
+  data: {
+    databaseId: dbId,
+    name: 'Organization',
+    prefix: 'org',
+    hasProfiles: true
+  },
+  select: { id: true }
+}).execute();
+```
+
+When enabled, the following tables are created (prefixed by scope):
+
+| Table | Purpose |
+|-------|---------|
+| `{prefix}Profile` | Profile definitions (name, slug, capabilities, isDefault, isSystem) |
+| `{prefix}ProfileCapability` | Join table linking profiles to named capabilities |
+| `{prefix}ProfileGrant` | Audit log of profile assignments/unassignments |
+| `{prefix}ProfileDefinitionGrant` | Audit log of capability additions/removals from profiles |
+
+## Creating Profiles
+
+```typescript
+// Create an "Editor" profile at org scope
+await db.orgProfile.create({
+  data: {
+    name: 'Editor',
+    slug: 'editor',
+    entityId: orgId,
+    capabilities: editorCapabilityValue  // from capabilitiesGetMaskByNames
+  },
+  select: { id: true }
+}).execute();
+
+// Create a "Viewer" profile (read-only, fewer capabilities)
+await db.orgProfile.create({
+  data: {
+    name: 'Viewer',
+    slug: 'viewer',
+    entityId: orgId,
+    capabilities: viewerCapabilityValue
+  },
+  select: { id: true }
+}).execute();
+```
+
+### Building the Capability Value
+
+```typescript
+// Resolve capability names to a value for the profile
+const result = await db.query.orgCapabilitiesGetMaskByNames({
+  names: 'invoke_agents,write_files,execute_graphs'
+}).execute();
+const editorCapabilityValue = result.capabilities;
+```
+
+## Default Profiles
+
+A profile with `isDefault: true` is automatically assigned to new members when they join:
+
+```typescript
+await db.orgProfile.create({
+  data: {
+    name: 'Member',
+    slug: 'member',
+    entityId: orgId,
+    capabilities: memberCapabilityValue,
+    isDefault: true
+  },
+  select: { id: true }
+}).execute();
+```
+
+**Constraint:** Only one profile per scope can be the default. Setting a new default requires unsetting the previous one.
+
+```typescript
+// Change the default profile
+await db.orgProfile.update({
+  where: { id: oldDefaultId },
+  data: { isDefault: false }
+}).execute();
+
+await db.orgProfile.update({
+  where: { id: newDefaultId },
+  data: { isDefault: true }
+}).execute();
+```
+
+## System Profiles
+
+Profiles with `isSystem: true` are platform-managed and cannot be deleted or renamed by users:
+
+```typescript
+await db.orgProfile.create({
+  data: {
+    name: 'Admin',
+    slug: 'admin',
+    entityId: orgId,
+    capabilities: allCapabilitiesValue,
+    isSystem: true
+  },
+  select: { id: true }
+}).execute();
+```
+
+## Assigning Profiles to Members
+
+### Direct Assignment
+
+```typescript
+// Assign a profile to a member
+await db.orgMembership.update({
+  where: { actorId: { equalTo: userId }, entityId: { equalTo: orgId } },
+  data: { profileId: editorProfileId }
+}).execute();
+```
+
+### Via Invite
+
+Email invites can carry a `profileId` that pre-assigns the profile when the invite is claimed:
+
+```typescript
+await db.orgInvite.create({
+  data: {
+    email: 'newuser@example.com',
+    senderId: currentUserId,
+    entityId: orgId,
+    profileId: editorProfileId
+  }
+}).execute();
+```
+
+See [`constructive-entities` → invites.md](../../constructive-entities/references/invites.md) for invite profile assignment modes and capability checks.
+
+### Removing a Profile
+
+```typescript
+// Remove profile from a member (they keep only direct grants + defaults)
+await db.orgMembership.update({
+  where: { actorId: { equalTo: userId }, entityId: { equalTo: orgId } },
+  data: { profileId: null }
+}).execute();
+```
+
+## Listing Profiles
+
+```typescript
+// List all profiles for an org
+const profiles = await db.orgProfile.findMany({
+  where: { entityId: { equalTo: orgId } },
+  select: {
+    id: true,
+    name: true,
+    slug: true,
+    isDefault: true,
+    isSystem: true,
+    capabilities: true
+  }
+}).execute();
+```
+
+## Profile Capabilities (Join Table)
+
+For granular management of which capabilities a profile includes:
+
+```typescript
+// Add a capability to a profile
+await db.orgProfileCapability.create({
+  data: {
+    profileId: editorProfileId,
+    capabilityId: writeFilesPermId
+  },
+  select: { id: true }
+}).execute();
+
+// List capabilities in a profile
+const profilePerms = await db.orgProfileCapability.findMany({
+  where: { profileId: { equalTo: editorProfileId } },
+  select: { id: true, capabilityId: true }
+}).execute();
+```
+
+## Audit Trail
+
+Profile changes are tracked via append-only audit logs:
+
+### Profile Assignments (ProfileGrants)
+
+```typescript
+// View profile assignment history for a member
+const history = await db.orgProfileGrant.findMany({
+  where: { actorId: { equalTo: userId }, entityId: { equalTo: orgId } },
+  select: {
+    id: true,
+    profileId: true,
+    isGrant: true,       // true = assigned, false = unassigned
+    grantorId: true,
+    createdAt: true
+  },
+  orderBy: { createdAt: 'DESC' }
+}).execute();
+```
+
+### Profile Definition Changes (ProfileDefinitionGrants)
+
+```typescript
+// View capability changes to a profile definition
+const defHistory = await db.orgProfileDefinitionGrant.findMany({
+  where: { profileId: { equalTo: editorProfileId } },
+  select: {
+    id: true,
+    capabilities: true,
+    isGrant: true,       // true = capabilities added, false = capabilities removed
+    grantorId: true,
+    createdAt: true
+  },
+  orderBy: { createdAt: 'DESC' }
+}).execute();
+```
+
+## Key Behaviors
+
+- **One profile per membership** — a member can only have one profile at a time per scope; switching profiles replaces the previous one
+- **Additive with grants** — profile capabilities are unioned with direct grants; revoking a profile does not remove direct grants
+- **Admin bypass** — admins and owners have all capabilities regardless of profile assignment
+- **Profile ≠ Role** — profiles are configurable bundles; roles (`isAdmin`, `isOwner`) are structural and not profile-dependent
+- **Scope isolation** — profiles in one org don't affect another org; each entity has its own profile set

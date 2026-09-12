@@ -1,0 +1,85 @@
+{
+  "id": "users",
+  "name": "Users",
+  "description": "List workspace members and retrieve user profiles in Slack.",
+  "actions": {
+    "list": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://slack.com/api",
+        "path": "/users.list",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "queryTemplate": {
+          "limit": {
+            "$value": "$input.limit",
+            "$default": 20
+          },
+          "cursor": "$input.cursor"
+        }
+      },
+      "output": {
+        "successPath": "$response.ok",
+        "errorMessagePath": "$response.error",
+        "responseMap": {
+          "count": {
+            "$length": "$response.members"
+          },
+          "nextCursor": "$response.response_metadata.next_cursor",
+          "items": {
+            "$each": "$response.members",
+            "map": {
+              "id": "$item.id",
+              "name": "$item.name",
+              "realName": "$item.real_name",
+              "displayName": "$item.profile.display_name",
+              "email": "$item.profile.email",
+              "avatar": "$item.profile.image_72",
+              "isAdmin": "$item.is_admin",
+              "isBot": "$item.is_bot",
+              "isDeleted": "$item.deleted",
+              "timezone": "$item.tz"
+            }
+          }
+        }
+      }
+    },
+    "get": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://slack.com/api",
+        "path": "/users.info",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "queryTemplate": {
+          "user": "$input.user"
+        }
+      },
+      "output": {
+        "successPath": "$response.ok",
+        "errorMessagePath": "$response.error",
+        "responseSelect": "user",
+        "responseMap": {
+          "id": "$data.id",
+          "name": "$data.name",
+          "realName": "$data.real_name",
+          "displayName": "$data.profile.display_name",
+          "email": "$data.profile.email",
+          "title": "$data.profile.title",
+          "phone": "$data.profile.phone",
+          "avatar": "$data.profile.image_72",
+          "statusText": "$data.profile.status_text",
+          "statusEmoji": "$data.profile.status_emoji",
+          "isAdmin": "$data.is_admin",
+          "isOwner": "$data.is_owner",
+          "isBot": "$data.is_bot",
+          "isDeleted": "$data.deleted",
+          "timezone": "$data.tz",
+          "timezoneLabel": "$data.tz_label"
+        }
+      }
+    }
+  }
+}

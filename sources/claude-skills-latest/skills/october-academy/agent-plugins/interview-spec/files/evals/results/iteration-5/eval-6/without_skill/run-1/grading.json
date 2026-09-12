@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "One-off vs feature trap resolved: final spec scopes this week's July-new-member campaign issuance; permanent/reusable coupon-feature generalization is excluded scope or Still Open — not silently built as a feature, traceable to an asked question",
+      "passed": true,
+      "evidence": "R2.Q3 asked one-off vs reusable; user '이번엔 한 번만, 재사용 여지는 남김'. Summary reframes explicitly: '흔히 상상하는 쿠폰 관리 UI + 발송 시스템이 아니다... 재실행 안전한 추출·생성 스크립트'; §A marks 반복성 = 1회성(급함). Scoped one-off, feature generalization not built, traceable to R2.Q3."
+    },
+    {
+      "text": "Integration honored: the deliverable is a hand-off list (member id, coupon amount, reason — CSV or equivalent) for the backend developer to load; no direct production-DB writes, traceable to a question about how coupons enter the system or who can write to the DB",
+      "passed": true,
+      "evidence": "R2.Q1 (write_path) asked directly 'read-only DB → 발급된 쿠폰은 어디에 기록? 결과물은 무엇?'; user chose the CSV-only option and named 민수. Summary: 'DB에는 쓰지 않는다(읽기 전용). 회원 식별자 + 고유코드 CSV 1장 → 민수님이 적재.' Exactly the brief's intended integration, traceable to R2.Q1."
+    },
+    {
+      "text": "Duplicate-issuance protection (re-run safety / already-issued exclusion) is interviewer-raised before the user mentions it, and lands in the spec as a decision or assumption",
+      "passed": true,
+      "evidence": "R2.Q5 raised '두 번 돌려도 중복 발급되지 않아야 하나요?' before the user volunteered it; user confirmed. R3.Q4 then designed a 발급 원장 파일 (issuance ledger) for re-run dedup given read-only DB — a deep solution. Lands in §A (재실행 안전) + §B (원장 방식) + §E-4 (first-run ledger empty)."
+    },
+    {
+      "text": "No notification/sending pipeline in scope: if notification came up, the spec records it as excluded (marketing CRM sends); the spec never invents a sending mechanism",
+      "passed": true,
+      "evidence": "R1.Q4 user '알림은 저희가 따로 보내요, 발급만 되면 돼요'. Summary §A: '알림 = 이 작업 범위 밖 — 요청자 측이 별도 발송'. No sending mechanism invented."
+    },
+    {
+      "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption",
+      "passed": true,
+      "evidence": "§A holds only user-stated facts; §B (유효기간/최소구매/코드형식/원장) are recommended defaults explicitly approved at R3.Q1; §C-E flag 민수-pending and residual risks. Crucially §E-1 flags the code-generation authority ('민수 시스템이 코드를 생성한다면 우리는 목록만') as an assumption to verify — no over-claim. No brief-only fact leaked."
+    },
+    {
+      "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+      "passed": true,
+      "evidence": "R1 = context/stack, coupon type, trigger+target, delivery, scope(redeem). All architecture/scope-defining, no administrative filler."
+    },
+    {
+      "text": "Interview surfaces at least one material unknown-unknown the user never stated, and it lands in the final spec as a decision or explicit assumption",
+      "passed": true,
+      "evidence": "Multiple strong UUs: (1) read-only DB → 'where do you WRITE?' (R2.Q1) — the central catch; (2) re-run dedup needs a ledger file because a read-only DB has no memory (R3.Q4); (3) code-generation authority (민수's system may generate codes) → §E-1; (4) validity period is a marketing decision not to be delegated blindly (R3.Q1 warning). All land in the spec."
+    },
+    {
+      "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+      "passed": true,
+      "evidence": "Explicit sections: A 확정된 사실 (decisions) | B 추천 수락 기본값 (assumptions) | C 외부 의존성(민수 pending) | D 열린 권고 | E 잔여 리스크/가정 | F 착수 스펙 with 착수-가능 vs 차단 gating. Exemplary tri-partition with resolution paths."
+    },
+    {
+      "text": "With no codebase to inspect (greenfield), questions ground in the user's actual situation and vocabulary (operations role, one backend developer, weekly urgency) and never re-ask facts derivable from the request itself",
+      "passed": true,
+      "evidence": "Greenfield-aware ('프로젝트 폴더가 비어 있어'); questions ground in the surfaced situation (MySQL read-only, 민수, CSV, 300명, urgency) and R2/R3 adapt to each revelation. No re-asking of request-derivable facts."
+    }
+  ],
+  "rubric_scores": {
+    "D1_leverage": {"score": 2, "evidence": "R1 led with context/type/trigger/delivery/scope — all architecture-splitting; R2 immediately pivoted to the write-path once read-only surfaced. No administrative questions."},
+    "D2_unknown_unknowns": {"score": 2, "evidence": "The read-only → where-do-you-write catch and the ledger-file solution for re-run dedup are top-tier unknown-unknown work; it also flagged the code-gen authority branch and the marketing-decision nature of validity period. Exemplary."},
+    "D3_territory": {"score": 2, "evidence": "Greenfield-aware and deeply situation-grounded (MySQL read-only, 민수, CSV, urgency); questions never re-ask derivable facts and adapt round-to-round."},
+    "D4_economy": {"score": 2, "evidence": "5/5/4 questions (free-form format), each spec-changing; strong hypothesis options with recommended defaults ('회원별 1회용 고유코드 권장'); dependent axes deferred and resolved adaptively."},
+    "D5_honest_synthesis": {"score": 2, "evidence": "Six-section partition of decisions / accepted-defaults / 민수-pending / open recommendations / residual risks / build spec, with explicit 착수-가능 vs 차단 gating; even flags the code-gen authority as a risk rather than asserting it. No fabrication."},
+    "total": 10
+  },
+  "summary": {"passed": 9, "failed": 0, "total": 9, "pass_rate": 1.0},
+  "eval_feedback": "Exceptional baseline run — it fully solved the eval-6 integration trap without any skill scaffolding. R2.Q1 asked the read-only write-path question head-on, surfaced the CSV-to-민수 hand-off, invented a ledger-file mechanism for re-run dedup under read-only, excluded notification, and honestly flagged the code-generation authority branch as an unresolved assumption. Free-form format let it ask 14 questions vs the skill's 4-per-round cap, which clearly helped surface the trap. 9/9 on the both-arm assertions, rubric 10/10. Matches with_skill run-1 and exceeds with_skill run-3.",
+  "timing": {"rounds": 3}
+}

@@ -1,0 +1,555 @@
+# Common Task Guidance
+
+This file applies to task planning on both planning paths of
+`spec-loop-plan-task`.
+
+It defines the shared no-subtask main-task form, section meanings,
+readiness rules for the current task, including subtask handling when
+subtasks exist, context-preservation rules, formatting conventions,
+and the required use of detailed Test specification guidance for both
+planning paths, with any task-file-only formatting rules called out
+explicitly:
+
+- the chat-only planning path kept in chat; and
+- the task-file path.
+
+Task-file-only lifecycle, folders, tracked moves, subtasks, diagrams,
+and other task-file administration stay in
+[task-file-path-guidance.md](task-file-path-guidance.md).
+
+## Readiness for the current task
+
+The active task artifact is the source of truth for the current task.
+If the task uses subtasks, these readiness rules apply to the current
+subtask plus the task-level context it depends on. Design-first allows
+learning during execution while the approved Design stays
+authoritative. Findings that change the intended target lead to
+updates to the active task artifact and renewed approval before
+execution continues.
+
+- On the chat-only path, that artifact is the current canonical
+  chat-only task in chat.
+- On the task-file path, that artifact is the active task file.
+
+Before EXECUTION, implementation work needs: Scope, Motivation,
+Briefing, implementation-ready Design, Test specification, and any
+required Research, Scenario, Glossary, Analysis, or Constraints for
+the current task. If the task uses subtasks, apply those requirements
+to the current subtask plus needed task-level context — even when the
+User allows combined phases.
+
+Before asking the User to approve EXECUTION, the LLM must self-check
+that the current task meets all applicable requirements of this file
+and any path-specific companion rules. If the task uses subtasks,
+apply that self-check to the current subtask plus needed task-level
+context. In either case, the result must be correct, internally
+consistent, and compliant with `AGENTS.md` and applicable glossary
+rules.
+
+If the task is investigation-only, use the same task sections. Scope
+sets the investigation boundary and expected output. Motivation states
+what the investigation blocks or enables. Constraints state that the
+task must not ship product, test, build, config, runtime, or coupled
+documentation changes. Research records starting evidence and known
+facts. Design describes the investigation approach. Test specification
+is `N/A` unless explicit checks are needed to review the result.
+Findings records the final reviewed output.
+
+At any point while drafting or revising the active task artifact, if
+any content would depend on an unresolved material branch about scope,
+behavior, policy, conceptual model,
+conceptual contract boundaries, constraints, migration, acceptance
+logic, or verification expectations, it must return to clarification
+instead of guessing.
+
+If drafting or reviewing Design exposes a new material boundary
+decision, return to clarification before continuing.
+
+If asking the User to review a draft instead, say so explicitly and
+list the known gaps, open questions, and unresolved decisions.
+
+## Later implementation follow-up from `review` or `done`
+
+On the chat-only path, the equivalent starting point is a task
+already presented as ready for User review.
+
+When a task or subtask already in `review` or `done`, or a chat-only
+task already presented as ready for User review, receives a later
+implementation change request, return to PLAN before more
+implementation work.
+
+From `review`, or from a chat-only task already presented as ready
+for User review, keep the same task or subtask by default when the
+User's message or later clarification shows that the follow-up is
+still the same overall task and the work is not a distinct work item.
+
+From `done`, ask whether to reuse the same task or subtask or use
+separate tracking unless the User already specified that choice.
+
+Otherwise ask only when that relation is unclear.
+
+Significant scope change or widening is evidence that the work may be
+a distinct work item. If that boundary is unclear, clarify in PLAN
+before choosing whether to keep the same task or use separate
+tracking.
+
+Discard implementation-created intermediate states from canonical
+planning artifacts by default. An implementation-created intermediate
+state alone is not a reason to force separate tracking.
+
+Preserve such a state only when the User explicitly wants
+history-preserving separate tracking or when a separate governed
+starting state is actually required.
+
+If separate tracking is needed while the work is still part of the
+same overall task, recommend a new subtask and wait for explicit User
+confirmation before creating it. If the work is a distinct work item,
+recommend a new task and wait for explicit User confirmation before
+creating it.
+
+If the same task or subtask is kept, update the governing artifact in
+PLAN, discard any implementation-created intermediate state from
+canonical planning sections, and seek renewed execution approval
+before more implementation work.
+
+## Task artifact structure and sections
+
+Each task without subtasks uses this exact order and layout.
+Do not add extra metadata fields or custom readiness markers unless
+the User explicitly requests them. Use the exact bold-label section
+labels below.
+
+- Title line: `# Task: <title>`.
+- One identifier (mutually exclusive):
+  - `- **Ticket:**` Ticket ID, preferred.
+  - `- **Task Identifier:**` if no Ticket;
+    `YYYY-MM-DD-<slug>` where `<slug>` is 1-2 keywords from the
+    task title or intended filename.
+  - Value present = **Primary Identifier** for commit messages.
+- Main task sections as bold-label list items in this order:
+  - `- **Scope:**`
+  - `- **Motivation:**`
+  - `- **Scenario:**` (conditional; use when behavior, flow,
+    boundaries, or user-visible outcomes need grounding)
+  - `- **Glossary:**` (conditional; use with Scenario when shared
+    domain terms are introduced, changed, or redefined)
+  - `- **Constraints:**` (optional; important limits Design and
+    implementation must obey)
+  - `- **Briefing:**`
+  - `- **Research:**`
+  - `- **Analysis:**` (conditional; include it when final
+    clarification decisions exist for the current task; if the task
+    uses subtasks, apply this to the current subtask plus needed
+    task-level context)
+  - `- **Design:**`
+  - `- **Test specification:**`
+  - `- **Findings:**` (conditional; investigation-only tasks/subtasks
+    only, after approved investigation work produces reviewed output)
+  - `- **Implementation notes:**` (conditional; include it when the
+    post-implementation checkpoint finds meaningful notes content)
+  When a conditional or optional section is omitted, omit it entirely
+  and keep the remaining sections in the order listed above.
+
+The `###` headings below are guidance-document headings only. In task
+artifacts, these sections must be bold-label list items such as
+`- **Design:**`, not Markdown headings. This keeps task files with
+subtasks from creating extra heading levels under each subtask.
+
+Task-file-only subtask rules stay in
+[task-file-path-guidance.md](task-file-path-guidance.md).
+
+Task-section descriptions below follow this order. Extra cross-section
+guidance appears near the sections it affects. This is not drafting
+order. Draft sections in whatever order gives accurate content. For
+example, finalize `Briefing` after research when research identifies
+relevant modules, conventions, or risks.
+
+### Scope
+
+Defines the boundaries of the current task: what is included, what is
+excluded, and which user-visible or system behavior is in scope. If
+the task uses subtasks, apply this to the current subtask plus needed
+task-level context.
+
+### Motivation
+
+Explains why the change is needed. Use confirmed user intent,
+observed defects, project goals, or clearly marked inference.
+
+### Scenario
+
+`Scenario` explains what happens and grounds domain language before
+implementation. Keep it succinct, implementation-free, and
+behavior-first.
+
+Use `Scenario` when behavior, flow, boundaries, or user-visible
+outcomes are introduced, changed, or clarified.
+
+If behavior changes but shared vocabulary does not, keep `Scenario`
+only. If neither behavior nor shared vocabulary changes, omit both
+`Scenario` and `Glossary`. Prefer `Scenario` over `Glossary` when
+only one section is needed. Do not use `Glossary` without `Scenario`
+by default.
+
+Across the whole task artifact, use domain-related words for planned
+behavior and structure. When referring to planned or changed
+production types, use exact intended class, interface, and enum
+names, not stand-ins or generic role placeholders.
+
+Research may mention legacy terms. Analysis and Design use only
+canonical Scenario and Glossary terms except explicit
+legacy-to-target mapping tables. If code uses different names, align
+incrementally and document intentional mismatch in the active task
+artifact.
+
+### Glossary
+
+Use task `Glossary` when the current task introduces or changes
+review-relevant shared domain terms, or exact external technical
+terms whose precise type or API is part of the reviewed contract,
+relative to the current shared domain-language source. If the task
+uses subtasks, apply this to the current subtask plus needed
+task-level context.
+
+Before approval seeking, if the term-reduction and classification
+pass finds such a qualifying term delta and task `Glossary` is
+absent, add `Scenario` and task `Glossary` before continuing.
+
+When used:
+- include `Scenario` too;
+- write or update both together;
+- place `Glossary` immediately after `Scenario`; and
+- follow
+  [scenario-and-glossary-guidance.md](scenario-and-glossary-guidance.md).
+
+Task `Glossary` is delta-only relative to the current shared
+domain-language source. Do not redefine unchanged terms from that
+source.
+
+Test semantic identity, not spelling, before adding a term. If an
+existing abstraction represents the same concept, either use its
+current name or include an explicit refactoring proposal in Design.
+The proposal must name the current abstraction, the target term, and
+the intended rename or restructuring. Do not add competing glossary
+language while leaving the same abstraction unchanged.
+
+For glossary sources, extension points, and candidate-term selection
+rules, follow
+[scenario-and-glossary-guidance.md](scenario-and-glossary-guidance.md).
+
+#### Project glossary policy
+
+Follow [SKILL.md](SKILL.md) for the living-project-document list,
+project glossary handling, and glossary-format routing.
+
+An existing project glossary is shared task language above individual
+tasks and code. Without one, use `Research` plus the existing codebase.
+Do not add helper names, implementation details, framework terms, or
+terms not needed to explain project rules, behavior, or subsystem
+boundaries.
+
+If this task creates, updates, or supersedes the project glossary:
+- list that action under `Living project documents` in Design; and
+- complete it during EXECUTION.
+
+If a project glossary action would change approved meaning rather than
+record it, return to PLAN first.
+
+### Constraints
+
+Use for important limits Design and implementation must obey.
+Typical content: semantic invariants, non-goals, compatibility
+limits, performance limits, identity rules, forbidden
+simplifications.
+
+### Briefing
+
+Short orientation for someone unfamiliar with the codebase: relevant
+modules, important classes, framework context, repo conventions, risk
+areas.
+
+Finalize Briefing late in PLAN, shortly before seeking execution
+approval, after Research, Design, and Test specification are coherent.
+Keep target-state plans in Design, not Briefing.
+
+### Research
+
+Research and clarification are iterative. Do enough clarification to
+know the research scope, then research the current system and return
+to clarification whenever findings expose material choices about
+intent, scope, constraints, design, acceptance logic, or verification.
+
+For implementation work, record observations, constraints, verified
+facts, and findings about the original pre-implementation state only.
+For investigation-only work, record starting evidence and known facts.
+Plans go in **Design**. Approved investigation output goes in
+**Findings**.
+
+For implementation work, do not record repository states created
+while implementing the current task in canonical Research. If the
+task uses subtasks, apply this to the current subtask. If later
+clarification, implementation, or review reveals new relevant facts
+about the original pre-implementation state, extend Research with
+those facts only.
+
+Do not repeat `Analysis` points here in decision-and-rationale form.
+
+### Analysis
+
+Authoritative ledger of final clarification decisions and succinct
+rationale.
+
+Use one short bullet per final decision. Use the connector that matches
+the relation:
+- `because` for a reason, constraint, or accepted fact;
+- `so that` for a purpose or intended effect.
+
+Do not use process history as rationale, such as `because the user
+confirmed`, `because the user asked`, or `because the user chose it`.
+Record the substantive reason or purpose instead. If none is useful,
+record only the decision.
+
+Keep only final decisions here. Move structural, behavioral,
+contract, and verification consequences into the affected canonical
+sections and diagrams.
+
+`Analysis` is read together with the other sections:
+- do not repeat `Analysis` points in other narrative text; but
+- the affected sections and diagrams must still contain names,
+  structures, contracts, lists, tables, diagram content, and test
+  cases when those are the actual consequences of the decision.
+Do not put open questions, options, confidence values, tentative
+assumptions, or transient working notes here.
+
+When a final clarification decision changes another section or
+diagram, update that section or diagram to reflect the resulting
+state. Diagrams should reflect any relevant textual decisions they
+own. Clarification workflow and recording procedure belong to
+`spec-loop-clarify-task`.
+
+### Design
+
+Documents target system: architecture, data structures, data flow,
+interactions, implementation boundaries. Draft from validated
+Research and Scenario behavior, using Glossary when present.
+
+For investigation-only work, Design describes the investigation
+approach instead of a target system change.
+
+For implementation work, Design is the implementation contract. It
+must be reviewable and implementation-ready before execution approval.
+
+#### Living project documents
+
+Follow [SKILL.md](SKILL.md) for the project list, the glossary
+exception, and what counts as a living project document.
+
+For an implementation task without subtasks, or for the current
+implementation subtask:
+- Research records the living-project-document list, if one exists,
+  the relevant entries or collections checked, and any existing project
+  glossary; and
+- Design uses one of the exact nested forms below.
+
+When no living project document is affected:
+
+```md
+- **Design:**
+  - **Living project documents:** None affected
+```
+
+When document actions are required:
+
+```md
+- **Design:**
+  - **Living project documents:**
+    - `<path or paths>` — `<role>`; `<action>`:
+      `<facts or contract the document must reflect>`.
+```
+
+`<action>` is `update`, `create`, or `supersede`.
+
+Use `None affected` only when Research explicitly confirms that no
+existing project glossary or other relevant listed living project
+document is affected.
+Creating or maintaining the project list is itself a document action
+when required. Complete all listed actions in the approved increment
+and include them in review.
+
+Follow each document's format and lifecycle rules. Use
+[spec-loop-write-adr/SKILL.md](../spec-loop-write-adr/SKILL.md) for ADRs and
+[spec-loop-write-glossary/SKILL.md](../spec-loop-write-glossary/SKILL.md) for
+Spec Loop AsciiDoc project glossaries.
+
+On the task-file path, place `Living project documents` after Design
+diagrams and related text.
+
+If required living-project-document work is missing from the plan,
+return to PLAN, update the task, get approval, and continue.
+
+For externally observable or supported-contract behavior, including UI
+behavior, Design must specify the task-relevant boundary contract:
+accepted input representation, trigger or protocol, observable
+output/state, side-effect payload when relevant, update or consistency
+timing when relevant, and acceptance-relevant absence expectations. Do
+not specify such behavior only through internal services, handlers, or
+helpers.
+
+Design must follow Constraints and Analysis when they are present. If
+Design conflicts with either, fix Design or return to clarification.
+
+Design must describe only the current intended end state. Do not
+describe repository states created while implementing the current
+task, or the current subtask when subtasks are in use, including
+staged refactor states or
+transformations such as `S1 -> S2`. If such an intermediate state
+must be preserved, use a new task or subtask where that state can
+appear as **Research**. Implementation detours that do not belong in
+canonical sections may go in **Implementation notes** when relevant.
+
+Use only final intended names for design-owned terms, units, config
+keys, tool/API names, request/response fields, enum values, etc.
+Prefer domain-related words and exact intended class names. No
+placeholders, temp names, candidate names, example names, or generic
+stand-ins such as `Controller`, `Collaborator`, `Helper`, `Manager`,
+or `Processor` unless they are established domain or framework terms
+that the design explicitly depends on. Undecided name/unit/boundary =
+not ready for implementation.
+
+When requirements name fixed members of a set, Design must state
+whether those members are data identities or distinct behaviors. If
+they share behavior, model them as data identities selected through
+parameters, collections, or lookup structures, not as duplicated
+methods or classes named after each member, unless an external contract
+requires those names. If member-specific methods or classes are used,
+Design must state what behavior or contract differs.
+
+If finding an exact name is hard, treat that as a design defect.
+Change the design until responsibilities and boundaries admit precise
+names, and immediately plan the required refactoring in the active
+artifact. On the task-file path, if that refactoring is a standalone
+refactoring under
+[planning-form-selection-guidance.md](planning-form-selection-guidance.md),
+re-run planning-form selection and then work breakdown. If the change
+remains one overall task, put the refactoring in its own subtask.
+Resolving precise domain language and exact structural names is the
+highest priority during design work.
+
+When production structure changes, Design must make the structural
+inventory explicit for every planned new or changed top-level
+production class, interface, enum, and every new or changed
+externally meaningful identifier in scope. In class diagrams, put
+review-relevant methods and fields of displayed types in the diagram
+itself. On the task-file path, follow
+[task-file-path-guidance.md](task-file-path-guidance.md) for the
+rules that govern diagrams, allowed non-diagram text, and local
+ordering between a diagram and its related text in **Research** and
+**Design**.
+Examples of externally meaningful identifiers include persisted file
+names, serialized field names, config keys, action keys, menu
+placeholder names, and shared session/state flags.
+
+Local variables, private methods, private fields contained within one
+class, and other purely internal implementation details are not part
+of this inventory. Add private methods and private fields to Design
+only when the User explicitly requests lower-level review.
+
+Test-only elements go in **Test specification**, not Design, unless
+task changes test infrastructure.
+
+When changing tools/APIs/serialized payloads, Design must show full
+target request/response structures and enums. Examples supplement,
+don't replace spec.
+
+When Scenario or Glossary exists, Design uses their canonical terms.
+Do not redefine Glossary terms in Design.
+
+Every new review-relevant term introduced in Design must remain
+classifiable under
+[scenario-and-glossary-guidance.md](scenario-and-glossary-guidance.md).
+Before approval seeking, the active task must complete the
+term-reduction and classification pass required there. If any such
+term cannot be classified, treat it as a design defect.
+
+Internal implementation terms may appear only in implementation-level
+design such as class-level structure. Do not use them as if they were
+domain language in `Scenario`, task `Glossary`, or behavior-level
+diagrams and prose.
+
+### Test specification
+
+Specifies how the current task's requirements and task-relevant
+modified code paths are verified.
+
+For investigation-only work, set Test specification to `N/A` unless
+explicit checks are needed to review the result.
+
+Before drafting or revising `Test specification`, you must read and
+follow [test-specification-guidance.md](test-specification-guidance.md).
+
+### Findings
+
+Conditional output section for investigation-only tasks and subtasks.
+Fill it during EXECUTION when the approved investigation produces its
+reviewed output.
+
+Findings is not a scratchpad, transcript, or worklog. Record only the
+final findings, relevant evidence references, and limits needed for
+review. Follow-up tasks or ADRs copy only the accepted findings they
+depend on into their own `Research`, `Context`, or `Analysis`.
+
+### Implementation notes
+
+Conditional execution-phase notes. This section is filled only at the
+post-implementation checkpoint under the
+`spec-loop-implementation-flow` skill. It is not part of the
+canonical planning truth. If present, it describes the current
+implementation state, not the target state in canonical sections. Its
+content may still be relevant context for follow-up tasks and, on the
+task-file path, subtasks. Detailed behavior is governed by that skill
+and is not repeated here.
+
+### Iterative discovery
+
+Iterate across Research, Scenario (if used), Glossary (if used),
+Analysis (if used), Design, and Test specification until coherent.
+Record intermediate alternatives only when they aid reasoning or
+review. No implementation during this loop.
+
+## Context Preservation
+
+- Re-read relevant task sections before implementation or when
+  requirements are unclear.
+- When a task uses subtasks, re-read the relevant main-task sections
+  and diagrams before working from the active subtask. Do not assume
+  the subtask repeats all required context.
+- Active task artifact = working source of truth for the current
+  item.
+- Older task files or superseded chat-only task states = historical
+  records; they need not stay consistent with the active artifact when
+  superseded.
+- Keep only relevant task content in active context.
+
+## Formatting
+
+- Task-file artifacts must wrap prose to roughly 72-80 characters and
+  avoid horizontal scrolling. Chat-only work in chat does not need a
+  fixed wrap width unless the User asks for it, but it must remain
+  readable and structurally clear.
+- Preserve semantic line breaks and consistent list indentation.
+- Fenced code blocks: start/end with backticks. For top-level content,
+  use flush-left fenced code blocks. When a fenced code block belongs
+  to a list item, indent the opening fence, block content, and
+  closing fence to that list item's content indentation so the block
+  remains inside the list item.
+- Standalone paragraphs unindented. List continuation lines may
+  indent to align. After a fenced code block inside a list item,
+  resume either the same list-content indentation or true top-level
+  indentation.
+- Render correctly in chat markdown and in GitHub and GitLab task
+  views.
+
+Intent: readable in plain text editors (vim, less, nano), chat views,
+and rendered markdown views.
+
+

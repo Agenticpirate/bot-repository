@@ -1,0 +1,167 @@
+{
+  "id": "events",
+  "name": "Events",
+  "description": "Read upcoming events, create calendar events, and reschedule existing events in Google Calendar.",
+  "actions": {
+    "agenda": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://www.googleapis.com",
+        "path": "/calendar/v3/calendars/primary/events",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "queryTemplate": {
+          "timeMin": "$input.timeMin",
+          "timeMax": "$input.timeMax",
+          "timeZone": "$input.timeZone",
+          "q": "$input.query",
+          "maxResults": {
+            "$value": "$input.maxResults",
+            "$default": 10
+          },
+          "singleEvents": true,
+          "orderBy": "startTime"
+        }
+      },
+      "output": {
+        "responseMap": {
+          "count": {
+            "$length": "$response.items"
+          },
+          "nextPageToken": "$response.nextPageToken",
+          "items": {
+            "$each": "$response.items",
+            "map": {
+              "id": "$item.id",
+              "status": "$item.status",
+              "summary": {
+                "$value": "$item.summary",
+                "$default": "Untitled"
+              },
+              "description": "$item.description",
+              "location": "$item.location",
+              "htmlLink": "$item.htmlLink",
+              "start": {
+                "dateTime": "$item.start.dateTime",
+                "date": "$item.start.date",
+                "timeZone": "$item.start.timeZone"
+              },
+              "end": {
+                "dateTime": "$item.end.dateTime",
+                "date": "$item.end.date",
+                "timeZone": "$item.end.timeZone"
+              },
+              "creator": {
+                "email": "$item.creator.email",
+                "self": "$item.creator.self"
+              },
+              "organizer": {
+                "email": "$item.organizer.email",
+                "self": "$item.organizer.self"
+              }
+            }
+          }
+        }
+      }
+    },
+    "create": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://www.googleapis.com",
+        "path": "/calendar/v3/calendars/primary/events",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "queryTemplate": {
+          "sendUpdates": "$input.sendUpdates"
+        },
+        "bodyTemplate": {
+          "summary": "$input.summary",
+          "description": "$input.description",
+          "location": "$input.location",
+          "colorId": "$input.colorId",
+          "start": {
+            "dateTime": "$input.startDateTime",
+            "timeZone": "$input.timeZone"
+          },
+          "end": {
+            "dateTime": "$input.endDateTime",
+            "timeZone": "$input.timeZone"
+          },
+          "attendees": {
+            "$each": "$input.attendees",
+            "map": {
+              "email": "$item"
+            }
+          }
+        }
+      },
+      "output": {
+        "responseMap": {
+          "id": "$response.id",
+          "status": "$response.status",
+          "summary": {
+            "$value": "$response.summary",
+            "$default": "Untitled"
+          },
+          "htmlLink": "$response.htmlLink",
+          "start": {
+            "dateTime": "$response.start.dateTime",
+            "date": "$response.start.date",
+            "timeZone": "$response.start.timeZone"
+          },
+          "end": {
+            "dateTime": "$response.end.dateTime",
+            "date": "$response.end.date",
+            "timeZone": "$response.end.timeZone"
+          }
+        }
+      }
+    },
+    "reschedule": {
+      "upstream": {
+        "method": "PATCH",
+        "baseUrl": "https://www.googleapis.com",
+        "path": "/calendar/v3/calendars/primary/events/{eventId}",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "queryTemplate": {
+          "sendUpdates": "$input.sendUpdates"
+        },
+        "bodyTemplate": {
+          "start": {
+            "dateTime": "$input.startDateTime",
+            "timeZone": "$input.timeZone"
+          },
+          "end": {
+            "dateTime": "$input.endDateTime",
+            "timeZone": "$input.timeZone"
+          }
+        }
+      },
+      "output": {
+        "responseMap": {
+          "id": "$response.id",
+          "status": "$response.status",
+          "summary": {
+            "$value": "$response.summary",
+            "$default": "Untitled"
+          },
+          "htmlLink": "$response.htmlLink",
+          "start": {
+            "dateTime": "$response.start.dateTime",
+            "date": "$response.start.date",
+            "timeZone": "$response.start.timeZone"
+          },
+          "end": {
+            "dateTime": "$response.end.dateTime",
+            "date": "$response.end.date",
+            "timeZone": "$response.end.timeZone"
+          }
+        }
+      }
+    }
+  }
+}

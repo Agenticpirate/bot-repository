@@ -211,6 +211,14 @@ def copy_tree_files(src: Path, dest: Path) -> int:
     for path in src.rglob("*"):
         if not path.is_file():
             continue
+        if path.name == ".gitattributes":
+            continue
+        try:
+            head = path.read_bytes()[:64]
+        except OSError:
+            continue
+        if head.startswith(b"version https://git-lfs.github.com/spec/v1"):
+            continue
         rel = path.relative_to(src)
         target = dest / rel
         target.parent.mkdir(parents=True, exist_ok=True)

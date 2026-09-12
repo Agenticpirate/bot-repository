@@ -1,0 +1,42 @@
+# skill-creator-primer Rules
+
+- Content in this skill should be concise / terse and direct in nature.
+
+## Use of references within this primer skill
+
+- With this skill creator primer skill, it's actually somewhat expected that it's own SKILL.md may be a bit larger than other skills, as we want to ensure as much of the information that is almost always certainly needed is always available in context so the agent doesn't have to make decisions about what references to read, and so it places value on the content of this skills instruction over those of the ones it's reviewing.
+- Any pointers to ./references/*.md must have clear instructions as to when the consuming agent MUST read them (e.g. the scenario when they apply).
+- You do NOT need to add items that were changes to other items within the same date (e.g. if you add "added skill description ..." you don't need to also add "improved skill scription ..." if you did so on the same date)
+
+## Hook command paths
+
+Hooks in `SKILL.md` frontmatter use `$HOME/.claude/skills/skill-creator-primer/scripts/...`. `${CLAUDE_PLUGIN_ROOT}` is only set for plugin-bundled skills, and `${CLAUDE_SKILL_DIR}` expands empty in current Claude Code. Switch to `${CLAUDE_PLUGIN_ROOT}` only if this skill is ever packaged as a plugin.
+
+## Tests for the bundled scripts
+
+`tests/` holds stdlib `unittest` tests for the scripts in `scripts/`. They are development tooling for this repo - the skill never invokes them, and they stay out of `SKILL.md` so they cost the consuming agent nothing.
+
+After changing any Python under `scripts/`, before you report the work done:
+
+- Run them: `uv run --with pyyaml python3 -m unittest discover -s tests`. All must pass.
+- Add a test for the behaviour you changed, and update the tests an intentional change invalidates. A changed threshold or report string with no test touched means the coverage was thin, not that the change was safe.
+- Assert on behaviour an agent reading the report depends on (exit codes, which section a finding lands in, what the rating gates), not on incidental wording.
+- Verify a new test actually fails without the fix. A test that passes against the old code is measuring nothing.
+- Keep them runnable with plain `python3`: stdlib only, and skip rather than fail when PyYAML is absent, matching the `--report-only` path's constraint.
+
+## Running this skill's trigger evals
+
+`evals/trigger.json` scores this skill's own description. Run it outside the sandbox (claude and node need network), after any change to the `description` in `SKILL.md`:
+
+```bash
+$HOME/.claude/skills/skill-creator-primer/scripts/eval_triggering.py \
+  --skill-path "$HOME/.claude/skills/skill-creator-primer" \
+  --eval-set "$HOME/.claude/skills/skill-creator-primer/evals/trigger.json"
+```
+
+## Update CHANGELOG.md after changes
+
+After making any change to this skill (SKILL.md, references, scripts, evals etc.): You MUST update `CHANGELOG.md`:
+- Add a concise TLDR of the change(s) in a bullet point(s) under today's date heading (`## YYYY-MM-DD`, newest first), creating the heading if it doesn't exist. No versioning is required.
+- Update the `version` metadata in `SKILL.md` to the current date (YYYY-MM-DD) to reflect the change.
+- Squash changes within the same day (do not add changes to changes).

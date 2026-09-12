@@ -1,0 +1,91 @@
+{
+  "id": "post",
+  "name": "Post",
+  "description": "Post, reply, quote, and delete posts on X.",
+  "actions": {
+    "create": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://api.x.com",
+        "path": "/2/tweets",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "text": "$input.text"
+        }
+      },
+      "output": {
+        "responseSelect": "data",
+        "responseMap": {
+          "id": "$data.id",
+          "text": "$data.text",
+          "url": "https://x.com/i/status/${data.id}"
+        }
+      }
+    },
+    "reply": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://api.x.com",
+        "path": "/2/tweets",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "text": "$input.text",
+          "reply": {
+            "in_reply_to_tweet_id": "$input.tweetId"
+          }
+        }
+      },
+      "output": {
+        "responseSelect": "data",
+        "responseMap": {
+          "id": "$data.id",
+          "text": "$data.text",
+          "url": "https://x.com/i/status/${data.id}"
+        }
+      }
+    },
+    "quote": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://api.x.com",
+        "path": "/2/tweets",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "text": "$input.text",
+          "quote_tweet_id": "$input.tweetId"
+        }
+      },
+      "output": {
+        "responseSelect": "data",
+        "responseMap": {
+          "id": "$data.id",
+          "text": "$data.text",
+          "url": "https://x.com/i/status/${data.id}"
+        }
+      }
+    },
+    "delete": {
+      "upstream": {
+        "method": "DELETE",
+        "baseUrl": "https://api.x.com",
+        "path": "/2/tweets/{tweetId}",
+        "auth": { "mode": "bearer" }
+      },
+      "output": {
+        "responseSelect": "data",
+        "responseMap": {
+          "deleted": {
+            "$value": "$data.deleted",
+            "$default": false
+          }
+        }
+      }
+    }
+  }
+}

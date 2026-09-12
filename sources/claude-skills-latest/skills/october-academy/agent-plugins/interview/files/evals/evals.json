@@ -1,0 +1,882 @@
+{
+ "skill_name": "interview",
+ "notes": "인터랙티브 인터뷰 스킬이므로 시뮬레이션 유저 프로토콜로 평가한다. [격리 — iteration-4 검토 반영] 인터뷰어와 시뮬레이션 유저는 반드시 **별도 에이전트/프로세스**로 격리한다: 인터뷰어는 브리프를 절대 읽지 않고, 시뮬레이터는 브리프+questions_round_N.json만 받아 answers_round_N.md를 쓴다. 오케스트레이터가 파일만 중계한다. 단일 에이전트 role-switch는 금지 — 브리프 기억이 인터뷰어에 잔존해 D2/D4/D5를 체계적으로 부풀린다(iteration-4 2nd-opinion 판정). [동형 baseline] without_skill 팔은 with_skill과 **동일한 최종 산출물**(명확화된 요구사항 요약, outputs/final_summary.md)을 요구한다 — 구현까지 진행시키지 말 것. 질문은 같은 파일 프로토콜(questions_round_N.json은 자유 형식 허용)로 주고받는다. [arm 필드] assertion의 arm이 'with_skill'이면 스킬 계약(상태 파일·배칭·옵션 수·형식·promise·claim audit)이라 baseline에는 채점하지 않는다; 'both'는 인터뷰 품질이라 양팔 모두 채점한다. pass rate는 팔별로 자기 arm에 해당하는 assertion만으로 계산한다. 채점: 계약 assertion은 mech_grade.py(기계), 나머지는 grader 에이전트가 interview-quality-rubric.md(D1~D5)로 판정. fixture 필드가 있는 eval은 fixtures/<dir>를 런의 project/로 복사한 뒤 실행한다. [상태 스냅샷] v3.0.0부터 스킬이 종결 promise 후 상태 파일을 스스로 삭제하므로, 러너에게 '삭제 직전 outputs/state_file_final_pre_deletion.md로 사본을 남겨라'를 반드시 지시할 것. [브리프 인용 금지] 시뮬레이션 유저의 answers_round_N.md에는 브리프 인용(줄번호·원문 발췌)을 넣지 말 것 — 선택 옵션 + 유저 화법 한 줄만(iteration-3 실측: 스펙 날조의 주 벡터). [holdout] eval-6·7은 폴리시 개발에 사용하지 않은 홀드아웃 — 회귀 측정 시 팔당 3런을 권장(재현성 분산 포함).",
+ "evals": [
+  {
+   "id": 0,
+   "name": "payment-failure-notification-kr",
+   "prompt": "결제 실패하면 알림 보내줘",
+   "brief": "briefs/eval-0-user-brief.md",
+   "expected_output": "운영자 대상 이메일 알림으로 좁혀진 Before/After 스펙. 고객 알림 오해를 옵션 설계로 조기에 해소하고, 성공 기준(5분 내 수신, 중복 없음)이 요약에 포함됨.",
+   "files": [],
+   "assertions": [
+    {
+     "text": "State file created in project/.claude/ with iteration, max_iterations, original_requirement, and ISO-8601 started_at frontmatter",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question round has at most 4 questions, batched as a single payload",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question offers 2-4 concrete hypothesis options (no open-ended-only questions)",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Exit/termination handling is honest and economical: the interview stops as soon as nothing material remains, never exceeds max rounds, and any exit offer appears as its own 2-option control question — never as an extra option inside a domain question",
+     "type": "qualitative",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Final output contains Before (verbatim original) and After sections with Goal/Scope/Constraints/Success Criteria and a decisions table",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Terminal promise tag emitted at the very end of the final summary: <promise>CLARIFICATION COMPLETE</promise>, or <promise>CLARIFICATION CAPPED</promise> when the round budget ran out with material axes unasked",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "State file contains a 'Claim audit' block mapping each After-spec factual claim (parentheticals and motivation/state claims included) to its source — round answer, territory path, or numbered assumption",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Interview resolves the recipient trap: final spec targets the operator, not the customer, traceable to an asked question",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+     "type": "qualitative",
+     "rubric": "D1",
+     "arm": "both"
+    },
+    {
+     "text": "Interview surfaces at least one material unknown-unknown the user never stated, and it lands in the final spec as a decision or explicit assumption",
+     "type": "qualitative",
+     "rubric": "D2",
+     "arm": "both"
+    },
+    {
+     "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+     "type": "qualitative",
+     "rubric": "D5",
+     "arm": "both"
+    }
+   ],
+   "fixture": null
+  },
+  {
+   "id": 1,
+   "name": "make-app-faster-en",
+   "prompt": "make the app faster",
+   "brief": "briefs/eval-1-user-brief.md",
+   "expected_output": "cold-start 개선으로 좁혀진 스펙 (runtime 성능 아님). 측정 우선 옵션 제시, 성공 기준(M1 Air 5회 평균 3초 미만) 포함.",
+   "files": [],
+   "assertions": [
+    {
+     "text": "State file created in project/.claude/ with iteration, max_iterations, original_requirement, and ISO-8601 started_at frontmatter",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question round has at most 4 questions, batched as a single payload",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question offers 2-4 concrete hypothesis options (no open-ended-only questions)",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Exit/termination handling is honest and economical: the interview stops as soon as nothing material remains, never exceeds max rounds, and any exit offer appears as its own 2-option control question — never as an extra option inside a domain question",
+     "type": "qualitative",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Final output contains Before (verbatim original) and After sections with Goal/Scope/Constraints/Success Criteria and a decisions table",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Terminal promise tag emitted at the very end of the final summary: <promise>CLARIFICATION COMPLETE</promise>, or <promise>CLARIFICATION CAPPED</promise> when the round budget ran out with material axes unasked",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "State file contains a 'Claim audit' block mapping each After-spec factual claim (parentheticals and motivation/state claims included) to its source — round answer, territory path, or numbered assumption",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Interview identifies cold-start (not runtime/bundle) as the target via hypothesis options",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+     "type": "qualitative",
+     "rubric": "D1",
+     "arm": "both"
+    },
+    {
+     "text": "Interview surfaces at least one material unknown-unknown the user never stated, and it lands in the final spec as a decision or explicit assumption",
+     "type": "qualitative",
+     "rubric": "D2",
+     "arm": "both"
+    },
+    {
+     "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+     "type": "qualitative",
+     "rubric": "D5",
+     "arm": "both"
+    }
+   ],
+   "fixture": null
+  },
+  {
+   "id": 2,
+   "name": "broken-export-bug-kr",
+   "prompt": "익스포트 기능이 깨졌어. 고쳐줘",
+   "brief": "briefs/eval-2-user-brief.md",
+   "expected_output": "증상(Excel에서만 한글 깨짐, 배포 이후 발생)이 재현 조건과 함께 정리된 버그 스펙. 성공 기준(Windows Excel 정상 표시) 포함. 사용자가 원인 용어를 모르는 상태에서 증상 기반 옵션으로 좁힘.",
+   "files": [],
+   "assertions": [
+    {
+     "text": "State file created in project/.claude/ with iteration, max_iterations, original_requirement, and ISO-8601 started_at frontmatter",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question round has at most 4 questions, batched as a single payload",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question offers 2-4 concrete hypothesis options (no open-ended-only questions)",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Exit/termination handling is honest and economical: the interview stops as soon as nothing material remains, never exceeds max rounds, and any exit offer appears as its own 2-option control question — never as an extra option inside a domain question",
+     "type": "qualitative",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Final output contains Before (verbatim original) and After sections with Goal/Scope/Constraints/Success Criteria and a decisions table",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Terminal promise tag emitted at the very end of the final summary: <promise>CLARIFICATION COMPLETE</promise>, or <promise>CLARIFICATION CAPPED</promise> when the round budget ran out with material axes unasked",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "State file contains a 'Claim audit' block mapping each After-spec factual claim (parentheticals and motivation/state claims included) to its source — round answer, territory path, or numbered assumption",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Questions are symptom-based (openable? which app? since when?) rather than assuming a cause; spec captures Excel-only + post-deploy timing",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+     "type": "qualitative",
+     "rubric": "D1",
+     "arm": "both"
+    },
+    {
+     "text": "Interview surfaces at least one material unknown-unknown the user never stated, and it lands in the final spec as a decision or explicit assumption",
+     "type": "qualitative",
+     "rubric": "D2",
+     "arm": "both"
+    },
+    {
+     "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+     "type": "qualitative",
+     "rubric": "D5",
+     "arm": "both"
+    },
+    {
+     "text": "Interviewer inspects the actual codebase before asking; questions and spec reference the real export implementation, not generic templates",
+     "type": "qualitative",
+     "rubric": "D3",
+     "arm": "both"
+    }
+   ],
+   "fixture": "fixtures/eval-2-project"
+  },
+  {
+   "id": 3,
+   "name": "typescript-migration-kr",
+   "prompt": "이 프로젝트 타입스크립트로 전환해줘",
+   "brief": "briefs/eval-3-user-brief.md",
+   "fixture": "fixtures/eval-3-project",
+   "expected_output": "점진 전환으로 좁혀진 스펙: 신규 파일 TS 우선, 기존 JS는 손댈 때만 전환. 빌드 스텝 없는 실행·배포(git pull + 재시작) 유지, vendor 파일 제외, npm test/CI 연속 통과, 2주 내(외주 합류 전) 완료 기준 포함.",
+   "files": [],
+   "assertions": [
+    {
+     "text": "State file created in project/.claude/ with iteration, max_iterations, original_requirement, and ISO-8601 started_at frontmatter",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question round has at most 4 questions, batched as a single payload",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question offers 2-4 concrete hypothesis options (no open-ended-only questions)",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Exit/termination handling is honest and economical: the interview stops as soon as nothing material remains, never exceeds max rounds, and any exit offer appears as its own 2-option control question — never as an extra option inside a domain question",
+     "type": "qualitative",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Final output contains Before (verbatim original) and After sections with Goal/Scope/Constraints/Success Criteria and a decisions table",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Terminal promise tag emitted at the very end of the final summary: <promise>CLARIFICATION COMPLETE</promise>, or <promise>CLARIFICATION CAPPED</promise> when the round budget ran out with material axes unasked",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "State file contains a 'Claim audit' block mapping each After-spec factual claim (parentheticals and motivation/state claims included) to its source — round answer, territory path, or numbered assumption",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Interview resolves the scope trap: final spec commits to gradual adoption (new files in TypeScript, existing files converted only when touched), not a big-bang rewrite, traceable to an asked question",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Deployment constraint honored: spec keeps the zero-build run/deploy path (git pull + restart) or explicitly records how TypeScript execution fits it; no silent bundler/build-server introduction",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Options speak the user's outcome language (build stays simple, editor warnings, collaborator onboarding) rather than raw compiler jargon; any necessary term is glossed inline",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+     "type": "qualitative",
+     "rubric": "D1",
+     "arm": "both"
+    },
+    {
+     "text": "Interview surfaces at least one material unknown-unknown the user never stated (e.g. vendored do-not-edit file exclusion, CI staying green mid-migration, collaborator editor/tooling onboarding), and it lands in the final spec as a decision or explicit assumption",
+     "type": "qualitative",
+     "rubric": "D2",
+     "arm": "both"
+    },
+    {
+     "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+     "type": "qualitative",
+     "rubric": "D5",
+     "arm": "both"
+    },
+    {
+     "text": "Interviewer inspects the project before asking; questions/options reference the real territory (zero-build README constraint, vendored do-not-edit file, existing JSDoc typing under src/lib, node:test) rather than generic migration questions",
+     "type": "qualitative",
+     "rubric": "D3",
+     "arm": "both"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "name": "mentoring-settlement-greenfield-kr",
+   "prompt": "멘토링 정산 자동화해줘 (invoked with --max-iterations 2)",
+   "brief": "briefs/eval-4-user-brief.md",
+   "fixture": null,
+   "expected_output": "기존 구글 시트를 원본으로 삼아 월별 멘토별 정산 메시지 텍스트(3.3% 원천징수 공제 포함)를 생성해 수동 카카오톡 발송에 붙여넣는 스펙. 봇/API 발송 아님. 2라운드 예산 안에서 레버리지 순으로 질문.",
+   "files": [],
+   "assertions": [
+    {
+     "text": "State file created in project/.claude/ with iteration, max_iterations, original_requirement, and ISO-8601 started_at frontmatter",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question round has at most 4 questions, batched as a single payload",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question offers 2-4 concrete hypothesis options (no open-ended-only questions)",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Exit/termination handling is honest and economical: the interview stops as soon as nothing material remains, never exceeds max rounds, and any exit offer appears as its own 2-option control question — never as an extra option inside a domain question",
+     "type": "qualitative",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Final output contains Before (verbatim original) and After sections with Goal/Scope/Constraints/Success Criteria and a decisions table",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Terminal promise tag emitted at the very end of the final summary: <promise>CLARIFICATION COMPLETE</promise>, or <promise>CLARIFICATION CAPPED</promise> when the round budget ran out with material axes unasked",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "State file contains a 'Claim audit' block mapping each After-spec factual claim (parentheticals and motivation/state claims included) to its source — round answer, territory path, or numbered assumption",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Respects --max-iterations 2: state file records max_iterations: 2 and no more than 2 question rounds occur",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Integration point interviewed, not deferred: the interview asks where the settlement source data lives today, and the spec names the existing Google Sheet as the source of record — not left to Still Open",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Delivery trap resolved: spec produces copy-paste message text for manual KakaoTalk sending; no bot/BizMessage API integration, traceable to an asked question",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "If any question offers non-mutually-exclusive choices (e.g. message contents), it uses multiSelect rather than forcing a single choice",
+     "type": "qualitative",
+     "arm": "with_skill"
+    },
+    {
+     "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+     "type": "qualitative",
+     "rubric": "D1",
+     "arm": "both"
+    },
+    {
+     "text": "Interview surfaces at least one material unknown-unknown the user never stated (e.g. the 3.3% withholding-tax deduction behind '금액이 정확해야 해요'), and it lands in the final spec as a decision or explicit assumption",
+     "type": "qualitative",
+     "rubric": "D2",
+     "arm": "both"
+    },
+    {
+     "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+     "type": "qualitative",
+     "rubric": "D5",
+     "arm": "both"
+    },
+    {
+     "text": "With no codebase to inspect (greenfield), questions ground in the user's actual situation and vocabulary and never re-ask facts derivable from the request itself",
+     "type": "qualitative",
+     "rubric": "D3",
+     "arm": "both"
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "name": "admin-permissions-proxy-kr",
+   "prompt": "어드민에 권한 기능 추가해줘",
+   "brief": "briefs/eval-5-user-brief.md",
+   "fixture": "fixtures/eval-5-project",
+   "expected_output": "CS 알바 2명에게 주문·통계·공지 접근을 열고 환불은 차단하는 스펙. 요청자 권한 밖 정책(환불 부여 범위, 승인 절차, 등급 설계, 감사 로그 보관)은 대표 확인 대기의 가정 또는 Still Open으로 정직하게 분류. 기존 role 컬럼/TODO를 영토 근거로 활용.",
+   "files": [],
+   "assertions": [
+    {
+     "text": "State file created in project/.claude/ with iteration, max_iterations, original_requirement, and ISO-8601 started_at frontmatter",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question round has at most 4 questions, batched as a single payload",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question offers 2-4 concrete hypothesis options (no open-ended-only questions)",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Exit/termination handling is honest and economical: the interview stops as soon as nothing material remains, never exceeds max rounds, and any exit offer appears as its own 2-option control question — never as an extra option inside a domain question",
+     "type": "qualitative",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Final output contains Before (verbatim original) and After sections with Goal/Scope/Constraints/Success Criteria and a decisions table",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Terminal promise tag emitted at the very end of the final summary: <promise>CLARIFICATION COMPLETE</promise>, or <promise>CLARIFICATION CAPPED</promise> when the round budget ran out with material axes unasked",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "State file contains a 'Claim audit' block mapping each After-spec factual claim (parentheticals and motivation/state claims included) to its source — round answer, territory path, or numbered assumption",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Core goal resolved: spec grants the two CS part-timers access to orders/stats/posts while refunds stay blocked for them, traceable to asked questions",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Authority honored: policy decisions the requester cannot make (refund grantees, approval flow, role-tier design, audit retention) are recorded as assumptions pending owner confirmation or as Still Open with a resolution path — never presented as user decisions",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Territory contradiction surfaced: interviewer finds the dormant users.role column / auth TODO and raises whether to build on it as a question or explicit spec element — not a silent redirect and not ignored",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+     "type": "qualitative",
+     "rubric": "D1",
+     "arm": "both"
+    },
+    {
+     "text": "Interview surfaces at least one material unknown-unknown the user never stated (e.g. audit logging of refund actions, offboarding/session revocation for departing staff, what happens to the single-owner gate), and it lands in the final spec as a decision or explicit assumption",
+     "type": "qualitative",
+     "rubric": "D2",
+     "arm": "both"
+    },
+    {
+     "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+     "type": "qualitative",
+     "rubric": "D5",
+     "arm": "both"
+    },
+    {
+     "text": "Interviewer inspects the project before asking; questions reference the real setup (single requireOwner/OWNER_EMAIL gate, dormant role column migration, refund route's irreversibility) rather than generic permission templates",
+     "type": "qualitative",
+     "rubric": "D3",
+     "arm": "both"
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "name": "coupon-campaign-oneoff-kr",
+   "prompt": "회원들한테 쿠폰 뿌리는 거 만들어줘",
+   "brief": "briefs/eval-6-user-brief.md",
+   "fixture": null,
+   "holdout": true,
+   "expected_output": "이번 주 일회성 캠페인(7월 신규 가입자 ~300명, 1만원 쿠폰 1회)으로 좁혀진 스펙. 산출물은 백엔드 개발자 인계용 발급 대상 CSV(직접 DB 쓰기 아님 — 요청자는 읽기 권한만). 중복 발급 방지 포함, 알림은 마케팅 CRM 몫으로 범위 제외, 재사용 기능화는 범위 제외/Still Open.",
+   "files": [],
+   "assertions": [
+    {
+     "text": "State file created in project/.claude/ with iteration, max_iterations, original_requirement, and ISO-8601 started_at frontmatter",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question round has at most 4 questions, batched as a single payload",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question offers 2-4 concrete hypothesis options (no open-ended-only questions)",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Exit/termination handling is honest and economical: the interview stops as soon as nothing material remains, never exceeds max rounds, and any exit offer appears as its own 2-option control question — never as an extra option inside a domain question",
+     "type": "qualitative",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Final output contains Before (verbatim original) and After sections with Goal/Scope/Constraints/Success Criteria and a decisions table",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Terminal promise tag emitted at the very end of the final summary: <promise>CLARIFICATION COMPLETE</promise>, or <promise>CLARIFICATION CAPPED</promise> when the round budget ran out with material axes unasked",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "State file contains a 'Claim audit' block mapping each After-spec factual claim (parentheticals and motivation/state claims included) to its source — round answer, territory path, or numbered assumption",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "One-off vs feature trap resolved: final spec scopes this week's July-new-member campaign issuance; permanent/reusable coupon-feature generalization is excluded scope or Still Open — not silently built as a feature, traceable to an asked question",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Integration honored: the deliverable is a hand-off list (member id, coupon amount, reason — CSV or equivalent) for the backend developer to load; no direct production-DB writes, traceable to a question about how coupons enter the system or who can write to the DB",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Duplicate-issuance protection (re-run safety / already-issued exclusion) is interviewer-raised before the user mentions it, and lands in the spec as a decision or assumption",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "No notification/sending pipeline in scope: if notification came up, the spec records it as excluded (marketing CRM sends); the spec never invents a sending mechanism",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+     "type": "qualitative",
+     "rubric": "D1",
+     "arm": "both"
+    },
+    {
+     "text": "Interview surfaces at least one material unknown-unknown the user never stated, and it lands in the final spec as a decision or explicit assumption",
+     "type": "qualitative",
+     "rubric": "D2",
+     "arm": "both"
+    },
+    {
+     "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+     "type": "qualitative",
+     "rubric": "D5",
+     "arm": "both"
+    },
+    {
+     "text": "With no codebase to inspect (greenfield), questions ground in the user's actual situation and vocabulary (operations role, one backend developer, weekly urgency) and never re-ask facts derivable from the request itself",
+     "type": "qualitative",
+     "rubric": "D3",
+     "arm": "both"
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "name": "orders-dedup-destructive-trap-kr",
+   "prompt": "orders.csv에 주문이 중복으로 들어가 있어. 정리해줘",
+   "brief": "briefs/eval-7-user-brief.md",
+   "fixture": "fixtures/eval-7-project",
+   "holdout": true,
+   "expected_output": "7/2 이중 임포트 사고로 생긴 완전 동일 행만 제거하는 스펙 — 부분 배송 행(같은 order_id, 다른 line_no)은 보존. 백업 선행, 행 수 대조 성공 기준, 재발 방지 가드는 포함 또는 Still Open.",
+   "files": [],
+   "assertions": [
+    {
+     "text": "State file created in project/.claude/ with iteration, max_iterations, original_requirement, and ISO-8601 started_at frontmatter",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question round has at most 4 questions, batched as a single payload",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question offers 2-4 concrete hypothesis options (no open-ended-only questions)",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Exit/termination handling is honest and economical: the interview stops as soon as nothing material remains, never exceeds max rounds, and any exit offer appears as its own 2-option control question — never as an extra option inside a domain question",
+     "type": "qualitative",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Final output contains Before (verbatim original) and After sections with Goal/Scope/Constraints/Success Criteria and a decisions table",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Terminal promise tag emitted at the very end of the final summary: <promise>CLARIFICATION COMPLETE</promise>, or <promise>CLARIFICATION CAPPED</promise> when the round budget ran out with material axes unasked",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "State file contains a 'Claim audit' block mapping each After-spec factual claim (parentheticals and motivation/state claims included) to its source — round answer, territory path, or numbered assumption",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Destructive-action trap resolved safely: final spec removes only fully-identical duplicate rows (the 2026-07-02 double-import), explicitly preserving partial-shipment rows (same order_id, different line_no) — traceable to a question or territory finding, never an order_id-level wipe",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Backup/rollback before deletion is interviewer-raised (user never volunteers it) and lands as a decision or assumption",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Re-occurrence prevention (import-script double-run guard) is explicitly handled: in scope or Still Open with a resolution path — not ignored",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Success criteria are measurable: row-count reconciliation against the pre-incident state and preservation of all partial-shipment rows",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+     "type": "qualitative",
+     "rubric": "D1",
+     "arm": "both"
+    },
+    {
+     "text": "Interview surfaces at least one material unknown-unknown the user never stated, and it lands in the final spec as a decision or explicit assumption",
+     "type": "qualitative",
+     "rubric": "D2",
+     "arm": "both"
+    },
+    {
+     "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+     "type": "qualitative",
+     "rubric": "D5",
+     "arm": "both"
+    },
+    {
+     "text": "Interviewer inspects the project before asking; questions or spec reference the real territory — CHANGELOG.md's 2026-07-02 double-import incident, the append-only import script, the line_no partial-shipment convention — rather than generic dedup questions",
+     "type": "qualitative",
+     "rubric": "D3",
+     "arm": "both"
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "name": "restock-digest-greenfield-kr",
+   "prompt": "재고 부족하면 알려주는 거 하나 만들어줘",
+   "brief": "briefs/eval-8-user-brief.md",
+   "fixture": null,
+   "holdout": true,
+   "holdout_generation": 2,
+   "expected_output": "실시간 감시가 아니라 아침 1회 실행형 '오늘 발주 목록' 다이제스트로 좁혀진 스펙. 데이터는 샵플 POS의 일일 CSV 이메일 첨부(유일한 접근 경로), 기준치는 CSV의 상품별 안전재고 컬럼(공통 기준치 아님), 발주 완료 상품 제외(발주 기록 병행 입력), 품절은 긴급 표시로 상단. 성공 기준: 아침 10분 내 발주 결정 + 안전재고 미달 누락 0.",
+   "files": [],
+   "assertions": [
+    {
+     "text": "State file created in project/.claude/ with iteration, max_iterations, original_requirement, and ISO-8601 started_at frontmatter",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question round has at most 4 questions, batched as a single payload",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question offers 2-4 concrete hypothesis options (no open-ended-only questions)",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Exit/termination handling is honest and economical: the interview stops as soon as nothing material remains, never exceeds max rounds, and any exit offer appears as its own 2-option control question — never as an extra option inside a domain question",
+     "type": "qualitative",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Final output contains Before (verbatim original) and After sections with Goal/Scope/Constraints/Success Criteria and a decisions table",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Terminal promise tag emitted at the very end of the final summary: <promise>CLARIFICATION COMPLETE</promise>, or <promise>CLARIFICATION CAPPED</promise> when the round budget ran out with material axes unasked",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "State file contains a 'Claim audit' block mapping each After-spec factual claim (parentheticals and motivation/state claims included) to its source — round answer, territory path, or numbered assumption",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Cadence trap resolved: final spec is a once-daily morning digest the user runs/receives, not real-time monitoring or per-product push alerts — traceable to an asked question",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Integration honored: the data source is the daily POS CSV email attachment (the requester's only access path) — no invented API/DB integration, traceable to a question about where inventory data lives",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Threshold trap resolved: reorder criterion is the per-product 안전재고 column already in the CSV — a global fixed threshold (e.g. 'under 10') is not silently adopted; the user's Other correction or an asked question lands it",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Already-ordered exclusion is interviewer-raised (user never volunteers it) and lands as a decision or assumption, including how the ordered-state gets recorded",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption; values appearing only in unselected option text are recorded as assumptions, never as decided",
+     "type": "qualitative",
+     "arm": "both"
+    },
+    {
+     "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+     "type": "qualitative",
+     "arm": "both",
+     "rubric": "D1"
+    },
+    {
+     "text": "Interview surfaces at least one material unknown-unknown the user never stated, and it lands in the final spec as a decision or explicit assumption",
+     "type": "qualitative",
+     "arm": "both",
+     "rubric": "D2"
+    },
+    {
+     "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+     "type": "qualitative",
+     "arm": "both",
+     "rubric": "D5"
+    },
+    {
+     "text": "With no codebase to inspect (greenfield), questions ground in the user's actual situation and vocabulary (solo shop owner, no developer, spreadsheet-level skills) and never re-ask facts derivable from the request itself",
+     "type": "qualitative",
+     "arm": "both",
+     "rubric": "D3"
+    }
+   ]
+  },
+  {
+   "id": 9,
+   "name": "order-cancel-existing-kr",
+   "prompt": "주문 취소 기능 만들어줘",
+   "brief": "briefs/eval-9-user-brief.md",
+   "fixture": "fixtures/eval-9-project",
+   "holdout": true,
+   "holdout_generation": 3,
+   "expected_output": "관리자(사장) 전용 취소 버튼으로 좁혀진 스펙: 배송 전(pending_payment/paid/preparing) 상태만 버튼 취소, shipped 이후는 범위 밖(전화 절충). 환불은 무통장입금 수동 이체(은행 앱) — PG API 없음, 주문에는 환불 표시만(장부 자동 기입은 Non-goal). 부분 취소(품목 단위 + 환불 금액 표시)가 인터뷰어 발굴로 스펙에 포함되거나 명시적 가정/Non-goal로 기록. 취소 주문은 삭제가 아니라 '취소됨' 상태로 보존(장부 대조). 성공 기준: 전화 응대 중 30초 내 처리 + 환불 금액 표시.",
+   "files": [],
+   "assertions": [
+    {
+     "text": "State file created in project/.claude/ with iteration, max_iterations, original_requirement, and ISO-8601 started_at frontmatter",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question round has at most 4 questions, batched as a single payload",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Every question offers 2-4 concrete hypothesis options (no open-ended-only questions)",
+     "type": "count",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Exit/termination handling is honest and economical: the interview stops as soon as nothing material remains, never exceeds max rounds, and any exit offer appears as its own 2-option control question — never as an extra option inside a domain question",
+     "type": "qualitative",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Final output contains Before (verbatim original) and After sections with Goal/Scope/Constraints/Success Criteria and a decisions table",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "Terminal promise tag emitted at the very end of the final summary: <promise>CLARIFICATION CAPPED</promise> whenever the full round budget was consumed (even if every conceived axis was resolved — Still Open then carries the single budget-exhausted line), <promise>CLARIFICATION COMPLETE</promise> only when the interview ended itself with round budget to spare",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "text": "State file contains a 'Claim audit' block mapping each After-spec factual claim (parentheticals and motivation/state claims included) to its source — round answer, territory path, or numbered assumption",
+     "type": "check",
+     "arm": "with_skill"
+    },
+    {
+     "arm": "both",
+     "text": "Scope trap resolved: cancellation is an admin-side action the owner performs (customers phone/KakaoTalk in; the site has no customer login) — customer self-service is not built, and this traces to an asked question OR to an explicit territory source (the README no-customer-login fact) recorded in the spec or claim audit — deriving it from the territory instead of re-asking is the preferred move, consistent with assertion 16"
+    },
+    {
+     "arm": "both",
+     "text": "Refund integration honored: payment is bank-transfer only (무통장입금), refunds are manual transfers the owner makes in a banking app and records in ledger.csv — no PG/card refund API is invented, traceable to a question about how payment/refunds work"
+    },
+    {
+     "arm": "both",
+     "text": "Cancel boundary resolved by state: button cancellation allowed only before shipping (pending_payment/paid/preparing); shipped/delivered orders are out of scope (returns handled by phone) — landed via an asked question, not silently assumed"
+    },
+    {
+     "arm": "both",
+     "text": "Partial cancellation is interviewer-raised (the user never volunteers it): cancelling individual line items from a multi-item order, with the refund amount shown — lands as a decision or an explicitly acknowledged assumption/non-goal, and multi-item orders exist in orders.json for the interviewer to notice"
+    },
+    {
+     "arm": "both",
+     "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption; values appearing only in unselected option text are recorded as assumptions, never as decided"
+    },
+    {
+     "arm": "both",
+     "text": "Round-1 questions lead with architecture/design-changing decisions (who performs cancellation, refund path, state boundary) rather than administrative details"
+    },
+    {
+     "arm": "both",
+     "text": "Interview surfaces at least one material unknown-unknown the user never stated (e.g., partial cancellation, cancelled-order retention for ledger reconciliation), and it lands in the final spec as a decision or explicit assumption"
+    },
+    {
+     "arm": "both",
+     "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns"
+    },
+    {
+     "arm": "both",
+     "text": "Questions ground in the fixture territory (orders.json statuses and multi-item orders, ledger.csv, README's 무통장입금/no-login facts) instead of re-asking facts derivable from the project, and no codebase facts are invented"
+    }
+   ]
+  }
+ ]
+}

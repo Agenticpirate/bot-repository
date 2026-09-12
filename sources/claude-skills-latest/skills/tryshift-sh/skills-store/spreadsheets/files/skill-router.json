@@ -1,0 +1,196 @@
+{
+  "id": "spreadsheets",
+  "name": "Spreadsheets",
+  "description": "Create spreadsheets, inspect sheet structure, read or update ranges, and share Google Sheets files created through Shift.",
+  "actions": {
+    "get": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://sheets.googleapis.com",
+        "path": "/v4/spreadsheets/{spreadsheetId}",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "queryTemplate": {
+          "includeGridData": {
+            "$value": "$input.includeGridData",
+            "$default": false
+          }
+        }
+      },
+      "output": {
+        "responseMap": {
+          "spreadsheetId": "$response.spreadsheetId",
+          "spreadsheetUrl": "$response.spreadsheetUrl",
+          "title": "$response.properties.title",
+          "locale": "$response.properties.locale",
+          "timeZone": "$response.properties.timeZone",
+          "sheets": {
+            "$each": "$response.sheets",
+            "map": {
+              "sheetId": "$item.properties.sheetId",
+              "title": "$item.properties.title",
+              "index": "$item.properties.index",
+              "sheetType": "$item.properties.sheetType",
+              "rowCount": "$item.properties.gridProperties.rowCount",
+              "columnCount": "$item.properties.gridProperties.columnCount"
+            }
+          }
+        }
+      }
+    },
+    "create": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://sheets.googleapis.com",
+        "path": "/v4/spreadsheets",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "properties": {
+            "title": "$input.title"
+          }
+        }
+      },
+      "output": {
+        "responseMap": {
+          "spreadsheetId": "$response.spreadsheetId",
+          "spreadsheetUrl": "$response.spreadsheetUrl",
+          "title": "$response.properties.title"
+        }
+      }
+    },
+    "read-range": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://sheets.googleapis.com",
+        "path": "/v4/spreadsheets/{spreadsheetId}/values/{range}",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "queryTemplate": {
+          "majorDimension": "$input.majorDimension",
+          "valueRenderOption": "$input.valueRenderOption",
+          "dateTimeRenderOption": "$input.dateTimeRenderOption"
+        }
+      },
+      "output": {
+        "responseMap": {
+          "range": "$response.range",
+          "majorDimension": "$response.majorDimension",
+          "values": "$response.values"
+        }
+      }
+    },
+    "append-values": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://sheets.googleapis.com",
+        "path": "/v4/spreadsheets/{spreadsheetId}/values/{range}:append",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "queryTemplate": {
+          "valueInputOption": {
+            "$value": "$input.valueInputOption",
+            "$default": "USER_ENTERED"
+          },
+          "insertDataOption": "$input.insertDataOption",
+          "includeValuesInResponse": {
+            "$value": "$input.includeValuesInResponse",
+            "$default": false
+          }
+        },
+        "bodyTemplate": {
+          "majorDimension": {
+            "$value": "$input.majorDimension",
+            "$default": "ROWS"
+          },
+          "values": "$input.values"
+        }
+      },
+      "output": {
+        "responseMap": {
+          "spreadsheetId": "$response.spreadsheetId",
+          "tableRange": "$response.tableRange",
+          "updatedRange": "$response.updates.updatedRange",
+          "updatedRows": "$response.updates.updatedRows",
+          "updatedColumns": "$response.updates.updatedColumns",
+          "updatedCells": "$response.updates.updatedCells"
+        }
+      }
+    },
+    "update-values": {
+      "upstream": {
+        "method": "PUT",
+        "baseUrl": "https://sheets.googleapis.com",
+        "path": "/v4/spreadsheets/{spreadsheetId}/values/{range}",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "queryTemplate": {
+          "valueInputOption": {
+            "$value": "$input.valueInputOption",
+            "$default": "USER_ENTERED"
+          },
+          "includeValuesInResponse": {
+            "$value": "$input.includeValuesInResponse",
+            "$default": false
+          }
+        },
+        "bodyTemplate": {
+          "majorDimension": {
+            "$value": "$input.majorDimension",
+            "$default": "ROWS"
+          },
+          "values": "$input.values"
+        }
+      },
+      "output": {
+        "responseMap": {
+          "spreadsheetId": "$response.spreadsheetId",
+          "updatedRange": "$response.updatedRange",
+          "updatedRows": "$response.updatedRows",
+          "updatedColumns": "$response.updatedColumns",
+          "updatedCells": "$response.updatedCells"
+        }
+      }
+    },
+    "share": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://www.googleapis.com",
+        "path": "/drive/v3/files/{fileId}/permissions",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "pathParams": {
+          "fileId": "$input.spreadsheetId"
+        },
+        "queryTemplate": {
+          "supportsAllDrives": true,
+          "sendNotificationEmail": {
+            "$value": "$input.sendNotificationEmail",
+            "$default": true
+          },
+          "fields": "id, type, role, emailAddress, displayName"
+        },
+        "bodyTemplate": {
+          "type": "$input.type",
+          "role": "$input.role",
+          "emailAddress": "$input.emailAddress"
+        }
+      },
+      "output": {
+        "responseMap": {
+          "id": "$response.id",
+          "type": "$response.type",
+          "role": "$response.role",
+          "emailAddress": "$response.emailAddress",
+          "displayName": "$response.displayName"
+        }
+      }
+    }
+  }
+}

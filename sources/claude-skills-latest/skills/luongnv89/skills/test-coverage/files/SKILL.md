@@ -1,0 +1,167 @@
+---
+name: test-coverage
+description: "Generate unit tests for untested branches and edge cases. Use when coverage is low, CI flags gaps, or a release needs hardening. Not for integration/E2E suites, framework migrations, or fixing production bugs."
+license: MIT
+effort: low
+metadata:
+  version: 1.3.1
+  author: "Luong NGUYEN <luongnv89@gmail.com>"
+---
+
+# Test Coverage Expander
+
+Expand unit test coverage by targeting untested branches and edge cases.
+
+## When to Use
+
+- User asks to "increase test coverage", "add more tests", "expand unit tests", or "cover edge cases"
+- A CI pipeline reports low coverage and the user wants it improved
+- A code review flags untested error paths or boundary conditions
+- The user wants to identify and fill gaps in an existing test suite before a release
+
+## Stack (detect before Step 1 of Workflow)
+
+Detect the project's language from its manifest file and use the matching commands throughout the Workflow below:
+
+| Manifest | Stack | Coverage command | Test framework |
+|---|---|---|---|
+| `package.json` | JavaScript/TypeScript | `npx jest --coverage` or `npx vitest --coverage` | Jest, Vitest, Mocha |
+| `pyproject.toml` | Python | `pytest --cov=. --cov-report=term-missing` | pytest, unittest |
+| `go.mod` | Go | `go test -coverprofile=coverage.out ./...` | testing, testify |
+| `Cargo.toml` | Rust | `cargo tarpaulin` or `cargo llvm-cov` | built-in test framework |
+
+If none of these manifests is found, see [Edge Cases](#edge-cases) — "No test framework detected".
+
+## Repo Sync Before Edits (mandatory)
+Before creating/updating/deleting files in an existing repository, sync the current branch with remote:
+
+```bash
+branch="$(git rev-parse --abbrev-ref HEAD)"
+git fetch origin
+git pull --rebase origin "$branch"
+```
+
+If the working tree is not clean, stash first, sync, then restore:
+
+```bash
+git stash push -u -m "pre-sync"
+branch="$(git rev-parse --abbrev-ref HEAD)"
+git fetch origin && git pull --rebase origin "$branch"
+git stash pop
+```
+
+If `origin` is missing, pull is unavailable, or rebase/stash conflicts occur, stop and ask the user before continuing.
+
+## Workflow
+
+### 0. Create Feature Branch
+
+Before making any changes:
+1. Check the current branch - if already on a feature branch for this task, skip
+2. Check the repo for branch naming conventions (e.g., `feat/`, `feature/`, etc.)
+3. Create and switch to a new branch following the repo's convention, or fallback to: `feat/test-coverage`
+
+### 1. Analyze Coverage
+
+Run the coverage command for the detected [Stack](#stack-detect-before-step-1-of-workflow) above.
+
+From the report, identify:
+- Untested branches and code paths
+- Low-coverage files/functions (prioritize files below 60%)
+- Missing error handling tests
+
+### 2. Identify Test Gaps
+
+Review code for:
+- Logical branches (if/else, switch)
+- Error paths and exceptions
+- Boundary values (min, max, zero, empty, null)
+- Edge cases and corner cases
+- State transitions and side effects
+
+### 3. Write Tests
+
+Use the test framework for the detected [Stack](#stack-detect-before-step-1-of-workflow) above.
+
+Target scenarios:
+- Error handling and exceptions
+- Boundary conditions
+- Null/undefined/empty inputs
+- Concurrent/async edge cases
+
+### 4. Verify Improvement
+
+Run coverage again and confirm measurable increase. Report:
+- Before/after coverage percentages
+- Number of new test cases added
+- Files with the biggest coverage gains
+
+## Expected Output
+
+After a successful run on a Python project, the final verification report shows:
+
+```
+Coverage before: 61% (47/77 statements)
+Coverage after:  84% (65/77 statements)
+
+New tests added: 9
+Files improved:
+  - src/parser.py        52% → 91%  (+7 tests: null input, empty string, unicode overflow)
+  - src/auth.py          71% → 88%  (+2 tests: expired token, missing header)
+
+All 56 tests passing. No regressions.
+```
+
+## Acceptance Criteria
+
+A run passes when **all** of the following are true:
+
+- [ ] Coverage report exists from a runnable command for the detected stack (e.g., `jest --coverage`, `pytest --cov`, `go test -cover`).
+- [ ] Post-run total coverage is strictly higher than the pre-run baseline — no test additions that fail to move the metric.
+- [ ] New tests target previously-untested branches, error paths, or boundary values — not duplicates of existing assertions.
+- [ ] The full test suite passes locally before committing (`npm test`, `pytest`, `go test ./...`, etc.).
+- [ ] All new tests live on a feature branch (e.g., `feat/test-coverage`), never on `main`/`master`.
+- [ ] Commit message records the before/after coverage percentages and the files newly covered.
+
+## Edge Cases
+
+- **No test framework detected**: Skill checks `package.json`, `pyproject.toml`, `Cargo.toml`, or `go.mod` for test dependencies; if none found, asks the user which framework to use before writing any tests.
+- **Coverage tool not installed**: Installs the appropriate tool (`pytest-cov`, `nyc`, `cargo tarpaulin`, etc.) and retries rather than failing silently.
+- **Existing tests are already failing**: Does not add new tests until existing failures are resolved; reports the failing tests to the user first.
+- **100% coverage already reached**: Reports this to the user and exits — no tests are added unnecessarily.
+- **Generated code or vendored files in coverage report**: Excludes auto-generated and third-party directories from analysis to avoid writing tests for code the project does not own.
+- **Async / concurrent code paths**: Uses framework-appropriate async test utilities (e.g., `pytest-asyncio`, `jest fakeTimers`) rather than bare sync wrappers.
+
+## Step Completion Reports
+
+After completing each major step, output a status report in this format:
+
+```
+◆ [Step Name] ([step N of M] — [context])
+··································································
+  [Check 1]:          √ pass
+  [Check 2]:          √ pass (note if relevant)
+  [Check 3]:          × fail — [reason]
+  [Check 4]:          √ pass
+  [Criteria]:         √ N/M met
+  ____________________________
+  Result:             PASS | FAIL | PARTIAL
+```
+
+Adapt the check names to match what the step actually validates. Use `√` for pass, `×` for fail, and `—` to add brief context. The "Criteria" line summarizes how many acceptance criteria were met. The "Result" line gives the overall verdict.
+
+**Branch Setup phase checks:** `Feature branch created`, `Base coverage measured`
+
+**Analysis phase checks:** `Coverage report parsed`, `Gaps identified`, `Priority ranked`
+
+**Test Writing phase checks:** `Tests written`, `Edge cases covered`, `Framework conventions followed`
+
+**Verification phase checks:** `Tests pass`, `Coverage improved`, `No regressions`
+
+## Guidelines
+
+- Follow existing test patterns and naming conventions
+- Place test files alongside source or in the project's existing test directory
+- Group related test cases logically
+- Use descriptive test names that explain the scenario
+- Do not mock what you do not own — prefer integration tests for external boundaries

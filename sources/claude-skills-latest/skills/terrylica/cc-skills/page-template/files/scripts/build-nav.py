@@ -1,0 +1,1740 @@
+#!/usr/bin/env python3
+# FILE-SIZE-OK: single coherent generator (parse → inject → render); splitting harms locality.
+"""
+Universal site-map navigator builder for static HTML mini-sites.
+
+The filesystem layout IS the navigation structure. Walks a site root,
+parses each page's <title> + first <h1>, then:
+
+  1. Generates <root>/site-map.html (master tree view).
+  2. Writes <root>/auto-nav.css and <root>/auto-nav.js (rail assets).
+  3. Injects a fixed-position nav rail into every HTML page using HTML
+     comment markers <!-- AUTO-NAV-START --> ... <!-- AUTO-NAV-END -->.
+     Idempotent: safe to re-run; only modifies content between markers.
+
+Site layout (any directory works — no hardcoded names):
+
+    <root>/
+      index.html              ← site home (recommended)
+      auto-nav.css            ← generated
+      auto-nav.js             ← generated
+      site-map.html           ← generated
+      <section-1>/            ← any subdir containing *.html is a section
+        index.html
+        page-a.html
+        page-b.html
+      <section-2>/
+        ...
+
+Section ordering: if a section name matches "YYYY-MM-DD-<slug>", the
+date prefix is parsed and sections sort newest-first. Otherwise sections
+sort alphabetically. Pages within a section sort: index.html first,
+then alphabetical.
+
+Usage:
+    python build-nav.py [--root <dir>] [--asset-version <N>]
+
+Defaults: --root=. and --asset-version=1.
+
+Idempotency contract:
+    Re-running this script with no source changes produces a no-op for
+    every page. Markers preserve injection points; cache-bust strings
+    are stable for a given --asset-version.
+
+Pure stdlib. Works on file:// URLs. Pure HTML+CSS rail rendering with a
+small optional JS for drag-to-resize.
+
+Requires Python 3.10+. On 3.12+ uses Path.relative_to(walk_up=True) for
+relative-path resolution; falls back to os.path.relpath on 3.10 / 3.11.
+"""
+from __future__ import annotations
+
+import argparse
+import html
+import os
+import re
+import sys
+import tempfile
+from datetime import datetime
+from pathlib import Path
+
+
+def atomic_write_text(path: Path, text: str, encoding: str = "utf-8") -> None:
+    """Write text to `path` atomically: write to a sibling tmp file in the
+    same directory, fsync, then rename into place.
+
+    Why this matters: `path.write_text()` on POSIX is open(WRONLY) →
+    truncate → write → close. A SIGKILL, power loss, or disk-full event
+    mid-write leaves the file empty or torn. Other readers (a webserver
+    serving the page, a concurrent build script) see broken content. By
+    writing to `<name>.tmp.<pid>` and using os.replace (atomic on POSIX
+    for same-filesystem renames), readers always see either the old
+    file in full or the new file in full — never a torn state.
+    """
+    parent = path.parent
+    parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".tmp", dir=parent
+    )
+    try:
+        with os.fdopen(fd, "w", encoding=encoding) as f:
+            f.write(text)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_name, path)
+    except Exception:
+        # Best-effort cleanup of the tmp file on any failure path.
+        try:
+            os.unlink(tmp_name)
+        except OSError:
+            pass
+        raise
+
+# Marker convention — do not change; existing pages depend on these.
+NAV_START = "<!-- AUTO-NAV-START -->"
+NAV_END = "<!-- AUTO-NAV-END -->"
+LEGACY_FOOTER_START = "<!-- AUTO-NAV-FOOTER-START -->"
+LEGACY_FOOTER_END = "<!-- AUTO-NAV-FOOTER-END -->"
+
+# Iteration-page naming convention — `index_iter_<N>_<slug>.html`. When a
+# section has pages following this pattern, the integer N is the canonical
+# creation-order key (assigned monotonically the first time each page is
+# generated, robust to git clone resetting filesystem birthtimes). Pages
+# that don't match fall back to filesystem birthtime (macOS) or mtime
+# (Linux) — see `_creation_time()`.
+ITER_NUM_RE = re.compile(r"^index_iter_(\d+)_")
+
+
+def _iter_num(filename: str) -> int | None:
+    """Extract iter number as int from filename, or None if not an iter page."""
+    m = ITER_NUM_RE.match(filename)
+    return int(m.group(1)) if m else None
+
+
+def _creation_time(path: Path) -> datetime:
+    """Return creation time (birthtime on macOS), fallback to mtime elsewhere.
+
+    Why birthtime over mtime: rebuilds, find-replace passes, and CI
+    pipelines all touch mtime — using mtime would re-order the rail
+    every time anyone edited any page. Birthtime is set once at file
+    creation and never moves. macOS preserves it as `st_birthtime`;
+    Linux's ext4 has it via `statx` but Python's `os.stat` doesn't
+    expose it portably, so we fall back to mtime there.
+
+    NOTE: filesystem birthtime is reset on `git clone` (the new
+    inodes are created at clone time). For canonical cross-machine
+    ordering, prefer the `iter-N` numeric extraction in `_iter_num()`
+    when filenames follow the `index_iter_N_*.html` convention.
+    """
+    st = path.stat()
+    bt = getattr(st, "st_birthtime", None)
+    if bt is not None and bt > 0:
+        return datetime.fromtimestamp(bt)
+    return datetime.fromtimestamp(st.st_mtime)
+
+# Asset filenames written into the site root.
+AUTO_NAV_CSS_NAME = "auto-nav.css"
+AUTO_NAV_JS_NAME = "auto-nav.js"
+SITE_MAP_NAME = "site-map.html"
+
+# Pagefind static-search assets. The CLI tool `pagefind --site <root>`
+# generates these into <root>/pagefind/. We always inject the asset tags
+# so a single pagefind run flips search live across every page; if the
+# index hasn't been built yet the tags 404 harmlessly and the search box
+# just stays inert (mountSearch in auto-nav.js short-circuits when
+# window.PagefindUI is undefined).
+PAGEFIND_DIR_NAME = "pagefind"
+PAGEFIND_UI_CSS_REL = f"{PAGEFIND_DIR_NAME}/pagefind-ui.css"
+PAGEFIND_UI_JS_REL = f"{PAGEFIND_DIR_NAME}/pagefind-ui.js"
+
+# Files generated by this script — never inject the rail into them as
+# "ordinary pages". The site-map gets its own custom rail render.
+GENERATED_PAGES = {SITE_MAP_NAME}
+
+
+# ----------------------------------------------------------------------
+# PARSING
+# ----------------------------------------------------------------------
+
+TITLE_RE = re.compile(r"<title[^>]*>([^<]+)</title>", re.IGNORECASE | re.DOTALL)
+H1_RE = re.compile(r"<h1[^>]*>(.*?)</h1>", re.IGNORECASE | re.DOTALL)
+TAG_STRIP_RE = re.compile(r"<[^>]+>")
+DATE_PREFIX_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})-(.+)$")
+
+# Pin marker — place anywhere in the HTML body to pin a page to the top
+# of its section even when newer pages (or higher iter-N pages) are added
+# later. Two forms supported:
+#   <!-- nav-pin -->            → pinned with default priority 0
+#   <!-- nav-pin: 5 -->         → pinned with explicit priority 5
+# Lower priority numbers sort earlier within the pinned group, so a
+# canonical "section apex" page can be pinned with priority 0 and a
+# secondary anchor with priority 1, etc. Negative priorities are allowed
+# and sort before priority 0.
+#
+# Why a comment, not a filename convention: the user's mental model is
+# "this specific page should stay at top regardless of its iter-N or
+# birthtime" — the marker lives WITH the page so renaming, regenerating,
+# or git-cloning the file never desynchronizes pin state from page
+# identity. No sidecar file to lose; no manifest to keep in sync.
+NAV_PIN_RE = re.compile(
+    r"<!--\s*nav-pin(?:\s*:\s*(-?\d+))?\s*-->",
+    re.IGNORECASE,
+)
+
+
+def _strip_tags(s: str) -> str:
+    return TAG_STRIP_RE.sub("", s).strip()
+
+
+def parse_html(path: Path) -> dict:
+    """Extract title + first h1 + filesystem metadata.
+
+    Uses utf-8-sig so files saved with a UTF-8 BOM (common for Excel/
+    Windows exports) parse cleanly. errors='replace' avoids hard-failing
+    on the rare ISO-8859-1 / Windows-1252 file in the wild — the page
+    still ships, with a question-mark glyph for any unrecoverable byte.
+    """
+    text = path.read_text(encoding="utf-8-sig", errors="replace")
+    title = TITLE_RE.search(text)
+    h1 = H1_RE.search(text)
+    # Pin marker — see NAV_PIN_RE docstring. Returns (priority, found?).
+    # priority defaults to 0 when the bare marker is used.
+    pin_match = NAV_PIN_RE.search(text)
+    pin_priority: int | None = None
+    if pin_match:
+        raw_priority = pin_match.group(1)
+        pin_priority = int(raw_priority) if raw_priority is not None else 0
+    return {
+        "path": path,
+        "filename": path.name,
+        "title": html.unescape(_strip_tags(title.group(1))) if title else path.stem,
+        "h1": html.unescape(_strip_tags(h1.group(1))) if h1 else None,
+        "size_bytes": path.stat().st_size,
+        "mtime": datetime.fromtimestamp(path.stat().st_mtime),
+        # Creation-order ordering — see _creation_time / _iter_num docstrings.
+        # `ctime` is filesystem birthtime (macOS) or mtime fallback (Linux);
+        # `iter_num` is the parsed N from `index_iter_N_*.html` (None if the
+        # filename doesn't match). The _sort_key in walk_site() prefers
+        # iter_num when present, ctime otherwise, so pages render in the
+        # order they were first authored — not the order they were last
+        # touched. Default order is NEWEST-FIRST (descending iter-N /
+        # descending ctime) so a fresh iteration always appears at the
+        # top of its section without manual nav edits.
+        "ctime": _creation_time(path),
+        "iter_num": _iter_num(path.name),
+        # `pin_priority` is the parsed N from `<!-- nav-pin[: N] -->`, or
+        # None when the page is not pinned. Pinned pages float to the top
+        # of their section (just below the section index.html) regardless
+        # of iter-N or birthtime — the user's escape hatch for "this page
+        # is the canonical apex and should stay at top even when iter-999
+        # ships next week."
+        "pin_priority": pin_priority,
+    }
+
+
+def walk_site(root: Path) -> tuple[dict | None, list[dict]]:
+    """Walk site root, recursing into each section's subtree.
+
+    Returns (root_index_page or None, sections-list). A "section" is any
+    subdirectory of root that contains at least one *.html file (at any
+    depth). The walker uses rglob so deeply nested pages (e.g.,
+    <section>/topic/page.html) are picked up too — they're tracked with
+    `section_relpath` (relative to the section dir) and `depth` so the
+    rail and site-map can render them indented.
+
+    Excluded: dot- and underscore-prefixed dirs, and pages this script
+    generates (site-map.html).
+    """
+    root_page = None
+    root_idx = root / "index.html"
+    if root_idx.exists():
+        root_page = parse_html(root_idx)
+
+    sections: list[dict] = []
+    # root.resolve() is the authoritative inode-resolved root path. We
+    # compare every candidate file's resolved path against this anchor
+    # so that symlinks pointing outside the tree (or in a circular loop
+    # back to an ancestor) are detected and skipped.
+    root_resolved = root.resolve()
+    for section_dir in sorted(root.iterdir()):
+        if not section_dir.is_dir():
+            continue
+        if section_dir.name.startswith(".") or section_dir.name.startswith("_"):
+            continue
+        # Skip Pagefind's generated index dir at any depth.
+        if section_dir.name == "pagefind":
+            continue
+        # Refuse to recurse into a section dir that's itself a symlink
+        # — too easy to accidentally nest two sites' content via a link.
+        if section_dir.is_symlink():
+            print(f"  skipping symlinked section: {section_dir.name}", file=sys.stderr)
+            continue
+        pages: list[dict] = []
+        seen_inodes: set[tuple[int, int]] = set()
+        for p in sorted(section_dir.rglob("*.html")):
+            if p.name in GENERATED_PAGES:
+                continue
+            # Skip pagefind-generated subdirs at any depth, not just the
+            # section root (e.g., section-a/sub/pagefind/...).
+            if "pagefind" in p.relative_to(section_dir).parts:
+                continue
+            # Loop guard: resolve to an inode tuple and skip if seen, or
+            # if the resolved path escapes the site root.
+            try:
+                resolved = p.resolve()
+                if not resolved.is_relative_to(root_resolved):
+                    print(f"  skipping symlink that escapes root: {p}", file=sys.stderr)
+                    continue
+                stat = resolved.stat()
+                inode_key = (stat.st_dev, stat.st_ino)
+                if inode_key in seen_inodes:
+                    continue
+                seen_inodes.add(inode_key)
+            except (OSError, ValueError):
+                # Broken symlink, racing deletion, etc. — skip silently.
+                continue
+            page = parse_html(p)
+            # section_relpath: "page.html" for top-level, "topic/page.html"
+            # for nested. depth: 0 = top of section, 1 = inside one subdir.
+            page["section_relpath"] = str(p.relative_to(section_dir))
+            page["depth"] = len(p.relative_to(section_dir).parts) - 1
+            pages.append(page)
+        if not pages:
+            continue
+        # Sort tiers within a section (lower group = higher up in nav):
+        #
+        #   group 0 — section index.html (always first)
+        #   group 1 — pinned pages (priority ascending, then newest-first
+        #             within same priority)
+        #   group 2 — unpinned top-level iter-N pages, NEWEST-FIRST
+        #             (descending N — iter_315 above iter_314 above …)
+        #   group 3 — unpinned top-level non-iter pages, NEWEST-FIRST
+        #             by filesystem birthtime
+        #   group 4 — nested pages, grouped by subdir then index-first
+        #             then alphabetical (nested ordering is alphabetical
+        #             because subsections don't carry the iter-N convention)
+        #
+        # USER FEEDBACK 2026-05-26: the default-presented order should
+        # surface the LATEST work without forcing a manual rebuild —
+        # iterations of a campaign accumulate at the top, and a pinned
+        # apex page stays anchored even when newer iterations land.
+        #
+        # Why descending iter-N: a campaign produces iter_1 → iter_2 →
+        # … and the operator's most-pressing question is "what's the
+        # latest?" — that page should sit at the top of the rail, not
+        # buried 300 entries down.
+        #
+        # Why descending birthtime for non-iter pages: same reason —
+        # newest = most-likely-relevant. Birthtime (not mtime) so that
+        # build-nav.py reruns and find-replace passes don't perturb the
+        # ordering.
+        #
+        # Why pins are an explicit tier above iter pages: even when 50
+        # newer iterations land, the user can keep ONE canonical page
+        # (e.g., the section's "researcher explainer" landing page) at
+        # the top by adding `<!-- nav-pin -->` to its body. The pin
+        # tier is bounded — only pages with the marker appear here —
+        # so the default "newest-first" experience is preserved for
+        # everything else.
+        def _sort_key(pg: dict) -> tuple:
+            rel = pg["section_relpath"]
+            parts = rel.split("/")
+            is_top = len(parts) == 1
+            is_index = pg["filename"] == "index.html"
+            if is_top:
+                if is_index:
+                    return (0, 0, 0, 0, "")  # section index always first
+                pin_priority = pg.get("pin_priority")
+                if pin_priority is not None:
+                    # Pinned pages: priority ascending; ties broken by
+                    # newest-first (descending iter-N when available,
+                    # descending ctime otherwise).
+                    iter_n = pg.get("iter_num")
+                    secondary = -iter_n if iter_n is not None else -pg["ctime"].timestamp()
+                    return (1, pin_priority, 0, secondary, pg["filename"])
+                iter_n = pg.get("iter_num")
+                if iter_n is not None:
+                    # iter-N pages: descending N — newest iteration first.
+                    return (2, 0, 0, -iter_n, pg["filename"])
+                # Non-iter top-level page: newest birthtime first.
+                return (3, 0, 0, -pg["ctime"].timestamp(), pg["filename"])
+            # Nested: group 4, by subdir name, index first within subdir,
+            # then alphabetical (subsections rarely use the iter-N convention,
+            # so alphabetical is the least-surprising default).
+            subdir = parts[0]
+            return (4, subdir, 0 if is_index else 1, 0, pg["filename"])
+        pages.sort(key=_sort_key)
+        slug = section_dir.name
+        m = DATE_PREFIX_RE.match(slug)
+        date = ""
+        if m:
+            # Validate the calendar shape — `2026-13-99-foo` matches the
+            # regex but isn't a real date. Reject invalid dates and treat
+            # the slug as undated rather than mis-sorting.
+            try:
+                datetime.strptime(m.group(1), "%Y-%m-%d")
+                date = m.group(1)
+            except ValueError:
+                m = None
+        human = (m.group(2).replace("-", " ").title() if m else
+                 slug.replace("-", " ").replace("_", " ").title())
+        sections.append({"slug": slug, "date": date, "human": human, "pages": pages})
+
+    # Newest-first by date if dates are present; else alphabetical by slug.
+    if any(s["date"] for s in sections):
+        sections.sort(key=lambda s: (s["date"] or "", s["slug"]), reverse=True)
+    else:
+        sections.sort(key=lambda s: s["slug"])
+    return root_page, sections
+
+
+# ----------------------------------------------------------------------
+# RAIL ASSETS — auto-nav.css and auto-nav.js bodies
+# ----------------------------------------------------------------------
+
+# Dark-by-default rail. The nav rail + the site-map page are always dark
+# regardless of the host page's theme — this is an intentional design
+# invariant (see CLAUDE.md → "Critical Invariants"). The rail is the
+# CONSTANT element across every page in the system, so it should look
+# identical whether the page it overlays is a light contractor showcase
+# or a dark telemetry dashboard.
+#
+# Palette anchor: slate-950 (#0f172a) for surfaces, slate-300 (#cbd5e1)
+# for body text, indigo-400 (#818cf8) for accents — matches the showcase
+# kernel's dark palette (assets/showcase.css has `color-scheme: dark`).
+#
+# Self-contained: does not depend on showcase.css tokens, so a repo can
+# adopt the rail without adopting the kernel and still get the dark look.
+AUTO_NAV_CSS_BODY = """\
+/* ----------------------------------------------------------------------
+ * auto-nav.css — fixed-position navigation rail (dark theme by default).
+ *
+ * Generated by build-nav.py. Edit the source string in build-nav.py and
+ * re-run, OR edit this file directly knowing it will be overwritten on
+ * the next run. Pure CSS — works without JS at default width.
+ *
+ * Pages get this rail injected automatically; the rail discovers
+ * structure from the filesystem layout. No per-page configuration.
+ *
+ * THEME INVARIANT: this rail is ALWAYS dark, regardless of the host
+ * page's color scheme. The rail is the constant across every page;
+ * fix it once, never let it drift.
+ * ---------------------------------------------------------------------- */
+
+/* ----- Reset for the rail itself (does not affect host page) ----- */
+.auto-nav-rail,
+.auto-nav-rail * {
+  box-sizing: border-box;
+}
+
+/* ----- Rail container (collapsed default; expanded when [open]) -----
+ * Single flat slate-950 surface (no gradient) so there's no perceived
+ * "brim" between the summary header and the rail body — the summary
+ * blends into the rail; only a subtle border-bottom separates them.
+ */
+.auto-nav-rail {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 56px;
+  background: #0f172a;
+  border-right: 1px solid #334155;
+  overflow: hidden;
+  z-index: 9999;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  /* USER FEEDBACK 2026-05-26 (iter_315 PRESENTATION_REFACTOR):
+   * rail fonts were too large and butted content against the rail
+   * edge. Base rail font shrunk ~20% (0.9rem → 0.72rem) which
+   * cascades into .rail-h / .rail-date / .rail-link / Pagefind UI.
+   * Individual elements pin explicit sizes below — this base sets
+   * the inherited default for anything not pinned. */
+  font-size: 0.72rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.25s ease;
+  color-scheme: dark;
+}
+.auto-nav-rail[open] {
+  width: var(--rail-width, 320px);
+  overflow-y: auto;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+}
+
+/* ----- Body content shift via :has() — dynamic, no JS ----- *
+ * Uses margin-left for the rail offset, plus padding-left/right to give
+ * the page a visible breathing-room gutter against the rail edge AND
+ * the right viewport edge. Also clamps max-width so wide pages cannot
+ * push content under or past the rail when the rail is open and the
+ * remaining viewport is narrower than the page's declared max-width.
+ *
+ * USER FEEDBACK 2026-05-26 (iter_315 PRESENTATION_REFACTOR): previous
+ * CSS shifted body by margin-left only, which let page content butt
+ * directly against the rail edge with zero buffer. The 28-40px gutter
+ * gives the eye somewhere to land between the dark rail and the page
+ * content; the larger 40px applies when the rail is open (the visual
+ * weight is bigger so the gutter needs to grow with it).
+ *
+ * Both !important markers are deliberate: pages can declare their own
+ * `body { padding: ... }` and we still want the rail buffer to win.
+ */
+body {
+  margin-left: 56px !important;
+  padding-left: 28px !important;
+  padding-right: 28px !important;
+  max-width: calc(100vw - 56px) !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+  transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+body:has(.auto-nav-rail[open]) {
+  margin-left: var(--rail-width, 320px) !important;
+  padding-left: 40px !important;
+  max-width: calc(100vw - var(--rail-width, 320px)) !important;
+}
+
+/* ----- Drag handle for user-resizable width (auto-nav.js wires it up) -----
+ * 14px hit zone for easy dragging + double-click targeting. An always-
+ * visible 2px indicator line tells users where to grab; it expands and
+ * brightens on hover, with a tooltip explaining the dual gesture
+ * (drag = resize, double-click = re-autofit).
+ */
+.rail-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -7px;
+  bottom: 0;
+  width: 14px;
+  cursor: ew-resize;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s ease;
+}
+.rail-resize-handle::before {
+  content: "";
+  width: 2px;
+  height: 36px;
+  background: #475569;
+  border-radius: 2px;
+  opacity: 0.55;
+  transition: background 0.12s ease, opacity 0.12s ease, height 0.15s ease;
+}
+.rail-resize-handle:hover::before,
+.rail-resize-handle.dragging::before {
+  background: #818cf8;
+  opacity: 1;
+  height: 60px;
+}
+.rail-resize-handle:hover {
+  background: rgba(129, 140, 248, 0.18);
+}
+.rail-resize-handle.dragging {
+  background: rgba(129, 140, 248, 0.35);
+}
+/* Tooltip on hover — explains the dual gesture. */
+.rail-resize-handle:hover::after {
+  content: "Drag to resize · Double-click to auto-fit";
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  border: 1px solid #334155;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+.auto-nav-rail:not([open]) .rail-resize-handle { display: none; }
+.rail-resizing,
+.rail-resizing * {
+  user-select: none !important;
+  cursor: ew-resize !important;
+}
+.rail-resizing .auto-nav-rail,
+.rail-resizing body {
+  transition: none !important;
+}
+
+/* ----- Toggle (summary) — always visible at top-left -----
+ * Same background as the rail body (#0f172a), only a 1px border-bottom
+ * for separation. Avoids a visible "brim" of contrasting color at top.
+ */
+.auto-nav-rail summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 56px;
+  padding: 0 18px;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid #1e293b;
+  background: #0f172a;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  list-style: none;
+}
+.auto-nav-rail summary::-webkit-details-marker { display: none; }
+.auto-nav-rail .rail-toggle-icon {
+  /* iter_315 refactor: 1.25rem → 1.05rem (~16% shrink) to match the
+   * reduced overall rail typography scale. */
+  font-size: 1.05rem;
+  transition: transform 0.25s ease;
+  display: inline-block;
+  width: 20px;
+  text-align: center;
+  color: #cbd5e1;
+}
+.auto-nav-rail[open] .rail-toggle-icon { transform: rotate(90deg); }
+.auto-nav-rail .rail-toggle-label {
+  font-weight: 600;
+  /* iter_315 refactor: 0.78rem → 0.65rem (~17% shrink). */
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #cbd5e1;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.15s ease 0.1s;
+}
+.auto-nav-rail[open] .rail-toggle-label { opacity: 1; }
+.auto-nav-rail summary:hover { background: #334155; }
+.auto-nav-rail summary:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: -2px;
+}
+
+/* ----- Rail body (sections, links) ----- */
+.rail-body {
+  padding: 8px 14px 24px 14px;
+  opacity: 0;
+  transition: opacity 0.2s ease 0.05s;
+}
+.auto-nav-rail[open] .rail-body { opacity: 1; }
+
+.rail-section {
+  padding: 12px 0;
+  border-bottom: 1px solid #1e293b;
+}
+.rail-section:last-child { border-bottom: none; }
+
+.rail-h {
+  margin: 0 0 8px 4px;
+  /* iter_315 refactor: 0.7rem → 0.58rem (~17% shrink). */
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+}
+.rail-date {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  /* iter_315 refactor: 0.7rem → 0.58rem (~17% shrink). */
+  font-size: 0.58rem;
+  color: #64748b;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  margin-left: 6px;
+}
+
+/* ----- Within-section Prev/Next (firing 219): compact ‹ › buttons placed
+   on the SAME row as the "Site" header so they add ZERO vertical height
+   (SOTA section-header trailing-actions pattern). Keyboard: bare [ / ] (see
+   the keydown handler in auto-nav.js) — Chrome-safe (Cmd+[ / Cmd+] are the
+   browser's Back/Forward on macOS; bare brackets are not reserved). Neighbors
+   are the page immediately above (‹, newer) / below (›, older) in the rail's
+   flat sibling list; disabled at the ends of the sequence. */
+.rail-h-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.rail-prevnext {
+  display: inline-flex;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.rail-pn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 18px;
+  border-radius: 5px;
+  font-size: 0.85rem;
+  line-height: 1;
+  text-decoration: none;
+  color: #c7d2fe;
+  background: rgba(129, 140, 248, 0.14);
+  border: 1px solid #1e293b;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.rail-pn:hover { background: #4f46e5; color: #fff; }
+.rail-pn.rail-pn-disabled { opacity: 0.28; pointer-events: none; }
+
+/* ----- Links — long titles wrap, no truncation ----- */
+.rail-link {
+  display: block;
+  /* iter_315 refactor: 7px 10px → 6px 10px (one px tighter vertically
+   * — denser link list reads better at the reduced font size). */
+  padding: 6px 10px;
+  margin: 1px 0;
+  color: #c7d2fe;
+  text-decoration: none;
+  border-radius: 6px;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  /* iter_315 refactor: 0.86rem → 0.7rem (~19% shrink). */
+  font-size: 0.7rem;
+  line-height: 1.4;
+  border-left: 2px solid transparent;
+  transition: background 0.12s ease,
+              border-left-color 0.12s ease,
+              transform 0.12s ease;
+}
+.rail-link:hover {
+  background: rgba(129, 140, 248, 0.12);
+  color: #e0e7ff;
+  border-left-color: #818cf8;
+  transform: translateX(2px);
+}
+.rail-link.rail-current {
+  background: #4f46e5;
+  color: #ffffff;
+  font-weight: 600;
+  border-left-color: #c7d2fe;
+}
+.rail-link.rail-current:hover {
+  background: #4338ca;
+  transform: none;
+}
+.rail-link .rail-emoji {
+  display: inline-block;
+  width: 22px;
+  text-align: center;
+  margin-right: 4px;
+}
+
+.rail-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.rail-list li { margin: 0; }
+
+/* ----- Pagefind UI — dark-themed to match the rail -----
+ * The Pagefind UI is mounted into <div id="auto-nav-search"> by
+ * auto-nav.js (mountSearch). Pagefind exposes ~10 CSS custom properties
+ * for theming; we override them to match the rail's slate palette so
+ * search blends in instead of looking grafted-on. Variables documented
+ * at https://pagefind.app/docs/ui/#styling-the-ui.
+ * If pagefind/pagefind-ui.css hasn't been generated yet, these rules
+ * have nothing to bind to and are harmless.
+ */
+.auto-nav-rail #auto-nav-search {
+  --pagefind-ui-scale: 0.9;
+  --pagefind-ui-primary: #818cf8;
+  --pagefind-ui-text: #e2e8f0;
+  --pagefind-ui-background: #0f172a;
+  --pagefind-ui-border: #334155;
+  --pagefind-ui-tag: #1e293b;
+  --pagefind-ui-border-width: 1px;
+  --pagefind-ui-border-radius: 6px;
+  --pagefind-ui-image-border-radius: 6px;
+  --pagefind-ui-image-box-ratio: 3 / 2;
+  --pagefind-ui-font: inherit;
+}
+/* When Pagefind hasn't been built yet (no pagefind/ dir), the host
+ * div is empty. Show an inert placeholder so users see "search needs
+ * a build step" instead of a confusing empty box. mountSearch()
+ * removes this state once PagefindUI fills the div with children. */
+.auto-nav-rail #auto-nav-search:empty::before {
+  content: "Search index pending. Run scripts/site.sh nav <site> to enable.";
+  display: block;
+  padding: 8px 10px;
+  background: #1e293b;
+  border: 1px dashed #334155;
+  border-radius: 6px;
+  color: #94a3b8;
+  /* iter_315 refactor: 0.78rem → 0.65rem to match shrunk rail scale. */
+  font-size: 0.65rem;
+  font-style: italic;
+  line-height: 1.4;
+}
+.auto-nav-rail .pagefind-ui__search-input {
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+  /* iter_315 refactor: 0.9rem → 0.75rem (~17% shrink). */
+  font-size: 0.75rem !important;
+}
+.auto-nav-rail .pagefind-ui__search-input::placeholder {
+  color: #64748b !important;
+}
+.auto-nav-rail .pagefind-ui__search-clear {
+  color: #94a3b8 !important;
+}
+.auto-nav-rail .pagefind-ui__results {
+  /* iter_315 refactor: 0.85rem → 0.7rem to match rail-link scale. */
+  font-size: 0.7rem;
+}
+.auto-nav-rail .pagefind-ui__result {
+  padding: 8px 6px !important;
+  border-bottom: 1px solid #1e293b !important;
+}
+.auto-nav-rail .pagefind-ui__result-title a,
+.auto-nav-rail .pagefind-ui__result-link {
+  color: #c7d2fe !important;
+}
+.auto-nav-rail .pagefind-ui__result-title a:hover,
+.auto-nav-rail .pagefind-ui__result-link:hover {
+  color: #e0e7ff !important;
+}
+.auto-nav-rail .pagefind-ui__result-excerpt {
+  color: #94a3b8 !important;
+  /* iter_315 refactor: 0.78rem → 0.65rem. */
+  font-size: 0.65rem !important;
+}
+.auto-nav-rail .pagefind-ui__result-excerpt mark {
+  background: rgba(129, 140, 248, 0.25) !important;
+  color: #e0e7ff !important;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+.auto-nav-rail .pagefind-ui__message {
+  color: #94a3b8 !important;
+  /* iter_315 refactor: 0.78rem → 0.65rem. */
+  font-size: 0.65rem !important;
+}
+
+/* ----- Mobile: rail becomes a static top-of-page accordion ----- */
+@media (max-width: 900px) {
+  .auto-nav-rail,
+  .auto-nav-rail[open] {
+    position: static;
+    width: 100% !important;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    border-right: none;
+    border-bottom: 1px solid #334155;
+    box-shadow: none;
+    margin-bottom: 16px;
+  }
+  body,
+  body:has(.auto-nav-rail[open]) {
+    margin-left: 0 !important;
+    /* Mobile keeps a small symmetric gutter so text isn't flush with
+     * the viewport edges; matches the desktop gutter intent at a
+     * narrower scale. */
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    max-width: 100% !important;
+  }
+  .auto-nav-rail summary {
+    position: static;
+    height: 48px;
+  }
+  .auto-nav-rail .rail-toggle-label { opacity: 1; }
+  .auto-nav-rail[open] { overflow: visible; }
+  .rail-resize-handle { display: none !important; }
+}
+"""
+
+
+AUTO_NAV_JS_BODY = """\
+/* ----------------------------------------------------------------------
+ * auto-nav.js — auto-fit + drag-to-resize for the navigation rail.
+ *
+ * Generated by build-nav.py. The rail still works without JS at a
+ * reasonable default width; this script adds:
+ *   - Initial auto-fit to the longest unwrapped link width
+ *   - Drag-to-resize via a 14px-wide handle on the rail's right edge
+ *   - Double-click on the handle = clear saved width and re-autofit
+ *   - Persistence of user-chosen widths in localStorage
+ * ---------------------------------------------------------------------- */
+(function () {
+  "use strict";
+  // STORE_KEY versioned: bump suffix whenever the default-width logic
+  // changes so users carrying an older saved value pick up the new
+  // behaviour.
+  var STORE_KEY = "autoNavWidth_universal_v1";
+  // MIN_W can be small because short pages (e.g., a site home with just
+  // Home + Site map) deserve a snug fit, not a forced 320px floor. The
+  // user can still drag wider if they want.
+  var MIN_W = 220;
+  var MAX_W = 1200;
+  // DEFAULT_W is the fallback / autofit-cap. The rail won't exceed this
+  // width on first load — user drag can grow it further (up to MAX_W).
+  var DEFAULT_W = 760;
+  // RAIL_BODY_PAD = padding-left (14) + padding-right (14) of .rail-body.
+  // SCROLLBAR_BUF = ~16px reserved for native scrollbar + safety pad.
+  var RAIL_BODY_PAD = 28;
+  var SCROLLBAR_BUF = 16;
+
+  function applyWidth(px) {
+    document.documentElement.style.setProperty("--rail-width", px + "px");
+  }
+
+  function loadWidth() {
+    try {
+      var v = parseInt(localStorage.getItem(STORE_KEY), 10);
+      if (!isNaN(v) && v >= MIN_W && v <= MAX_W) {
+        applyWidth(v);
+        return true;
+      }
+    } catch (_) { /* localStorage unavailable */ }
+    return false;
+  }
+
+  function saveWidth(px) {
+    try { localStorage.setItem(STORE_KEY, String(px)); } catch (_) { /* */ }
+  }
+
+  /**
+   * Measure each rail link's TRUE intrinsic unwrapped width and pick a
+   * rail width that lets every link fit on a single line — clamped to
+   * [MIN_W, DEFAULT_W].
+   *
+   * Why max-content matters here:
+   *   scrollWidth on a block element returns max(clientWidth,
+   *   overflow-content-width). When the rail is currently wide, the
+   *   link block fills its parent and scrollWidth degenerates to the
+   *   parent's content width — NOT the text's intrinsic width. So
+   *   measuring with the rail at its current size gives garbage.
+   *
+   *   Setting `width: max-content` per link forces the element to size
+   *   to its actual content width, independent of the parent. Combined
+   *   with `white-space: nowrap`, this yields the unwrapped text +
+   *   padding width every time, regardless of whether the rail is
+   *   currently 220px or 1200px wide.
+   *
+   * Used by both:
+   *   - Initial load (when no saved width is in localStorage)
+   *   - Double-click on the resize handle (explicit "fit" gesture)
+   */
+  function autofitWidth(rail) {
+    if (!rail.open) return DEFAULT_W;
+    var links = rail.querySelectorAll(".rail-link");
+    if (!links.length) return DEFAULT_W;
+    var savedWS = [];
+    var savedW = [];
+    var i;
+    for (i = 0; i < links.length; i++) {
+      savedWS.push(links[i].style.whiteSpace);
+      savedW.push(links[i].style.width);
+      links[i].style.whiteSpace = "nowrap";
+      links[i].style.width = "max-content";
+    }
+    // Force layout flush so getBoundingClientRect returns updated values.
+    rail.offsetWidth; // eslint-disable-line no-unused-expressions
+    var maxLink = 0;
+    for (i = 0; i < links.length; i++) {
+      // getBoundingClientRect().width is sub-pixel-accurate.
+      var w = links[i].getBoundingClientRect().width;
+      if (w > maxLink) maxLink = w;
+    }
+    for (i = 0; i < links.length; i++) {
+      links[i].style.whiteSpace = savedWS[i];
+      links[i].style.width = savedW[i];
+    }
+    var fitted = maxLink + RAIL_BODY_PAD + SCROLLBAR_BUF;
+    if (fitted < MIN_W) fitted = MIN_W;
+    if (fitted > DEFAULT_W) fitted = DEFAULT_W;
+    return Math.round(fitted);
+  }
+
+  // Mount the Pagefind UI into #auto-nav-search if both are present.
+  // Pagefind's <script defer> runs before auto-nav.js (document order),
+  // so window.PagefindUI is defined by the time DOMContentLoaded fires.
+  // If pagefind hasn't been built yet (PagefindUI undefined), the
+  // mount is a no-op and the search box stays empty — harmless.
+  function mountSearch() {
+    var host = document.getElementById("auto-nav-search");
+    if (!host || host.childElementCount > 0) return;
+    if (typeof window.PagefindUI !== "function") return;
+    try {
+      new window.PagefindUI({
+        element: "#auto-nav-search",
+        showSubResults: true,
+        showImages: false,
+        resetStyles: false,
+        debounceTimeoutMs: 200,
+        autofocus: false,
+        placeholder: "Search…",
+      });
+    } catch (e) {
+      // Fail-safe: don't break the rail if Pagefind init throws.
+      if (window.console && console.warn) console.warn("PagefindUI init failed", e);
+    }
+  }
+
+  function init() {
+    var rail = document.querySelector(".auto-nav-rail");
+    if (!rail) return;
+
+    // ----- Keyboard Prev/Next within the current section (firing 219) -----
+    // Bare [ = previous page, ] = next page. URLs come from the rail's data-*
+    // attrs (emitted by render_rail). Chrome-SAFE: bare brackets are NOT
+    // reserved (only Cmd+[ / Cmd+] are Back/Forward on macOS). Guarded so it
+    // never fires while a modifier is held or while typing in the search box /
+    // any input — so it cannot misfire while you read. Registered BEFORE the
+    // mobile-bail below so an external keyboard still drives navigation.
+    var pnPrev = rail.getAttribute("data-prev-url");
+    var pnNext = rail.getAttribute("data-next-url");
+    if (pnPrev || pnNext) {
+      document.addEventListener("keydown", function (e) {
+        if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+        var t = e.target;
+        var tag = t && t.tagName ? t.tagName.toUpperCase() : "";
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (t && t.isContentEditable)) {
+          return;
+        }
+        if (e.key === "[" && pnPrev) {
+          e.preventDefault();
+          window.location.href = pnPrev;
+        } else if (e.key === "]" && pnNext) {
+          e.preventDefault();
+          window.location.href = pnNext;
+        }
+      });
+    }
+
+    mountSearch();
+    if (window.matchMedia && window.matchMedia("(max-width: 900px)").matches) return;
+
+    // Apply saved width first; if none, autofit to longest unwrapped link.
+    if (!loadWidth()) {
+      applyWidth(autofitWidth(rail));
+    }
+
+    var handle = document.createElement("div");
+    handle.className = "rail-resize-handle";
+    handle.setAttribute("aria-label", "Resize navigation rail");
+    handle.setAttribute("role", "separator");
+    handle.setAttribute("aria-orientation", "vertical");
+    rail.appendChild(handle);
+
+    var dragging = false;
+    var startX = 0;
+    var startW = 0;
+
+    function onPointerDown(e) {
+      if (!rail.open) return;
+      dragging = true;
+      startX = e.clientX;
+      startW = rail.getBoundingClientRect().width;
+      handle.classList.add("dragging");
+      document.documentElement.classList.add("rail-resizing");
+      handle.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    }
+
+    function onPointerMove(e) {
+      if (!dragging) return;
+      var w = startW + (e.clientX - startX);
+      if (w < MIN_W) w = MIN_W;
+      if (w > MAX_W) w = MAX_W;
+      applyWidth(Math.round(w));
+    }
+
+    function onPointerUp(e) {
+      if (!dragging) return;
+      dragging = false;
+      handle.classList.remove("dragging");
+      document.documentElement.classList.remove("rail-resizing");
+      try { handle.releasePointerCapture(e.pointerId); } catch (_) { /* */ }
+      var current = parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue("--rail-width"),
+        10
+      );
+      if (!isNaN(current)) saveWidth(current);
+    }
+
+    handle.addEventListener("pointerdown", onPointerDown);
+    handle.addEventListener("pointermove", onPointerMove);
+    handle.addEventListener("pointerup", onPointerUp);
+    handle.addEventListener("pointercancel", onPointerUp);
+
+    // Double-click = clear user override and re-autofit. This matches
+    // the user's mental model: "reset to default" should mean "redo the
+    // smart auto-fit", not "force the absolute maximum".
+    handle.addEventListener("dblclick", function () {
+      try { localStorage.removeItem(STORE_KEY); } catch (_) { /* */ }
+      applyWidth(autofitWidth(rail));
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+"""
+
+
+def write_rail_assets(root: Path) -> None:
+    atomic_write_text(root / AUTO_NAV_CSS_NAME, AUTO_NAV_CSS_BODY)
+    atomic_write_text(root / AUTO_NAV_JS_NAME, AUTO_NAV_JS_BODY)
+
+
+# ----------------------------------------------------------------------
+# RAIL HTML — per-page rendering
+# ----------------------------------------------------------------------
+
+
+def relpath_from(page: Path, target: Path) -> str:
+    """Compute relative path from page's dir to target.
+
+    Tries Pathlib's walk_up=True (Python 3.12+) and falls back to
+    os.path.relpath on older interpreters or any other shape problem.
+    The fallback covers TypeError (3.10/3.11 — kwarg unknown),
+    AttributeError (legacy stdlib shapes), and ValueError (siblings on
+    different drives, etc.).
+    """
+    try:
+        return str(target.relative_to(page.parent.resolve(), walk_up=True))
+    except (ValueError, AttributeError, TypeError):
+        from os.path import relpath
+        return relpath(target, start=page.parent.resolve())
+
+
+def render_rail(
+    page: dict,
+    section: dict | None,
+    sections: list[dict],
+    root: Path,
+) -> str:
+    """Vertical expandable rail: home + site-map + section siblings + cross-section."""
+    page_path = page["path"]
+    home_url = relpath_from(page_path, root / "index.html")
+    site_map_url = relpath_from(page_path, root / SITE_MAP_NAME)
+
+    # ----- Within-section Prev/Next (firing 219) -----
+    # The visually-adjacent sibling pages within the current page's section, in
+    # the SAME order the rail renders them (section["pages"], a single flat
+    # list). So the ‹ › header buttons and the bare [ / ] keyboard shortcut
+    # (auto-nav.js keydown handler) move to the page immediately above (‹,
+    # newer — list is newest-first) or below (›, older). None at the ends:
+    # the first page has no prev; the last has no next. Top-level/home pages
+    # (section is None) get no prev/next — they aren't in a section sequence.
+    prev_url: str | None = None
+    next_url: str | None = None
+    if section:
+        sec_pages = section["pages"]
+        cur_idx = next(
+            (i for i, p in enumerate(sec_pages) if p["path"] == page_path), -1
+        )
+        if cur_idx > 0:
+            prev_url = relpath_from(page_path, sec_pages[cur_idx - 1]["path"])
+        if 0 <= cur_idx < len(sec_pages) - 1:
+            next_url = relpath_from(page_path, sec_pages[cur_idx + 1]["path"])
+
+    parts: list[str] = []
+
+    # ----- Section 0: search box (mounted by auto-nav.js mountSearch) -----
+    # Lives at the top of the rail so it's the first thing a reader sees.
+    # Pagefind's UI inserts the input + dropdown into the empty div.
+    parts.append(
+        '<div class="rail-section">'
+        '<h4 class="rail-h">Search</h4>'
+        '<div id="auto-nav-search"></div>'
+        '</div>'
+    )
+
+    # ----- Section 1: top-level shortcuts -----
+    # The ‹ › prev/next buttons ride the SAME row as the "Site" header (zero
+    # added vertical height). Disabled (greyed, non-clickable) at the ends of
+    # the sequence. The prevnext span only appears for pages inside a section;
+    # the home/top-level rail keeps a plain "Site" header.
+    if section:
+        if prev_url:
+            prev_btn = (
+                f'<a class="rail-pn" href="{html.escape(prev_url)}" '
+                'aria-label="Previous page in this section" '
+                'title="Previous page  ·  [ key">‹</a>'
+            )
+        else:
+            prev_btn = '<span class="rail-pn rail-pn-disabled" aria-hidden="true">‹</span>'
+        if next_url:
+            next_btn = (
+                f'<a class="rail-pn" href="{html.escape(next_url)}" '
+                'aria-label="Next page in this section" '
+                'title="Next page  ·  ] key">›</a>'
+            )
+        else:
+            next_btn = '<span class="rail-pn rail-pn-disabled" aria-hidden="true">›</span>'
+        site_h = (
+            '<h4 class="rail-h rail-h-nav">Site'
+            f'<span class="rail-prevnext">{prev_btn}{next_btn}</span></h4>'
+        )
+    else:
+        site_h = '<h4 class="rail-h">Site</h4>'
+    parts.append(
+        '<div class="rail-section">'
+        f'{site_h}'
+        f'<a class="rail-link" href="{html.escape(home_url)}">'
+        '<span class="rail-emoji">🏠</span>Home</a>'
+        f'<a class="rail-link" href="{html.escape(site_map_url)}">'
+        '<span class="rail-emoji">🗺</span>Site map</a>'
+        '</div>'
+    )
+
+    # ----- Section 2: current section + sibling pages -----
+    if section:
+        sib_items: list[str] = []
+        for sib in section["pages"]:
+            url = relpath_from(page_path, sib["path"])
+            label = html.escape(sib["h1"] or sib["title"])
+            is_current = sib["path"] == page_path
+            cls = "rail-link rail-current" if is_current else "rail-link"
+            depth = sib.get("depth", 0)
+            # Top-level: 📋 index, 📄 page. Nested: 📑 + 18px indent so
+            # the subdir hierarchy is visually obvious.
+            if depth == 0:
+                badge = "📋" if sib["filename"] == "index.html" else "📄"
+                style = ""
+            else:
+                badge = "📑"
+                style = ' style="margin-left: 18px;"'
+            sib_items.append(
+                f'<li{style}><a class="{cls}" href="{html.escape(url)}">'
+                f'<span class="rail-emoji">{badge}</span>{label}</a></li>'
+            )
+        date_pill = (
+            f'<span class="rail-date">{html.escape(section["date"])}</span>'
+            if section["date"] else ""
+        )
+        parts.append(
+            '<div class="rail-section">'
+            f'<h4 class="rail-h">📂 {html.escape(section["human"])}{date_pill}</h4>'
+            f'<ul class="rail-list">{"".join(sib_items)}</ul>'
+            '</div>'
+        )
+
+    # ----- Section 3: neighbor sections (prev/next in chronological order) -----
+    cross_links: list[str] = []
+    if section:
+        slugs = [s["slug"] for s in sections]
+        try:
+            idx = slugs.index(section["slug"])
+        except ValueError:
+            idx = -1
+        if idx >= 0:
+            prev_section = sections[idx - 1] if idx > 0 else None
+            next_section = sections[idx + 1] if idx + 1 < len(sections) else None
+            for arrow_label, neighbor in (
+                ("⬅ Prev", prev_section), ("Next ➡", next_section),
+            ):
+                if neighbor and neighbor["pages"]:
+                    target = neighbor["pages"][0]["path"]
+                    url = relpath_from(page_path, target)
+                    arrow = arrow_label.split()[0] if "⬅" in arrow_label else arrow_label.split()[1]
+                    direction = "Prev" if "⬅" in arrow_label else "Next"
+                    date_str = (
+                        f'<span class="rail-date">{html.escape(neighbor["date"])}</span>'
+                        if neighbor["date"] else ""
+                    )
+                    cross_links.append(
+                        f'<a class="rail-link" href="{html.escape(url)}">'
+                        f'<span class="rail-emoji">{arrow}</span>'
+                        f'{direction}: {html.escape(neighbor["human"])} '
+                        f'{date_str}'
+                        f'</a>'
+                    )
+    if cross_links:
+        parts.append(
+            '<div class="rail-section">'
+            '<h4 class="rail-h">Other sections</h4>'
+            f'{"".join(cross_links)}'
+            '</div>'
+        )
+
+    # Prev/next URLs surfaced as data-* attrs for the auto-nav.js keydown
+    # handler ([ = prev, ] = next). Absent at the sequence ends.
+    pn_attrs = ""
+    if prev_url:
+        pn_attrs += f' data-prev-url="{html.escape(prev_url)}"'
+    if next_url:
+        pn_attrs += f' data-next-url="{html.escape(next_url)}"'
+
+    return (
+        f'<details class="auto-nav-rail" open{pn_attrs}>'
+        '<summary>'
+        '<span class="rail-toggle-icon">›</span>'
+        '<span class="rail-toggle-label">Navigation</span>'
+        '</summary>'
+        '<nav class="rail-body" aria-label="Site navigation">'
+        f'{"".join(parts)}'
+        '</nav>'
+        '</details>'
+    )
+
+
+# ----------------------------------------------------------------------
+# INJECTION
+# ----------------------------------------------------------------------
+
+_LEGACY_FOOTER_RE = re.compile(
+    re.escape(LEGACY_FOOTER_START) + r".*?" + re.escape(LEGACY_FOOTER_END) + r"\s*",
+    re.DOTALL,
+)
+_INLINE_NAV_STYLE_RE = re.compile(
+    r'\s*<style id="auto-nav-css">.*?</style>', re.DOTALL
+)
+_NAV_LINK_RE = re.compile(
+    r'\s*<link\s[^>]*id="auto-nav-css"[^>]*>', re.IGNORECASE
+)
+_NAV_SCRIPT_RE = re.compile(
+    r'\s*<script\s[^>]*id="auto-nav-js"[^>]*>\s*</script>', re.IGNORECASE
+)
+_PAGEFIND_LINK_RE = re.compile(
+    r'\s*<link\s[^>]*id="pagefind-ui-css"[^>]*>', re.IGNORECASE
+)
+_PAGEFIND_SCRIPT_RE = re.compile(
+    r'\s*<script\s[^>]*id="pagefind-ui-js"[^>]*>\s*</script>', re.IGNORECASE
+)
+
+
+def strip_legacy_footer(text: str, page_path: Path | None = None) -> str:
+    """Remove any legacy AUTO-NAV-FOOTER block (cross-section nav now lives
+    in the rail).
+
+    Warns to stderr when the strip actually fires — these markers came
+    from very-old (pre-v17.7) builds. If a user hand-edited content
+    between them before the nav was automated, that content is lost.
+    The warning is the user's signal to check git history before the
+    next commit.
+    """
+    new_text, n = _LEGACY_FOOTER_RE.subn("", text)
+    if n > 0:
+        loc = f"{page_path}: " if page_path else ""
+        print(
+            f"  WARN: {loc}stripped a legacy AUTO-NAV-FOOTER block "
+            "(pre-v17.7 marker). If that block contained hand-written "
+            "content, recover it from git before committing.",
+            file=sys.stderr,
+        )
+    return new_text
+
+
+def ensure_nav_assets(text: str, page_path: Path, root: Path, asset_version: str) -> str:
+    """Ensure <head> has all four assets in correct order: pagefind CSS,
+    auto-nav CSS, pagefind UI JS, auto-nav JS.
+
+    Strict order matters: Pagefind's <script defer> must run before
+    auto-nav.js so window.PagefindUI exists when auto-nav's mountSearch()
+    fires. Both scripts use defer so they execute in document order.
+
+    All four prior versions of these tags are stripped first to keep
+    re-runs byte-stable.
+
+    Returns the new text. If no </head> tag is present (e.g., truncated
+    or non-standard HTML), prints a warning to stderr and returns the
+    text unchanged — silent injection failure was the #1 anti-fragility
+    finding from the edge-case audit.
+    """
+    text = _INLINE_NAV_STYLE_RE.sub("", text)
+    text = _NAV_LINK_RE.sub("", text)
+    text = _NAV_SCRIPT_RE.sub("", text)
+    text = _PAGEFIND_LINK_RE.sub("", text)
+    text = _PAGEFIND_SCRIPT_RE.sub("", text)
+
+    css_href = (
+        f"{relpath_from(page_path, root / AUTO_NAV_CSS_NAME)}?v={asset_version}"
+    )
+    js_src = (
+        f"{relpath_from(page_path, root / AUTO_NAV_JS_NAME)}?v={asset_version}"
+    )
+    pf_css = relpath_from(page_path, root / PAGEFIND_UI_CSS_REL)
+    pf_js = relpath_from(page_path, root / PAGEFIND_UI_JS_REL)
+
+    pf_link = f'<link rel="stylesheet" id="pagefind-ui-css" href="{html.escape(pf_css)}">'
+    pf_script = f'<script id="pagefind-ui-js" src="{html.escape(pf_js)}" defer></script>'
+    nav_link = f'<link rel="stylesheet" id="auto-nav-css" href="{html.escape(css_href)}">'
+    nav_script = f'<script id="auto-nav-js" src="{html.escape(js_src)}" defer></script>'
+
+    # Case-insensitive: matches </head>, </HEAD>, </Head>, etc. so pages
+    # that came out of legacy editors don't fail asset injection silently.
+    new_text, n = re.subn(
+        r"\s*</head\s*>",
+        f"\n{pf_link}\n{nav_link}\n{pf_script}\n{nav_script}\n</head>",
+        text,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    if n == 0:
+        print(
+            f"  WARN: {page_path} has no </head> tag — assets NOT injected. "
+            "Page will render without nav rail or search.",
+            file=sys.stderr,
+        )
+        return text
+    return new_text
+
+
+def inject_block(
+    text: str, marker_start: str, marker_end: str,
+    content: str, anchor_pattern: str, anchor_replace: str,
+    page_path: Path | None = None,
+) -> str:
+    """Replace content between markers; if missing, insert via anchor.
+
+    Returns the new text. If the markers are absent AND the anchor
+    pattern (e.g., `<body>`) doesn't match either, warns to stderr and
+    returns the text unchanged — better a missing rail with a loud log
+    than silent corruption of an unfamiliar HTML shape.
+    """
+    block = f"{marker_start}\n{content}\n{marker_end}"
+    pattern = re.compile(
+        re.escape(marker_start) + r".*?" + re.escape(marker_end),
+        re.DOTALL,
+    )
+    if pattern.search(text):
+        return pattern.sub(block, text)
+    # IGNORECASE for the same reason as ensure_nav_assets — uppercase
+    # tags like <BODY> shouldn't silently miss the rail injection.
+    new_text, n = re.subn(
+        anchor_pattern, anchor_replace.format(block=block), text, count=1,
+        flags=re.IGNORECASE,
+    )
+    if n == 0:
+        loc = f"{page_path}: " if page_path else ""
+        print(
+            f"  WARN: {loc}neither {marker_start}/{marker_end} markers nor "
+            "the anchor pattern matched — rail NOT injected.",
+            file=sys.stderr,
+        )
+        return text
+    return new_text
+
+
+def inject_into_page(
+    page: dict,
+    section: dict | None,
+    sections: list[dict],
+    root: Path,
+    asset_version: str,
+) -> bool:
+    """Inject rail + asset links; strip legacy footer. Return True if changed.
+
+    Reads with utf-8-sig to tolerate BOM-prefixed files; writes UTF-8
+    (without BOM) so downstream tools see canonical bytes.
+    """
+    path = page["path"]
+    text = path.read_text(encoding="utf-8-sig", errors="replace")
+    new_text = ensure_nav_assets(text, path, root, asset_version)
+    new_text = strip_legacy_footer(new_text, page_path=path)
+
+    rail = render_rail(page, section, sections, root)
+    new_text = inject_block(
+        new_text, NAV_START, NAV_END, rail,
+        anchor_pattern=r"(<body[^>]*>)",
+        anchor_replace=r"\1\n{block}",
+        page_path=path,
+    )
+    if new_text != text:
+        atomic_write_text(path, new_text)
+        return True
+    return False
+
+
+# ----------------------------------------------------------------------
+# SITE-MAP RENDER
+# ----------------------------------------------------------------------
+
+
+def render_site_map(
+    root_page: dict | None,
+    sections: list[dict],
+    root: Path,
+    asset_version: str,
+) -> str:
+    """Render the master site-map.html — flat list per section + the rail."""
+    rows = []
+    for section in sections:
+        page_links = []
+        for p in section["pages"]:
+            url = str(p["path"].relative_to(root))
+            label = html.escape(p["h1"] or p["title"])
+            depth = p.get("depth", 0)
+            relpath = p.get("section_relpath", p["filename"])
+            # Top-level: 📋 for index, 📄 for others, filename only in meta.
+            # Nested: 📑 + 24px indent + show subpath in meta so the
+            # hierarchy is visible at a glance.
+            if depth == 0:
+                badge = "📋" if p["filename"] == "index.html" else "📄"
+                meta_path = p["filename"]
+                indent_style = ""
+            else:
+                badge = "📑"
+                meta_path = relpath
+                indent_style = ' style="margin-left: 24px;"'
+            page_links.append(
+                f'<li{indent_style}>{badge} <a href="{html.escape(url)}">{label}</a> '
+                f'<span class="meta">({meta_path}, {p["size_bytes"] // 1024} KB)</span></li>'
+            )
+        date_pill = (
+            f'<span class="date">{html.escape(section["date"])}</span>'
+            if section["date"] else ""
+        )
+        rows.append(
+            '<div class="section">'
+            f'<h3>📂 {html.escape(section["human"])} {date_pill}</h3>'
+            f'<ul>{"".join(page_links)}</ul>'
+            '</div>'
+        )
+
+    home_link = ""
+    if root_page:
+        home_link = (
+            '<div class="root"><h3>🏠 Site Home</h3>'
+            f'<ul><li>📋 <a href="{root_page["filename"]}">'
+            f'{html.escape(root_page["h1"] or root_page["title"])}</a> '
+            f'<span class="meta">({root_page["filename"]}, '
+            f'{root_page["size_bytes"] // 1024} KB)</span></li></ul>'
+            '</div>'
+        )
+
+    n_pages = sum(len(s["pages"]) for s in sections) + (1 if root_page else 0)
+
+    # ----- Rail for the site-map page itself: shortcuts + all sections -----
+    rail_parts: list[str] = []
+    rail_parts.append(
+        '<div class="rail-section">'
+        '<h4 class="rail-h">Search</h4>'
+        '<div id="auto-nav-search"></div>'
+        '</div>'
+    )
+    rail_parts.append(
+        '<div class="rail-section">'
+        '<h4 class="rail-h">Site</h4>'
+        '<a class="rail-link" href="index.html">'
+        '<span class="rail-emoji">🏠</span>Home</a>'
+        f'<a class="rail-link rail-current" href="{SITE_MAP_NAME}">'
+        '<span class="rail-emoji">🗺</span>Site map</a>'
+        '</div>'
+    )
+    section_links: list[str] = []
+    for s in sections:
+        if not s["pages"]:
+            continue
+        target = s["pages"][0]
+        url = str(target["path"].relative_to(root))
+        date_pill = (
+            f'<span class="rail-date">{html.escape(s["date"])}</span>'
+            if s["date"] else ""
+        )
+        section_links.append(
+            f'<a class="rail-link" href="{html.escape(url)}">'
+            f'<span class="rail-emoji">📂</span>{html.escape(s["human"])} '
+            f'{date_pill}'
+            '</a>'
+        )
+    if section_links:
+        rail_parts.append(
+            '<div class="rail-section">'
+            f'<h4 class="rail-h">All sections ({len(sections)})</h4>'
+            f'{"".join(section_links)}'
+            '</div>'
+        )
+
+    rail_html = (
+        '<details class="auto-nav-rail" open>'
+        '<summary>'
+        '<span class="rail-toggle-icon">›</span>'
+        '<span class="rail-toggle-label">Navigation</span>'
+        '</summary>'
+        '<nav class="rail-body" aria-label="Site navigation">'
+        f'{"".join(rail_parts)}'
+        '</nav>'
+        '</details>'
+    )
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Site map ({n_pages} pages)</title>
+<link rel="stylesheet" id="pagefind-ui-css" href="{PAGEFIND_UI_CSS_REL}">
+<link rel="stylesheet" id="auto-nav-css" href="{AUTO_NAV_CSS_NAME}?v={asset_version}">
+<script id="pagefind-ui-js" src="{PAGEFIND_UI_JS_REL}" defer></script>
+<script id="auto-nav-js" src="{AUTO_NAV_JS_NAME}?v={asset_version}" defer></script>
+<style>
+/* THEME INVARIANT: site-map is ALWAYS dark, regardless of the host
+ * site's color scheme. Matches the nav rail palette (slate-950 surfaces,
+ * slate-300 text, indigo accents). See CLAUDE.md → "Critical Invariants".
+ */
+/* iter_315 PRESENTATION_REFACTOR: site-map typography tightened so the
+ * page reads as a dense reference index, not a billboard. Body baseline
+ * 0.92rem, h1 1.55rem, headings 1rem, list items 0.85em — every number
+ * deliberately under the showcase kernel's default sizes since the
+ * site-map's job is "fit hundreds of links on one screen scannably."
+ */
+:root {{ color-scheme: dark; }}
+body {{ font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+       background: #0b1120; margin: 0; padding: 28px; color: #cbd5e1; line-height: 1.5;
+       font-size: 0.92rem; }}
+.container {{ max-width: 1100px; margin: 0 auto; background: #111c33; padding: 36px 44px;
+              border-radius: 8px; box-shadow: 0 2px 14px rgba(0, 0, 0, 0.4);
+              border: 1px solid #1e293b; }}
+h1 {{ border-bottom: 3px solid #818cf8; padding-bottom: 12px; color: #e0e7ff;
+       font-size: 1.55rem; }}
+.subtitle {{ color: #94a3b8; margin-bottom: 24px; font-style: italic; font-size: 0.85rem; }}
+.section, .root {{ background: #1e293b; border: 1px solid #334155;
+                    border-left: 4px solid #818cf8;
+                    padding: 14px 20px; margin: 12px 0; border-radius: 6px; }}
+.root {{ border-left-color: #22c55e; background: #0f2f1f; }}
+.section h3, .root h3 {{ margin: 0 0 8px 0; color: #e2e8f0; font-size: 1rem; }}
+.section .date {{ color: #64748b; font-size: 0.7em; font-weight: normal;
+                font-family: 'Menlo', monospace; margin-left: 8px; }}
+.section ul, .root ul {{ margin: 6px 0 0 0; padding-left: 22px; }}
+.section li, .root li {{ margin: 3px 0; font-size: 0.85em; }}
+.section a, .root a {{ color: #c7d2fe; text-decoration: none; }}
+.section a:hover, .root a:hover {{ color: #e0e7ff; text-decoration: underline; }}
+.meta {{ color: #64748b; font-size: 0.68em; font-family: 'Menlo', monospace; margin-left: 6px; }}
+code {{ background: #1e293b; color: #e2e8f0; padding: 1px 6px; border-radius: 3px;
+       font-size: 0.78em; }}
+.footer {{ margin-top: 30px; color: #64748b; font-size: 0.68em; padding-top: 14px;
+           border-top: 1px solid #334155; }}
+</style>
+</head>
+<body>
+{rail_html}
+  <div class="container">
+    <h1>🗺 Site map</h1>
+    <p class="subtitle">{n_pages} pages across {len(sections)} sections. Auto-generated from filesystem layout.</p>
+    {home_link}
+    {"".join(rows)}
+    <div class="footer">
+      Generated {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} by <code>build-nav.py</code>.
+      Sections sort newest-first when slugs are <code>YYYY-MM-DD-…</code>; otherwise alphabetical.
+      Within a section: <code>index.html</code> first → <code>&lt;!-- nav-pin --&gt;</code>
+      pages → iter-N pages newest-first → other pages newest-first by birthtime →
+      nested pages alphabetical by subdir.
+      All links are relative — works on <code>file://</code> and any static server.
+      Drag the rail's right edge to resize; double-click to reset.
+    </div>
+  </div>
+</body>
+</html>
+'''
+
+
+# ----------------------------------------------------------------------
+# MAIN
+# ----------------------------------------------------------------------
+
+
+def cleanup_stale_tmp_files(root: Path) -> None:
+    """Sweep up orphan tmp files left by killed atomic_write_text calls.
+
+    A SIGKILL between mkstemp and os.replace leaves `.<name>.NN.tmp` files
+    in the same directory as the target. They're harmless but accumulate
+    if the user repeatedly Ctrl+Cs build-nav.py. Clean them at start so
+    the working tree stays tidy.
+    """
+    cleaned = 0
+    for tmp in root.rglob(".*.tmp"):
+        # Match tempfile.mkstemp's prefix=`.{name}.` suffix=`.tmp` shape.
+        if "/pagefind/" in str(tmp):
+            continue  # pagefind manages its own dir; don't touch
+        try:
+            tmp.unlink()
+            cleaned += 1
+        except OSError:
+            pass
+    if cleaned:
+        print(f"  cleaned {cleaned} orphan .tmp file(s) from prior killed runs")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Universal site-map navigator builder.",
+    )
+    parser.add_argument(
+        "--root", type=Path, default=Path("."),
+        help="Site root directory (default: current dir)",
+    )
+    parser.add_argument(
+        "--asset-version", default="7",
+        help="Cache-bust version appended to asset URLs (bump on rail asset changes). "
+             "v7 = firing-219 within-section Prev/Next — compact ‹ › buttons on the "
+             "\"Site\" header row (zero added height) + Chrome-safe bare [ / ] keyboard "
+             "shortcut (guarded against modifiers and input focus); neighbors are the "
+             "visually-adjacent siblings in the flat section list. "
+             "v6 = iter_315 PRESENTATION_REFACTOR — body gutter 28-40px, "
+             "rail typography shrunk ~20%% (literal percent, argparse-escaped), "
+             "site-map tightened, newest-first iter-N ordering, and "
+             "<!-- nav-pin --> marker support.",
+    )
+    args = parser.parse_args()
+
+    root = args.root.resolve()
+    if not root.is_dir():
+        print(f"FATAL: {root} is not a directory", file=sys.stderr)
+        return 2
+
+    cleanup_stale_tmp_files(root)
+    write_rail_assets(root)
+    print(f"Wrote {AUTO_NAV_CSS_NAME}, {AUTO_NAV_JS_NAME}")
+
+    root_page, sections = walk_site(root)
+    n_pages = sum(len(s["pages"]) for s in sections) + (1 if root_page else 0)
+    print(f"Found {n_pages} pages across {len(sections)} sections")
+
+    work: list[tuple[dict, dict | None]] = []
+    if root_page:
+        work.append((root_page, None))
+    for section in sections:
+        for page in section["pages"]:
+            work.append((page, section))
+
+    n_changed = 0
+    failed: list[tuple[Path, str]] = []
+    for page, section in work:
+        try:
+            if inject_into_page(page, section, sections, root, args.asset_version):
+                n_changed += 1
+        except Exception as e:
+            # Don't crash the whole site for one bad page — but DO track it
+            # so we can surface a final summary. Silent skip-and-continue
+            # was the #1 visibility gap from the audit.
+            failed.append((page["path"], f"{type(e).__name__}: {e}"))
+            print(f"  ERROR injecting nav into {page['path']}: {type(e).__name__}: {e}",
+                  file=sys.stderr)
+
+    print(f"Injected nav into {n_changed} page(s) (others unchanged)")
+
+    site_map_html = render_site_map(root_page, sections, root, args.asset_version)
+    atomic_write_text(root / SITE_MAP_NAME, site_map_html)
+    print(f"Wrote {SITE_MAP_NAME}")
+
+    if failed:
+        print(
+            f"\n⚠ {len(failed)} page(s) FAILED nav injection — they will render "
+            "without the nav rail until the underlying error is fixed:",
+            file=sys.stderr,
+        )
+        for path, err in failed:
+            print(f"    {path}\n      → {err}", file=sys.stderr)
+        # Exit non-zero so calling shells (site.sh, pre-push hook) see the
+        # failure and can decide how loud to make it. site.sh's pipeline
+        # propagates this via PIPESTATUS — no silent green-light.
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,73 @@
+# OpenRouter — Model Selection
+
+## How It Works
+OpenRouter aggregates 200+ models. The alias sets ONE model for all three Claude Code roles (opus/sonnet/haiku).
+User picks a single model during install — it is used everywhere.
+
+## Recommended Models by Category
+
+### Coding (best for Claude Code)
+| Model ID | Context | Price (in/out $/1M) | Notes |
+|----------|---------|---------------------|-------|
+| qwen/qwen3.7-max | 1M | ~$0.33/$1.95 | Top coding, 1M context (Recommended) |
+| z-ai/glm-5.2 | 1M | $1.40/$4.40 | Strong coding (self-reported 62.1% Pro) |
+| deepseek/deepseek-v4-pro | 128K | $0.55/$2.19 | Strong reasoning |
+| moonshotai/kimi-k2.7-code | 256K | $0.60/$2.50 | Code-focused |
+| qwen/qwen3.7-plus[1m] | 1M | $0.65/$3.25 | Code-focused, 1M context |
+| minimax/minimax-m3 | 200K | $0.30/$1.20 | Cheapest decent |
+
+### Budget / Free
+| Model ID | Context | Price | Notes |
+|----------|---------|-------|-------|
+| nvidia/nemotron-3-ultra-550b-a55b:free | 262K | FREE | Large general, rate-limited |
+| google/gemma-4-31b-it:free | 262K | FREE | General, rate-limited |
+| google/gemma-4-26b-a4b-it:free | 262K | FREE | Lightweight |
+
+### General Purpose
+| Model ID | Context | Price (in/out $/1M) | Notes |
+|----------|---------|---------------------|-------|
+| google/gemini-3.5-flash | 1M | $1.25/$10.00 | Strong all-round |
+| deepseek/deepseek-v4-flash | 200K | $0.30/$1.20 | Cheapest decent |
+| anthropic/claude-opus-4.8 | 1M | $0.065/$0.26 | Ultra-cheap, fast |
+
+## Model Validation
+
+When user enters a custom model ID, verify it exists on OpenRouter. The catalogue endpoint is public
+(verified 2026-08-16: HTTP 200 with a full body and no credentials), so send NO key — a key on argv is
+readable by any local process via `ps`, and here there is nothing to send:
+
+**EXECUTE** using Bash tool:
+```bash
+curl -s "https://openrouter.ai/api/v1/models" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+target = 'USER_MODEL_ID'
+matches = [m for m in data.get('data', []) if m['id'] == target]
+if matches:
+    m = matches[0]
+    p = m.get('pricing', {})
+    print(f'FOUND: {m[\"id\"]}  ctx={m.get(\"context_length\",\"?\")}  prompt=\${p.get(\"prompt\",\"?\")}  completion=\${p.get(\"completion\",\"?\")}')
+else:
+    # Fuzzy search
+    fuzzy = [m for m in data.get('data', []) if target.lower() in m['id'].lower()][:5]
+    print(f'NOT_FOUND: {target}')
+    if fuzzy:
+        print('Did you mean:')
+        for m in fuzzy:
+            print(f'  {m[\"id\"]}')
+" && echo "OK validate" || echo "FAILED validate"
+```
+
+Replace `USER_MODEL_ID` with the user's input. If NOT_FOUND — show suggestions and re-ask.
+
+## Selection Flow (AskUserQuestion)
+
+Ask user to pick ONE model (used for all roles):
+1. "Which model to use?" with top 4 options from coding category
+2. Allow "Other" for custom model ID input
+
+The selected model is set as OPUS, SONNET, and HAIKU simultaneously.
+
+## Context Window Note
+Add `[1m]` suffix to model ID if the model supports >200K context.
+Without it, Claude Code caps autocompact at 200K.

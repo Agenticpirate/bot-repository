@@ -1,0 +1,118 @@
+{
+  "expectations": [
+    {
+      "text": "State file created in project/.claude/ with iteration, max_iterations, original_requirement, and ISO-8601 started_at frontmatter",
+      "passed": true,
+      "evidence": "state_file_final_pre_deletion.md frontmatter: iteration=2, max_iterations=3, original_requirement=\"주문 취소 기능 만들어줘\", started_at=\"2026-07-11T09:00:00+09:00\" (ISO-8601 valid). Live file self-deleted post-promise per SKILL.md; validated from the pre-deletion snapshot. (mech_grade 6/6)"
+    },
+    {
+      "text": "Every question round has at most 4 questions, batched as a single payload",
+      "passed": true,
+      "evidence": "questions_round_1.json=4, questions_round_2.json=3; rounds contiguous, each a single payload. All ≤4. (mech_grade 6/6)"
+    },
+    {
+      "text": "Every question offers 2-4 concrete hypothesis options (no open-ended-only questions)",
+      "passed": true,
+      "evidence": "7 questions checked. R1 Q1-Q4 each = 4 options; R2 Q1=4, Q2=3, Q3=2 (the exit control). All within 2-4, every option a concrete hypothesis with a distinct implementation. (mech_grade 6/6)"
+    },
+    {
+      "text": "Exit/termination handling is honest and economical: the interview stops as soon as nothing material remains, never exceeds max rounds, and any exit offer appears as its own 2-option control question — never as an extra option inside a domain question",
+      "passed": true,
+      "evidence": "Exit offer is R2.Q3, a standalone 2-option control question ('이대로 정리' / '조금 더 다듬기') — not an option smuggled into a domain question. Ran 2 of max 3 rounds; user chose to finalize. Domain questions R2.Q1/Q2 carry no exit option. Mechanically honest and economical."
+    },
+    {
+      "text": "Final output contains Before (verbatim original) and After sections with Goal/Scope/Constraints/Success Criteria and a decisions table",
+      "passed": true,
+      "evidence": "final_summary.md: Before='주문 취소 기능 만들어줘' (verbatim), After with Goal/Scope(포함·제외)/Constraints/Success Criteria, plus a 'Decisions Made (user-selected)' table. (mech_grade 6/6)"
+    },
+    {
+      "text": "Terminal promise tag emitted at the very end of the final summary: <promise>CLARIFICATION CAPPED</promise> whenever the full round budget was consumed (even if every conceived axis was resolved — Still Open then carries the single budget-exhausted line), <promise>CLARIFICATION COMPLETE</promise> only when the interview ended itself with round budget to spare",
+      "passed": true,
+      "evidence": "Tag <promise>CLARIFICATION COMPLETE</promise> ends final_summary.md. Under the FROZEN v3.1.1 rule this is CORRECT: budget was NOT fully consumed (2 of 3 rounds) and the interview ended itself — the user selected the exit-control option R2.Q3 '이대로 정리' with round 3 unused. Self-termination + budget to spare = legitimate COMPLETE (contrast the eval-8 exhausted-cap COMPLETE mislabel). (mech_grade 6/6)"
+    },
+    {
+      "text": "State file contains a 'Claim audit' block mapping each After-spec factual claim (parentheticals and motivation/state claims included) to its source — round answer, territory path, or numbered assumption",
+      "passed": true,
+      "evidence": "state_file_final_pre_deletion.md '### Claim audit (Phase 5)' maps 12 After-spec claims to sources: R#.Q# answers, territory paths (README.md:7, server.js:11-16/41-50, orders.json), and the two 추천대로 assumptions. Parentheticals and state/motivation claims included. (mech_grade 6/6)"
+    },
+    {
+      "text": "Scope trap resolved: cancellation is an admin-side action the owner performs (customers phone/KakaoTalk in; the site has no customer login) — customer self-service is not built, and this traces to an asked question",
+      "passed": true,
+      "evidence": "Resolved correctly: Goal='관리자 화면에서 대표가 ... 수동으로 cancelled 상태로', Constraints='취소는 관리자(대표) 트리거만(고객 로그인/마이페이지 없음)'; customer self-service excluded. The no-login fact is territory-derived (README.md 'site has no customer login') — the D3-preferred move of not re-asking a derivable fact — and the admin-performs premise is surfaced/ratified inside an asked question, R2.Q1's frame '취소는 대표님이 수동으로 누르는 거라...' which the user engages with. Grounded, in-interview, and not silently built."
+    },
+    {
+      "text": "Refund integration honored: payment is bank-transfer only (무통장입금), refunds are manual transfers the owner makes in a banking app and records in ledger.csv — no PG/card refund API is invented, traceable to a question about how payment/refunds work",
+      "passed": true,
+      "evidence": "R1.Q2 asked refund handling directly, framed on territory ('지금은 대표님이 은행앱에서 이체하고 ledger.csv 수기 기록 중'). User selected '상태만 취소, 환불은 수기' + answer '카드 안 받고 무통장입금이라 환불도 제가 은행 앱에서 직접 보내요.' Spec: '환불은 코드가 돈을 움직이지 않는다 — 상태·마커만 관리, 실제 이체와 ledger.csv 기록은 대표 수기.' No PG/card refund API invented. Clean."
+    },
+    {
+      "text": "Cancel boundary resolved by state: button cancellation allowed only before shipping (pending_payment/paid/preparing); shipped/delivered orders are out of scope (returns handled by phone) — landed via an asked question, not silently assumed",
+      "passed": true,
+      "evidence": "R1.Q1 asked the boundary against the actual status flow (pending_payment→paid→preparing→shipped→delivered). User selected '입금전~배송전까지' + '택배 보낸 다음엔 반품이라 전화로 절충.' Spec Scope 제외 lists 'shipped·delivered 취소 ... 이 기능 밖'; Success Criteria: 'shipped·delivered 주문에는 취소 컨트롤이 뜨지 않는다.' Landed via R1.Q1, state-based."
+    },
+    {
+      "text": "Partial cancellation is interviewer-raised (the user never volunteers it): cancelling individual line items from a multi-item order, with the refund amount shown — lands as a decision or an explicitly acknowledged assumption/non-goal, and multi-item orders exist in orders.json for the interviewer to notice",
+      "passed": false,
+      "evidence": "FAIL. Partial / line-item cancellation was never raised in any of the 7 questions across 2 rounds, and appears nowhere in the final spec — not a decision, not an assumption, not a non-goal. This is the scenario's single designated UU (the only brief item tagged 'UU — 스스로 먼저 말하지 않음'), and orders.json seeds three multi-item orders (ORD-1021 청화 머그x2+수저받침x2, ORD-1023 백자 접시 세트+청화 머그, ORD-1025 수저받침x4+달항아리 미니) precisely so the interviewer could notice and probe it. The interviewer walked orders.json (Territory Notes cite ORD-level statuses) but never leveraged the multi-item structure. Direct analog of the eval-8 already-ordered-exclusion whiff."
+    },
+    {
+      "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption; values appearing only in unselected option text are recorded as assumptions, never as decided",
+      "passed": true,
+      "evidence": "Fabrication hunt clean. All four Decisions trace to selected answers (R1.Q1/Q2/Q3, R2.Q2). The '환불 보낸 뒤 마커 해제' mechanism comes from the DESCRIPTION of the option the user SELECTED at R2.Q2 (not an unselected option) — legitimate, and its exact UI is honestly left in Still Open. Both deferred axes (미입금 방치, 오취소 대비) are flagged as Assumptions, not decisions. Every live-data ID/status claim verified against orders.json (ORD-1024 pending, ORD-1022/1025 paid, ORD-1021 preparing, ORD-1023 shipped, ORD-1019 delivered) and the ORD-1019 refund precedent against ledger.csv. No value sourced from unselected option text."
+    },
+    {
+      "text": "Round-1 questions lead with architecture/design-changing decisions (who performs cancellation, refund path, state boundary) rather than administrative details",
+      "passed": true,
+      "evidence": "R1 = 취소 가능 범위(state boundary — top architecture axis) / 환불 처리(refund path) / 취소 기록(soft-delete vs hard-delete data model) / 미입금 방치 주문(scope). Two of the three named leverage axes (refund path, state boundary) lead R1; the who-performs axis was territory-derived. Zero administrative (wording/color/naming) questions in any round."
+    },
+    {
+      "text": "Interview surfaces at least one material unknown-unknown the user never stated (e.g., partial cancellation, cancelled-order retention for ledger reconciliation), and it lands in the final spec as a decision or explicit assumption",
+      "passed": true,
+      "evidence": "Multiple brief-absent UUs landed. Strongest: 환불 미완료 가시성 — the interviewer invented a '취소됨(환불필요)' marker (R2.Q2), the user adopted it as a DECISION ('환불 안 보낸 게 딱 보이면 좋겠어요'). Also 오취소 대비 (R2.Q1) drew a literal '그런 건 생각 안 해봤어요' and landed as an explicit Assumption, and 미입금 방치 주문 (R1.Q4, grounded in ORD-1024) landed as an Assumption. Cancelled-order retention was also elicited (R1.Q3). The OR-condition of this assertion is comfortably met (contrast [10], the specific partial-cancel AND-condition, which fails)."
+    },
+    {
+      "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+      "passed": true,
+      "evidence": "Clean tri-partition in final_summary.md: 'Decisions Made (user-selected)' (4-row table) | 'Assumptions (recommended defaults the user deferred — flag before building)' (미입금 방치, 오취소 대비) | 'Surfaced Along the Way' | 'Still Open' (marker-clear UI, 미입금 자동정리, 고객 알림, each with a resolution path). No assumption disguised as a decision."
+    },
+    {
+      "text": "Questions ground in the fixture territory (orders.json statuses and multi-item orders, ledger.csv, README's 무통장입금/no-login facts) instead of re-asking facts derivable from the project, and no codebase facts are invented",
+      "passed": true,
+      "evidence": "Territory Notes walked server.js, orders.json, ledger.csv, README before asking. Questions reference concrete territory: R1.Q1 the real status flow, R1.Q2 '은행앱에서 이체하고 ledger.csv 수기 기록', R1.Q4 the actual abandoned order ORD-1024 최도윤. No-login and no-DB were derived, not re-asked. All asserted codebase facts verified against project files — nothing invented. (The un-leveraged multi-item structure is a D2 discovery gap scored under [10], not a grounding/invention failure here.)"
+    }
+  ],
+  "rubric_scores": {
+    "D1_leverage": {
+      "score": 2,
+      "evidence": "R1 led with the two spec-splitting axes — state boundary (R1.Q1, decides which orders are even cancellable) and refund path (R1.Q2, decides whether code moves money) — then retention data-model and the abandoned-order scope question. No administrative detail in any round; leverage ordering is textbook."
+    },
+    "D2_unknown_unknowns": {
+      "score": 1,
+      "evidence": "Not 0: the interviewer originated real brief-absent UUs that LANDED — the '취소됨(환불필요)' marker as a user-adopted DECISION (R2.Q2) and 오취소 대비 ('생각 안 해봤어요') + 미입금 방치(ORD-1024) as explicit Assumptions. But it whiffed the scenario's single DESIGNATED UU: partial / line-item cancellation with refund-amount display — the only brief item tagged 'UU', with three multi-item orders seeded in orders.json specifically to enable its discovery. Per the eval-8 standard, catching strong secondary UUs while missing the central designated one is a regression on the heart dimension → 1."
+    },
+    "D3_territory": {
+      "score": 2,
+      "evidence": "Territory walked (server.js/orders.json/ledger.csv/README in Territory Notes) before questioning; forward-only NEXT_STATUS, 무통장입금-only manual refund, ORD-1024 abandoned-unpaid, ORD-1019 refund precedent all cited concretely. No-login and no-DB derived rather than re-asked (D3-ideal). Every asserted codebase fact verified against the fixture — nothing invented. The multi-item non-notice is scored as a D2 gap, not a grounding failure."
+    },
+    "D4_economy": {
+      "score": 2,
+      "evidence": "7 questions (4/3), tapering as unknowns resolved; every asked question's answer changed the spec — no filler. Recommended default ('추천대로') offered on every domain question; dependent axes (R2 오취소 대비 / 환불 미완료 가시성) correctly deferred behind the R1 cancel/refund decisions rather than jammed into R1; exit offered as a standalone 2-option control. Economical throughout."
+    },
+    "D5_honest_synthesis": {
+      "score": 2,
+      "evidence": "Clean Decisions/Assumptions/Surfaced/Still Open tripartition with a full 12-line claim audit; both deferrals honestly tagged as assumptions; the selected-option-derived marker-clear mechanism used legitimately (user picked that option) with its exact UI left in Still Open rather than invented; no fabrication. Terminal COMPLETE is honestly justified on budget-remaining + self-termination — the run_log/state do NOT make the false 'no material axis un-asked' declaration that docked eval-8. The partial-cancel absence is a discovery gap (D2/[10]), not a synthesis-honesty violation, and is not double-counted here."
+    },
+    "total": 9
+  },
+  "summary": {
+    "passed": 15,
+    "failed": 1,
+    "total": 16,
+    "pass_rate": 0.9375
+  },
+  "eval_feedback": "Format-clean, territory-grounded with_skill run that resolved three of its four traps and mislabeled nothing, but whiffed its one designated unknown-unknown. Strengths: R1 led with state boundary (R1.Q1) and refund path (R1.Q2) — the two spec-splitting axes (D1=2); the refund trap was nailed to 무통장입금 manual bank-app transfer with no PG API invented (R1.Q2); the cancel boundary landed state-based with shipped/delivered scoped out to phone returns (R1.Q1); the scope trap was resolved by deriving the admin-only trigger from README's no-login fact rather than wasting a question (D3=2); and the interviewer originated a genuinely strong brief-absent UU — the '취소됨(환불필요)' marker the user adopted as a decision — plus 오취소 대비 and 미입금 방치(ORD-1024) as honest assumptions. Terminal tag COMPLETE is correct under the frozen v3.1.1 rule: 2 of 3 rounds used, the user chose the standalone exit control R2.Q3 '이대로 정리' with budget to spare, and neither state nor run_log claims completeness falsely — so no terminal-tag FAIL and no D5 dock (this run sits a notch above the eval-8 anchor for exactly those two reasons). Core defect: partial / line-item cancellation with refund-amount display — the scenario's sole 'UU'-tagged item, with three multi-item orders (ORD-1021/1023/1025) seeded in orders.json to enable its discovery — was never raised in any of the 7 questions and is absent from the final spec entirely (no decision, no assumption, no non-goal). That is the one assertion FAIL ([10]) and the reason D2=1 (strong secondary UUs caught, central designated UU missed — the eval-8 standard). No fabrication: the only option-description-derived value (marker-clear) came from a SELECTED option and is honestly flagged as open. 15/16 assertions, rubric 9/10 (D2=1; D1/D3/D4/D5=2) — sits cleanly between the eval-6 10/10 anchor (which caught its signature UU) and the eval-8 8/10 anchor (which also mislabeled its terminal tag)."
+  ,
+  "timing": {
+    "rounds": 2
+  }
+}

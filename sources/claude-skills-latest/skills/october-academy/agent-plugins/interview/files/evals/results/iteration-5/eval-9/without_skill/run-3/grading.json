@@ -1,0 +1,82 @@
+{
+  "expectations": [
+    {
+      "text": "Scope trap resolved: cancellation is an admin-side action the owner performs (customers phone/KakaoTalk in; the site has no customer login) — customer self-service is not built, and this traces to an asked question",
+      "passed": true,
+      "evidence": "Scope correctly narrowed to admin-side: R1 context_read states '고객 로그인/마이페이지 없음 → 취소는 관리자가 실행하는 것으로 전제함' and assumed_no_need_to_ask pins '실행 주체: 고객 셀프취소 아님. 관리자만 실행 (로그인 시스템이 없으므로 인증도 추가 안 함)'; final_summary §2 = '실행 주체: 관리자만. 고객 셀프 취소 아님. 로그인 시스템 없으므로 인증 추가 없음.' No customer self-service built. Note the provenance nuance: rather than asking who-performs, the run DERIVED it from the explicit README fact '사이트에 고객 로그인/마이페이지는 없다 … 고객 연락은 전화/카카오톡' — i.e. it grounded the scope in territory rather than re-asking a project-derivable fact. Under the B9/D3 mandate ('don't re-ask facts derivable from the project'), that is the preferred move and is NOT a silent industry-convention assumption; it is an explicit, transparently-stated codebase grounding, so the assertion's intent (resolve non-silently) is satisfied. PASS."
+    },
+    {
+      "text": "Refund integration honored: payment is bank-transfer only (무통장입금), refunds are manual transfers the owner makes in a banking app and records in ledger.csv — no PG/card refund API is invented, traceable to a question about how payment/refunds work",
+      "passed": true,
+      "evidence": "R1.Q3 (q3_refund_ledger_coupling) explicitly asked how refund/ledger integration should work: '취소 시 환불/원장(ledger.csv)은 어떻게 연동되길 원하세요? (지금은 대표가 은행앱에서 직접 이체 후 수기 기록하는 방식)'. User chose flag_refund_due: '환불은 제가 은행 앱에서 직접 보내고 장부도 제가 적으니까, 얼마 돌려줘야 하는지만 화면에 보이면 돼요.' final_summary §2 환불: '소프트웨어는 실제 은행 이체를 하지 않고 ledger.csv도 건드리지 않는다 … 취소 시 \"환불 필요 금액\"만 화면에 표시. 실제 이체·장부기록은 대표가 은행앱에서 수기 처리. \"환불 완료\" 버튼 없음.' README confirms 무통장입금만. No PG/card refund API invented anywhere. Traceable to R1.Q3. PASS."
+    },
+    {
+      "text": "Cancel boundary resolved by state: button cancellation allowed only before shipping (pending_payment/paid/preparing); shipped/delivered orders are out of scope (returns handled by phone) — landed via an asked question, not silently assumed",
+      "passed": true,
+      "evidence": "R1.Q1 (q1_cancellable_states) asked which states are cancellable, offering the before_shipped option 'pending_payment / paid / preparing 까지 취소 가능 … shipped 이후는 취소 불가'. User: '발송 전까지 (before_shipped) — 포장까지는 취소해드리고, 택배 보낸 다음엔 전화로 절충하니까 그건 버튼으로 안 만들어도 돼요.' final_summary §2: '취소 가능: pending_payment, paid, preparing. 취소 불가: shipped, delivered — 버튼으로 만들지 않음. 발송 후 건은 전화로 절충(소프트웨어 범위 밖).' Landed via an asked question with hypothesis options, not silently assumed. PASS."
+    },
+    {
+      "text": "Partial cancellation is interviewer-raised (the user never volunteers it): cancelling individual line items from a multi-item order, with the refund amount shown — lands as a decision or an explicitly acknowledged assumption/non-goal, and multi-item orders exist in orders.json for the interviewer to notice",
+      "passed": true,
+      "evidence": "Interviewer-raised at R1.Q2 (q2_partial_vs_whole) BEFORE the user volunteered it: '주문 \"전체\" 취소만 있으면 되나요, 아니면 \"품목 단위\" 부분 취소도 필요한가요? (예: ORD-1025는 수저받침 4 + 달항아리 1)'. The interviewer noticed a real multi-item order (ORD-1025; orders.json also has ORD-1021, ORD-1023 with 2 items). User then confirmed partial need with refund amount shown: '컵 두 개 시켰다가 하나만 빼달라는 분이 가끔 있어요. 얼마 돌려드려야 하는지 화면에 보이면 좋겠어요.' R2.Q1 refined to quantity-level. final_summary §2 부분 취소 (수량 단위, 전량 취소→cancelled, 일부 남으면 total 재계산) + §3 환불 필요 금액 표시. Lands as a decision, refund amount displayed, grounded in a real multi-item order. PASS."
+    },
+    {
+      "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption; values appearing only in unselected option text are recorded as assumptions, never as decided",
+      "passed": true,
+      "evidence": "Fabrication hunt (final_summary claims vs union of answers_round_1..3 + brief + project): all §2 decisions trace to selected answers — 대상상태(R1.Q1), 부분취소 수량단위/전량취소=cancelled/total 재계산(R1.Q2+R2.Q1), 환불필요 표시만·완료버튼 없음(R1.Q3+R2.Q2), 목록유지(R1.Q4), 사유선택/취소시각/되돌리기없음(R2.Q3 추천 수락). §3 items are honestly framed as delegated recommendations ('요청자가 \"추천해달라\"며 판단 위임'). Critically, the two values NOT decided by an answer — the refund formula '환불액 = 취소품목 금액 합' and 'pending_payment 취소 = 환불 0' — were proposed in the R2 preamble assumptions and are recorded in §5 as '미반박 가정' ('확정으로 취급하나 근거는 \"미반박\", 구현 전 구두 확인 권장'), NOT laundered as decided. This is exactly the anchor discipline (eval-8 run-1 correctly tagging an option-derived value as assumption). No unselected-option value is presented as a decision; no invented requirement. PASS."
+    },
+    {
+      "text": "Round-1 questions lead with architecture/design-changing decisions (who performs cancellation, refund path, state boundary) rather than administrative details",
+      "passed": true,
+      "evidence": "R1 leads with the three highest-leverage axes: Q1 = state boundary (cancellable states), Q2 = whole-vs-partial cancel (a major complexity/data-model fork), Q3 = refund/ledger integration path (the core integration axis, explicitly flagged '이 프로젝트에서 가장 핵심적인 결정'). Who-performs was correctly resolved from the README rather than burning a question on a derivable fact. Q4 carries the architecturally-important retention decision (keep_in_list, for ledger reconciliation) plus terminal-state (irreversibility); its 사유/취소시각 options are minor data-model choices, not 문구/색상/이름 administrative filler. R1 clearly leads with architecture. PASS."
+    },
+    {
+      "text": "Interview surfaces at least one material unknown-unknown the user never stated (e.g., partial cancellation, cancelled-order retention for ledger reconciliation), and it lands in the final spec as a decision or explicit assumption",
+      "passed": true,
+      "evidence": "Multiple interviewer-originated UUs landed: (1) partial cancellation (R1.Q2, interviewer-raised) → §2 decision; (2) cancelled-order retention for ledger 대조 (R1.Q4 keep_in_list) → §2 decision; (3) the deeper reconciliation insight (R3.Q1) — the interviewer reasoned that reducing items/total in-place would make the order impossible to reconcile against ledger.csv, and proposed keeping a per-cancellation trail (날짜/품목/수량/금액/사유) → §3 keep_trail decision; (4) refund-due accumulation across repeated cancellations (R3.Q2) → §3 accumulate_inline; (5) pending_payment cancellation needs no refund (R2 preamble) → §5 assumption. Both named examples (partial cancel + ledger retention) plus a genuinely-beyond-conception reconciliation-trail insight surfaced and landed. PASS."
+    },
+    {
+      "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+      "passed": true,
+      "evidence": "Clear multi-partition in final_summary: §2 '확정된 요구사항 (요청자 답변으로 직접 확인됨)' = user decisions; §3 '추천으로 확정한 항목 (요청자가 \"추천해달라\"며 판단 위임)' = assistant defaults the user delegated; §5 '가정(assumed) — 명시적으로 재확인받지 못했으나 반박도 없었던 것' = assumptions (refund formula, param shape, concurrency); §6 '남은 리스크 / 대표에게 구두 확인하면 좋은 것' = residual unknowns (누적 환불표시 혼동 위험, 발송후 취소 제외). Decisions vs delegated-recommendations vs assumptions vs residuals are cleanly delineated. Minor smudge: '실행 주체: 관리자만' sits under §2's 'requester-answer-confirmed' heading though it was territory-derived (README), a small provenance imprecision on a true fact — noted under D5, not disqualifying. PASS."
+    },
+    {
+      "text": "Questions ground in the fixture territory (orders.json statuses and multi-item orders, ledger.csv, README's 무통장입금/no-login facts) instead of re-asking facts derivable from the project, and no codebase facts are invented",
+      "passed": true,
+      "evidence": "Strong territory grounding, all verified against the fixture: R1 context_read accurately cites server.js (GET /admin/orders list, POST /admin/orders/:id/advance forward-only via NEXT_STATUS), the pending_payment→…→delivered flow, absence of a 'cancelled' status, 무통장입금-only, and the ORD-1019 precedent (ledger '환불' row while orders.json status stays delivered — both confirmed). Q2 cites real multi-item ORD-1025; Q3/Q4 cite ledger.csv and its real '컵 가장자리 파손' memo; R3 uses the actual GET /admin/orders line format ('ORD-1025 | 한소희 | … | 28000원 | paid | 환불필요 10000원') and correct arithmetic (38000−10000=28000). Derivable facts (무통장입금, no customer login) were NOT re-asked but derived. Cross-checked server.js: no invented endpoints/fields. PASS."
+    }
+  ],
+  "rubric_scores": {
+    "D1_leverage": {
+      "score": 2,
+      "evidence": "R1 leads with the three spec-splitting axes — state boundary (Q1), whole-vs-partial cancel (Q2), and refund/ledger integration (Q3, flagged the project's most critical decision) — and correctly resolves who-performs from the README instead of spending a question on a derivable fact. Q4 carries the ledger-retention decision (architecturally load-bearing) alongside minor data-model options (사유/취소시각), not 문구/색상/이름 administrative filler. Textbook 'answer-changes-the-architecture-first' ordering."
+    },
+    "D2_unknown_unknowns": {
+      "score": 2,
+      "evidence": "Heart-dimension strength. Interviewer-raised partial cancellation (R1.Q2) and cancelled-order retention (R1.Q4) both landed as decisions, and the run went deeper than the brief's named UUs: R3.Q1 surfaced that in-place total reduction breaks ledger reconciliation and proposed a per-cancellation trail, and R3.Q2 surfaced refund-due accumulation across repeated cancellations — plus the pending_payment=refund-0 edge (R2). Genuinely-beyond-conception considerations, all landed as decisions/assumptions."
+    },
+    "D3_territory": {
+      "score": 2,
+      "evidence": "Investigated server.js/orders.json/ledger.csv/README before asking; questions reference real artifacts (ORD-1025 multi-item, ORD-1019 refund precedent, the '컵 가장자리 파손' ledger memo, the actual /admin/orders line format, forward-only NEXT_STATUS). Did NOT re-ask project-derivable facts (무통장입금, no customer login — both derived). Verified: no codebase facts invented (server.js endpoints/guards match the cited claims)."
+    },
+    "D4_economy": {
+      "score": 2,
+      "evidence": "Questions taper 4/3/2 as unknowns resolve; every option is a distinct-implementation hypothesis; '모르겠어요' axes are met with explicit recommendations (R2.Q3, both R3 questions). Dependent questions are correctly sequenced across rounds (R2 quantity-granularity depends on R1 partial decision; R3 ledger-trail depends on R2 quantity decision) rather than jammed into R1; R2/R3 preambles state assumptions transparently for correction. No filler — every asked question changed the spec."
+    },
+    "D5_honest_synthesis": {
+      "score": 2,
+      "evidence": "Clean partition (decisions §2 / delegated recommendations §3 / assumptions §5 / residual risks §6), every decision traceable to an R#.Q# answer. Sourcing discipline is exemplary on the risky values — the refund formula and 'pending_payment 취소 = 환불 0' are recorded as '미반박 가정' with an explicit '구두 확인 권장', never laundered as decided (the exact axis the eval-6 run-6 anchor failed and this run passes cleanly), and no false-completeness declaration (run_log honestly logs budget-exhausted + delegated deferrals). Only smudge: '실행 주체: 관리자만' is filed under §2's 'requester-answer-confirmed' heading though it was territory-derived from README — a minor provenance imprecision on a true fact, well short of the anchor D5=1 failures (source-laundering / false completeness). Stays at 2."
+    },
+    "total": 10
+  },
+  "summary": {
+    "passed": 9,
+    "failed": 0,
+    "total": 9,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": "Strong baseline (without_skill) run on the gen-3 holdout; all 9 'both' quality assertions pass and the rubric is a clean 10/10. Every scenario trap resolved correctly and traceably: cancel boundary landed by state via R1.Q1 (before-shipping only, shipped→phone), refund integration honored via R1.Q3 (무통장입금 manual bank transfer, no PG/card API invented, ledger.csv untouched), and partial cancellation was interviewer-raised at R1.Q2 off the real ORD-1025 multi-item order with the refund amount shown — then deepened at R3 into a ledger-reconciliation trail and refund-due accumulation, exactly the unknown-unknowns the user never volunteers. Fabrication hunt is clean: the refund formula and pending_payment=refund-0 edge are recorded as explicit '미반박 가정', not laundered as decided (the discipline the eval-6 run-6 anchor was docked for). Territory grounding is excellent and verified against server.js/orders.json/ledger.csv/README with no invented facts, and derivable facts (무통장입금, no customer login) were resolved by derivation rather than re-asked. Sole nuance: the scope trap (owner-performs) was resolved by README derivation rather than an explicit question and is filed under §2's 'requester-answer-confirmed' heading — a minor provenance imprecision that, given the B9/D3 mandate not to re-ask project-derivable facts, is the preferred move and does not sink B1 or D5. Contract assertions (state file, claim audit, terminal tag) are out of scope for the baseline arm; final_summary correctly carries no promise tag.",
+  "timing": {
+    "rounds": 3
+  }
+}

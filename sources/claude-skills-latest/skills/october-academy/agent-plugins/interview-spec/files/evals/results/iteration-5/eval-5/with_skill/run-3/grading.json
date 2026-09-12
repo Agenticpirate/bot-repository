@@ -1,0 +1,112 @@
+{
+  "expectations": [
+    {
+      "text": "State file created in project/.claude/ with iteration, max_iterations, original_requirement, and ISO-8601 started_at frontmatter",
+      "passed": true,
+      "evidence": "state_file_final_pre_deletion.md: fields=['iteration', 'max_iterations', 'original_requirement', 'started_at']; started_at ISO valid=True (live file deleted post-promise per SKILL.md; validated from audit copy state_file_final_pre_deletion.md) (mech v4 sweep)"
+    },
+    {
+      "text": "Every question round has at most 4 questions, batched as a single payload",
+      "passed": true,
+      "evidence": "question counts per round: {'questions_round_1.json': 4, 'questions_round_2.json': 4, 'questions_round_3.json': 2}; rounds contiguous=True (mech v4 sweep)"
+    },
+    {
+      "text": "Every question offers 2-4 concrete hypothesis options (no open-ended-only questions)",
+      "passed": true,
+      "evidence": "10 questions checked; violations: none (mech v4 sweep)"
+    },
+    {
+      "text": "Exit/termination handling is honest and economical: the interview stops as soon as nothing material remains, never exceeds max rounds, and any exit offer appears as its own 2-option control question — never as an extra option inside a domain question",
+      "passed": true,
+      "evidence": "Ran 3 of max 3, never exceeded. No exit-offer control question was emitted and no exit option was smuggled into a domain question. R3 state note is explicit: '최종 라운드라 계속 다듬기 exit는 제시 안 함(라운드4 없음 → 정직)'. At the cap, material axes genuinely remained (auth path BLOCKING + owner-pending policy + un-asked 감사 로그), so it terminated CLARIFICATION CAPPED and flagged the unasked axis in Still Open — honest termination mechanics."
+    },
+    {
+      "text": "Final output contains Before (verbatim original) and After sections with Goal/Scope/Constraints/Success Criteria and a decisions table",
+      "passed": true,
+      "evidence": "Before=True After=True verbatim-original=True Goal/Scope/Constraints/SuccessCriteria=True decisions-table=True (mech v4 sweep)"
+    },
+    {
+      "text": "Terminal promise tag emitted at the very end of the final summary: <promise>CLARIFICATION COMPLETE</promise>, or <promise>CLARIFICATION CAPPED</promise> when the round budget ran out with material axes unasked",
+      "passed": true,
+      "evidence": "terminal tag <promise>CLARIFICATION CAPPED</promise> ends final_summary.md (mech v4 sweep)"
+    },
+    {
+      "text": "State file contains a 'Claim audit' block mapping each After-spec factual claim (parentheticals and motivation/state claims included) to its source — round answer, territory path, or numbered assumption",
+      "passed": true,
+      "evidence": "'Claim audit' block found with 15 source-mapped lines (mech v4 sweep)"
+    },
+    {
+      "text": "Core goal resolved: spec grants the two CS part-timers access to orders/stats/posts while refunds stay blocked for them, traceable to asked questions",
+      "passed": true,
+      "evidence": "PASS — the core goal is captured, fixing run-1's decisive failure. R2.Q3 asked the alba-tasks axis ('알바 역할이 어드민에서 할 수 있어야 하는 일을 모두 골라주세요') → user selected 주문조회+통계+공지; R1.Q3 blocked refunds ('환불 대표 전용, 알바 차단'). Both land in the Decisions Made table, and Success Criteria states it operationally: '알바 역할 세션: /admin/orders·/admin/stats·/admin/posts 접근 OK, POST /admin/refunds/:orderId엔 403'. Fully traceable to asked questions (R1.Q3 + R2.Q3). The spec honestly writes 'alba' generically rather than inventing the brief-only count/identity (CS·2명·이메일 never asked, never appear) — the access model, which is what this assertion tests, is precisely encoded. This is the requester-answerable who-for/which-menus recovery the calibration flagged."
+    },
+    {
+      "text": "Authority honored: policy decisions the requester cannot make (refund grantees, approval flow, role-tier design, audit retention) are recorded as assumptions pending owner confirmation or as Still Open with a resolution path — never presented as user decisions",
+      "passed": true,
+      "evidence": "PASS — the load-bearing owner-authority axes are all deferred: role-tier design (권한 모델 R1.Q1, 역할 단계 R2.Q2) → Assumptions flagged 'pending 대표 confirmation'; audit retention (환불 행위자 감사 로그) → Still Open with a resolution path (별도 대표 논의); the single-owner gate fate / staff-auth path → BLOCKING Still Open. The Decisions table holds within-authority items only: 환불=알바 차단 (the user's explicit within-authority intent) and 알바 권한=주문·통계·공지. Minor weakness: R1.Q3 entangled the within-authority alba-block with owner-adjacent refund-grantee/approval-flow sub-axes, so 'refund=대표 전용' and 'no extra guardrails' read as user picks; but these follow from the user's alba-block plus the pending 2-role assumption (itself flagged pending 대표), and no genuinely owner-only downstream policy (tiers, audit, approval design) is presented as settled. Net: authority honored on every explicitly-listed axis."
+    },
+    {
+      "text": "Territory contradiction surfaced: interviewer finds the dormant users.role column / auth TODO and raises whether to build on it as a question or explicit spec element — not a silent redirect and not ignored",
+      "passed": true,
+      "evidence": "PASS — R1.Q1 raises it in the question premise ('마이그레이션 002가 이미 users.role 컬럼을 만들어 둔 상태입니다') and R3.Q2 builds on it ('002가 이미 모든 계정을 기본 역할 member로 만들어 둔 상태'). The auth.js TODO ('5월, 대표 요청: users.role 기반 권한으로 교체') is captured in Territory Notes and the Reason. Verified against fixture: migrations/002 = role TEXT NOT NULL DEFAULT 'member', auth.js lines 1-3 TODO, both unread by code. Surfaced as an explicit spec element, not a silent redirect."
+    },
+    {
+      "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption",
+      "passed": true,
+      "evidence": "PASS — fabrication hunt clean. Every Decision traces to R1.Q3/R2.Q3; every Assumption to R#.Q# with pending/provenance flags; every territory claim independently verified accurate against the fixture (single requireOwner gate server.js:13, OWNER_EMAIL compare auth.js:5-7, dormant users.role migration 002, POST /admin/refunds → real Toss PG cancel via pg.js irreversible, 001 users table has no credential column, no login route/session-set code). Brief-only facts do NOT appear: grep of final_summary + state for 2명 / CS / 지난달 환불 사고 / 이메일 2개 / 월요일 deadline = zero hits (the one '이메일' is the territory OWNER_EMAIL gate). All assumed defaults sit in the Assumptions table, never disguised as decisions."
+    },
+    {
+      "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+      "passed": true,
+      "evidence": "PASS on the literal text — all four R1 questions are architecture/design-changing (권한 모델, 인증 현황, 환불 취급, 역할 관리 방법); zero administrative trivia (no wording/color/naming). (Leverage ORDERING nuance: R1 led with owner-deferrable design axes and the pure who-for/tasks axis came in R2, not R1 — scored under D1, where it matches iteration-4's R1-owner-lead + R2-recovery pattern.)"
+    },
+    {
+      "text": "Interview surfaces at least one material unknown-unknown the user never stated (e.g. audit logging of refund actions, offboarding/session revocation for departing staff, what happens to the single-owner gate), and it lands in the final spec as a decision or explicit assumption",
+      "passed": true,
+      "evidence": "PASS — interviewer-first, multiple: (1) offboarding/session revocation (R2.Q4 '알바가 그만두면 접근을 어떻게 막나') → Assumption 계정별 비활성화, user '아직 생각 안 해봤어요'; (2) fail-closed default for unassigned 'member' accounts (R3.Q2, grounded in migration 002 stamping every account 'member' → over-grant/lockout risk) → Assumption; (3) audit logging of refund actor (refunds.js records no actor) → surfaced honestly in Still Open rather than fabricated; (4) the single-owner-gate fate / staff-identity separation → BLOCKING Still Open with resolution path. Several genuine UUs the user never volunteered, each landing in the spec."
+    },
+    {
+      "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+      "passed": true,
+      "evidence": "PASS — clean tripartition: **Decisions Made** (2 rows, requester-authority only) / **Assumptions** (6 rows, each flagged pending-대표 or as contingent/blind-spot default) / **Still Open** (auth BLOCKER + owner-pending policy bundle + un-asked 감사 로그, each with a resolution path), plus a **Surfaced Along the Way** section. Every line traces via the claim audit; no fabrication."
+    },
+    {
+      "text": "Interviewer inspects the project before asking; questions reference the real setup (single requireOwner/OWNER_EMAIL gate, dormant role column migration, refund route's irreversibility) rather than generic permission templates",
+      "passed": true,
+      "evidence": "PASS — run_log + Territory Notes record reading auth.js/server.js/refunds.js/pg.js/migrations 001,002 and grepping for login/session-set code before asking. Questions cite the real setup: single requireOwner/OWNER_EMAIL gate over all /admin (server.js:13), dormant users.role migration 002, irreversible POST /admin/refunds via Toss PG (pg.js), missing session middleware, no credential column in 001. All claims verified accurate against the fixture — not generic templates."
+    }
+  ],
+  "rubric_scores": {
+    "D1_leverage": {
+      "score": 2,
+      "evidence": "R1 avoids all administrative trivia — every question is architecture/design-changing. R1 still led with owner-deferrable design axes (권한 모델, 역할 관리) and the highest-leverage requester-answerable, spec-defining axis (who-for / what-access) arrived in R2 (R2.Q3 alba-tasks) rather than R1 — but it DID arrive within budget and captured the core, which is exactly iteration-4's R1-owner-lead + R2-who-for-recovery pattern that scored D1=2. Decisive improvement over run-1 (D1=1), where the who-for axis was never asked and the core sank. The new requester-answerable-axes-first rule landed as the R2 'proxy pivot' (front-loading operator-answerable 접속방식/역할단계/알바업무); it did not fully reorder R1, hence recovery rather than a flawless lead — but the leverage outcome is right."
+    },
+    "D2_unknown_unknowns": {
+      "score": 2,
+      "evidence": "Multiple genuine interviewer-first unknown-unknowns land in the spec: offboarding/session revocation (R2.Q4 → Assumption), fail-closed default for unassigned 'member' accounts (R3.Q2, grounded in migration 002's blanket 'member' stamp → over-grant/lockout risk → Assumption), refund-actor audit logging (refunds.js records no actor → Still Open, surfaced not fabricated), and the single-owner-gate fate / staff-identity separation (BLOCKING Still Open). Richer UU coverage than run-1. Strong."
+    },
+    "D3_territory": {
+      "score": 2,
+      "evidence": "All auth-relevant files read/grepped/re-verified before the claim audit; questions and spec carry real territory (requireOwner+OWNER_EMAIL single gate server.js:13, dormant users.role migration 002, irreversible POST /admin/refunds via Toss PG pg.js, missing session middleware, no credential column in migrations/001). Every territory claim independently verified accurate against the fixture — no generic templates."
+    },
+    "D4_economy": {
+      "score": 2,
+      "evidence": "10 questions across 3 rounds, and — unlike run-1 (D4=1, core wedge omitted, budget burned circling the auth axis) — the load-bearing requester-answerable question (alba-tasks) WAS asked and the core captured, while 4 UUs and the auth blocker were also surfaced. Adaptive sequencing is correct: dependent auth questions are progressively narrowed across rounds (R1.Q2 status → R2.Q1 operator-answerable reframe → R3.Q1 what-to-build-given-blocker), not lazily duplicated, and every question's answer shaped the spec (decision / assumption / blocker routing). Mild imperfection: two R1 slots on owner-deferrable axes predictably yielded 추천대로 deferrals and the auth axis consumed three slots — not tight, but no pure filler and no core omission → clean 2."
+    },
+    "D5_honest_synthesis": {
+      "score": 2,
+      "evidence": "Honest, well-partitioned synthesis: Decisions / Assumptions / Still Open tripartition with pending-대표 flags, a contingent-assumption flag on 착수 범위 (dependent on the unresolved auth blocker), and Still Open carrying the un-asked 감사 로그 as an admission rather than a fabricated default. No fabrication; every claim sourced via the Phase-5 claim audit; CAPPED honestly reflects genuinely-remaining material axes. The user's map is measurably improved (multi-admin premise, offboarding, fail-closed, PG-irreversibility all made explicit)."
+    },
+    "total": 10
+  },
+  "summary": {
+    "passed": 15,
+    "failed": 0,
+    "total": 15,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": "Both new SKILL.md rules landed and fixed run-1's decisive miss with no regression. run-1 (8/10) failed the core-goal assertion and docked D1/D4 because the interviewer never asked the single requester-answerable, spec-defining question (who needs access / which menus) and burned all three rounds on the login-infrastructure tangent. Here the requester-answerable-axes-first rule surfaces as an explicit R2 'proxy pivot' that front-loads operator-answerable axes, so R2.Q3 asks the alba-tasks question and the user selects 주문조회+통계+공지, while R1.Q3 blocks refunds for alba — the core goal (orders/stats/posts open, refunds 403) lands in Decisions + Success Criteria, fully traceable. The greenfield/write-path probing rule shows up as sustained, honest pursuit of the team-auth path (R1.Q2 → R2.Q1 → R3.Q1), correctly terminating it as a BLOCKING Still Open when the operator defers externally rather than fabricating a login model. Everything run-1 did well is preserved: textbook proxy/authority handling (role model, role tiers, audit retention all deferred pending 대표 / Still Open), territory-anchored and verified (dormant users.role, refund irreversibility, no credential column), 4 interviewer-first unknown-unknowns, zero fabrication (no CS/2명/지난달-사고/월요일 leakage), and a correctly-applied CLARIFICATION CAPPED (auth path unresolvable in-session + un-asked 감사 로그 genuinely remain). 15/15 assertions, rubric 10/10 — D1 recovers to 2 (iteration-4's R1-owner-lead + R2-recovery pattern) and D4 recovers to 2 (core wedge captured, adaptive sequencing, no filler). One residual imperfection worth noting for the next tightening: R1.Q3 entangles the within-authority alba-block with owner-adjacent refund-grantee/approval-flow sub-axes, and the who-for axis arrives a round later than ideal — neither defeats an assertion, but a cleaner run would separate 'alba cannot refund' (user) from 'who else / approval design' (owner) and lead R1 with the alba-tasks axis directly.",
+  "timing": {
+    "rounds": 3
+  }
+}

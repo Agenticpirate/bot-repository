@@ -1,0 +1,117 @@
+{
+  "expectations": [
+    {
+      "text": "State file created in project/.claude/ with iteration, max_iterations, original_requirement, and ISO-8601 started_at frontmatter",
+      "passed": true,
+      "evidence": "state_file_final_pre_deletion.md: fields=['iteration', 'max_iterations', 'original_requirement', 'started_at']; started_at ISO valid=True (live file deleted post-promise per SKILL.md; validated from audit copy state_file_final_pre_deletion.md) (mech v4 sweep)"
+    },
+    {
+      "text": "Every question round has at most 4 questions, batched as a single payload",
+      "passed": true,
+      "evidence": "question counts per round: {'questions_round_1.json': 4, 'questions_round_2.json': 4, 'questions_round_3.json': 4}; rounds contiguous=True (mech v4 sweep)"
+    },
+    {
+      "text": "Every question offers 2-4 concrete hypothesis options (no open-ended-only questions)",
+      "passed": true,
+      "evidence": "12 questions checked; violations: none (mech v4 sweep)"
+    },
+    {
+      "text": "Exit/termination handling is honest and economical: the interview stops as soon as nothing material remains, never exceeds max rounds, and any exit offer appears as its own 2-option control question — never as an extra option inside a domain question",
+      "passed": true,
+      "evidence": "Ran 3 of max 3; each round's questions were spec-changing (R3: CSV format/code owner/dedup source/target boundary). No exit-offer option embedded in a domain question; summarized at cap with material axes resolved."
+    },
+    {
+      "text": "Final output contains Before (verbatim original) and After sections with Goal/Scope/Constraints/Success Criteria and a decisions table",
+      "passed": true,
+      "evidence": "Before=True After=True verbatim-original=True Goal/Scope/Constraints/SuccessCriteria=True decisions-table=True (mech v4 sweep)"
+    },
+    {
+      "text": "Terminal promise tag emitted at the very end of the final summary: <promise>CLARIFICATION COMPLETE</promise>, or <promise>CLARIFICATION CAPPED</promise> when the round budget ran out with material axes unasked",
+      "passed": true,
+      "evidence": "terminal tag <promise>CLARIFICATION COMPLETE</promise> ends final_summary.md (mech v4 sweep)"
+    },
+    {
+      "text": "State file contains a 'Claim audit' block mapping each After-spec factual claim (parentheticals and motivation/state claims included) to its source — round answer, territory path, or numbered assumption",
+      "passed": true,
+      "evidence": "'Claim audit' block found with 14 source-mapped lines (mech v4 sweep)"
+    },
+    {
+      "text": "One-off vs feature trap resolved: final spec scopes this week's July-new-member campaign issuance; permanent/reusable coupon-feature generalization is excluded scope or Still Open — not silently built as a feature, traceable to an asked question",
+      "passed": true,
+      "evidence": "R2.Q3 asked timing; user chose '지금 한 번 (실행 시점 스냅샷)'. Scope pins '지금 1회 실행'; Surfaced/Still Open note re-run needs history/exclusion-list = out of this scope. Scoped one-off, reusable generalization not built, traceable to R2.Q3."
+    },
+    {
+      "text": "Integration honored: the deliverable is a hand-off list (member id, coupon amount, reason — CSV or equivalent) for the backend developer to load; no direct production-DB writes, traceable to a question about how coupons enter the system or who can write to the DB",
+      "passed": true,
+      "evidence": "R2.Q1 (쿠폰 저장소) asked how issuance is stored; user's Other revealed CSV-to-민수. Spec: 'DB 직접 write — 안 함', deliverable = CSV 민수 imports; Decisions row 'DB write 아님 → CSV 1개를 민수님에게 전달'. Core integration honored (no direct DB writes, hand-off list), traceable to R2.Q1."
+    },
+    {
+      "text": "Duplicate-issuance protection (re-run safety / already-issued exclusion) is interviewer-raised before the user mentions it, and lands in the spec as a decision or assumption",
+      "passed": true,
+      "evidence": "R2.Q4 raised '같은 회원에게 쿠폰이 두 번... 어떻게 막나요?' before the user volunteered it; user then '아 맞다, 두 번 나가면 큰일'. Lands as Constraints '멱등성: 회원당 1매' + Success Criteria (unique member id per row)."
+    },
+    {
+      "text": "No notification/sending pipeline in scope: if notification came up, the spec records it as excluded (marketing CRM sends); the spec never invents a sending mechanism",
+      "passed": true,
+      "evidence": "Channel (R1.Q3) resolved to 앱/웹 쿠폰함 (storage, not a sender); Scope 제외 lists '이메일/SMS/푸시 등 외부 발송 — 없음'. No sending mechanism invented. (Weaker than run-1: the marketing-CRM ownership never surfaced because the simulated user picked 쿠폰함 rather than volunteering it, but the no-invented-pipeline requirement holds.)"
+    },
+    {
+      "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption",
+      "passed": true,
+      "evidence": "Every Decisions row traces to R#.Q# (claim-audit table). Invented details (쿠폰코드 gen, 발급사유 문구, CSV encoding) are all flagged in the Assumptions table, traceable to R3.Q2's delegation ('편하신 대로 추천') and non-specified strings. No brief-only fact leaked."
+    },
+    {
+      "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+      "passed": true,
+      "evidence": "R1 = 연동 지점 / 대상 선정 / 전달 채널 / 범위(생명주기 발급 vs 사용). All architecture/scope-defining, no administrative detail."
+    },
+    {
+      "text": "Interview surfaces at least one material unknown-unknown the user never stated, and it lands in the final spec as a decision or explicit assumption",
+      "passed": true,
+      "evidence": "Interviewer-raised and landed: (1) redemption gap ('발급만 만들고 사용 안 만들면 못 쓰는 쿠폰', R1.Q4) → scope 발급·배포만; (2) idempotency (R2.Q4) → Constraints; (3) 회원ID field-identity / import match-key risk (R3, Still Open)."
+    },
+    {
+      "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+      "passed": true,
+      "evidence": "Decisions (11) | Assumptions (3, flagged) | Surfaced Along the Way (4) | Still Open (3 with resolution paths). Tri-partition present; the delegated 쿠폰코드 generation is placed in Assumptions and cross-referenced from the Decisions CSV-columns row ('+ 아래 쿠폰코드')."
+    },
+    {
+      "text": "With no codebase to inspect (greenfield), questions ground in the user's actual situation and vocabulary (operations role, one backend developer, weekly urgency) and never re-ask facts derivable from the request itself",
+      "passed": true,
+      "evidence": "Greenfield-aware; questions ground in the user's surfaced situation (민수, CSV import, 기존 시스템, 지금 1회). Adaptive — R2 built on R1's answers. No re-asking of request-derivable facts."
+    }
+  ],
+  "rubric_scores": {
+    "D1_leverage": {
+      "score": 2,
+      "evidence": "R1 led with 연동 지점 / 대상 / 채널 / 생명주기 — all architecture-splitting, no admin. Slightly lower yield than run-1 because the CSV-handoff reframe surfaced only at R2.Q1 rather than R1."
+    },
+    "D2_unknown_unknowns": {
+      "score": 2,
+      "evidence": "Redemption gap and idempotency were interviewer-raised and landed; import match-key identity was surfaced to Still Open. Multiple genuine UUs reflected as decisions/assumptions."
+    },
+    "D3_territory": {
+      "score": 2,
+      "evidence": "Greenfield-aware and adaptive; questions speak the user's situation vocabulary and don't re-ask derivable facts."
+    },
+    "D4_economy": {
+      "score": 1,
+      "evidence": "Two economy dents: (a) R1's feature-build framing (전달 채널 / 생명주기) was partly mooted once R2 revealed the deliverable is a CSV hand-off, and (b) on R3.Q2 the interviewer recommended '쿠폰코드를 우리가 생성' as the default immediately after the user had specified a 3-column (no-code) CSV, and a brief-aligned option ('코드는 민수님/기존 시스템이 부여 — CSV엔 대상만') existed but was not steered to — adding a 4th column the user did not ask for."
+    },
+    "D5_honest_synthesis": {
+      "score": 2,
+      "evidence": "Tri-partition is present and the code-gen over-reach is honestly filed as a delegated Assumption with a Still Open resolution (CSV format pending 민수 sign-off); every line traces. Minor wart: the Goal prose elevates the code-gen assumption to deliverable prominence."
+    },
+    "total": 9
+  },
+  "summary": {
+    "passed": 16,
+    "failed": 0,
+    "total": 16,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": "Solid run that resolves the core traps (CSV hand-off / no direct DB writes, one-off scope, interviewer-raised dedup, notification excluded) but with two flaws. (1) Contract: the claim audit is emitted as a top-level '## Claim audit' section rather than a '### Claim audit' block ending Clarification Progress — mech FAIL on A7. (2) Quality: after the user explicitly named a 3-column CSV (회원ID/금액/사유), the interviewer's recommended default on R3.Q2 added a 'we generate the coupon code' 4th column, drifting from the brief's model where 민수's system owns code generation; it's honestly filed as a delegated assumption, so not a fabrication, but it's the run's main quality dent (D4=1). 15/16, rubric 9/10.",
+  "timing": {
+    "rounds": 3
+  }
+}

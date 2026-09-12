@@ -1,0 +1,140 @@
+# Browser Wallet Signing
+
+Check capabilities and establish the public sender during preparation. Open a signing request only after the transaction
+or message review in `SKILL.md` has been explicitly approved.
+
+## Availability
+
+Confirm the installed Cast supports browser signing:
+
+```sh
+env -i PATH="$PATH" cast send --help | rg --no-config -- '--browser'
+```
+
+Check the help command's exit status as well as the match. Use a clean environment for help output because Cast may
+print environment-backed credential defaults. Browser support is specific to each subcommand; `send --browser` does not
+imply `wallet address --browser` or `wallet sign --browser` exists.
+
+If unavailable in a browser-only workflow, stop without a signer fallback. Otherwise the signer preferences in
+`SKILL.md` apply. Browser signing requires an interactive browser and local port `9545`; it does not work in ordinary
+headless CI or SSH sessions.
+
+## Resolve the Sender
+
+Use the public address supplied by the user or already known from the connected wallet as `OWNER` for preparation.
+Resolve ENS through `$evm-atlas`. Do not load key material to discover an address. Use `cast wallet address --browser`
+only if that exact subcommand's current help exposes `--browser`; otherwise ask for the public address. At signing,
+confirm the connected account matches the reviewed `OWNER`, `--from`, and chain. An account change requires a revised
+review.
+
+## Approved Broadcast
+
+Run the exact reviewed command, for example:
+
+```sh
+cast send "$CONTRACT" 'transfer(address,uint256)' "$TO" "$AMOUNT" \
+  --rpc-url "$RPC_URL" \
+  --from "$OWNER" \
+  --gas-price "$RABBY_SLOW_MAX_FEE_WEI" \
+  --priority-gas-price "$RABBY_SLOW_PRIORITY_FEE_WEI" \
+  --async \
+  --browser
+```
+
+`$RPC_URL` is the reviewed continuous-provider transport selected under `SKILL.md`; never use it for a standalone read.
+
+The example uses the default Ethereum fee policy. Use the user- or consumer-selected policy from `SKILL.md` when one is
+specified. For a fixed legacy policy, replace the fee pair with `--legacy --gas-price "$GAS_PRICE"` and preserve the
+reviewed gas limit. Do not pass EIP-1559 priority-fee flags with a legacy transaction.
+
+Unless the reviewed workflow fixes its fees, the user may deliberately edit the gas limit, gas price, max fee per gas,
+or max priority fee per gas in Rabby's confirmation UI, including by selecting a different tier. Treat their approval of
+the final wallet screen as authorization for those gas settings. Apply `SKILL.md`'s chain-specific accounting to the
+resulting reserve, additional fees, and affordability; an execution fee cap may not cap the total cost. Do not reject,
+stop, request another approval, or resimulate solely because those values differ from the reviewed command.
+
+This exception applies only to gas settings changed and approved in the wallet UI. Confirm the chain, account, target,
+calldata, native value, and nonce still match the reviewed transaction; reject the request if any of those fields
+change.
+
+For a workflow whose transfer value depends on its fee reserve, including exact-zero and best-effort sweeps, preserve
+the reviewed transaction type, gas limit, and gas price or both EIP-1559 fee caps. Reject wallet changes before signing
+and rebuild, simulate, and review the dependent transfer value. If the wallet cannot preserve a legacy request, stop
+without submitting an EIP-1559 substitute.
+
+Do not combine `--browser` with another signer flag. Capture the transaction hash, then have `$evm-atlas` verify the
+receipt before reporting success.
+
+## Timing
+
+Wallet approval is an unbounded human-interaction step, not network latency: the wait is for a person to notice and
+click a prompt, which can exceed a typical command timeout. Run the broadcast command with a generous timeout, or in the
+background, so the process outlives the approval wait. A short synchronous timeout risks killing the process after the
+wallet has already broadcast but before `cast` prints the hash back — the transaction still lands on-chain, but the
+operator loses the hash and cannot immediately confirm it.
+
+Add `--async` to every browser-signed broadcast, not only as a fallback: it prints the transaction hash as soon as
+signing and broadcast succeed and exits without also waiting for a receipt, shrinking the window in which a timeout can
+outrace the printed output. Poll for the receipt separately afterward.
+
+## Recovering From a Killed or Timed-Out Process
+
+If the process is killed or times out before printing a hash, its exit status alone does not prove nothing was broadcast
+— the wallet may have submitted the transaction via its own configured RPC provider, independent of the `--rpc-url`
+passed to `cast`, and mempool visibility lags and varies across providers (especially behind a load-balanced RPC
+aggregator). Do not treat a single provider's pending-transaction count or a single provider lookup miss as proof of
+non-broadcast. Before concluding nothing was sent:
+
+- Ask `$evm-atlas` to repeat the raw `eth_getTransactionByHash` lookup over 30-60 seconds to allow mempool propagation,
+  rather than accepting one immediate miss as final.
+- Ask the user to check their wallet's own pending-activity view — the wallet knows definitively whether it submitted
+  the transaction, independent of any RPC endpoint the agent queries.
+
+Only report the outcome as resolved (confirmed or genuinely never sent) once one of these gives a positive or a stable,
+repeated negative result.
+
+## Message Signing
+
+Cast supports browser signing of plain messages and EIP-712 typed data. Confirm the installed version's capabilities
+before preparation, using clean-environment help:
+
+```sh
+env -i PATH="$PATH" cast wallet sign --help
+env -i PATH="$PATH" cast wallet verify --help
+```
+
+Require `sign` to expose `--browser` and `--from`; for typed data, also require `--data` and `--from-file` on both
+subcommands. If unavailable, stop a browser-only flow without loading a key or substituting a transaction signature.
+
+Use an EIP-712 JSON file containing `domain`, `types`, `primaryType`, and `message`. An API's `values` object is not a
+Cast `message`: use the consuming workflow's validated adapter and preserve the domain, type definitions, and all signed
+values exactly. Keep large integers as exact decimal strings or losslessly parsed integers. Do not infer a primary type
+from JSON key order or sign the raw API response.
+
+Present the exact plain-message bytes or full decoded EIP-712 domain, primary type, and payload. Review the owner,
+chain, verifying contract, authorizations, amounts, nonces, deadlines, and intended recipient of the signature where
+applicable. Bind the browser account to `OWNER`. Only after approval, sign and verify the same payload:
+
+```sh
+SIGNATURE="$(cast wallet sign --data --from-file "$TYPED_DATA_JSON" --from "$OWNER" --browser)" || exit 1
+cast wallet verify --address "$OWNER" --data --from-file "$TYPED_DATA_JSON" "$SIGNATURE" || exit 1
+```
+
+For plain messages, use `cast wallet sign "$MESSAGE" --from "$OWNER" --browser`, then
+`cast wallet verify --address "$OWNER" "$MESSAGE" "$SIGNATURE"`. Do not use `--no-hash` for EIP-712 documents or
+ordinary prefixed messages.
+
+Message signing is a human-interaction wait: preserve the process until the wallet responds. `--async` applies to
+broadcasts, not `wallet sign`. Treat sign or verify failure as blocking; never return or submit an unverified signature.
+This local recovery check requires a signature recoverable to `OWNER`; it does not verify EIP-1271 contract-wallet
+signatures. If that check cannot establish the reviewed signer, stop this flow.
+
+Return the verified signature and signer address. Submit it elsewhere only when approval explicitly covers that
+submission. For Permit2, the consuming workflow must bind the permit to its reviewed quote and state; a refreshed quote
+or changed payload requires a new review and signature. Never silently reuse or modify a signed payload.
+
+## Failure Handling
+
+On a port conflict, missing browser, rejected wallet request, timeout, chain mismatch, or account mismatch, stop and
+report the failure. Do not silently fall back to a private key or retry a broadcast. If the user selects another signer,
+update the transaction review when the sender or command changes.

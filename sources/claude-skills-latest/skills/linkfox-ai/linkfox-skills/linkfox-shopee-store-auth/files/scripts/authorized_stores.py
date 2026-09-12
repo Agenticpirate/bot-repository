@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+"""
+Shopee Authorized Stores List - LinkFox Skill
+Calls /shopee/authorizedStores to list all authorized stores (ERP and/or AD).
+
+Usage:
+  python authorized_stores.py
+
+Each store row may include appType=erp|ad; the same shopId can appear twice.
+"""
+
+import json
+import os
+import sys
+from urllib.request import urlopen, Request
+from urllib.error import HTTPError, URLError
+
+from _lf_output import emit_result, lf_inline_flag
+
+# 生产默认走 tool-gateway.linkfox.com；开发/测试期可 export SHOPEE_API_BASE_URL=<url> 覆盖
+API_BASE_URL = (os.environ.get("LINKFOX_TOOL_GATEWAY") or os.environ.get("SHOPEE_API_BASE_URL") or "https://tool-gateway.linkfox.com").rstrip("/")
+API_ENDPOINT = f"{API_BASE_URL}/shopee/authorizedStores"
+
+
+def get_api_key():
+    """
+    获取配置在环境变量的API Key。
+    如果获取不到，按 SKILL.md 的 **## 解决认证和积分问题** 处理。
+    """
+    key = os.environ.get("LINKFOX_AGENT_API_KEY") or os.environ.get("LINKFOXAGENT_API_KEY")
+    if not key:
+        print(
+            "API Key 未配置",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    return key
+
+
+def call_api() -> dict:
+    api_key = get_api_key()
+    req = Request(
+        API_ENDPOINT,
+        data=b"{}",
+        headers={
+            "Authorization": api_key,
+            "Content-Type": "application/json",
+            "User-Agent": "LinkFox-Skill/1.0",
+        },
+        method="POST",
+    )
+    try:
+        with urlopen(req, timeout=150) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except HTTPError as e:
+        body = e.read().decode("utf-8") if e.fp else ""
+        return {"error": f"HTTP {e.code}: {e.reason}", "details": body}
+    except URLError as e:
+        return {"error": f"Connection failed: {e.reason}"}
+
+
+def main():
+    result = call_api()
+    emit_result(result, lf_inline_flag())
+
+    if "stores" in result:
+        stores = result.get("stores", [])
+        total = result.get("total", 0)
+        print(f"\n✓ Found {total} authorized store record(s):", file=sys.stderr)
+        for s in stores:
+            app_type = s.get("appType") or "erp"
+            print(
+                f"  - shopId={s.get('shopId')}  {s.get('shopName', 'N/A')}  "
+                f"merchantId={s.get('merchantId', '')}  region={s.get('region', '')}  "
+                f"appType={app_type}",
+                file=sys.stderr,
+            )
+        print(
+            "Note: Match shopId/merchantId AND appType before calling business APIs. "
+            "ERP authorization does not grant Ads; Ads does not grant ERP.",
+            file=sys.stderr,
+        )
+
+
+if __name__ == "__main__":
+    main()

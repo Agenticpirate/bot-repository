@@ -1,0 +1,199 @@
+{
+  "id": "documents",
+  "name": "Documents",
+  "description": "Create, read, update, and share Google Docs documents created through Shift.",
+  "actions": {
+    "list": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://www.googleapis.com",
+        "path": "/drive/v3/files",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "queryTemplate": {
+          "q": {
+            "$value": "$input.query",
+            "$default": "mimeType='application/vnd.google-apps.document' and trashed=false"
+          },
+          "pageSize": {
+            "$value": "$input.pageSize",
+            "$default": 10
+          },
+          "pageToken": "$input.pageToken",
+          "orderBy": "$input.orderBy",
+          "supportsAllDrives": true,
+          "includeItemsFromAllDrives": true,
+          "fields": "nextPageToken, files(id, name, mimeType, webViewLink, iconLink, modifiedTime, owners, parents, shared)"
+        }
+      },
+      "output": {
+        "responseMap": {
+          "count": {
+            "$length": "$response.files"
+          },
+          "nextPageToken": "$response.nextPageToken",
+          "items": {
+            "$each": "$response.files",
+            "map": {
+              "documentId": "$item.id",
+              "name": "$item.name",
+              "mimeType": "$item.mimeType",
+              "webViewLink": "$item.webViewLink",
+              "iconLink": "$item.iconLink",
+              "modifiedTime": "$item.modifiedTime",
+              "shared": "$item.shared",
+              "parents": "$item.parents",
+              "owners": {
+                "$each": "$item.owners",
+                "map": {
+                  "displayName": "$item.displayName",
+                  "emailAddress": "$item.emailAddress"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://docs.googleapis.com",
+        "path": "/v1/documents/{documentId}",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "queryTemplate": {
+          "suggestionsViewMode": "$input.suggestionsViewMode"
+        }
+      },
+      "output": {
+        "responseMap": {
+          "documentId": "$response.documentId",
+          "title": "$response.title",
+          "revisionId": "$response.revisionId",
+          "body": "$response.body.content",
+          "headers": "$response.headers",
+          "footers": "$response.footers",
+          "namedRanges": "$response.namedRanges"
+        }
+      }
+    },
+    "create": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://docs.googleapis.com",
+        "path": "/v1/documents",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "title": "$input.title"
+        }
+      },
+      "output": {
+        "responseMap": {
+          "documentId": "$response.documentId",
+          "title": "$response.title",
+          "revisionId": "$response.revisionId"
+        }
+      }
+    },
+    "append-text": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://docs.googleapis.com",
+        "path": "/v1/documents/{documentId}:batchUpdate",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "requests": [
+            {
+              "insertText": {
+                "endOfSegmentLocation": {},
+                "text": "$input.text"
+              }
+            }
+          ]
+        }
+      },
+      "output": {
+        "responseMap": {
+          "documentId": "$input.documentId",
+          "replies": "$response.replies",
+          "writeControl": "$response.writeControl"
+        }
+      }
+    },
+    "replace-text": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://docs.googleapis.com",
+        "path": "/v1/documents/{documentId}:batchUpdate",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "requests": [
+            {
+              "replaceAllText": {
+                "containsText": {
+                  "text": "$input.containsText",
+                  "matchCase": {
+                    "$value": "$input.matchCase",
+                    "$default": false
+                  }
+                },
+                "replaceText": "$input.replaceText"
+              }
+            }
+          ]
+        }
+      },
+      "output": {
+        "responseMap": {
+          "documentId": "$input.documentId",
+          "occurrencesChanged": "$response.replies.0.replaceAllText.occurrencesChanged",
+          "writeControl": "$response.writeControl"
+        }
+      }
+    },
+    "share": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://www.googleapis.com",
+        "path": "/drive/v3/files/{fileId}/permissions",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "pathParams": {
+          "fileId": "$input.documentId"
+        },
+        "queryTemplate": {
+          "supportsAllDrives": true,
+          "sendNotificationEmail": {
+            "$value": "$input.sendNotificationEmail",
+            "$default": true
+          },
+          "fields": "id, type, role, emailAddress, displayName"
+        },
+        "bodyTemplate": {
+          "type": "$input.type",
+          "role": "$input.role",
+          "emailAddress": "$input.emailAddress"
+        }
+      },
+      "output": {
+        "responseMap": {
+          "id": "$response.id",
+          "type": "$response.type",
+          "role": "$response.role",
+          "emailAddress": "$response.emailAddress",
+          "displayName": "$response.displayName"
+        }
+      }
+    }
+  }
+}

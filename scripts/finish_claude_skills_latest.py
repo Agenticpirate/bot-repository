@@ -9,11 +9,11 @@ SKILL.md without burning the skills.sh 60/hour download API.
 from __future__ import annotations
 
 import json
-import os
 import re
 import shutil
 import subprocess
 import sys
+import urllib.parse
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -210,23 +210,71 @@ def clone_one(owner: str, repo: str) -> tuple[str, Path | None, str]:
     return f"{owner}/{repo}", dest, "ok"
 
 
+def skill_yaml_name(skill_md: Path) -> str | None:
+    try:
+        text = skill_md.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    if not text.startswith("---"):
+        return None
+    end = text.find("\n---", 3)
+    block = text[3:end] if end != -1 else text[3:400]
+    for line in block.splitlines():
+        if line.lower().startswith("name:"):
+            return line.split(":", 1)[1].strip().strip("\"'")
+    return None
+
+
+def match_parent(by_slug: dict[str, Path], by_name: dict[str, Path], slug: str) -> Path | None:
+    if slug in by_slug:
+        return by_slug[slug]
+    if slug in by_name:
+        return by_name[slug]
+    norm = slug.replace("_", "-").lower()
+    for key, parent in by_slug.items():
+        if key.replace("_", "-").lower() == norm:
+            return parent
+    for key, parent in by_name.items():
+        if key.replace("_", "-").lower() == norm:
+            return parent
+    # unique substring match
+    hits = [p for k, p in by_slug.items() if norm in k.replace("_", "-").lower() or k.replace("_", "-").lower() in norm]
+    if len(hits) == 1:
+        return hits[0]
+    return None
+
+
 def fill_from_repo_dir(owner: str, repo: str, src: Path, slugs: set[str]) -> int:
     n = 0
     by_slug: dict[str, Path] = {}
+    by_name: dict[str, Path] = {}
     for skill_md in prefer_skill_mds(src):
-        slug = skill_md.parent.name
-        by_slug.setdefault(slug, skill_md.parent)
+        folder = skill_md.parent.name
+        by_slug.setdefault(folder, skill_md.parent)
+        yname = skill_yaml_name(skill_md)
+        if yname:
+            by_name.setdefault(yname, skill_md.parent)
+        # always vendor the on-disk folder name
+        dest = SKILLS / owner / repo / folder
+        if not (dest / "files" / "SKILL.md").exists():
+            if write_skill_from_dir(
+                dest,
+                skill_md.parent,
+                "github-clone",
+                {"repo": f"{owner}/{repo}", "slug": folder},
+            ):
+                n += 1
     for slug in slugs:
         if has_content(owner, repo, slug):
             continue
-        parent = by_slug.get(slug)
+        parent = match_parent(by_slug, by_name, slug)
         if parent is None:
             continue
         if write_skill_from_dir(
             SKILLS / owner / repo / slug,
             parent,
             "github-clone",
-            {"repo": f"{owner}/{repo}", "slug": slug},
+            {"repo": f"{owner}/{repo}", "slug": slug, "matched_dir": parent.name},
         ):
             n += 1
     return n
@@ -238,8 +286,14 @@ def download_api(owner: str, repo: str, slug: str, budget: HourlyBudget) -> str:
         return "exists"
     if not budget.allow():
         return "budget"
-    url = f"https://skills.sh/api/download/{owner}/{repo}/{slug}"
-    status, body, _ = http_get_download(url, budget)
+    enc = "/".join(urllib.parse.quote(part, safe="-_.~") for part in (owner, repo, slug))
+    url = f"https://skills.sh/api/download/{enc}"
+    try:
+        status, body, _ = http_get_download(url, budget)
+    except Exception as exc:  # noqa: BLE001
+        dest.mkdir(parents=True, exist_ok=True)
+        write_json(dest / "meta.json", {"download_ok": False, "error": str(exc), "url": url, "fetched_at": utc_now()})
+        return "fail"
     if status == 429:
         write_json(dest / "meta.json", {"download_ok": False, "error": "HTTP 429", "url": url, "fetched_at": utc_now()})
         return "rate"

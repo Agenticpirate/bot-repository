@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    occ-extension-spring.xml
+    Spring configuration for OCC extension beans.
+    Place in resources/ directory of your OCC extension.
+-->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="
+           http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!-- ================================ -->
+    <!-- POPULATORS                       -->
+    <!-- ================================ -->
+
+    <bean id="occCustomProductPopulator"
+          class="com.example.populators.CustomProductPopulator"/>
+
+    <!-- ================================ -->
+    <!-- CONVERTERS                       -->
+    <!-- ================================ -->
+
+    <!-- Basic converter - minimal fields -->
+    <alias name="defaultBasicOccCustomProductConverter" alias="basicOccCustomProductConverter"/>
+    <bean id="defaultBasicOccCustomProductConverter" parent="abstractPopulatingConverter">
+        <property name="targetClass" value="com.example.dto.CustomProductWsDTO"/>
+        <property name="populators">
+            <list>
+                <ref bean="occCustomProductPopulator"/>
+            </list>
+        </property>
+    </bean>
+
+    <!-- Full converter - fields populated by the supplied example populator -->
+    <alias name="defaultOccCustomProductConverter" alias="occCustomProductConverter"/>
+    <bean id="defaultOccCustomProductConverter" parent="abstractPopulatingConverter">
+        <property name="targetClass" value="com.example.dto.CustomProductWsDTO"/>
+        <property name="populators">
+            <list>
+                <ref bean="occCustomProductPopulator"/>
+            </list>
+        </property>
+    </bean>
+
+    <!-- ================================ -->
+    <!-- FIELD LEVEL MAPPING              -->
+    <!-- ================================ -->
+
+    <!-- Define which fields to include at each level -->
+    <bean parent="fieldSetLevelMapping">
+        <property name="dtoClass" value="com.example.dto.CustomProductWsDTO"/>
+        <property name="levelMapping">
+            <map>
+                <entry key="BASIC" value="code,name"/>
+                <entry key="DEFAULT" value="code,name,description,stockStatus,purchasable"/>
+                <entry key="FULL" value="code,name,description,summary,url,stockStatus,stockLevel,purchasable,imageUrl,categoryCode,categoryName,brandName,averageRating,numberOfReviews,customField,customStatus"/>
+            </map>
+        </property>
+    </bean>
+
+    <!-- List DTO field mapping -->
+    <bean parent="fieldSetLevelMapping">
+        <property name="dtoClass" value="com.example.dto.CustomProductListWsDTO"/>
+        <property name="levelMapping">
+            <map>
+                <entry key="BASIC" value="products(BASIC),totalCount"/>
+                <entry key="DEFAULT" value="products(DEFAULT),totalCount"/>
+                <entry key="FULL" value="products(FULL),totalCount"/>
+            </map>
+        </property>
+    </bean>
+
+</beans>

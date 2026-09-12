@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Custom business process definition template.
+
+    Place in: resources/processes/custom-process.xml
+    Register via Spring bean (ProcessDefinitionResource) or ImpEx.
+
+    Nodes:
+      - <action>: Executes a Spring bean, follows a transition
+      - <wait>: Pauses until an event is received
+      - <end>: Terminates the process
+      - <split>/<join>: Parallel execution
+-->
+<process xmlns="http://www.hybris.de/xsd/processdefinition"
+         name="customOrderEntryValidationProcess"
+         processClass="de.hybris.platform.orderprocessing.model.OrderProcessModel"
+         start="validateOrder"
+         onError="error">
+
+    <action id="validateOrder" bean="customProcessAction">
+        <transition name="OK" to="success"/>
+        <transition name="NOK" to="error"/>
+    </action>
+
+    <!-- End states -->
+    <end id="success" state="SUCCEEDED">Order exists and contains entries</end>
+    <end id="error" state="ERROR">Order entry validation failed</end>
+</process>

@@ -1,0 +1,380 @@
+# Claude Code Requirements
+
+Claude Code-specific conventions, formats, and requirements that differ from general best practices. This reference consolidates domain-specific knowledge necessary for validating Claude Code configuration files.
+
+---
+
+## YAML Frontmatter Format
+
+### Skills (SKILL.md files)
+
+**Required Fields:**
+
+```yaml
+---
+name: skill-name-in-kebab-case
+description: Clear description with activation triggers
+---
+```
+
+**Optional Fields:**
+
+```yaml
+version: 1.0.0 # Semver format (MAJOR.MINOR.PATCH)
+allowed-tools: Read, Grep, Glob # Tools pre-approved for the turn that invokes the skill
+```
+
+**Field Requirements:**
+
+- `name`: **MUST** be kebab-case (use-dashes-not_underscores)
+- `description`: **MUST** include activation triggers (when to use the skill)
+- `version`: **SHOULD** follow semantic versioning if marketplace-bound
+- `allowed-tools`: pre-approves the listed tools for the invoking turn. It does not restrict what the skill may call, so treat it as the grant the skill can rely on rather than a ceiling
+- **NO TABS**: Use spaces only (YAML requirement)
+
+**Valid Example:**
+
+```yaml
+---
+name: reviewing-changes
+version: 2.0.0
+description: Comprehensive code reviews for Android. Detects change type and applies appropriate review depth. Use when reviewing pull requests, checking commits, or analyzing code changes.
+---
+```
+
+**Invalid Examples:**
+
+```yaml
+---
+name: reviewing_changes # ❌ Underscore instead of dash
+description: Reviews code # ❌ Too vague, no activation triggers
+---
+```
+
+---
+
+### Commands (`commands/**/*.md` or `.claude/prompts/**/*.md`)
+
+Frontmatter is **optional** for a command. A file with none still loads and is invocable, so
+its absence is not a finding; YAML that does not parse is, because the file then fails to load.
+
+**Optional fields:**
+
+```yaml
+description: What the command does, shown by /help
+argument-hint: "[what the arguments are]"
+allowed-tools: Read, Grep, Bash(git status:*)
+model: sonnet
+disable-model-invocation: false
+```
+
+**Field requirements:**
+
+- `description`: without it `/help` has no text for the command
+- `argument-hint`: shown when completing the command; free-form
+- `allowed-tools`: each rule is `Tool` or `Tool(specifier)`, the same grammar as `permissions`
+- `model`: an alias or a full model identifier
+- An unrecognized key is a question to confirm, not a defect
+
+---
+
+### Agents (`.claude/agents/*.md` or `plugins/*/agents/*.md`)
+
+**Required Fields:**
+
+```yaml
+---
+name: agent-name-in-kebab-case
+description: Clear description of agent purpose
+---
+```
+
+**Optional Fields:**
+
+```yaml
+model: sonnet # an alias, or a full model identifier; see Field Requirements
+tools: Read, Write, Grep, Glob, Bash # Specific tools only
+```
+
+**Field Requirements:**
+
+- `name`: kebab-case, unique within project
+- `description`: Clear purpose and activation context
+- `model`: one of the aliases `haiku`, `sonnet`, `opus`, `inherit` (lowercase), or a full model identifier such as `claude-opus-4-5`. Treat an unfamiliar identifier as a question to confirm, not a defect
+- `tools`: exact tool names, case-sensitive. Commonly reviewed: `Read`, `Write`, `Edit`, `Grep`, `Glob`, `Bash`, `WebFetch`, `WebSearch`, `Task`, `Skill`, `TodoWrite`, `NotebookEdit`. The set grows, so an unfamiliar name is a question to confirm rather than an unavailable tool
+- **Omit `tools` field** to inherit all tools (default)
+
+---
+
+## Model Selection
+
+### Valid Model Values
+
+Both the aliases below and full model identifiers such as `claude-opus-4-5` are valid.
+
+| Model   | Value     | Use Case                                                   |
+| ------- | --------- | ---------------------------------------------------------- |
+| Haiku   | `haiku`   | Fast, simple tasks (formatting, scripts, quick operations) |
+| Sonnet  | `sonnet`  | Balanced default (code review, testing, documentation)     |
+| Opus    | `opus`    | Complex reasoning (architecture, novel problems)           |
+| Inherit | `inherit` | Use parent session's model                                 |
+
+**Default**: If `model` field omitted, defaults to `sonnet`
+
+---
+
+## Tool Access Patterns
+
+### Tool Names (Case-Sensitive)
+
+**Read-Only Tools** (LOW RISK):
+
+- `Read` - Read file contents
+- `Grep` - Search file contents
+- `Glob` - Find files by pattern
+
+**Write Tools** (MEDIUM RISK):
+
+- `Write` - Create new files
+- `Edit` - Modify existing files
+
+**Execution Tools** (HIGH RISK):
+
+- `Bash` - Execute shell commands
+- `Task` - Spawns a subagent, which carries its own grant. Rank this at or above `Bash`: it
+  escapes the grant being reviewed rather than widening it
+- `Skill` - Invokes a skill, which may itself hold a wider grant
+
+**Network Tools** (MEDIUM-HIGH RISK):
+
+- `WebFetch` - Fetch URL content
+- `WebSearch` - Search web
+
+**Other** (LOW RISK): `TodoWrite`, `NotebookEdit`
+
+This list is not closed. An unfamiliar tool name is a question to confirm, not a defect.
+
+### Tool Access Security
+
+**Read-only agents** (safest pattern):
+
+```yaml
+tools: Read, Grep, Glob
+```
+
+**Write-capable agents** (moderate risk):
+
+```yaml
+tools: Read, Grep, Glob, Write, Edit
+```
+
+**Full-access agents** (highest risk - justify in review):
+
+```yaml
+# Omit tools field to inherit all tools
+# OR explicitly list all needed tools
+```
+
+### Tool Security Guidelines
+
+1. **Principle of Least Privilege**: Only grant tools agent actually needs
+2. **Read-Only by Default**: Start with `Read, Grep, Glob` and add tools as needed
+3. **Justify Bash Access**: Bash tool = arbitrary code execution, requires strong justification
+4. **Omit for Full Access**: Omitting `tools` field grants all tools (document why this is necessary)
+
+---
+
+## Progressive Disclosure
+
+### 500-Line Guideline
+
+**Main skill file** (SKILL.md):
+
+- **Target**: ≤500 lines
+- **Maximum**: 500 lines is guideline, not hard limit
+- **Rationale**: Context window efficiency, cognitive load management
+
+**If exceeding 500 lines**:
+
+- Split into supporting files
+- Use on-demand loading pattern
+- Organize into subdirectories
+
+### File Organization Pattern
+
+```
+skill-name/
+├── SKILL.md              # Main orchestration (aim for ≤500 lines)
+├── reference/            # Detailed criteria (loaded as needed)
+├── examples/             # Sample outputs
+└── scripts/              # Executable automation (if applicable)
+```
+
+A skill whose body splits cleanly by subject is often better as several narrow skills than
+as one skill with a directory of procedure files. Routing between skills is visible to the
+reader; routing between files inside a skill is not.
+
+### On-Demand Loading
+
+**Main file should:**
+
+- Provide routing logic (which file to load when)
+- Reference supporting files explicitly
+- Use structured thinking to guide decisions
+
+**Supporting files should:**
+
+- Be self-contained (understandable in isolation)
+- State clear purpose at top
+- Avoid circular dependencies
+
+**Example routing:**
+
+```markdown
+### Route to the targeted skill
+
+Based on detected type, invoke the relevant skill:
+
+- **Agents** → `Skill(claude-config-validator:reviewing-agent-definitions)`
+- **Commands** → `Skill(claude-config-validator:reviewing-command-definitions)`
+- **Settings and hooks** → `Skill(claude-config-validator:reviewing-runtime-configuration)`
+- **CLAUDE.md** → `Skill(claude-config-validator:reviewing-project-guidance)`
+```
+
+---
+
+## Security Conventions
+
+### settings.local.json
+
+**CRITICAL**: `settings.local.json` must **NEVER** be committed to git
+
+**Detection**:
+
+```bash
+git status | grep "settings.local.json"
+git diff --cached | grep "settings.local.json"
+```
+
+**If found**: Flag as **CRITICAL** blocking issue
+
+**Rationale**: Contains user-specific settings and potentially sensitive paths
+
+---
+
+### Permission Rule Patterns
+
+**Format** (in settings.json). Rules live under `permissions`, in `allow`, `deny`, or `ask`. A
+rule is `Tool(specifier)`, or a bare `Tool` with no specifier, which matches every use of that
+tool:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Read(//absolute/path/to/specific/dir/**)"
+    ],
+    "deny": ["Read(//absolute/path/to/.env)", "WebFetch"]
+  }
+}
+```
+
+`deny` wins over `allow`, so it is the control to reach for when something must never happen.
+The bare `WebFetch` above is the maximal deny for that tool, and is the intended way to write
+it rather than an omission.
+
+A top-level `autoApproved` or `autoApprovedTools` array is not read by Claude Code, and neither
+is a colon-separated `Tool:specifier` rule with no parentheses.
+
+**Path prefixes**: `//` is absolute from the filesystem root. A single leading `/` resolves
+relative to the directory holding the settings file, so `Read(/etc/**)` matches
+`<settings-dir>/etc/**` and not `/etc`. Getting this wrong on a `deny` rule produces a
+restriction that silently never applies.
+
+**Guidelines**:
+
+- Use specific command patterns where a tool has them: `Bash(git status:*)` not a bare `Bash`
+- Use `//` for absolute Read paths: `Read(//full/path/**)` not `Read(**)`
+- Glob patterns for restricted access: `Read(//project/src/**/*.ts)` to limit file types
+
+---
+
+## Common Validation Issues
+
+### YAML Errors
+
+| Issue                  | Detection            | Fix                                                                   |
+| ---------------------- | -------------------- | --------------------------------------------------------------------- |
+| Tabs instead of spaces | Malformed YAML error | Replace tabs with spaces                                              |
+| Missing colon          | Parser error         | Add `:` after field name                                              |
+| Wrong field name       | Skill not recognized | Check exact spelling: `name` not `Name`                               |
+| Unfamiliar model value | Usually none         | Aliases and full identifiers are both valid; confirm rather than flag |
+
+### Tool Access Errors
+
+| Issue             | Detection          | Fix                               |
+| ----------------- | ------------------ | --------------------------------- |
+| Wrong tool name   | Tool not available | Use exact case: `Grep` not `grep` |
+| Typo in tool name | Tool not available | Check spelling: `Bash` not `bash` |
+| Over-privileged   | Security review    | Remove unnecessary tools          |
+
+### Progressive Disclosure Violations
+
+| Issue                      | Detection        | Fix                         |
+| -------------------------- | ---------------- | --------------------------- |
+| Main file >500 lines       | Line count       | Split into supporting files |
+| All context loaded upfront | Review structure | Use on-demand loading       |
+| Circular dependencies      | File references  | Reorganize file structure   |
+
+---
+
+## Validation Checklist
+
+**YAML Frontmatter**:
+
+- [ ] `name` field present and kebab-case
+- [ ] `description` field present with activation triggers
+- [ ] `version` follows semver (if present)
+- [ ] `model` is an alias (`haiku`/`sonnet`/`opus`/`inherit`) or a full model identifier (if present)
+- [ ] `tools` uses exact case-sensitive names (if present)
+- [ ] No tabs (spaces only)
+- [ ] Valid YAML syntax
+
+**Progressive Disclosure**:
+
+- [ ] Main SKILL.md file ≤500 lines
+- [ ] Supporting files organized in subdirectories
+- [ ] On-demand loading pattern used
+- [ ] File references are correct and exist
+
+**Security**:
+
+- [ ] No settings.local.json committed
+- [ ] No hardcoded credentials or API keys
+- [ ] Tool access follows least privilege principle
+- [ ] Bash access justified if granted
+
+**File Organization**:
+
+- [ ] Skills: `SKILL.md` with YAML frontmatter
+- [ ] Agents: `.claude/agents/*.md` or `plugins/*/agents/*.md`
+- [ ] Prompts: `.claude/prompts/*.md` or `.claude/commands/*.md`
+- [ ] Settings: `.claude/settings.json` (NOT settings.local.json)
+
+---
+
+## Quick Reference
+
+**Model Values**: `haiku` | `sonnet` | `opus` | `inherit` | a full model identifier
+
+**Tool Names**: `Read` | `Write` | `Edit` | `Grep` | `Glob` | `Bash` | `WebFetch` | `WebSearch` | `Task` | `Skill` | `TodoWrite` | `NotebookEdit` | the set grows, so confirm an unfamiliar name rather than flagging it
+
+**Line Limit**: SKILL.md ≤500 lines (guideline)
+
+**Naming**: kebab-case for `name` fields
+
+**NEVER Commit**: `settings.local.json`
+
+**YAML**: Spaces only, no tabs

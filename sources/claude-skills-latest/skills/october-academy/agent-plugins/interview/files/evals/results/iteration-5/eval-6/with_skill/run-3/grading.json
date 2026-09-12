@@ -1,0 +1,117 @@
+{
+  "expectations": [
+    {
+      "text": "State file created in project/.claude/ with iteration, max_iterations, original_requirement, and ISO-8601 started_at frontmatter",
+      "passed": true,
+      "evidence": "state_file_final_pre_deletion.md: fields=['iteration', 'max_iterations', 'original_requirement', 'started_at']; started_at ISO valid=True (live file deleted post-promise per SKILL.md; validated from audit copy state_file_final_pre_deletion.md) (mech v4 sweep)"
+    },
+    {
+      "text": "Every question round has at most 4 questions, batched as a single payload",
+      "passed": true,
+      "evidence": "question counts per round: {'questions_round_1.json': 4, 'questions_round_2.json': 4, 'questions_round_3.json': 3}; rounds contiguous=True (mech v4 sweep)"
+    },
+    {
+      "text": "Every question offers 2-4 concrete hypothesis options (no open-ended-only questions)",
+      "passed": true,
+      "evidence": "11 questions checked; violations: none (mech v4 sweep)"
+    },
+    {
+      "text": "Exit/termination handling is honest and economical: the interview stops as soon as nothing material remains, never exceeds max rounds, and any exit offer appears as its own 2-option control question — never as an extra option inside a domain question",
+      "passed": true,
+      "evidence": "Ran 3 of max 3, R3 trimmed to 3 questions (min-order/dedup/완료기준) with no padding; no exit-offer option embedded in a domain question. (The problem in this run is which axes were chosen, not padding — see A9/D3.)"
+    },
+    {
+      "text": "Final output contains Before (verbatim original) and After sections with Goal/Scope/Constraints/Success Criteria and a decisions table",
+      "passed": true,
+      "evidence": "Before=True After=True verbatim-original=True Goal/Scope/Constraints/SuccessCriteria=True decisions-table=True (mech v4 sweep)"
+    },
+    {
+      "text": "Terminal promise tag emitted at the very end of the final summary: <promise>CLARIFICATION COMPLETE</promise>, or <promise>CLARIFICATION CAPPED</promise> when the round budget ran out with material axes unasked",
+      "passed": true,
+      "evidence": "terminal tag <promise>CLARIFICATION COMPLETE</promise> ends final_summary.md (mech v4 sweep)"
+    },
+    {
+      "text": "State file contains a 'Claim audit' block mapping each After-spec factual claim (parentheticals and motivation/state claims included) to its source — round answer, territory path, or numbered assumption",
+      "passed": true,
+      "evidence": "'Claim audit' block found with 14 source-mapped lines (mech v4 sweep)"
+    },
+    {
+      "text": "One-off vs feature trap resolved: final spec scopes this week's July-new-member campaign issuance; permanent/reusable coupon-feature generalization is excluded scope or Still Open — not silently built as a feature, traceable to an asked question",
+      "passed": true,
+      "evidence": "R1.Q2 elicited '관리자 수동 일괄, 단발 캠페인성'; Goal = '단발 캠페인 기능', Scope 제외 lists '이벤트 기반 자동 발급·예약 발송·회원 셀프 다운로드'. Scoped to this campaign, automated/reusable generalization excluded, traceable to R1.Q2. (The over-building critique belongs to A9, not the one-off axis.)"
+    },
+    {
+      "text": "Integration honored: the deliverable is a hand-off list (member id, coupon amount, reason — CSV or equivalent) for the backend developer to load; no direct production-DB writes, traceable to a question about how coupons enter the system or who can write to the DB",
+      "passed": false,
+      "evidence": "FAIL — the central trap was missed. The interviewer never asked how issuance is written or who can write to the DB; it treated R2.Q1 ('어떤 쇼핑몰 플랫폼') as a platform-choice deferral rather than a write-path probe. The spec builds a direct-issuance feature ('관리자가 버튼 한 번으로 일괄 발급' into '내 쿠폰함' + 결제 차감), i.e. exactly the direct production-DB writes the brief says the read-only requester cannot do. No CSV, no 민수, no read-only constraint anywhere."
+    },
+    {
+      "text": "Duplicate-issuance protection (re-run safety / already-issued exclusion) is interviewer-raised before the user mentions it, and lands in the spec as a decision or assumption",
+      "passed": true,
+      "evidence": "R3.Q2 raised '같은 대상에게 실수로 두 번 발송... 중복 발급 방지' before the user volunteered it; user then '두 번 나가면 큰일'. Lands as Decisions '1인 1장(멱등)' + Success Criteria '중복 발급 0건'."
+    },
+    {
+      "text": "No notification/sending pipeline in scope: if notification came up, the spec records it as excluded (marketing CRM sends); the spec never invents a sending mechanism",
+      "passed": true,
+      "evidence": "R2.Q3 raised 지급 알림; user '알림 없이 쿠폰함 적립 — 저희가 따로 보내요'. Scope 제외: '쿠폰 발급 알림 발송(이메일/문자/푸시 — 운영팀이 별도 처리)'. No sending mechanism invented (attributed to 운영팀 rather than the brief's 마케팅 CRM, but excluded correctly)."
+    },
+    {
+      "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption",
+      "passed": true,
+      "evidence": "All 7 Decisions trace to R#.Q# (claim-audit table). The invented feature parameters (최소주문액 3만원, 유효기간 30일, 고유코드·1회·만료) are flagged in the Assumptions table, traceable to '추천대로' delegations. No brief-only fact leaked (the brief's 민수/read-only were never elicited, so could not leak). Borderline: '결제 시 차감' sits in Scope 포함 unflagged, only weakly implied by the '1회 사용' assumption — noted but not decisive enough to fail this assertion."
+    },
+    {
+      "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+      "passed": true,
+      "evidence": "R1 = 통합 대상 / 발송 방식 / 대상 회원 / 코드·사용제한 — architecture/scope-oriented, no administrative filler. (The leverage quality was compromised because the decisive write-path axis was never asked — reflected in the D1 rubric score, not this binary assertion.)"
+    },
+    {
+      "text": "Interview surfaces at least one material unknown-unknown the user never stated, and it lands in the final spec as a decision or explicit assumption",
+      "passed": true,
+      "evidence": "At least one qualifies: dup-issuance protection (R3.Q2, interviewer-raised) → 멱등 decision; and the 0원-결제 risk of a 10,000 coupon (R3.Q1) → 최소주문 3만원 assumption + Surfaced. (But the scenario's defining UU — read-only access / CSV hand-off — was entirely missed; see D2 rubric.)"
+    },
+    {
+      "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+      "passed": true,
+      "evidence": "Decisions (7) | Assumptions (3, flagged) | Surfaced Along the Way (3) | Still Open (2 with resolution paths). Tri-partition present and sourced via the claim audit; assumptions not disguised as decisions."
+    },
+    {
+      "text": "With no codebase to inspect (greenfield), questions ground in the user's actual situation and vocabulary (operations role, one backend developer, weekly urgency) and never re-ask facts derivable from the request itself",
+      "passed": false,
+      "evidence": "FAIL — although greenfield-aware, the questions are generic e-commerce coupon-feature templates (카페24/메이크샵/Shopify/WooCommerce platform brands, 최소주문액, 유효기간 30일, 결제 차감) rather than grounded in this user's actual situation. The defining situational facts (single backend dev 민수, read-only DB access, CSV hand-off, weekly urgency) never surfaced because the interview pursued a generic feature-build path instead of probing the user's real constraints."
+    }
+  ],
+  "rubric_scores": {
+    "D1_leverage": {
+      "score": 1,
+      "evidence": "R1 was architecture-oriented and admin-free, but the single highest-leverage axis (how issuance is written / who can write to the DB) was never asked; the round chased a feature-build hypothesis, and R1.Q4 (code·사용제한) was lower-leverage than a data-access question would have been."
+    },
+    "D2_unknown_unknowns": {
+      "score": 1,
+      "evidence": "Dup protection and the 0원-결제 risk were interviewer-raised and landed, but the scenario's defining unknown-unknown (read-only access → CSV hand-off to 민수) was completely missed, and the other 'surfaced' items (min-order, expiry, redemption) are generic e-commerce template defaults bolted onto a mis-scoped feature rather than discoveries about this user."
+    },
+    "D3_territory": {
+      "score": 1,
+      "evidence": "Greenfield-aware and R1.Q1 grounds partially, but the bulk of questioning is generic template (platform brand list, min-order, expiry) and none of the user's real situational constraints surfaced — closer to templated than situation-grounded."
+    },
+    "D4_economy": {
+      "score": 1,
+      "evidence": "Questions were spec-changing within the run's model but low-value against the actual task: three rounds spent on generic coupon-feature parameters (platform, benefit, notification, expiry, min-order, dup, completion) while the one decisive integration question was never asked; R2.Q1 platform-brand question was mooted by the user's '개발팀이 정함' deferral."
+    },
+    "D5_honest_synthesis": {
+      "score": 2,
+      "evidence": "Within its (wrong) model the synthesis is honest and well-structured: Decisions/Assumptions/Surfaced/Still Open cleanly separated, assumptions flagged and sourced, claim audit thorough. Minor smudge: '결제 시 차감' in Scope 포함 is unflagged."
+    },
+    "total": 6
+  },
+  "summary": {
+    "passed": 14,
+    "failed": 2,
+    "total": 16,
+    "pass_rate": 0.875
+  },
+  "eval_feedback": "Weakest with_skill run: it missed eval-6's central integration trap entirely. By treating the coupon request as a generic feature build and never probing data-access / write-path, it never surfaced the read-only + CSV-to-민수 reality and instead specced a direct-issuance feature (admin button → 쿠폰함 적립 → 결제 차감) the read-only requester cannot deploy — A9 FAIL. Questioning stayed on generic e-commerce templates (platform brands, min-order, expiry) rather than the user's situation — A16/D3 FAIL. Plus the claim audit is emitted at '## ' not '### ' and outside Clarification Progress — A7 FAIL. It still handled the shallower traps well (interviewer-raised dedup, notification excluded, honest tri-partition), so 13/16, rubric 6/10. This is a leverage/territory variance failure, not a scaffolding failure — with_skill run-1 nailed the same trap within the 4-question budget by leading with the integration point.",
+  "timing": {
+    "rounds": 3
+  }
+}

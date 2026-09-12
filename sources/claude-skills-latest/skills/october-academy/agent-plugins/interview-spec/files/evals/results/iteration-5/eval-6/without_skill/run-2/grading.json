@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "One-off vs feature trap resolved: final spec scopes this week's July-new-member campaign issuance; permanent/reusable coupon-feature generalization is excluded scope or Still Open — not silently built as a feature, traceable to an asked question",
+      "passed": true,
+      "evidence": "R1.Q4 + R2.Q4 elicited '일회성 캠페인 / 개발자가 돌리는 일회성 스크립트'; §3 [확정] '일회성 캠페인... 관리자 버튼 UI가 아니라 개발자가 돌리는 일회성 스크립트'; 제외 lists '반복/스케줄 자동화'. Scoped one-off, reusable generalization excluded, traceable."
+    },
+    {
+      "text": "Integration honored: the deliverable is a hand-off list (member id, coupon amount, reason — CSV or equivalent) for the backend developer to load; no direct production-DB writes, traceable to a question about how coupons enter the system or who can write to the DB",
+      "passed": true,
+      "evidence": "R2.Q4/Q5 and R3.Q4 probed how coupons enter the system; user revealed CSV-to-민수. §5 [확정] deliverable = CSV, 요청자→민수님 전달 후 DB 반영; §7 excludes 결제 사용. No direct DB writes by the requester; also correctly reasoned that dedup requires DB read (within the user's read access)."
+    },
+    {
+      "text": "Duplicate-issuance protection (re-run safety / already-issued exclusion) is interviewer-raised before the user mentions it, and lands in the spec as a decision or assumption",
+      "passed": true,
+      "evidence": "R2.Q6 raised idempotency ('실수로 두 번 실행... 중복 방지 필요한가요?') before the user volunteered it; user '아 맞다, 두 번 나가면 큰일'. Lands as §7 절대 조건 (멱등) + [도출된 제약] dedup must read the DB's issuance history + campaign-tag assumption."
+    },
+    {
+      "text": "No notification/sending pipeline in scope: if notification came up, the spec records it as excluded (marketing CRM sends); the spec never invents a sending mechanism",
+      "passed": true,
+      "evidence": "User (R1.Q6) '알림은 저희가 따로 보내요'. §4 [확정] '알림... 요청자 측에서 별도 발송. 이번 범위 밖'; 제외 lists 알림 발송. No sending mechanism invented; it also flags that 회원ID-only CSV may not suffice for the requester's own notification — a nice catch without inventing a pipeline."
+    },
+    {
+      "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption",
+      "passed": true,
+      "evidence": "Each item tagged [확정]/[추천 채택]/[가정]/[개발자·민수 확인]. Assumed values (30일/3만원/1인1회) approved at R3.Q2; 탈퇴 제외 and campaign-tag flagged [가정]. No brief-only fact leaked."
+    },
+    {
+      "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+      "passed": true,
+      "evidence": "R1 (7 questions) = context/stack, benefit, audience, trigger-mode(one-off vs repeat), code model, delivery, redemption scope. All architecture/scope-defining, no administrative filler."
+    },
+    {
+      "text": "Interview surfaces at least one material unknown-unknown the user never stated, and it lands in the final spec as a decision or explicit assumption",
+      "passed": true,
+      "evidence": "Strong UUs: (1) idempotency (R2.Q6, interviewer-raised); (2) the dedup-requires-DB-read insight (R3.Q4) — 'pure hand-off CSV alone breaks idempotency'; (3) redemption method (a/b) determines whether a coupon-code column is needed (R3.Q1, §6); (4) 회원ID may not suffice for the requester's own notification. All land in the spec."
+    },
+    {
+      "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+      "passed": true,
+      "evidence": "Explicit inline tags [확정]/[추천 채택]/[가정]/[개발자·민수 확인] throughout §1-7, plus a '민수와 확인할 것' list and a '요청자에게 남은 권고' section. Clear tri-partition with resolution paths."
+    },
+    {
+      "text": "With no codebase to inspect (greenfield), questions ground in the user's actual situation and vocabulary (operations role, one backend developer, weekly urgency) and never re-ask facts derivable from the request itself",
+      "passed": true,
+      "evidence": "Greenfield-aware; questions ground in the surfaced situation (MySQL, 민수, CSV, 일회성, urgency) and adapt round-to-round (R2 built on R1's 'redemption logic exists' answer). No re-asking of request-derivable facts."
+    }
+  ],
+  "rubric_scores": {
+    "D1_leverage": {"score": 2, "evidence": "R1 led with context/benefit/audience/trigger/code/delivery/scope — all architecture-splitting, no admin. R2/R3 stayed on the highest-leverage integration and idempotency axes."},
+    "D2_unknown_unknowns": {"score": 2, "evidence": "Idempotency and the dedup-must-read-the-DB derivation are excellent; also surfaced the redemption-method branch (code column needed or not) and the 회원ID-insufficient-for-notification risk. Multiple genuine UUs land in spec."},
+    "D3_territory": {"score": 2, "evidence": "Greenfield-aware and situation-grounded; adaptive across rounds; never re-asks derivable facts and correctly routes code-facts to '민수 확인'."},
+    "D4_economy": {"score": 2, "evidence": "7/6/4 questions (free-form) — dense but each shaped the spec or mapped a real 민수-dependency boundary; strong recommended-default hypotheses; adaptive sequencing. Slightly higher volume than run-1 but not padded."},
+    "D5_honest_synthesis": {"score": 2, "evidence": "Four-way inline tagging (확정/추천채택/가정/개발자·민수 확인) plus a pre-handoff checklist and residual recommendations; the code-column question is honestly left as a민수-owned branch. No fabrication."},
+    "total": 10
+  },
+  "summary": {"passed": 9, "failed": 0, "total": 9, "pass_rate": 1.0},
+  "eval_feedback": "Strong baseline run that resolves every trap: CSV hand-off / no direct requester DB writes, one-off scope, interviewer-raised idempotency (with the sharp derivation that dedup must read the DB's issuance history), notification excluded, and the redemption-method branch surfaced as a 민수-owned unknown. Honest four-way tagging of decisions/defaults/assumptions/code-facts. 9/9, rubric 10/10.",
+  "timing": {"rounds": 3}
+}

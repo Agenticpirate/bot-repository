@@ -1,0 +1,117 @@
+{
+  "expectations": [
+    {
+      "text": "State file created in project/.claude/ with iteration, max_iterations, original_requirement, and ISO-8601 started_at frontmatter",
+      "passed": true,
+      "evidence": "mech: state_file_final_pre_deletion.md carries fields=['iteration','max_iterations','original_requirement','started_at']; started_at='2026-07-11T09:00:00+09:00' ISO valid=True (live file self-deleted post-promise per SKILL.md, validated from audit copy). Frontmatter iteration:3/max_iterations:3 consistent with the final round."
+    },
+    {
+      "text": "Every question round has at most 4 questions, batched as a single payload",
+      "passed": true,
+      "evidence": "mech: question counts per round {R1:3, R2:2, R3:2}; rounds contiguous=True. Each round is a single batched payload, all <=4."
+    },
+    {
+      "text": "Every question offers 2-4 concrete hypothesis options (no open-ended-only questions)",
+      "passed": true,
+      "evidence": "mech: 7 questions checked, violations none. Every question has 2-4 options with non-empty descriptions, each mapping to a distinct implementation (e.g. R2.Q1 전체취소 vs 품목단위 부분취소 are genuinely different data models)."
+    },
+    {
+      "text": "Exit/termination handling is honest and economical: the interview stops as soon as nothing material remains, never exceeds max rounds, and any exit offer appears as its own 2-option control question — never as an extra option inside a domain question",
+      "passed": true,
+      "evidence": "Mechanics clean: ran exactly 3 of max 3, never exceeded. R3's 2 questions (부분취소 기록 모델 / 무입금-취소 환불표시 조건) were both genuinely spec-changing follow-ups dependent on R2's partial-cancel decision — no padding. No exit-offer option was smuggled into any domain question; the '잘 모르겠어요 — 추천대로' options are recommend-default deferrals, not exits. run_log confirms invocation #4 offered a round_4 open which was declined because the 3-round budget was already consumed → honest summarize-at-cap (CAPPED). Unlike the eval-8 run-1 anchor there is no honesty defect to penalize here — the tag correctly reads CAPPED and Still Open genuinely lists un-asked material axes."
+    },
+    {
+      "text": "Final output contains Before (verbatim original) and After sections with Goal/Scope/Constraints/Success Criteria and a decisions table",
+      "passed": true,
+      "evidence": "mech: Before=True (verbatim '주문 취소 기능 만들어줘') After=True Goal/Scope/Constraints/SuccessCriteria=True decisions-table=True. Separate Decisions Made and Assumptions tables present."
+    },
+    {
+      "text": "Terminal promise tag emitted at the very end of the final summary: <promise>CLARIFICATION CAPPED</promise> whenever the full round budget was consumed (even if every conceived axis was resolved — Still Open then carries the single budget-exhausted line), <promise>CLARIFICATION COMPLETE</promise> only when the interview ended itself with round budget to spare",
+      "passed": true,
+      "evidence": "mech + frozen v3.1.1 check: full round budget consumed (3/3) → tag is <promise>CLARIFICATION CAPPED</promise> and it is the last line of final_summary.md. Correct under the frozen rule: a fully-consumed budget must end CAPPED, never COMPLETE. Doubly correct here because material axes genuinely remain un-asked (취소/부분취소 입력 계약, 반복 부분취소 누적) and are carried in Still Open. state file Phase 4 explicitly records the cap rule ('소진된 예산은 항상 CAPPED … COMPLETE 주장 불가'). This is the exact axis eval-8 run-1 failed (false COMPLETE at exhausted cap); this run gets it right."
+    },
+    {
+      "text": "State file contains a 'Claim audit' block mapping each After-spec factual claim (parentheticals and motivation/state claims included) to its source — round answer, territory path, or numbered assumption",
+      "passed": true,
+      "evidence": "mech: 'Claim audit' block found with 18 claim→source mapping lines (18 distinct). Substantively verified: every After-spec claim maps to an R#.Q# answer, a territory path (server.js:41-50, orders.json line ranges, ledger.csv:5, README.md:7-8/11), or an assumption. The two recommended-default values (취소 되돌리기, 무입금-취소 환불표시 억제) are sourced as 'assumed(추천대로)', not laundered as decided; the 환불액=단위가×취소수량 formula is sourced to orders.json unit-price data with the ORD-1021 54000 verification shown."
+    },
+    {
+      "text": "Scope trap resolved: cancellation is an admin-side action the owner performs (customers phone/KakaoTalk in; the site has no customer login) — customer self-service is not built, and this traces to an asked question",
+      "passed": true,
+      "evidence": "Trap resolved correctly: Goal = '관리자(대표) 주도 주문 취소'; Scope 제외 lists '고객 셀프 취소(로그인 없음)'; every question is framed for the owner acting in the admin screen (R1.Q2 explicitly '지금은 대표님이 은행앱에서 …'). Source is territory, not an asked question: Territory Notes and claim audit ground it to README.md:11 ('사이트에 고객 로그인/마이페이지는 없다. 고객 연락은 전화/카카오톡'). Judged PASS on substance: the no-login/admin-side fact is a project-derivable fact — assertion 16 and rubric D3 explicitly require it be read from the README rather than re-asked (asking it would be a D3 waste). It is grounded to a legitimate, verifiable source (not silently assumed, not fabricated), and the territory forecloses the customer-self-service alternative. The 'traces to an asked question' clause is the greenfield path (eval-6); for this existing-system fact the equally-legitimate territory-derivation path is the correct one."
+    },
+    {
+      "text": "Refund integration honored: payment is bank-transfer only (무통장입금), refunds are manual transfers the owner makes in a banking app and records in ledger.csv — no PG/card refund API is invented, traceable to a question about how payment/refunds work",
+      "passed": true,
+      "evidence": "Honored end-to-end. Traceable to an asked question: R1.Q2 ('환불이 발생합니다 … 취소 기능이 이 환불을 어떻게 다뤄야 할까요?') asked how refunds work; user chose '환불 필요 표시만'. Constraints: '소프트웨어는 ledger.csv나 은행에 쓰지 않는다(표시만)'; Scope 제외 lists 'PG/카드 연동' and 'ledger.csv 자동 기록'. The premise embedded in R1.Q2 (은행앱 직접 이체 + ledger.csv 수기) is territory-grounded to README.md:7-8, not invented. No PG/card refund API anywhere."
+    },
+    {
+      "text": "Cancel boundary resolved by state: button cancellation allowed only before shipping (pending_payment/paid/preparing); shipped/delivered orders are out of scope (returns handled by phone) — landed via an asked question, not silently assumed",
+      "passed": true,
+      "evidence": "Landed via R1.Q1 ('어느 상태의 주문까지 취소할 수 있어야 하나요?' with the current status flow shown); user selected '발송 전까지' and stated '포장까지는 취소 … 택배 보낸 다음엔 반품이라 전화로 절충'. Scope 포함 = 발송 전(pending_payment·paid·preparing); Scope 제외 = 'shipped/delivered 취소(반품은 전화 절충)'. Success Criteria exercises ORD-1023 (shipped) as a rejection case. Boundary set by an asked question, not assumed."
+    },
+    {
+      "text": "Partial cancellation is interviewer-raised (the user never volunteers it): cancelling individual line items from a multi-item order, with the refund amount shown — lands as a decision or an explicitly acknowledged assumption/non-goal, and multi-item orders exist in orders.json for the interviewer to notice",
+      "passed": true,
+      "evidence": "Interviewer-raised in R2.Q1 — the user never mentioned partial cancellation in answers_round_1. The interviewer noticed a real multi-item order (ORD-1021 청화 머그 2 + 수저받침 2) and asked whether individual line items can be cancelled. User then confirmed the need ('컵 두 개 시켰다가 하나만 빼달라 … 얼마 돌려드려야 하는지 화면에 보이면'). Lands as a decision (Decisions table: 품목/수량 단위 부분 취소 지원 + 환불액 화면 표시) with the record-model refined in R3.Q1 (원본 보존 + 취소분 별도). Refund amount shown (Success Criteria: '환불 필요 22000원' for one mug of ORD-1021, arithmetic verified 2×22000+2×5000=54000). Multi-item orders confirmed present in orders.json (ORD-1021, ORD-1023, ORD-1025). Textbook interviewer-driven UU surfacing."
+    },
+    {
+      "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption; values appearing only in unselected option text are recorded as assumptions, never as decided",
+      "passed": true,
+      "evidence": "Fabrication hunt (final_summary claims vs union of answers_round_1..3 + brief + territory): all 5 Decisions trace to selected answers (취소범위→R1.Q1, 환불표시만→R1.Q2, cancelled유지·사유없음→R1.Q3, 품목단위 부분취소→R2.Q1, 원본보존 기록모델→R3.Q1). The 2 recommended-default values the user deferred on ('추천대로') — 취소 되돌리기 (R2.Q2 option text) and 입금된-주문만 환불표시 (R3.Q2 option text) — are correctly placed in the Assumptions table and claim audit as 'assumed', NOT laundered as decisions. This is precisely the axis the eval-6 run-6 anchor failed; this run is clean. Territory-derived Success-Criteria values (54000, 22000, 36000, 65000, ORD statuses, ledger ORD-1019 18000) all verified against orders.json/ledger.csv. No invented requirement."
+    },
+    {
+      "text": "Round-1 questions lead with architecture/design-changing decisions (who performs cancellation, refund path, state boundary) rather than administrative details",
+      "passed": true,
+      "evidence": "R1 = 취소 범위(state boundary — the highest-leverage scope axis) / 환불 처리(refund path — the blind-spot/integration axis) / 취소 기록(retention data model). All architecture/scope-defining, zero administrative detail (no naming/colors/wording). The 'who performs cancellation' axis was resolved from README territory (no customer login) rather than spending an R1 slot on a derivable fact, freeing R1 to lead with the three genuinely-open high-leverage axes; the refund-handling probe surfaced the money-blind-spot on the very first payload."
+    },
+    {
+      "text": "Interview surfaces at least one material unknown-unknown the user never stated (e.g., partial cancellation, cancelled-order retention for ledger reconciliation), and it lands in the final spec as a decision or explicit assumption",
+      "passed": true,
+      "evidence": "Multiple UUs, exceeding the bar: (1) partial cancellation (R2.Q1, interviewer-raised) → decision; (2) 무입금(pending_payment) 취소 시 오환불 위험 (R3.Q2, interviewer-raised, brief-absent) → assumption ('입금된 주문만 환불 필요 표시'); (3) 취소 되돌리기 오클릭 복구 (R2.Q2, interviewer-raised, brief-absent) → assumption. Two of the three are genuinely beyond the brief. All land in the final spec. Matches the D2=2 anchors."
+    },
+    {
+      "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+      "passed": true,
+      "evidence": "Clean tri-partition: Decisions Made (5 user-selected rows) | Assumptions (2 flagged recommended-defaults the user deferred) | Surfaced Along the Way (3) | Still Open (3, each with a resolution path — 취소 입력 계약, 반복 부분취소 누적, budget-exhausted residual). Every line traces via the 18-line claim audit; no assumption disguised as a decision."
+    },
+    {
+      "text": "Questions ground in the fixture territory (orders.json statuses and multi-item orders, ledger.csv, README's 무통장입금/no-login facts) instead of re-asking facts derivable from the project, and no codebase facts are invented",
+      "passed": true,
+      "evidence": "Exemplary existing-system grounding. Territory Notes reflect real investigation of server.js (advance-only NEXT_STATUS, no cancel path), orders.json (status flow, multi-item ORD-1021), ledger.csv (existing 환불 ORD-1019 18000), README (무통장입금, 수기 ledger, no customer login, pm2 deploy). Questions reference actual data (ORD-1021 청화 머그 2+수저받침 2; the 입금전→…→배송완료 flow). Derivable facts (무통장입금/no-login/ledger) are read, not re-asked. Claim-audit line-number citations (server.js:41-50, orders.json ranges, ledger.csv:5, README.md:7-8/11) spot-checked and accurate; no codebase fact is invented."
+    }
+  ],
+  "rubric_scores": {
+    "D1_leverage": {
+      "score": 2,
+      "evidence": "R1 led with the three highest-leverage genuinely-open axes — state boundary (취소 범위), refund path (환불 처리, the money blind-spot), retention data model (취소 기록) — and surfaced the refund-handling blind spot on the first payload. The 'who performs' axis was correctly resolved from README territory instead of consuming a slot on a derivable fact. No administrative questions in any round. Textbook leverage ordering."
+    },
+    "D2_unknown_unknowns": {
+      "score": 2,
+      "evidence": "Heart dimension, cleanly met. Interviewer-raised partial cancellation (R2.Q1, noticing the real multi-item ORD-1021) landed as a decision with refund-amount display; two further brief-absent UUs — 무입금 취소 오환불 위험 (R3.Q2) and 취소 되돌리기 오클릭 복구 (R2.Q2) — were interviewer-originated and landed as assumptions. Multiple material UUs, including ones beyond the brief, all in the final spec."
+    },
+    "D3_territory": {
+      "score": 2,
+      "evidence": "Existing-system fixture investigated thoroughly (server.js advance-only flow, orders.json statuses/multi-item, ledger.csv existing refund, README 무통장입금/no-login/pm2). Questions ground in actual data (ORD-1021 line items, real status flow); derivable facts read rather than re-asked; claim-audit cites verified line numbers; no invented codebase facts. Ideal territory grounding for an existing project."
+    },
+    "D4_economy": {
+      "score": 2,
+      "evidence": "7 questions (3/2/2, tapering as unknowns resolved), no filler — every question's answer changed the spec. Recommended defaults offered on the deferrable axes; dependent axes correctly sequenced (부분취소 record model and 무입금 환불-display in R3 depend on R2's partial-cancel decision) rather than jammed into R1. Economical throughout."
+    },
+    "D5_honest_synthesis": {
+      "score": 2,
+      "evidence": "Exemplary honesty. Clean Decisions/Assumptions/Surfaced/Still Open partition with a full 18-line claim audit; the two recommended-default values are recorded as assumptions rather than laundered as decisions (the exact axis eval-6 run-6 failed); the CAPPED declaration is honest (Still Open genuinely carries un-asked material axes, not a papered-over COMPLETE — the exact axis eval-8 run-1 failed). No fabrication, no source-laundering, no false completeness."
+    },
+    "total": 10
+  },
+  "summary": {
+    "passed": 16,
+    "failed": 0,
+    "total": 16,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": "Showcase with_skill run on the gen-3 pure-holdout existing-system scenario — all four signature traps resolved and the two axes that break the FAIL anchors both handled correctly. Scope trap: cancellation scoped admin-side with customer self-service excluded, grounded to README:11's no-login fact via territory (the correct D3 path for a project-derivable fact) rather than wasting a question on it. Refund integration: 무통장입금-only, manual banking-app transfer recorded in ledger.csv, no PG/card API invented, traced to the R1.Q2 refund-handling question with the owner-manual premise sourced to README:7-8. Cancel boundary: 발송 전(pending_payment/paid/preparing) only, shipped/delivered out of scope, landed via R1.Q1. Partial cancel: interviewer-raised in R2.Q1 off the real multi-item ORD-1021, landed as a decision with the refund amount shown (54000=2×22000+2×5000, 머그 1개=22000 verified against orders.json), record-model refined in R3.Q1. Recommended-default deferrals (취소 되돌리기, 무입금 환불표시 억제) correctly recorded as assumptions, not laundered as decisions — clean on the eval-6 run-6 fabrication axis. Budget fully consumed 3/3 → tag correctly CLARIFICATION CAPPED with Still Open carrying genuine un-asked material axes — clean on the eval-8 run-1 false-COMPLETE axis. 16/16, rubric 10/10; sits with the eval-6 run-1 anchor. The only interpretive call is assertion 8's 'traces to an asked question' clause, resolved PASS because assertion 16 and rubric D3 explicitly require the no-login fact be territory-derived, not re-asked.",
+  "timing": {
+    "rounds": 3
+  }
+}

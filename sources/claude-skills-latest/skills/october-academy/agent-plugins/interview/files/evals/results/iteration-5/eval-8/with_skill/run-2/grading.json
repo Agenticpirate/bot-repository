@@ -1,0 +1,118 @@
+{
+  "expectations": [
+    {
+      "text": "State file created in project/.claude/ with iteration, max_iterations, original_requirement, and ISO-8601 started_at frontmatter",
+      "passed": true,
+      "evidence": "state_file_final_pre_deletion.md: fields=['iteration', 'max_iterations', 'original_requirement', 'started_at']; started_at ISO valid=True (live file deleted post-promise per SKILL.md; validated from audit copy). Mech PASS."
+    },
+    {
+      "text": "Every question round has at most 4 questions, batched as a single payload",
+      "passed": true,
+      "evidence": "question counts per round: {round_1: 4, round_2: 3, round_3: 1}; rounds contiguous=True. Mech PASS."
+    },
+    {
+      "text": "Every question offers 2-4 concrete hypothesis options (no open-ended-only questions)",
+      "passed": true,
+      "evidence": "8 questions checked; 0 violations. Mech PASS."
+    },
+    {
+      "text": "Exit/termination handling is honest and economical: the interview stops as soon as nothing material remains, never exceeds max rounds, and any exit offer appears as its own 2-option control question — never as an extra option inside a domain question",
+      "passed": true,
+      "evidence": "Ran exactly 3 of max 3. R3's single question (실행/수급 모델) was genuinely spec-deciding — it resolved the real conflict between R2.Q1 (deferred assumed=자동) and R2.Q2 (run-and-see, no push), the only residual material axis. No padding. The '잘 모르겠어요 — 추천대로' options are recommend-default deferrals, not exit offers; no exit-offer option is embedded in any domain question. run_log confirms summarize-at-cap because all surfaced axes resolved."
+    },
+    {
+      "text": "Final output contains Before (verbatim original) and After sections with Goal/Scope/Constraints/Success Criteria and a decisions table",
+      "passed": true,
+      "evidence": "Before=True After=True verbatim-original=True Goal/Scope/Constraints/SuccessCriteria=True decisions-table=True. Mech PASS."
+    },
+    {
+      "text": "Terminal promise tag emitted at the very end of the final summary: <promise>CLARIFICATION COMPLETE</promise>, or <promise>CLARIFICATION CAPPED</promise> when the round budget ran out with material axes unasked",
+      "passed": true,
+      "evidence": "terminal tag <promise>CLARIFICATION COMPLETE</promise> ends final_summary.md (Mech PASS). Tag-correctness check: COMPLETE is defensible here — the run self-terminated with SPARE budget (R3 used only 1 of up to 4 slots) after asking every axis it surfaced; the cap did not truncate any known-open material axis. The undiscovered already-ordered axis is a discovery-quality miss (penalized in the already-ordered assertion and D2), not a budget-starved CAPPED condition, which requires the round budget to run out with KNOWN material still unasked."
+    },
+    {
+      "text": "State file contains a 'Claim audit' block mapping each After-spec factual claim (parentheticals and motivation/state claims included) to its source — round answer, territory path, or numbered assumption",
+      "passed": true,
+      "evidence": "'Claim audit' block found (### level, ending Clarification Progress) with 8 source-mapped lines; each maps to an R#.Q# answer, a labeled 가정, or 'Still Open (출처 없음)'. Mech PASS."
+    },
+    {
+      "text": "Cadence trap resolved: final spec is a once-daily morning digest the user runs/receives, not real-time monitoring or per-product push alerts — traceable to an asked question",
+      "passed": true,
+      "evidence": "Final Goal = 단순 실행 도구: 사용자가 매일 07:00 CSV를 건네 실행하면 부족 목록이 화면/파일로 표시 (run-and-see). Scope 제외 explicitly lists 푸시 알림(카톡·이메일·슬랙) and 메일함 자동 감지·무인 스케줄 실행. Traceable: R2.Q2 free-text ('목록만 딱 보이면 되고, 따로 알림 안 와도 괜찮아요') + R3.Q1 (manual execution) + R1.Q1 (daily 07:00 CSV source). Neither real-time monitoring nor per-product push survives."
+    },
+    {
+      "text": "Integration honored: the data source is the daily POS CSV email attachment (the requester's only access path) — no invented API/DB integration, traceable to a question about where inventory data lives",
+      "passed": true,
+      "evidence": "R1.Q1 ('재고 데이터 위치 — 알림을 만들려면 현재 재고를 읽어올 소스가 필요') elicited the source on the first payload; user's Other revealed 샵플 POS 07:00 CSV 이메일 첨부. Constraints pin '입력 소스는 샵플 POS CSV 하나 (다른 재고 소스 없음)' and '메일 계정 연동/권한 불필요 — 사용자가 CSV를 직접 건네는 수동 실행'. No invented API/DB — 메일함 자동 감지 was offered but deferred/excluded, leaving the CSV email as the only path."
+    },
+    {
+      "text": "Threshold trap resolved: reorder criterion is the per-product 안전재고 column already in the CSV — a global fixed threshold (e.g. 'under 10') is not silently adopted; the user's Other correction or an asked question lands it",
+      "passed": true,
+      "evidence": "R1.Q3 offered 품목별 최소 수량 (Recommended) / 전 품목 공통 수량 / 판매 속도 / 안 정함. User selected 품목별 최소 수량 with free-text '상품마다 달라요. CSV에 이미 안전재고 칸이 있어요.' The global '전 품목 공통 수량' option was NOT adopted. Final Decision: '품목별 — 현재수량 < 안전재고 (CSV에 안전재고 칸 존재)'. Threshold correctly per-product."
+    },
+    {
+      "text": "Already-ordered exclusion is interviewer-raised (user never volunteers it) and lands as a decision or assumption, including how the ordered-state gets recorded",
+      "passed": false,
+      "evidence": "MISS. Scanned all 8 questions (R1: 소스/채널/기준/후속; R2: CSV수급/채널/데이터미수신경고; R3: 실행모델) — the interviewer never raised the already-ordered/재입고-대기 상품이 매일 재출현 problem. The R2.Q3 blind-spot it DID raise was the DIFFERENT '7시 메일 미수신' data-gap warning. Final spec (Scope/Assumptions/Still Open) contains no already-ordered handling and no ordered-state recording mechanism (brief's '발주 기록 병행 입력'). The brief's designated primary unknown-unknown went entirely unsurfaced."
+    },
+    {
+      "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption; values appearing only in unselected option text are recorded as assumptions, never as decided",
+      "passed": true,
+      "evidence": "Fabrication hunt clean. All 4 Decisions map to selected answers (R1.Q1/Q3/Q4, R2.Q2). Every value sourced from an option DESCRIPTION rather than a selection is correctly filed under Assumptions, not Decisions: 수동 실행/'지정 폴더' (R3.Q1 defer→Recommended option 1 desc), '데이터 미수신 경고'→'빈/깨진 CSV 경고' reinterpretation (R2.Q3 deferred). 07:00 and 안전재고 come from user answer/free-text. CSV 헤더·인코딩 flagged 출처 없음→Still Open (not asserted). No source-laundering (contrast the run-6 corrected FAIL)."
+    },
+    {
+      "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+      "passed": true,
+      "evidence": "R1 = 재고 데이터 위치(source/integration — highest-leverage axis, decides direct-integration vs file hand-off) / 알림 채널(delivery scope) / 부족 기준(core logic) / 알림 이후 동작(scope). Leads with the source/integration axis, which immediately harvested the 샵플 CSV reframe. Zero administrative (copy/color/naming) questions."
+    },
+    {
+      "text": "Interview surfaces at least one material unknown-unknown the user never stated, and it lands in the final spec as a decision or explicit assumption",
+      "passed": true,
+      "evidence": "R2.Q3 interviewer-raised the silent-data-gap blind-spot ('7시 메일이 안 온 날엔 아무 알림이 없어서 재고가 넉넉한 걸로 오해할 수 있어요') — a UU not even present in the brief. It lands as Success Criteria ('CSV가 비었거나 필수 컬럼이 없으면 침묵하지 않고 경고를 출력') and an Assumption. At least one material UU surfaced and landed. (Note: the brief's designated primary UU — already-ordered exclusion — was still missed; see that assertion and D2.)"
+    },
+    {
+      "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+      "passed": true,
+      "evidence": "Clean tri-partition: Decisions Made (4 user-selected) | Assumptions (2 flagged deferred defaults, explicitly '가정') | Surfaced Along the Way (2) | Still Open (3, each with a resolution path). Deferred/option-sourced values sit in Assumptions, not disguised as Decisions; the R2.Q3 reinterpretation is honestly annotated. Every line traces via the 8-row claim audit. No fabrication."
+    },
+    {
+      "text": "With no codebase to inspect (greenfield), questions ground in the user's actual situation and vocabulary (solo shop owner, no developer, spreadsheet-level skills) and never re-ask facts derivable from the request itself",
+      "passed": true,
+      "evidence": "run_log confirms empty greenfield dir, no territory sweep, questions grounded in the request's domain. After R1.Q1 surfaced 샵플 POS CSV, subsequent rounds speak that vocabulary (CSV 수급, 안전재고, 07:00 메일). Respects the non-technical persona — steers toward the simple manual Recommended option over IMAP/OAuth auto-detect. No re-asking of request-derivable facts; platform-brand list appears only as source hypotheses, not as re-asks."
+    }
+  ],
+  "rubric_scores": {
+    "D1_leverage": {
+      "score": 2,
+      "evidence": "R1 led with 재고 데이터 위치 — the source/integration axis that decides deliverable form (direct connect vs file hand-off) — and harvested the 샵플 07:00 CSV reframe on the first payload; 기준/후속/채널 followed. No administrative questions in any round."
+    },
+    "D2_unknown_unknowns": {
+      "score": 1,
+      "evidence": "Docked 2→1. A genuine interviewer-raised UU (silent-data-gap warning, R2.Q3 — not even in the brief) did land in the spec as Success Criteria/Assumption, which clears the letter of the rubric. But the run missed the brief's designated PRIMARY UU — the already-ordered exclusion (재입고 대기 상품이 매일 재출현) — which is never probed in any of the 8 questions and is absent from the final spec, directly undercutting the '아침 10분 발주 결정' success criterion. Catching a secondary blind-spot while missing the material one keeps this off a clean 2."
+    },
+    "D3_territory": {
+      "score": 2,
+      "evidence": "Greenfield-aware (empty dir, no invented code); leads with the source/integration point instead of re-asking derivable facts; questions speak the user's real vocabulary (샵플 CSV/안전재고/07:00 메일) and respect the spreadsheet-level, no-developer persona by defaulting to manual execution."
+    },
+    "D4_economy": {
+      "score": 2,
+      "evidence": "8 questions, no filler — every answer changed the spec. multiSelect used for the genuinely non-exclusive R1.Q2 channel; dependent axes correctly deferred (CSV 수급/실행 모델 depend on source → R2/R3) rather than jammed into R1; recommended defaults offered on every deferrable. R2.Q2's channel re-ask was a legitimate re-confirmation of the R1.Q2 defer, not padding."
+    },
+    "D5_honest_synthesis": {
+      "score": 2,
+      "evidence": "Exemplary Decisions/Assumptions/Surfaced/Still Open partition with a full 8-row claim-audit ledger; deferred and option-description-sourced values are honestly filed as Assumptions (no disguise, no laundering), and the unsourced CSV encoding detail is flagged Still Open rather than asserted. No fabrication. Honesty of the synthesis is complete for what was covered (the coverage gap is a D2 matter, not a D5 one)."
+    },
+    "total": 9
+  },
+  "summary": {
+    "passed": 15,
+    "failed": 1,
+    "total": 16,
+    "pass_rate": 0.9375
+  },
+  "eval_feedback": "Strong with_skill run on a gen-2 holdout that nails three of the four traps and stays fabrication-clean, but misses the brief's designated primary unknown-unknown. WINS: cadence trap resolved to a run-and-see manual tool with real-time monitoring AND per-product push both in Scope 제외 (R2.Q2 free-text + R3.Q1); integration honored to the sole 샵플 07:00 CSV email path with no invented API (R1.Q1 led with the source axis); threshold correctly per-product 안전재고 from CSV, global fixed threshold offered-but-not-adopted (R1.Q3); and — the model behavior of note — every option-description-sourced value (수동 실행/지정 폴더, 데이터-미수신→빈/깨진 CSV 경고 reinterpretation) is filed under Assumptions with an 8-row claim audit, avoiding the run-6-style source laundering. Clean COMPLETE at cap with spare budget. MISS: the already-ordered exclusion (재입고 대기 상품이 매일 재출현 + 발주 기록 병행 입력) is never interviewer-raised and never lands in the spec — the interview instead spent its blind-spot slot on the data-missing warning (a real but secondary UU). That single miss carries the already-ordered assertion FAIL and docks D2 2→1. 15/16, rubric 9/10 — calibration-parallel to the run-6 anchor (one both-arm trap FAIL + one docked dimension)."
+  ,
+  "timing": {
+    "rounds": 3
+  }
+}

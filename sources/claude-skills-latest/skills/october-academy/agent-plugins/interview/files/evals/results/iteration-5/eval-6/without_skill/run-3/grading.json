@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "One-off vs feature trap resolved: final spec scopes this week's July-new-member campaign issuance; permanent/reusable coupon-feature generalization is excluded scope or Still Open — not silently built as a feature, traceable to an asked question",
+      "passed": true,
+      "evidence": "R1.Q6 elicited '한 번 쓰고 버릴 스크립트/CLI, 발급까지만'. §1 summary = a SELECT-query+CSV extractor, not a 'coupon system'; §7 excludes '재사용 가능한 어드민 UI'. Scoped one-off, reusable generalization excluded, traceable to R1.Q6."
+    },
+    {
+      "text": "Integration honored: the deliverable is a hand-off list (member id, coupon amount, reason — CSV or equivalent) for the backend developer to load; no direct production-DB writes, traceable to a question about how coupons enter the system or who can write to the DB",
+      "passed": true,
+      "evidence": "R2.Q1 (적립 대상 테이블/INSERT) surfaced read-only via the user's Other (민수 does the INSERT); R3.Q1 confirmed deliverable = SELECT query + 3-column CSV. §1/§2: '회원ID, 쿠폰금액(=10000), 발급사유' 3-col CSV, requester runs read-only SELECT, 민수 does INSERT, 'DB에 쓰는 코드는 이번 범위가 아님'. Matches the brief's ideal precisely, traceable to R2.Q1/R3.Q1."
+    },
+    {
+      "text": "Duplicate-issuance protection (re-run safety / already-issued exclusion) is interviewer-raised before the user mentions it, and lands in the spec as a decision or assumption",
+      "passed": true,
+      "evidence": "R2.Q4 (실행 안전장치) raised 멱등/재실행 안전 before the user volunteered it; user '두 번 나가면 큰일'. Lands as §5 (blocking) — and the interviewer sharpened it into the read-only↔dedup contradiction (dedup at CSV stage needs coupon-table read the requester may not have) with an (A)/(B) resolution split."
+    },
+    {
+      "text": "No notification/sending pipeline in scope: if notification came up, the spec records it as excluded (marketing CRM sends); the spec never invents a sending mechanism",
+      "passed": true,
+      "evidence": "R1.Q5 user '발송 없이 계정에 적립만 — 알림은 저희가 따로 보내요'. §2 전달='발송 없음... 우리는 명단만 만들면 됨'; §7 excludes 이메일/알림톡/푸시 발송. No sending mechanism invented."
+    },
+    {
+      "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption",
+      "passed": true,
+      "evidence": "§2 maps each fact to R#.Q#; §3 flags assumptions (금액 상수, 발급사유 문자열, Python, UTF-8, 회원ID=숫자 PK 가정); §8 splits 확정/가정/미해결(블로킹). Notably the redemption attributes (유효기간/최소금액) delegated in R2 are explicitly recorded as NOT in the 3-column CSV. No brief-only fact leaked."
+    },
+    {
+      "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+      "passed": true,
+      "evidence": "R1 = context/stack, coupon meaning, code model, targeting, delivery, operator-interface+scope. All architecture/scope-defining, no administrative filler (one option references the user's real product stack as a hypothesis, not admin detail)."
+    },
+    {
+      "text": "Interview surfaces at least one material unknown-unknown the user never stated, and it lands in the final spec as a decision or explicit assumption",
+      "passed": true,
+      "evidence": "Top-tier: (1) idempotency (R2.Q4, interviewer-raised); (2) the read-only↔dedup contradiction (§5) — dedup at the CSV stage requires reading the coupon table, but the requester is read-only and doesn't know its schema — surfaced as a BLOCKING unresolved item with an (A)/(B) resolution path; (3) timezone handling of 가입일 (UTC vs KST). All land in the spec."
+    },
+    {
+      "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+      "passed": true,
+      "evidence": "§8 explicitly: 확정(요청자 명시) / 가정(위임받아 정함, 뒤집힐 수 있음) / 미해결(블로킹). Plus §2 (facts w/ sources), §3 (assumptions), §5 (blocking contradiction), §6 (info still needed from 민수), §7 (scoped out). Exemplary."
+    },
+    {
+      "text": "With no codebase to inspect (greenfield), questions ground in the user's actual situation and vocabulary (operations role, one backend developer, weekly urgency) and never re-ask facts derivable from the request itself",
+      "passed": true,
+      "evidence": "Greenfield-aware; grounds in the user's situation (MySQL, 민수, CSV, read-only, urgency) and R3 pivots entirely on R2's read-only revelation ('원래는 스크립트가 DB에 INSERT... 실제로는 read-only + 민수 + CSV'). No re-asking of request-derivable facts."
+    }
+  ],
+  "rubric_scores": {
+    "D1_leverage": {"score": 2, "evidence": "R1 led with context/meaning/code/targeting/delivery/operator-scope — all architecture-splitting, no admin; R2/R3 stayed on the write-path and dedup axes that decide the whole deliverable."},
+    "D2_unknown_unknowns": {"score": 2, "evidence": "The read-only↔dedup contradiction surfaced in §5 is the sharpest UU work across all six runs — it proves the user's stated preference (dedup at CSV stage) may be un-implementable given read-only + unknown coupon schema, and routes it to a blocking 민수 confirmation. Idempotency and timezone also land."},
+    "D3_territory": {"score": 2, "evidence": "Greenfield-aware and deeply situation-grounded; the R3 pivot on the read-only revelation is exemplary adaptive territory work; never re-asks derivable facts and routes code-facts to 민수."},
+    "D4_economy": {"score": 2, "evidence": "6/6/4 questions (free-form), each spec-shaping; the one mild inefficiency (R2.Q2 redemption-attribute questions that don't land in the 3-column CSV) arose from the pre-pivot INSERT-script framing and is honestly recorded as '민수 영역', not padding. Strong recommended-default hypotheses."},
+    "D5_honest_synthesis": {"score": 2, "evidence": "Rigorous 확정/가정/미해결 split with per-fact source table, a blocking-contradiction section, and a pre-handoff checklist; assumptions never disguised as decisions. No fabrication."},
+    "total": 10
+  },
+  "summary": {"passed": 9, "failed": 0, "total": 9, "pass_rate": 1.0},
+  "eval_feedback": "The most rigorous run in the set. It solved the integration trap (3-column CSV matching the brief exactly, read-only requester, 민수 INSERT), then went further than any other run by surfacing the read-only↔dedup contradiction as a BLOCKING item — proving the user's stated dedup preference may be un-implementable and routing it to 민수 with an (A)/(B) resolution. Honest 확정/가정/미해결 tri-partition with source-mapped facts. 9/9, rubric 10/10.",
+  "timing": {"rounds": 3}
+}

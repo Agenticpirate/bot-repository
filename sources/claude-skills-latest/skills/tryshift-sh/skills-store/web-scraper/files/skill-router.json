@@ -1,0 +1,192 @@
+{
+  "id": "web-scraper",
+  "name": "Web Scraper",
+  "description": "Scrape, crawl, map, search, and extract structured data from the web.",
+  "actions": {
+    "scrape": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://api.firecrawl.dev",
+        "path": "/v1/scrape",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "url": "$input.url",
+          "formats": "$input.formats",
+          "onlyMainContent": "$input.onlyMainContent",
+          "includeTags": "$input.includeTags",
+          "excludeTags": "$input.excludeTags",
+          "waitFor": "$input.waitFor",
+          "timeout": "$input.timeout",
+          "mobile": "$input.mobile",
+          "location": "$input.location"
+        }
+      },
+      "output": {
+        "responseSelect": "data",
+        "responseMap": {
+          "markdown": "$data.markdown",
+          "html": "$data.html",
+          "links": "$data.links",
+          "screenshot": "$data.screenshot",
+          "metadata": {
+            "title": "$data.metadata.title",
+            "description": "$data.metadata.description",
+            "sourceURL": "$data.metadata.sourceURL",
+            "statusCode": "$data.metadata.statusCode"
+          }
+        }
+      }
+    },
+    "crawl": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://api.firecrawl.dev",
+        "path": "/v1/crawl",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "url": "$input.url",
+          "limit": "$input.limit",
+          "maxDepth": "$input.maxDepth",
+          "includePaths": "$input.includePaths",
+          "excludePaths": "$input.excludePaths",
+          "allowExternalLinks": "$input.allowExternalLinks",
+          "allowSubdomains": "$input.allowSubdomains",
+          "scrapeOptions": "$input.scrapeOptions"
+        }
+      },
+      "output": {
+        "responseMap": {
+          "success": "$response.success",
+          "id": "$response.id",
+          "url": "$response.url"
+        }
+      }
+    },
+    "crawl_status": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://api.firecrawl.dev",
+        "path": "/v1/crawl/{crawlId}",
+        "auth": { "mode": "bearer" }
+      },
+      "output": {
+        "responseMap": {
+          "status": "$response.status",
+          "total": "$response.total",
+          "completed": "$response.completed",
+          "creditsUsed": "$response.creditsUsed",
+          "expiresAt": "$response.expiresAt",
+          "next": "$response.next",
+          "data": {
+            "$each": "$response.data",
+            "map": {
+              "markdown": "$item.markdown",
+              "metadata": {
+                "title": "$item.metadata.title",
+                "sourceURL": "$item.metadata.sourceURL",
+                "statusCode": "$item.metadata.statusCode"
+              }
+            }
+          }
+        }
+      }
+    },
+    "map": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://api.firecrawl.dev",
+        "path": "/v1/map",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "url": "$input.url",
+          "search": "$input.search",
+          "limit": "$input.limit",
+          "includeSubdomains": "$input.includeSubdomains",
+          "ignoreSitemap": "$input.ignoreSitemap"
+        }
+      },
+      "output": {
+        "responseMap": {
+          "success": "$response.success",
+          "links": "$response.links"
+        }
+      }
+    },
+    "search": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://api.firecrawl.dev",
+        "path": "/v1/search",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "query": "$input.query",
+          "limit": "$input.limit",
+          "lang": "$input.lang",
+          "country": "$input.country",
+          "tbs": "$input.tbs",
+          "scrapeOptions": "$input.scrapeOptions"
+        }
+      },
+      "output": {
+        "responseMap": {
+          "success": "$response.success",
+          "data": {
+            "$each": "$response.data",
+            "map": {
+              "title": "$item.title",
+              "url": "$item.url",
+              "markdown": "$item.markdown",
+              "description": "$item.description"
+            }
+          }
+        }
+      }
+    },
+    "extract": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://api.firecrawl.dev",
+        "path": "/v1/extract",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "urls": "$input.urls",
+          "prompt": "$input.prompt",
+          "schema": "$input.schema",
+          "enableWebSearch": "$input.enableWebSearch"
+        }
+      },
+      "output": {
+        "responseMap": {
+          "success": "$response.success",
+          "id": "$response.id"
+        }
+      }
+    },
+    "extract_status": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://api.firecrawl.dev",
+        "path": "/v1/extract/{extractId}",
+        "auth": { "mode": "bearer" }
+      },
+      "output": {
+        "responseMap": {
+          "success": "$response.success",
+          "status": "$response.status",
+          "data": "$response.data",
+          "expiresAt": "$response.expiresAt"
+        }
+      }
+    }
+  }
+}

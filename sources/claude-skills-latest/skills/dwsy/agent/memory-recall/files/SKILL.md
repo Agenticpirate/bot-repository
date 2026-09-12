@@ -1,0 +1,110 @@
+---
+name: memory-recall
+description: "Recall prior role memory when cross-session context materially affects the current task."
+whenToUse: "When the user refers to past work/preferences, when a durable prior decision may change the approach, or when the current task cannot be handled reliably from present context alone. Skip greetings and self-contained tasks."
+---
+
+# Memory Recall
+
+You have access to a role-based persistent memory system with **4 layers**:
+
+```
+L2 Structured  → memory/consolidated.md (deduplicated, priority-ranked)
+PENDING        → memory/pending.md (auto-extracted, awaiting verification)
+L1 Raw         → memory/daily/YYYY-MM-DD.md (session logs)
+Knowledge      → docs/knowledge/ (reusable patterns, architecture decisions)
+```
+
+## Tools Available
+
+| Tool | Purpose |
+|------|---------|
+| `role_search({ query: "<text>" })` | Search all layers. Auto-reinforces high-score matches (≥0.5). Auto-promotes relevant pending memories. |
+| `role_exec({ op: "list" })` | List all consolidated memories, detect issues |
+| `role_exec({ op: "role_info" })` | List the active role directory structure; does not read file contents |
+| `role_search({ query: "<text>", scope: "knowledge" })` | Search knowledge base |
+
+## Process
+
+### Step 1: Targeted search
+
+```
+role_search({ query: "<user topic or key concept>" })
+```
+
+The search automatically:
+- Searches consolidated learnings, preferences, **events** (block-level milestones)
+- Searches **pending** (all matches ≥ minScore surface as `[pending]`; score ≥0.5 auto-promotes to learning)
+- Searches last 7 days of daily files (EVENT/LESSON/PREFERENCE keep their kind)
+- **Tag boost**: matching tags +0.3 score, related tags +0.15
+- **Auto-reinforce**: matches ≥0.5 get `used` count +1
+
+### Step 2: Scan High Priority
+
+If search returns few results:
+```
+role_exec({ op: "list" })
+```
+Focus on `High Priority [3x]+` — these are battle-tested.
+
+### Step 3: Deep context (if needed)
+
+- Narrow the `memory.search` query, or use `knowledge.search` for reusable artifacts.
+- If the current task explicitly requires a core role file, inspect the exact injected path with the standard file-read tool; do not scan role files as a startup ritual.
+
+### Step 4: Check knowledge base
+
+For technical tasks:
+```
+role_search({ query: "<topic>", scope: "knowledge" })
+```
+
+### Step 5: Summarize and proceed
+
+Summarize findings, then proceed.
+
+## Guardrails
+
+- **max memory ops: 10** — Don't burn the whole session searching
+- **Tag boost is real** — matching tags rank higher. Trust the sort.
+- If nothing found, proceed — not every task has prior knowledge
+- Summarize before proceeding
+
+## Memory Format
+
+```
+# Learnings (High Priority)    → used ≥ 3
+- [6x] 声明完成前验证铁律
+
+# Learnings (Normal)           → used 1-2
+- [2x] 软删除优先
+
+# Learnings (New)              → used = 0
+- [0x] 标签系统闭环是快速win
+
+# Preferences: Communication | Code | Tools | Workflow | General
+- 偏好中文沟通
+```
+
+## Pending Layer
+
+Auto-extracted memories land in `memory/pending.md`:
+- `[○]` pending — awaiting verification
+- `[✓]` promoted — moved to consolidated
+- `[✗]` discarded — 7 days without use
+
+**Search auto-promotes** pending entries with score ≥0.5. Usage is verification.
+
+## Tags
+
+Each learning has LLM-auto-extracted tags. Search uses them:
+- Exact tag match → +0.3 score
+- Related tag (association graph) → +0.15 score
+- This means conceptually related entries surface even with different wording
+
+## Important
+
+- Start with targeted `role_search({ query: "..." })` only when prior context is materially relevant; search may reinforce or promote matches
+- High Priority `[3x]+` are most valuable — read first
+- User references past work → search for related keywords
+- Nothing found → proceed without memory

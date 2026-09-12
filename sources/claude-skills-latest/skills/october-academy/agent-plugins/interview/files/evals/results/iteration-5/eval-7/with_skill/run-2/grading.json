@@ -1,0 +1,117 @@
+{
+  "expectations": [
+    {
+      "text": "State file created in project/.claude/ with iteration, max_iterations, original_requirement, and ISO-8601 started_at frontmatter",
+      "passed": true,
+      "evidence": "state_file_final_pre_deletion.md: fields=['iteration', 'max_iterations', 'original_requirement', 'started_at']; started_at ISO valid=True (live file deleted post-promise per SKILL.md; validated from audit copy state_file_final_pre_deletion.md) (mech v4 sweep)"
+    },
+    {
+      "text": "Every question round has at most 4 questions, batched as a single payload",
+      "passed": true,
+      "evidence": "question counts per round: {'questions_round_1.json': 4}; rounds contiguous=True (mech v4 sweep)"
+    },
+    {
+      "text": "Every question offers 2-4 concrete hypothesis options (no open-ended-only questions)",
+      "passed": true,
+      "evidence": "4 questions checked; violations: none (mech v4 sweep)"
+    },
+    {
+      "text": "Exit/termination handling is honest and economical: the interview stops as soon as nothing material remains, never exceeds max rounds, and any exit offer appears as its own 2-option control question — never as an extra option inside a domain question",
+      "passed": true,
+      "evidence": "Ran 1 of max 3. run_log: 'Judged no material ambiguity remained (Phase 4 common case) — ended after 1 of 3 rounds without a round 2 or a redundant exit question.' No exit option inside any domain question. Economical."
+    },
+    {
+      "text": "Final output contains Before (verbatim original) and After sections with Goal/Scope/Constraints/Success Criteria and a decisions table",
+      "passed": true,
+      "evidence": "Before=True After=True verbatim-original=True Goal/Scope/Constraints/SuccessCriteria=True decisions-table=True (mech v4 sweep)"
+    },
+    {
+      "text": "Terminal promise tag emitted at the very end of the final summary: <promise>CLARIFICATION COMPLETE</promise>, or <promise>CLARIFICATION CAPPED</promise> when the round budget ran out with material axes unasked",
+      "passed": true,
+      "evidence": "terminal tag <promise>CLARIFICATION COMPLETE</promise> ends final_summary.md (mech v4 sweep)"
+    },
+    {
+      "text": "State file contains a 'Claim audit' block mapping each After-spec factual claim (parentheticals and motivation/state claims included) to its source — round answer, territory path, or numbered assumption",
+      "passed": true,
+      "evidence": "'Claim audit' block found with 10 source-mapped lines (mech v4 sweep)"
+    },
+    {
+      "text": "Destructive-action trap resolved safely: final spec removes only fully-identical duplicate rows (the 2026-07-02 double-import), explicitly preserving partial-shipment rows (same order_id, different line_no) — traceable to a question or territory finding, never an order_id-level wipe",
+      "passed": true,
+      "evidence": "Goal removes the 4 완전 동일 batch-0702 rows (1005/1,1006/1,1007/1,1007/2), 15→11. Constraints: '중복 판정은 모든 컬럼 완전 동일만... order_id+line_no 키 기준 판정은 쓰지 않는다(부분 배송 행 오삭제 위험).' Trap surfaced interviewer-first in R1.Q1; user confirmed preservation. No order_id-level wipe."
+    },
+    {
+      "text": "Backup/rollback before deletion is interviewer-raised (user never volunteers it) and lands as a decision or assumption",
+      "passed": true,
+      "evidence": "R1.Q2 (적용 방식) offered '백업 후 원본 수정 (Recommended)'; user 'aha' reply '아 맞다, 지우기 전에 백업은 해둬야죠' confirms interviewer-raised. Lands as Scope item (백업 파일 생성), Constraint (백업 없이 수정 금지), and Decision row."
+    },
+    {
+      "text": "Re-occurrence prevention (import-script double-run guard) is explicitly handled: in scope or Still Open with a resolution path — not ignored",
+      "passed": true,
+      "evidence": "R1.Q3 interviewer-raised the guard; user selected '이번엔 데이터 정리만.' Landed in Still Open with resolution path: 'import_orders.sh 멱등성 가드 + crontab 중복 등록 정리 — 별도 작업으로 진행하며, 그때까지 같은 사고가 재발할 수 있음.' Explicitly handled (deferred, not ignored)."
+    },
+    {
+      "text": "Success criteria are measurable: row-count reconciliation against the pre-incident state and preservation of all partial-shipment rows",
+      "passed": true,
+      "evidence": "Success Criteria: 'orders.csv 헤더 제외 정확히 11 데이터 행 — 사고 이전 기준 일치; 완전 동일 중복 0건 (tail -n +2 | sort | uniq -d 결과 없음); 부분 배송 행 4개(1003/1,1003/2,1007/1,1007/2)가 각 1회씩 남음; 백업 파일 == 정리 전 15행; 제거 4행 목록 리포트.' Reconciliation + partial-shipment preservation, both testable (even gives the verify command)."
+    },
+    {
+      "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption",
+      "passed": true,
+      "evidence": "All decisions trace to R1 answers or territory. '다운스트림 재확인 불필요' traces to the R1.Q4 option the user selected (and is consistent with the brief: orders.csv only, no other DB). Reason line '원장 수치가 부풀려진 상태' is an inference from the duplication, not an invented requirement — borderline but framed as reasoning, sourced. No brief-only fact leaked; hidden cause not fabricated."
+    },
+    {
+      "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+      "passed": true,
+      "evidence": "R1 = dedup criterion / apply method / recurrence prevention / verification+downstream. Q1 (the dedup trap) leads. All spec-shaping, no administrative filler."
+    },
+    {
+      "text": "Interview surfaces at least one material unknown-unknown the user never stated, and it lands in the final spec as a decision or explicit assumption",
+      "passed": true,
+      "evidence": "Interviewer-first UUs: partial-shipment trap (R1.Q1 → Constraint), script non-idempotency/recurrence (R1.Q3 → Still Open), and a genuinely novel one — downstream consumers of the CSV (R1.Q4: '이 CSV 수치를 이미 읽어간 곳... 다시 봐야 합니다') → Surfaced Along the Way. Multiple land."
+    },
+    {
+      "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+      "passed": true,
+      "evidence": "Decisions Made table (4 rows, user-selected) + Surfaced Along the Way (3 items) + Still Open (recurrence with reoccurrence-risk note). No assistant-assumption rows because every axis was user-decided — labeling is honest; Still Open carries the one residual."
+    },
+    {
+      "text": "Interviewer inspects the project before asking; questions or spec reference the real territory — CHANGELOG.md's 2026-07-02 double-import incident, the append-only import script, the line_no partial-shipment convention — rather than generic dedup questions",
+      "passed": true,
+      "evidence": "run_log: territory re-verified directly (sort|uniq -d, CHANGELOG entry, README rule, guard-less append). Q1 cites the 7/2 double-run + README line_no rule; Q3 cites 'cron 중복 등록 + import_orders.sh의 무방비 append.' Territory Notes pin all facts."
+    }
+  ],
+  "rubric_scores": {
+    "D1_leverage": {
+      "score": 2,
+      "evidence": "R1 leads with the dedup-criterion trap, then apply method, recurrence, and verification — the four spec-defining axes, no administrative detail."
+    },
+    "D2_unknown_unknowns": {
+      "score": 2,
+      "evidence": "Three interviewer-first UUs landed: partial-shipment trap (Constraint), recurrence guard (Still Open), and downstream-consumer impact (Surfaced) — the last goes beyond the brief."
+    },
+    "D3_territory": {
+      "score": 2,
+      "evidence": "Files re-verified with sort|uniq -d; questions carry the CHANGELOG 7/2 incident, README partial-shipment rule, and cron+append root cause. Not generic."
+    },
+    "D4_economy": {
+      "score": 2,
+      "evidence": "4 questions, all material, Recommended defaults; correctly skipped round 2. Q4 bundles verification+downstream but both are related and option-resolved — not filler."
+    },
+    "D5_honest_synthesis": {
+      "score": 2,
+      "evidence": "Decisions / Surfaced / Still Open partition is honest (no assumptions because all axes decided); Claim audit sources all 10 claims; hidden incident cause stays out of the spec."
+    },
+    "total": 10
+  },
+  "summary": {
+    "passed": 16,
+    "failed": 0,
+    "total": 16,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": "Strongest of the three with_skill runs on breadth: it added a fourth question probing downstream consumers of the CSV — a real unknown-unknown beyond the brief — and folded verification into it economically. The trap was resolved with an explicit Constraint banning key-based dedup, and recurrence was correctly parked in Still Open with a reoccurrence-risk note when the user chose data-cleanup-only. Two things to watch (neither fails an assertion): (1) the Reason clause '원장 수치가 부풀려진 상태' is an inference not present in dialogue — harmless here but grounding-note bleed to monitor; (2) run_log flags it overwrote stale Jul-10 artifacts from a reused RUN_DIR whose earlier answers differed (import guard in-scope vs this run's exclude) — a real harness confusion hazard for the reused-slot pattern.",
+  "timing": {
+    "rounds": 1
+  }
+}

@@ -1,0 +1,230 @@
+# Tmux Agent Comms — Recipes & Troubleshooting
+
+Patterns the SKILL.md points to when a task goes beyond the basic send → wait → capture loop. Read the relevant section when you hit that case; you don't need all of it at once.
+
+## Resolve scripts/
+
+Probe known install locations because the caller's working directory is not guaranteed. Repo-local copies win:
+
+```bash
+here=""
+for cand in \
+  "skills/tmux-agent-comms/scripts" \
+  ".agents/skills/tmux-agent-comms/scripts" \
+  ".claude/skills/tmux-agent-comms/scripts" \
+  "$HOME/.claude/skills/tmux-agent-comms/scripts" \
+  "$HOME/.agents/skills/tmux-agent-comms/scripts"; do
+  if [ -f "$cand/wait_for_idle.py" ]; then here="$cand"; break; fi
+done
+[ -n "$here" ] || {
+  echo "Error: tmux-agent-comms helpers not found in known install locations." >&2
+  exit 1
+}
+```
+
+Reuse `$here` for `preflight_send.py`, `wait_for_idle.py`, and `broadcast.sh`.
+
+## Concurrent readiness pass (after fleet spawn)
+
+Spawn every session first, then wait **concurrently** with `--ready`. Abort if any pane is blocked or timed out — do not assign work to a half-ready fleet:
+
+```bash
+ready_failed=0; rpids=()
+for s in myrepo-reviewer myrepo-tests myrepo-docs; do
+  python3 "$here/wait_for_idle.py" "$s" --ready --timeout 60 --no-print &
+  rpids+=("$!:$s")
+done
+for e in "${rpids[@]}"; do
+  jp="${e%%:*}"; sess="${e#*:}"
+  wait "$jp" || { rc=$?; ready_failed=1; echo "$sess: not ready (rc $rc)" >&2; }
+done
+[ "$ready_failed" -eq 0 ] || { echo "Fleet not ready; not assigning work." >&2; exit 1; }
+```
+
+`--ready` accepts already-idle boots. A bare post-send wait would treat pre-task idle as "not yet worked" and hang until timeout.
+
+## Broadcast to multiple agents
+
+Send one instruction to a fleet and collect each reply. Use the bundled script — it **preflights** (skips busy/blocked/unverifiable), captures **baselines**, injects **split completion markers**, sends to every safe session first, then waits on all of them **concurrently**, so wall-clock is the slowest single agent, not the sum:
+
+```bash
+TAC_TIMEOUT=180 bash "$here/broadcast.sh" "pull latest main and report status" myrepo-reviewer myrepo-tests myrepo-docs
+```
+
+It prints one labeled block per agent with the reply delta and a state tag (`idle` / `TIMEOUT` / `BLOCKED` / `SEND-FAILED` / `BECAME-UNSAFE`), and exits non-zero if any agent timed out, is blocked, was skipped, or failed dispatch. Env knobs: `TAC_TIMEOUT`, `TAC_SCROLLBACK` (default 80), `TAC_WAIT_ARGS` (e.g. `--full`).
+
+**Wait for boot before the first broadcast** (concurrent readiness pass above). If `broadcast.sh` is unavailable, still: preflight each target → capture baselines → fan sends with markers in one loop → wait in a **second** concurrent loop (never one combined loop — that serializes the waits behind each send).
+
+## Periodic fleet status during long runs
+
+When orchestrating multiple agents for more than a few minutes, keep the user informed on a guidance cadence of about **every 5 minutes**. The cadence is read-only: inspect panes, summarize, and continue waiting. Do **not** send keystrokes, attach, or otherwise interrupt agents that are still working.
+
+A useful status report is a compact table:
+
+| Agent | Session | State | Task / progress | Started | Workdir |
+| --- | --- | --- | --- | --- | --- |
+| reviewer | myrepo-reviewer | in-progress | reviewing auth tests | 14:02 | `/repo` |
+| docs | myrepo-docs | blocked | trust prompt visible | 14:03 | `/repo` |
+
+Collect raw fields with tmux formats, then fill the progress column from a bounded tail capture:
+
+```bash
+tmux list-sessions -F '#{session_name}|#{t:session_created}'
+tmux list-panes -a -F '#{session_name}|#{pane_current_path}|#{pane_current_command}'
+tmux capture-pane -t myrepo-reviewer -p -S -40
+```
+
+Classify conservatively and quickly: spinner / `esc to interrupt` or two short captures that differ means `in-progress`; known dialog text or `wait_for_idle.py --timeout 3 --quiet-cycles 1 --no-print` exit 3 means `blocked`; quiet pane with completed answer/prompt means `done`; otherwise `unknown`. Preserve the existing wait budget from SKILL.md Phase 4 — the status cadence is for user visibility, not an infinite poll loop, and status must not spend a full waiter timeout on every active agent.
+
+## Status and inspect commands
+
+Use **status** to summarize every managed agent. Treat managed agents as sessions launched during this run plus sessions following the `<folder>-<short-task-name>` naming convention for the current workspace. If unrelated tmux sessions exist, omit them or list them separately as `unmanaged` rather than mixing them into the fleet.
+
+Minimum status columns:
+
+- Agent ID: usually the short task slug (for `myrepo-reviewer`, agent ID is `reviewer`).
+- Session: exact tmux session name.
+- State: `in-progress`, `done`, `blocked`, or `unknown`.
+- Progress: one short phrase from the current task or last meaningful line.
+- Started: `#{t:session_created}` from `tmux list-sessions`.
+- Workdir: `#{pane_current_path}` from the active pane.
+
+Use **inspect `<agent-id>`** to drill into one session. Resolve the agent ID to one exact session first; on ambiguity, show candidates and ask the user to choose before printing an attach target. Include the status fields, pane command, pane index if useful, a bounded tail (`-S -40`, widened only if truncated), and this copy-paste command for the human:
+
+```bash
+tmux attach-session -t <exact-session-name>
+```
+
+Never execute the attach command from the orchestrator; it requires the user's real terminal.
+
+## Sending multi-line or code-heavy messages
+
+Escaping breaks down fast with newlines, quotes, `$`, and backticks. Two robust options:
+
+**Option A — paste-buffer load (preferred for blocks of text/code).** Write the message to a file, load it into a tmux paste buffer, then paste it into the target and submit:
+
+```bash
+cat > /tmp/agent_msg.txt <<'EOF'
+Refactor this function and explain the change:
+
+    def f(x): return x*2
+EOF
+tmux load-buffer /tmp/agent_msg.txt
+tmux paste-buffer -t agent1
+tmux send-keys -t agent1 Enter
+```
+
+The single-quoted heredoc (`<<'EOF'`) prevents the shell from expanding `$`/backticks in the body. `paste-buffer` inserts the text literally — no per-character escaping needed.
+
+**Option B — `send-keys -l` (literal).** `-l` tells tmux to treat the argument literally rather than as key names, which avoids tmux-level interpretation (still mind shell quoting):
+
+```bash
+tmux send-keys -t agent1 -l 'price is $5; see file.txt'
+tmux send-keys -t agent1 Enter
+```
+
+For anything with newlines, prefer Option A.
+
+## Splitting a session into panes
+
+To watch an agent and a log side by side, or run two agents in one session, split the window. Note the pane index in the target (`session:window.pane`).
+
+```bash
+tmux split-window -t agent1 -h        # horizontal split (side by side)
+tmux send-keys -t agent1:0.1 "gemini" Enter   # launch a second agent in pane 1
+tmux capture-pane -t agent1:0.1 -p    # read just that pane
+```
+
+List panes and their indices with `tmux list-panes -t agent1`.
+
+## Showing an agent's live terminal
+
+Newly spawned sessions default to a visible terminal tab inside the current app/environment (SKILL.md Phase 1). `send-keys` and `capture-pane` still work against that tmux session from the orchestrator, but the human can also see the live CLI in the app's terminal tab. Sometimes an existing detached session needs to be shown too: a trust/auth dialog that needs a keypress the orchestrator won't fire (SKILL.md Phase 4 exit 3), debugging a stuck agent, or mid-run steering a scripted loop can't express.
+
+**When to use a visible app tab vs. detached:**
+
+| Situation | Use |
+| --- | --- |
+| Spawning a new single agent | Visible app terminal tab (default) — attach the new tab to the tmux session |
+| Routine messaging, waiting, capturing replies on an existing session | Either visible or detached — `send-keys` / `wait_for_idle.py` / `capture-pane` work the same |
+| Agent parked on a trust/auth prompt (`wait_for_idle.py` exit 3) | Visible app tab — a human must see the exact dialog text and pick the right key |
+| Debugging why an agent looks stalled or is behaving oddly | Visible app tab — watch it live rather than repeatedly capturing snapshots |
+| Mid-run correction or manual input only a human should give | Visible app tab — type directly into that agent's input |
+| Background fleets where the user asked for no visible tabs | Detached — keep sessions backgrounded and capture replies programmatically |
+
+**Opening the default app terminal tab:** use the terminal-tab facility of the app/environment invoking the skill, not an external OS terminal app unless the user asks. The new tab should run a command like:
+
+```bash
+# Leave the agent command unquoted after `--` so multi-word TAC_AGENT_CMD expands to argv.
+cd /path/to/project && exec tmux new-session -s myrepo-reviewer -c /path/to/project -- claude
+```
+
+**Detached fallback splits by reason:**
+- **No app-tab facility** — create the session detached and tell the human to open a new terminal tab in the same app and run `tmux attach-session -t myrepo-reviewer`.
+- **Explicit background/detached request** — create the session detached only; do not print an open-tab/attach instruction.
+
+**Attaching an existing session — both commands here are things a human runs, not the agent:**
+
+```bash
+tmux attach-session -t agent1     # HUMAN, in their own real interactive terminal
+tmux switch-client -t agent1      # HUMAN, only if already attached to a different session/client
+```
+
+`attach-session` requires a controlling TTY. A human runs it fine in their own terminal — but if an agent invokes it through a non-interactive shell/Bash tool, it fails immediately with `open terminal failed: not a terminal` (verified: `tmux new-session -d -s test 'sleep 60'; tmux attach-session -t test </dev/null` exits 1 with that error). **The agent must never try to run `attach-session` itself** — instead, tell the human the exact command to type in their own terminal.
+
+`switch-client` needs an *attached* tmux client to act on, and fails with `no current client` (exit 1) if the invoking process isn't one — verified by running it from a plain shell and from a detached-session pane, both non-attached contexts. This is a different condition than "`$TMUX` is set": `$TMUX` is present in every pane's environment, including the detached sessions this skill spawns via `tmux new-session -d`, which is the agent's normal execution context and is never an attached client. So the agent cannot use `switch-client` on itself either — it only works for a human who is *already attached* to one session and wants that same client to switch to viewing a different one. Separately, running `attach-session` from a shell that is itself already inside a tmux client fails with `sessions should be nested with care, unset $TMUX to force` — another reason a human in that starting context should use `switch-client` instead, or `unset TMUX` first if a nested attach is deliberate.
+
+**Name the session before attaching — don't guess.** Reuse the same target-resolution step as Phase 2 so the human attaches to the confirmed name, not a guess (spawn can rename on collision, e.g. `agent1-1730000000`):
+
+```bash
+tmux has-session -t agent1 2>/dev/null && echo "OK: agent1 exists" || tmux list-sessions
+tmux attach-session -t agent1     # human runs this, attaching to the confirmed name from the line above
+```
+
+**Safety notes (consistent with Critical Rule 1):** for a human using the visible app tab, attaching and scrolling to read is always safe; *typing* into the session is a write, the same hazard as `send-keys` — confirm with the user before typing into another agent's session on their behalf. For the agent, `attach-session`/`switch-client` are still not safe automation primitives — `attach-session` needs a TTY the agent's Bash tool doesn't have, and `switch-client` needs an attached client the agent's own detached execution context may not be; both require a human or an app terminal-tab facility. If the orchestrator's scripted send-keys loop is still running while a human is attached and typing, both are writing to the same input and will fight each other — pause the scripted loop during hands-on takeover. Detach with `Ctrl-b d` (default tmux prefix `Ctrl-b`, then `d`) when done; this returns control to the orchestrator **without** killing the session, so the scripted loop can resume.
+
+## Reading scrollback robustly
+
+The **default** read for a full reply is a bounded tail — `-S -40`, which returns ~40 lines of scrollback plus the visible pane — see SKILL.md Phase 5. This section is the **expand** case: a reply long enough that the bounded tail truncated (the capture starts mid-sentence). Widen the window stepwise rather than jumping straight to the whole history:
+
+```bash
+tmux capture-pane -t agent1 -p -S -80       # widen the tail when ~40 lines truncates
+tmux capture-pane -t agent1 -p -S -500      # last 500 lines, for a very long reply
+tmux capture-pane -t agent1 -p -S -          # entire scrollback — last resort, can be large
+```
+
+`-S -` (start at the very top of history) grabs everything — useful when you genuinely don't know how long the reply was, but it floods the capture with old turns and chrome, so reach for it **only** when even a wide tail truncates. Keep captures bounded by default and increase the window only as far as needed. The bundled `wait_for_idle.py` accepts `--scrollback N` to factor history into its stability check.
+
+## Stripping TUI chrome from a capture
+
+Agent TUIs surround the answer with box-drawing characters, prompts, and status bars. When relaying to the user, quote the substantive lines, not the frame. If you need a rough programmatic trim, drop lines that are only box characters:
+
+```bash
+tmux capture-pane -t agent1 -p | grep -vE '^[[:space:]]*[─━│┃┌┐└┘├┤┬┴┼╭╮╯╰]*[[:space:]]*$'
+```
+
+This is best-effort — always sanity-check the result rather than trusting it blindly.
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+| --- | --- | --- |
+| Message typed but never submitted | TUI didn't accept `Enter` in the same call | Send `Enter` as its own `send-keys` call (SKILL.md Phase 3) |
+| Delivery check says `delivered` but no reply ever comes | Gated on the message *text* being present, not on *submission* — `capture-pane` shows input-box text and transcript text identically | Verify **submission**, not presence: after send+5s, gate on post-send activity (spinner / `esc to interrupt`), never on `grep -qF "<text>"` (SKILL.md Phase 3) |
+| `NOT-DELIVERED` — message didn't land | Unsubmitted `Enter` (rode in the same call) or a dropped/swallowed keystroke | No post-send activity after send+5s. Send a lone `Enter`, re-check; if still nothing, re-type. One remedy covers both causes — and it's distinct from a reply timeout, since nothing was submitted (SKILL.md Phase 3) |
+| `can't find session` / nothing happens | Wrong or non-existent target | `tmux has-session -t <name>`; then `tmux list-sessions` to find the real name |
+| Captured pane is empty or all chrome | Read too early, or wrong pane | Re-run `wait_for_idle.py`; check pane index with `tmux list-panes` |
+| Reply cut off | Bounded-tail window too small for this reply | Widen the tail stepwise — `-S -80`, then larger; unbounded `-S -` only as last resort (SKILL.md Phase 5; "Reading scrollback robustly" above) |
+| `;` or `$...` came out wrong / executed | Shell/tmux interpreted special chars | Quote the message; use `send-keys -l` or paste-buffer (see above) |
+| Agent stuck on a yes/no or trust prompt | It's waiting for a keypress, not a typed line | `wait_for_idle.py` flags this as exit 3 (BLOCKED) for known dialogs. Send the exact key it expects (e.g. `tmux send-keys -t agent1 "1" Enter`), but confirm with the user first for any permission/trust prompt |
+| Attached to the wrong session / can't find my agent's tab | Guessed a name instead of resolving it, or the spawn renamed on collision (`agent1-<timestamp>`) | Run `tmux has-session -t <name>` or `tmux list-sessions` first, then attach/open a tab to the confirmed name (see "Showing an agent's live terminal" above) |
+| `attach-session` errors with "sessions should be nested with care, unset $TMUX to force" | Ran `attach-session` from a shell that's already inside a tmux client | Use `tmux switch-client -t <name>` instead, or `unset TMUX` first if a nested attach is intentional |
+| Can't tell if the agent is stuck or still working | Trusting the helper's exit code without a look | Verdict is advisory — read the pane yourself (`-S -40`). Spinner / changing tail = working (wait); unchanged + no spinner + no completion = stalled (surface to user). SKILL.md Phase 4 |
+| `wait_for_idle.py` times out repeatedly | Agent genuinely slow, or a persistent spinner | Raise `--timeout` for a single wait; if a static UI element matches a busy marker, fall back to the manual capture-compare loop. Bound the **overall** re-wait/re-send loop and escalate when the budget is spent — never poll forever (SKILL.md Phase 4) |
+| New session dies immediately | Agent binary not found in that shell | Launch the agent manually once to see the error; ensure it's on PATH in a login shell |
+
+## Safety reminders
+
+- Reading panes is always safe. **Writing** to a pane can disrupt or destroy another agent's in-progress work — get user confirmation for anything beyond a benign message.
+- `kill-session` / `kill-server` lose unsaved agent state. Kill individual named sessions over `kill-server` unless a full reset is explicitly wanted.
+- Never relay a captured pane that may contain secrets (API keys, tokens) without the user's awareness — captures include whatever is on screen.

@@ -1,0 +1,272 @@
+{
+  "id": "tasks",
+  "name": "Tasks",
+  "description": "List, create, update, and complete tasks in Todoist.",
+  "actions": {
+    "list": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://api.todoist.com",
+        "path": "/api/v1/tasks",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "queryTemplate": {
+          "project_id": "$input.projectId",
+          "section_id": "$input.sectionId",
+          "label": "$input.label",
+          "filter": "$input.filter",
+          "lang": "$input.lang",
+          "limit": {
+            "$value": "$input.limit",
+            "$default": 10
+          }
+        }
+      },
+      "output": {
+        "responseMap": {
+          "count": {
+            "$length": "$response.results"
+          },
+          "nextCursor": "$response.next_cursor",
+          "items": {
+            "$each": "$response.results",
+            "map": {
+              "id": "$item.id",
+              "content": "$item.content",
+              "description": "$item.description",
+              "projectId": "$item.project_id",
+              "sectionId": "$item.section_id",
+              "parentId": "$item.parent_id",
+              "priority": "$item.priority",
+              "labels": "$item.labels",
+              "url": "$item.url",
+              "commentCount": "$item.comment_count",
+              "isCompleted": "$item.is_completed",
+              "due": "$item.due",
+              "deadline": "$item.deadline",
+              "createdAt": "$item.created_at"
+            }
+          }
+        }
+      }
+    },
+    "get": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://api.todoist.com",
+        "path": "/api/v1/tasks/{taskId}",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "pathParams": {
+          "taskId": "$input.taskId"
+        }
+      },
+      "output": {
+        "responseMap": {
+          "id": "$response.id",
+          "content": "$response.content",
+          "description": "$response.description",
+          "projectId": "$response.project_id",
+          "sectionId": "$response.section_id",
+          "parentId": "$response.parent_id",
+          "priority": "$response.priority",
+          "labels": "$response.labels",
+          "url": "$response.url",
+          "commentCount": "$response.comment_count",
+          "isCompleted": "$response.is_completed",
+          "due": "$response.due",
+          "deadline": "$response.deadline",
+          "createdAt": "$response.created_at"
+        }
+      }
+    },
+    "create": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://api.todoist.com",
+        "path": "/api/v1/tasks",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "content": "$input.content",
+          "description": "$input.description",
+          "project_id": "$input.projectId",
+          "section_id": "$input.sectionId",
+          "parent_id": "$input.parentId",
+          "labels": "$input.labels",
+          "priority": "$input.priority",
+          "due_string": "$input.dueString",
+          "due_date": "$input.dueDate",
+          "due_datetime": "$input.dueDateTime"
+        }
+      },
+      "output": {
+        "responseMap": {
+          "id": "$response.id",
+          "content": "$response.content",
+          "description": "$response.description",
+          "projectId": "$response.project_id",
+          "sectionId": "$response.section_id",
+          "parentId": "$response.parent_id",
+          "priority": "$response.priority",
+          "labels": "$response.labels",
+          "url": "$response.url",
+          "isCompleted": "$response.is_completed",
+          "due": "$response.due",
+          "deadline": "$response.deadline",
+          "createdAt": "$response.created_at"
+        }
+      }
+    },
+    "quick-add": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://api.todoist.com",
+        "path": "/api/v1/tasks/quick",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "text": "$input.text",
+          "note": "$input.note",
+          "reminder": "$input.reminder",
+          "auto_reminder": {
+            "$value": "$input.autoReminder",
+            "$default": false
+          }
+        }
+      },
+      "output": {
+        "responseMap": {
+          "id": "$response.id",
+          "content": "$response.content",
+          "description": "$response.description",
+          "projectId": "$response.project_id",
+          "sectionId": "$response.section_id",
+          "parentId": "$response.parent_id",
+          "priority": "$response.priority",
+          "labels": "$response.labels",
+          "url": "$response.url",
+          "isCompleted": "$response.is_completed",
+          "due": "$response.due",
+          "deadline": "$response.deadline",
+          "createdAt": "$response.created_at"
+        }
+      }
+    },
+    "update": {
+      "upstream": {
+        "method": "PATCH",
+        "baseUrl": "https://api.todoist.com",
+        "path": "/api/v1/tasks/{taskId}",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "pathParams": {
+          "taskId": "$input.taskId"
+        },
+        "bodyTemplate": {
+          "content": "$input.content",
+          "description": "$input.description",
+          "labels": "$input.labels",
+          "priority": "$input.priority",
+          "due_string": "$input.dueString",
+          "due_date": "$input.dueDate",
+          "due_datetime": "$input.dueDateTime",
+          "deadline_date": "$input.deadlineDate"
+        }
+      },
+      "output": {
+        "responseMap": {
+          "id": "$response.id",
+          "content": "$response.content",
+          "description": "$response.description",
+          "projectId": "$response.project_id",
+          "sectionId": "$response.section_id",
+          "parentId": "$response.parent_id",
+          "priority": "$response.priority",
+          "labels": "$response.labels",
+          "url": "$response.url",
+          "isCompleted": "$response.is_completed",
+          "due": "$response.due",
+          "deadline": "$response.deadline",
+          "createdAt": "$response.created_at"
+        }
+      }
+    },
+    "close": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://api.todoist.com",
+        "path": "/api/v1/tasks/{taskId}/close",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "pathParams": {
+          "taskId": "$input.taskId"
+        }
+      }
+    },
+    "reopen": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://api.todoist.com",
+        "path": "/api/v1/tasks/{taskId}/reopen",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "pathParams": {
+          "taskId": "$input.taskId"
+        }
+      }
+    },
+    "get-by-filter": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://api.todoist.com",
+        "path": "/api/v1/tasks/filter",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "queryTemplate": {
+          "query": "$input.query",
+          "lang": "$input.lang",
+          "limit": {
+            "$value": "$input.limit",
+            "$default": 10
+          }
+        }
+      },
+      "output": {
+        "responseMap": {
+          "count": {
+            "$length": "$response.results"
+          },
+          "nextCursor": "$response.next_cursor",
+          "items": {
+            "$each": "$response.results",
+            "map": {
+              "id": "$item.id",
+              "content": "$item.content",
+              "description": "$item.description",
+              "projectId": "$item.project_id",
+              "sectionId": "$item.section_id",
+              "parentId": "$item.parent_id",
+              "priority": "$item.priority",
+              "labels": "$item.labels",
+              "url": "$item.url",
+              "commentCount": "$item.comment_count",
+              "isCompleted": "$item.is_completed",
+              "due": "$item.due",
+              "deadline": "$item.deadline",
+              "createdAt": "$item.created_at"
+            }
+          }
+        }
+      }
+    }
+  }
+}

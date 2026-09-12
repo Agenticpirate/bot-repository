@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>世界杯竞彩分析 | {{date}}</title>
+<style>
+  /* ── 纸本对阵表 + 等宽数据骨架 ──
+     调色板：纸底 / 墨 / 竞彩红(唯一警示) / 验证绿 / 分隔线
+     字体：等宽 = 机器事实(编号/赔率/分数/让球)，衬线 = 人为解读。
+     单文件自包含：全部系统字体，无外部加载。
+  */
+  :root {
+    --paper: #ECE8DE;
+    --paper-2: #E3DECF;
+    --paper-edge: #D6CFBC;
+    --ink: #1C1A17;
+    --ink-dim: #6B6557;
+    --line: #C9C3B5;
+    --red: #B53024;
+    --green: #2E7D5B;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Roboto Mono", Menlo, Consolas, monospace;
+    --serif: "Songti SC", "Noto Serif SC", Georgia, "Times New Roman", serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font-family: var(--serif);
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.6;
+    padding: 28px 16px 64px;
+    max-width: 760px;
+    margin: 0 auto;
+    background-image: radial-gradient(rgba(28,26,23,0.025) 1px, transparent 1px);
+    background-size: 3px 3px;
+  }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  /* ── 刊头 ── */
+  .masthead { border-top: 3px double var(--ink); border-bottom: 1px solid var(--ink); padding: 14px 0 12px; margin-bottom: 22px; }
+  .masthead .top-row { display:flex; justify-content:space-between; align-items:baseline; margin-bottom: 6px; flex-wrap:wrap; gap:6px; }
+  .masthead .brand { font-family: var(--serif); font-weight: 700; font-size: 20px; letter-spacing: 0.02em; }
+  .masthead .brand .em { color: var(--red); }
+  .masthead .issue { font-family: var(--mono); font-size: 11px; color: var(--ink-dim); letter-spacing:0.08em; }
+  .masthead h1 { font-family: var(--serif); font-weight: 700; font-size: 15px; letter-spacing: 0.02em; }
+  .masthead h1 .mono { font-size: 13px; }
+  .masthead .rule { font-family: var(--mono); font-size: 10px; color: var(--ink-dim); margin-top: 4px; }
+
+  /* ── 结论先行 ── */
+  .verdict { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--ink); margin-bottom: 26px; }
+  .verdict > div { padding: 12px 14px; border-right: 1px solid var(--line); text-align: center; }
+  .verdict > div:last-child { border-right: none; }
+  .verdict .v-label { font-family: var(--mono); font-size: 10px; letter-spacing:0.12em; color: var(--ink-dim); text-transform:uppercase; }
+  .verdict .v-sp { font-family: var(--mono); font-weight: 700; font-size: 22px; margin: 2px 0; }
+  .verdict .v-dir { font-family: var(--serif); font-size: 11px; color: var(--ink-dim); }
+
+  /* ── 章节标记 ── */
+  .section-head { display:flex; align-items:baseline; gap: 10px; border-bottom: 2px solid var(--ink); padding-bottom: 4px; margin: 28px 0 14px; flex-wrap:wrap; }
+  .section-head .num { font-family: var(--mono); font-weight:700; font-size: 13px; color: var(--paper); background: var(--ink); padding: 1px 7px; letter-spacing: 0.05em; }
+  .section-head .title { font-family: var(--serif); font-weight: 700; font-size: 15px; }
+  .section-head .sub { font-family: var(--mono); font-size: 10px; color: var(--ink-dim); margin-left:auto; }
+
+  /* ── 对阵表 ── */
+  table.fixtures { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+  table.fixtures th { text-align: left; font-weight: 600; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-dim); border-bottom: 1px solid var(--ink); padding: 6px 8px; }
+  table.fixtures td { padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  table.fixtures tr:last-child td { border-bottom: 1px solid var(--ink); }
+  .fx-id { color: var(--ink-dim); font-size: 11px; }
+  .fx-team { font-family: var(--serif); font-weight: 600; font-size: 13px; }
+  .fx-vs { color: var(--ink-dim); font-size: 10px; }
+  .fx-hc { font-weight: 700; }
+  .fx-hc.neg { color: var(--red); }
+  .fx-sp { font-variant-numeric: tabular-nums; color: var(--ink-dim); }
+
+  /* ── 逐场分析 ── */
+  .match { border-bottom: 1px solid var(--line); padding: 18px 0; }
+  .match:last-child { border-bottom: none; }
+  .match-head { display:flex; align-items:baseline; justify-content:space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+  .match-head .m-title { font-family: var(--serif); font-weight: 700; font-size: 15px; }
+  .match-head .m-title .mono { color: var(--ink-dim); font-weight: 400; font-size: 12px; margin-right:6px; }
+  .match-head .m-tag { font-family: var(--mono); font-size: 10px; letter-spacing:0.08em; color: var(--ink); border:1px solid var(--ink); padding: 1px 6px; }
+  .match-tagline { font-family: var(--serif); font-size: 12px; color: var(--ink-dim); margin-bottom: 10px; }
+
+  .dims { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border:1px solid var(--line); margin-bottom: 12px; }
+  .dim { background: var(--paper); padding: 9px 11px; }
+  .dim.is-cipher { background: var(--paper-2); grid-column: 1 / -1; }
+  .dim .d-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom: 2px; }
+  .dim .d-name { font-family: var(--mono); font-size: 10px; letter-spacing:0.08em; text-transform:uppercase; color: var(--ink); font-weight:600; }
+  .dim .d-name .w { color: var(--ink-dim); font-weight:400; margin-left:5px; }
+  .dim .d-score { font-family: var(--mono); font-weight:700; font-size: 13px; }
+  .dim .d-score .max { color: var(--ink-dim); font-size: 10px; font-weight:400; }
+  .dim .d-desc { font-family: var(--serif); font-size: 12.5px; line-height: 1.55; }
+  .dim.is-cipher .d-desc { line-height: 1.7; }
+  .dim .hc-block { display:block; margin: 5px 0 0; padding-left: 8px; border-left: 2px solid var(--ink-dim); }
+  .dim .hc-block-title { font-family: var(--mono); font-size: 10px; letter-spacing:0.08em; color: var(--ink-dim); text-transform:uppercase; margin-right:4px; }
+  .dim .signal-up { color: var(--green); font-weight:700; }
+  .dim .signal-down { color: var(--red); font-weight:700; }
+  .dim .signal-warn { color: var(--ink-dim); }
+
+  .match-foot { display:flex; justify-content:space-between; align-items:center; border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 4px; gap:12px; }
+  .rec { display:flex; align-items:baseline; gap: 10px; flex-wrap:wrap; }
+  .rec .r-label { font-family: var(--mono); font-size: 10px; letter-spacing:0.1em; color: var(--ink-dim); text-transform:uppercase; }
+  .rec .r-dir { font-family: var(--serif); font-weight: 700; font-size: 17px; color: var(--red); }
+  .rec .r-sp { font-family: var(--mono); font-size: 12px; color: var(--ink); border:1px solid var(--ink); padding: 1px 6px; }
+  .total { text-align:right; }
+  .total .t-num { font-family: var(--mono); font-weight: 700; font-size: 30px; line-height:1; }
+  .total .t-max { font-family: var(--mono); font-size: 11px; color: var(--ink-dim); }
+  .risk { font-family: var(--serif); font-size: 12px; color: var(--red); margin-top: 8px; }
+
+  /* ── 签名元素：可撕票根 ── */
+  .stubs { display: grid; gap: 22px; }
+  .stub { position: relative; background: var(--paper-2); border: 1px solid var(--ink); }
+  .stub::before, .stub::after { content:''; position:absolute; left:0; right:0; height:6px; background-image: radial-gradient(circle at 6px 50%, var(--paper) 3.5px, transparent 4px); background-size: 12px 6px; background-repeat: repeat-x; }
+  .stub::before { top:-3px; }
+  .stub::after { bottom:-3px; }
+  .stub .tear { border-top: 1px dashed var(--ink); margin: 0; position: relative; }
+  .stub .tear::before, .stub .tear::after { content:''; position:absolute; top:-7px; width:12px; height:12px; border-radius:50%; background: var(--paper); }
+  .stub .tear::before { left:-7px; }
+  .stub .tear::after { right:-7px; }
+  .stub-head { display:flex; justify-content:space-between; align-items:flex-start; padding: 16px 18px 12px; gap:12px; }
+  .stub-head .h-left { display:flex; flex-direction:column; gap:3px; }
+  .stub-head .h-type { font-family: var(--mono); font-size: 10px; letter-spacing:0.18em; color: var(--ink-dim); text-transform:uppercase; }
+  .stub-head .h-expert { font-family: var(--serif); font-weight:700; font-size: 16px; }
+  .stub-head .h-quote { font-family: var(--serif); font-style: italic; font-size: 12px; color: var(--ink-dim); margin-top: 2px; }
+  .stub-head .h-sp-wrap { text-align:right; }
+  .stub-head .h-sp { font-family: var(--mono); font-weight:700; font-size: 26px; line-height:1; }
+  .stub-head .h-sp-cap { font-family: var(--mono); font-size: 9px; letter-spacing:0.12em; color: var(--ink-dim); text-transform:uppercase; }
+  .stub-body { padding: 14px 18px 16px; }
+  .stub-focus { font-family: var(--mono); font-size: 11px; color: var(--ink-dim); margin-bottom: 10px; }
+  .stub-items { font-family: var(--mono); font-size: 12px; border-top:1px solid var(--line); }
+  .stub-item { display:grid; grid-template-columns: 1fr auto auto; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); align-items: baseline; }
+  .stub-item .i-match { font-family: var(--serif); font-size: 13px; }
+  .stub-item .i-dir { font-weight:700; color: var(--red); }
+  .stub-item .i-sp { font-variant-numeric: tabular-nums; color: var(--ink-dim); }
+  .stub-logic { font-family: var(--serif); font-size: 12.5px; line-height:1.6; margin: 12px 0 10px; }
+  .stub-conf { display:flex; align-items:center; gap:8px; font-family: var(--mono); font-size: 11px; color: var(--ink-dim); }
+  .conf-box { display:inline-block; width:10px; height:10px; background: var(--ink); }
+  .conf-box.off { background: transparent; border:1px solid var(--line); }
+
+  /* ── 落款 ── */
+  .colophon { margin-top: 30px; border-top: 3px double var(--ink); padding-top: 12px; font-family: var(--mono); font-size: 10px; color: var(--ink-dim); letter-spacing: 0.04em; line-height: 1.8; }
+  .colophon .disc { color: var(--red); }
+
+  @media print {
+    body { padding: 0; max-width:none; background:#fff; background-image:none; }
+    .stub, .match, .verdict { break-inside: avoid; }
+  }
+  @media (max-width: 560px) {
+    .verdict { grid-template-columns: 1fr; }
+    .verdict > div { border-right:none; border-bottom:1px solid var(--line); }
+    .verdict > div:last-child { border-bottom:none; }
+    .dims { grid-template-columns: 1fr; }
+    .match-foot { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .total { text-align:left; }
+    table.fixtures { font-size: 11px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="top-row">
+    <span class="brand">竞彩周报 · <span class="em">世界杯专刊</span></span>
+    <span class="issue">№ {{date}} · {{play_type}}</span>
+  </div>
+  <h1>{{parlay_num}} 串 1 复盘 · <span class="mono">{{verdict_sp}}</span></h1>
+  <div class="rule">POWER-6 六维 · 凯利 · 隐含概率{{fetched_at}}</div>
+</header>
+
+<div class="verdict">
+{{verdict}}
+</div>
+
+<div class="section-head"><span class="num">01</span><span class="title">赛事一览</span><span class="sub">{{match_count}} 场 · {{play_type}}</span></div>
+<table class="fixtures">
+  <thead><tr>{{fixtures_header}}</tr></thead>
+  <tbody>
+{{match_table_rows}}
+  </tbody>
+</table>
+
+<div class="section-head"><span class="num">02</span><span class="title">POWER-6 逐场推演</span><span class="sub">六维加权 · /100</span></div>
+
+{{match_cards}}
+
+<div class="section-head"><span class="num">03</span><span class="title">三专家方案</span><span class="sub">可撕票根 · 各成一注</span></div>
+
+{{parlay_cards}}
+
+<footer class="colophon">
+  数据来源 — 500.com 竞彩 · 懂球帝 API · 欧赔/亚盘分析页<br>
+  分析框架 — POWER-6 六维模型 · 凯利指数 · 隐含概率{{health_line}}<br>
+  <span class="disc">⚠ 以上分析为解读而非预言，不构成投注建议。量力而行。</span>
+</footer>
+
+</body>
+</html>

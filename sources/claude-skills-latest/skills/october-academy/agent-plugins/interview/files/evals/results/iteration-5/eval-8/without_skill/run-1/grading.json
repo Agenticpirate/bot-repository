@@ -1,0 +1,82 @@
+{
+  "expectations": [
+    {
+      "text": "Cadence trap resolved: final spec is a once-daily morning digest the user runs/receives, not real-time monitoring or per-product push alerts — traceable to an asked question",
+      "passed": true,
+      "evidence": "R1 q5_timing explicitly asked real-time vs periodic vs on-demand; user chose '정기적으로(하루 1회/아침)' with '아침에 한 번이면 충분, 발주는 오전에 몰아서'. Final spec item 4: '하루 1회(아침)면 충분 → 실시간 감시 불필요'; whole output is a once-daily 부족 품목 digest, no per-product push (카카오톡/문자 explicitly in Non-goals). Cadence trap cleanly resolved and traceable to R1 q5."
+    },
+    {
+      "text": "Integration honored: the data source is the daily POS CSV email attachment (the requester's only access path) — no invented API/DB integration, traceable to a question about where inventory data lives",
+      "passed": true,
+      "evidence": "R1 q2_source ('재고 데이터가 지금 어디에 저장돼 있나요 — 이게 이 시스템이 무엇을 읽을지 결정') surfaced the CSV path; user Other: '샵플 POS…매일 아침 7시 재고 현황 CSV 이메일 첨부를 내려받아 씀'. Final spec item 3 pins that exact source; Non-goals explicitly excludes '샵플 API 직접 연동, 이메일함 자동 수신(A 완전자동)'. No invented API/DB. Traceable to R1 q2."
+    },
+    {
+      "text": "Threshold trap resolved: reorder criterion is the per-product 안전재고 column already in the CSV — a global fixed threshold (e.g. 'under 10') is not silently adopted; the user's Other correction or an asked question lands it",
+      "passed": true,
+      "evidence": "R1 q3_threshold offered a global common threshold (option 2, '전 품목 공통 임계값 하나'); user declined via Other: '상품마다 달라요. CSV에 안전재고 칸이 있어요.' Final spec item 5: '품목별 안전재고 칸을 기준으로 판정'; boundary sharpened in R2 q3 to '현재고 < 안전재고'. Global fixed threshold never adopted. Landed by the user's Other correction as designed."
+    },
+    {
+      "text": "Already-ordered exclusion is interviewer-raised (user never volunteers it) and lands as a decision or assumption, including how the ordered-state gets recorded",
+      "passed": false,
+      "evidence": "The interviewer never raised the already-ordered/in-transit exclusion in any of the 3 rounds (R1: domain/source/threshold/channel/timing/scale; R2: handoff/csv/boundary/content/channel/scale; R3: csv/handoff/email/quiet-days/edge-cases). grep across all outputs for 입고대기/이미 발주/재등장/already-ordered returns nothing; the final spec has no exclusion of ordered-but-not-received items and no ordered-state recording (the brief's '발주하면 시트에 적어둘 수 있어요' handoff). The designed marquee unknown-unknown was missed entirely. Clear FAIL."
+    },
+    {
+      "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption; values appearing only in unselected option text are recorded as assumptions, never as decided",
+      "passed": true,
+      "evidence": "All 10 rows of '확정된 사항' trace to R1/R2/R3 answers (domain R1, 혼자 R1, CSV source R1, 하루1회 R1, 안전재고 R1, 경계'<' R2 q3, 긴급0 R2 q3, output fields R2 q4, B 반자동 R3 q2, 단일파일 R2 q6); R3 q5 edge-cases all user-agreed. Delegated axes are correctly flagged '[가정]' (조용한 날, 수신 주소) and the CSV shape section is labeled '대부분 가정'. The unselected '권장 발주량' option was correctly NOT included. The R2-email vs R3-'설정0' tension is surfaced as an explicit ⚠ unresolved conflict, not laundered into a decision. No fabrication; no unselected-option value promoted to decided."
+    },
+    {
+      "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+      "passed": true,
+      "evidence": "R1 = domain(what inventory) / data source(where it lives — flagged '가장 중요한 질문…읽을 대상이 없으면 만들 수 없습니다') / threshold basis / notify channel / timing(real-time vs batch — 'architecture: 상시 실행 서버 vs 스케줄러') / scale+user. Every R1 axis is spec/architecture-defining; zero administrative detail (no naming/wording/color). Strong leverage ordering."
+    },
+    {
+      "text": "Interview surfaces at least one material unknown-unknown the user never stated, and it lands in the final spec as a decision or explicit assumption",
+      "passed": true,
+      "evidence": "Interviewer-raised UUs that the user never stated and that landed as decisions: R3 q5 edge cases — empty 안전재고 → exclude, malformed rows → skip + '읽지 못한 줄 N개' report, duplicate SKU → sum into one (all agreed, in spec); plus the handoff mechanism (auto vs semi-auto, user was '잘 모름' → decided B), quiet-days handling (assumption), and the email-vs-setup-0 channel conflict surfaced as an explicit decision-required flag. At least one material UU surfaced and landed — assertion met. (Note: the single most consequential domain UU, already-ordered exclusion, was missed — see rubric D2.)"
+    },
+    {
+      "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+      "passed": true,
+      "evidence": "Clean tripartition: '확정된 사항 (사용자가 명시적으로 답한 것)' 10-row sourced table + edge-case decisions | '추천 기본값 (…위임한 항목 — 미확정)' flagged [가정] | '⚠ 미해결 설계 충돌' + '데이터 계약(대부분 가정)' + '학습 vs 가정 요약' listing residual unknowns each with a resolution path. No assumption disguised as a decision."
+    },
+    {
+      "text": "With no codebase to inspect (greenfield), questions ground in the user's actual situation and vocabulary (solo shop owner, no developer, spreadsheet-level skills) and never re-ask facts derivable from the request itself",
+      "passed": true,
+      "evidence": "Questions speak the user's real situation (샵플 CSV 이메일, 안전재고 칸, 아침 발주 습관) and frame trade-offs in non-developer terms ('아침에 10초 손동작', '앱 설치·로그인 없이'), respecting the solo, spreadsheet-level owner; the CSV-paste ask offered a '지금은 못 봄' fallback rather than assuming technical fluency. No re-asking of request-derivable facts. Situation-grounded throughout."
+    }
+  ],
+  "rubric_scores": {
+    "D1_leverage": {
+      "score": 2,
+      "evidence": "R1 led with the highest-leverage axes — data source ('가장 중요한 질문, 읽을 대상이 없으면 만들 수 없다'), real-time-vs-batch timing (architecture split), threshold basis, domain, scope/scale. Zero administrative detail in any round. Textbook leverage ordering."
+    },
+    "D2_unknown_unknowns": {
+      "score": 1,
+      "evidence": "Operational-hygiene UUs WERE interviewer-raised and landed (R3 q5: empty safety-stock exclusion, malformed-row skip+report, duplicate-SKU summation; plus handoff mechanism and the email-vs-setup-0 conflict) — clearly above 0. But the single most material domain unknown-unknown for THIS request — already-ordered/in-transit items reappearing in the daily digest (the brief's '아 맞다, 발주한 건 빼야죠' moment, directly threatening the '아침 10분 발주 결정' success criterion) — was never surfaced and never landed (assertion 4 FAIL). Catching only peripheral hygiene UUs while missing the marquee domain UU caps the heart-of-the-rubric dimension at 1."
+    },
+    "D3_territory": {
+      "score": 2,
+      "evidence": "Greenfield-aware; every question grounds in the user's real situational vocabulary (샵플 CSV 이메일, 안전재고, 아침 발주) rather than generic e-commerce templates, frames trade-offs for a non-developer, and offers a '지금은 못 봄' fallback on the CSV-paste ask. No re-asking of request-derivable facts."
+    },
+    "D4_economy": {
+      "score": 2,
+      "evidence": "Hypothesis-option quality is high and differentiated; multiSelect used for the genuinely non-exclusive channel/content questions; recommended defaults offered on every delegated ('추천해주세요') axis; dependent questions correctly deferred (csv_shape/handoff pushed R2→R3 when the user deferred rather than jammed into R1) — the adaptivity the rubric rewards. Minor smudge: channel appears across R1/R2/R3 and scale twice (R2's own 'why' admits it's low-leverage for a CSV tool) — but the repetition is user-deferral-driven, not interviewer padding, and the second scale ask did extract the merge-relevant '한 통·한 파일'."
+    },
+    "D5_honest_synthesis": {
+      "score": 2,
+      "evidence": "Clean decisions / assumptions / residual-unknowns tripartition with per-row sourcing (R#), delegated axes flagged '[가정]', the CSV contract labeled 'mostly assumption', and the R2-email vs R3-setup-0 conflict surfaced as an explicit ⚠ decision-required item rather than papered over. No fabrication, no assumption disguised as a decision — the user's map genuinely improves."
+    },
+    "total": 9
+  },
+  "summary": {
+    "passed": 8,
+    "failed": 1,
+    "total": 9,
+    "pass_rate": 0.89
+  },
+  "eval_feedback": "Baseline (without_skill) run, 3 rounds, no cap. Three of the four designed traps resolve cleanly and traceably: cadence (R1 q5 → once-daily morning digest, no push), integration (R1 q2 → 샵플 CSV email attachment, API/auto-fetch excluded in Non-goals), and threshold (R1 q3 global option declined via Other → per-product 안전재고 column). The fourth designed trap — already-ordered/in-transit exclusion — is the one gap: the interviewer never raised it in any round and it never lands in the spec (grep across all outputs is empty), so assertion 4 FAILs and D2 drops to 1 (only operational-hygiene UUs — empty safety-stock, malformed rows, duplicate SKU — were surfaced and landed, missing the marquee domain UU). No-fabrication is clean: every decision traces to an answer, delegated axes are flagged '[가정]', the unselected '권장 발주량' option was not promoted, and the email-vs-setup-0 tension is honestly surfaced as an unresolved conflict rather than laundered. Structure is otherwise strong (D1/D3/D4/D5 all 2): R1 leads with the data-source/timing architecture axes, questions stay in the solo-owner's vocabulary, and the final spec is a clean decisions/assumptions/residual-unknowns tripartition. 8/9 both-assertions, rubric 9/10 — a competent baseline whose sole substantive miss is exactly the domain unknown-unknown the skill is meant to catch.",
+  "timing": {
+    "rounds": 3
+  }
+}

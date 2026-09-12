@@ -1,0 +1,111 @@
+<!--
+  DO NOT READ THIS FILE — This README.md is for human catalog browsing only.
+  It ships inside the .skill package but is NEVER auto-loaded into agent context.
+  The runtime loader only reads SKILL.md + references/ + scripts/ + agents/ when the skill triggers.
+  If you're an AI agent, read the SKILL.md file instead for skill instructions.
+-->
+
+# Herdr Agent
+
+> Tile **root + sub-agents** into **one grid tab** as equal-width columns — root stays put, workers stay the same size as root, messaging via the `herdr` agent CLI with server-side waits and one-call fleet status.
+
+## Highlights
+
+- **Root + sub-agents grid** — every column, including root, is resized to equal width as sub-agents are added.
+- **Root never replaced by accident** — the orchestrator pane stays put; only worker panes are closed on teardown.
+- **Context handoff** — when the main agent's own window passes 50%, it spawns a successor orchestrator pane, hands over a compact fleet brief, and goes read-only so a long run never dies of a full context.
+- **Fleet spawn** — `herdr agent start` places and readiness-gates each worker in one call; native agent flags after `--`.
+- **Message & steer** — `herdr agent prompt --wait` submits and waits in a single server-side request, so there is no send-then-wait race to close.
+- **Monitor** — one `herdr api snapshot` call renders the whole fleet, sorted so blocked agents come first.
+- **Badge** — each worker's pane carries its assigned job in the human's sidebar via `herdr pane report-metadata`.
+- **Notify** — `herdr notification show` reaches the human when an agent blocks or a run completes.
+- **Broadcast** — fan one instruction to many agents; concurrent waits, per-target outcomes.
+- **Safe teardown** — close sub-panes after confirmation; never surprise `server stop` or kill root.
+- **Built-in `help`** — `/herdr-agent help` lists every operation, the safety rules and the requirements, and runs no `herdr` command, so it answers even before Herdr is installed.
+
+## When to Use
+
+| Say this... | Skill will... |
+|---|---|
+| "Spin up 2 Herdr agents beside me: reviewer and tests" | Build a grid in the root tab, launch agents in equal-width columns |
+| "Ask the reviewer agent what it found" | Resolve target, send, wait on status, relay reply |
+| "Broadcast 'pull main' to all fleet agents" | Fan-out send + concurrent collect |
+| "Focus the tests pane so I can steer" | `herdr agent focus tests` |
+| "What are all my fleet agents doing?" | One snapshot call, every agent's status, blocked first |
+| "Keep this fleet running even when you run out of context" | Hand the orchestrator role to a fresh `main-g2` pane with a compact brief |
+
+## How It Works
+
+```mermaid
+graph TD
+    A["Resolve root pane + tab + workspace"] --> B["next_grid_split · split rightmost + --equalize to equal width"]
+    B --> C["herdr agent start · returns only when ready"]
+    C --> C2["badge.py · job + role in the sidebar"]
+    C2 --> D["agent prompt --wait · submit and wait in one call"]
+    D --> E["Map settled | blocked | stalled | timeout"]
+    E --> F["agent read recent-unwrapped · focus to steer"]
+    F --> G["fleet_status.py · one api snapshot for the report"]
+    style A fill:#4CAF50,color:#fff
+    style G fill:#2196F3,color:#fff
+```
+
+## Usage
+
+```
+/herdr-agent
+```
+
+Not sure what to ask for? Start with the built-in summary:
+
+```
+/herdr-agent help
+```
+
+Or describe the goal — "tile a reviewer agent with my pane", "launch a Herdr fleet grid beside me".
+
+## Popular Use Cases
+
+### 1. Root + sub-agents grid (default)
+
+```
+/herdr-agent spin up 2 pi agents in a grid with my pane:
+- reviewer: thinking medium — review the last commit
+- tests: thinking low — propose a minimal test plan
+```
+
+### 2. Message a running agent
+
+```
+/herdr-agent ask reviewer to summarize open risks; show me the reply
+```
+
+### 3. Steer live
+
+```
+/herdr-agent focus the tests agent so I can type into it
+```
+
+### 4. See what the skill can do
+
+```
+/herdr-agent help
+```
+
+### 5. Check the fleet
+
+```
+/herdr-agent what is every fleet agent doing right now?
+```
+
+## Requirements
+
+- Herdr **0.9.0 or later** (`herdr --version`) and server running (`herdr status`) — the agent surface and `api snapshot` are load-bearing
+- Prefer running the orchestrator **inside** Herdr (`HERDR_ENV=1`) so `$HERDR_PANE_ID` is the root
+- Agent CLIs on PATH (`pi`, `claude`, `codex`, …) as needed
+- Optional: `herdr integration install <agent>` for better status
+
+## Related
+
+- Sibling skill: `tmux-agent-comms` (same workflow for plain tmux)
+- Cheatsheet: https://luongnv.com/awesome-cheatsheets/cheatsheets/herdr/
+- Docs: https://herdr.dev/docs/

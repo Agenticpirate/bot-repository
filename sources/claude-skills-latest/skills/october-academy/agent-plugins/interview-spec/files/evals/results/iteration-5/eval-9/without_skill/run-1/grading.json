@@ -1,0 +1,82 @@
+{
+  "expectations": [
+    {
+      "text": "Scope trap resolved: cancellation is an admin-side action the owner performs (customers phone/KakaoTalk in; the site has no customer login) — customer self-service is not built, and this traces to an asked question",
+      "passed": true,
+      "evidence": "Resolved admin-side. The interviewer read README ('사이트에 고객 로그인/마이페이지 없다') and correctly did NOT waste a question re-asking a territory-derivable fact; instead R2.Q1 framed cancellation as the owner's action — ' 지금 주문 상태를 바꾸실 때 실제로 화면에서 어떻게 하세요? 그리고 취소는 어떤 모습이면 편하시겠어요?' with every option an owner-side surface (button screen / URL / dev-edits). User chose B (a new owner-facing click screen). Final spec builds an owner management screen and section 3 범위 밖 explicitly lists '고객 마이페이지/알림' as out of scope — customer self-service excluded, admin-side confirmed. Traces to R2.Q1 + README territory."
+    },
+    {
+      "text": "Refund integration honored: payment is bank-transfer only (무통장입금), refunds are manual transfers the owner makes in a banking app and records in ledger.csv — no PG/card refund API is invented, traceable to a question about how payment/refunds work",
+      "passed": true,
+      "evidence": "R1.Q2 explicitly asked how refunds should be handled, noting up front '실제 계좌 이체는 어느 경우든 자동으로 하지 않습니다 — 은행 연동이 없어서요'; user Other'd '카드는 안 받아요, 무통장입금이라 환불도 제가 은행 앱에서 직접 보내고 장부는 따로 적어요.' Final spec: ' 프로그램은 실제 계좌 이체를 하지 않음(은행 연동 없음)', paid/preparing cancels start refund_status 미완료 → owner completes in banking app (2-step), ledger.csv written manually by owner, and 'PG·카드 연동' listed in 범위 밖. No PG/card refund API invented. Exactly the brief's intended integration, traceable to R1.Q2."
+    },
+    {
+      "text": "Cancel boundary resolved by state: button cancellation allowed only before shipping (pending_payment/paid/preparing); shipped/delivered orders are out of scope (returns handled by phone) — landed via an asked question, not silently assumed",
+      "passed": true,
+      "evidence": "R1.Q1 (marked '가장 중요한 질문') offered hypothesis options for which states can be cancelled; user chose B ('배송 전까지 — 입금완료·준비중인 건도 취소 가능') and added '포장까지는 취소해드리고, 택배 보낸 다음엔 반품이라 전화로 절충해서 그건 버튼으로 안 만들어도 돼요.' Final spec: button cancel for pending_payment/paid/preparing only; shipped/delivered show no cancel button, post-ship returns stay on phone (not coded). R3.Q3 re-confirmed the state rules ('다 맞아요'). Landed by asked question, not assumed."
+    },
+    {
+      "text": "Partial cancellation is interviewer-raised (the user never volunteers it): cancelling individual line items from a multi-item order, with the refund amount shown — lands as a decision or an explicitly acknowledged assumption/non-goal, and multi-item orders exist in orders.json for the interviewer to notice",
+      "passed": false,
+      "evidence": "FAIL — the signature interviewer-must-raise UU was whiffed. Across all 11 questions in 3 rounds, none asks about cancelling individual line items from a multi-item order (grep for 부분/일부/품목만/개별 finds nothing on point). Per protocol the user never volunteers it, so partial cancellation is entirely absent from the final spec — no decision, no assumption, no non-goal, and no '환불 금액 표시' for a partial refund. The interviewer explicitly read orders.json (cited it repeatedly) which seeds multi-item orders precisely for this test — ORD-1021 (청화 머그 x2 + 수저받침 x2, preparing), ORD-1023 (백자 접시 세트 + 청화 머그, shipped), ORD-1025 (수저받침 x4 + 달항아리 미니, paid) — yet never noticed the line-item dimension. The scenario's flagship UU, with territory support sitting in data the interviewer walked, was missed."
+    },
+    {
+      "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption; values appearing only in unselected option text are recorded as assumptions, never as decided",
+      "passed": true,
+      "evidence": "Fabrication hunt (final_summary vs union of answers_round_1..3 + brief + fixture): every section-1 확정 item traces to a selected answer — cancel range (R1.Q1 B), refund 2-step (R2.Q2 B), '취소됨' 유지/no-delete/no-undo (R1.Q3 A), ledger no-auto-write (R2.Q3 B), ORD-1019 untouched (R3.Q3). The cancel-reason list (고객 변심/품절·재고부족/파손·불량/배송 지연/기타) was interviewer-PROPOSED in R2.Q4 and user-ACCEPTED (A '좋아요 — 목록에서 고르기 + 자유 메모'), so it is a confirmed decision, not an unselected-option value. Section 2 recommendations (통합 관리 화면; 단일 비밀번호+공방망 한정) are explicitly labeled '위임받아 내가 내린 권고', traceable to the user's delegations R3.Q1/Q2 ('추천해주세요'/'모르겠어요') — presented as recommendations, not user decisions. Section 3 dev fields/endpoints/atomic-write are labeled 가정/개발자 재량. All territory claims verified against fixture (ORD-1019 refund 18000 '컵 가장자리 파손'; NEXT_STATUS lacks cancel; only GET /admin/orders + POST advance; :3600; README 'button admin screen' absent from code). No unselected-option value laundered as decided; no invented requirement."
+    },
+    {
+      "text": "Round-1 questions lead with architecture/design-changing decisions (who performs cancellation, refund path, state boundary) rather than administrative details",
+      "passed": true,
+      "evidence": "R1 leads with the two biggest axes: state boundary (q1, tagged '가장 중요한 질문') and refund/ledger path (q2), followed by retention/undo (q3). Only q4 (cancel-reason capture: free-text vs list vs none) is lower-leverage, and reason capture is a legitimate feature decision rather than a cosmetic detail (no wording/color/name questions anywhere). The 'who performs cancellation' axis was correctly derived from README (no customer login) rather than re-asked, then confirmed via the owner-surface question R2.Q1. R1 leads with architecture/scope-defining decisions."
+    },
+    {
+      "text": "Interview surfaces at least one material unknown-unknown the user never stated (e.g., partial cancellation, cancelled-order retention for ledger reconciliation), and it lands in the final spec as a decision or explicit assumption",
+      "passed": true,
+      "evidence": "Meets the 'at least one' bar. Cancelled-order retention (one of the assertion's named examples) was interviewer-raised at R1.Q3 (delete/hide/keep options) — the user never volunteered it — and landed as a decision ('취소됨' 유지, no delete, for 장부 대조). Additionally the 2-step refund timing gap ('취소를 누르는 순간과 은행앱 이체 순간이 다를 수 있어서', R2.Q2) was interviewer-originated and landed as the refund_status 미완료→완료 decision, and the ORD-1019 ledger/order mismatch was discovered from territory and used as the feature's motivation. Multiple interviewer-raised UUs landed in spec. (Numeric D2 is docked to 1 for missing the dominant partial-cancel UU — see rubric.)"
+    },
+    {
+      "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+      "passed": true,
+      "evidence": "Exemplary tri-partition. Section 1 '확정된 요구사항 (요청자 답변으로 확정)' with each row traced to R#-Q#; Section 2 '위임받아 내가 내린 권고' cleanly separated as clarifier recommendations (with tradeoff notes '확정 아님, 개발 착수 전 재확인 여지'); Section 3 '개발자를 위한 구현 노트' labeled 가정/재량; Section 4 an explicit '학습 vs 가정 요약' partitioning 요청자 확정 / 위임받아 결정 / 개발자 재량 가정. Residuals present (범위 밖 list, 재확인 여지). No assumption disguised as a decision; run_log honestly acknowledges budget exhaustion (no false completeness claim). Strong honest synthesis."
+    },
+    {
+      "text": "Questions ground in the fixture territory (orders.json statuses and multi-item orders, ledger.csv, README's 무통장입금/no-login facts) instead of re-asking facts derivable from the project, and no codebase facts are invented",
+      "passed": true,
+      "evidence": "The interviewer opened by inspecting README/server.js/orders.json/ledger.csv and grounded questions in real facts: the linear NEXT_STATUS map with no cancel state, the advance-only endpoints, README's claimed 'button admin screen' being absent from code (R2.Q1's whole pivot), the concrete ORD-1019 ledger(환불 18000)/order(delivered) mismatch, 무통장입금-only, and no customer login (used to skip re-asking who cancels). No request-derivable fact is re-asked and no codebase fact is invented — all cited territory verified against the fixture. (Sole gap: the multi-item line-item dimension in orders.json was read but not exploited for partial cancellation — scored at assertion #4 / D2, not here.)"
+    }
+  ],
+  "rubric_scores": {
+    "D1_leverage": {
+      "score": 2,
+      "evidence": "R1 led with the highest-leverage axes — state boundary (q1, '가장 중요한 질문') and refund/ledger path (q2) — with retention/undo (q3) close behind; only the reason-capture q4 is lower-leverage and it is a real feature decision, not administrative. No naming/color/wording questions in any round. The who-cancels axis was derived from README rather than re-asked, then confirmed via R2.Q1. Clean leverage ordering."
+    },
+    "D2_unknown_unknowns": {
+      "score": 1,
+      "evidence": "Partial — mirrors the eval-8 anchor pattern. It surfaced genuine interviewer-raised UUs that landed (cancelled-order retention at R1.Q3; 2-step refund timing at R2.Q2; the ORD-1019 ledger/order sync mismatch as motivation) — clearly above 0. But it whiffed the scenario's dominant, fixture-seeded UU: partial (line-item) cancellation of multi-item orders with the partial refund amount shown. Multi-item orders (ORD-1021/1023/1025) sit in the orders.json the interviewer explicitly read, yet the line-item dimension was never raised as question, decision, assumption, or non-goal. Catching secondary UUs while missing the central territory-supported one is a real regression on the heart dimension → 1."
+    },
+    "D3_territory": {
+      "score": 2,
+      "evidence": "Investigated the codebase before asking and referenced real facts throughout (NEXT_STATUS lacks cancel, advance-only endpoints, the missing 'button admin screen', ORD-1019 ledger/order mismatch, 무통장입금, no customer login); no re-asking of request-derivable facts, no invented code. The unexploited multi-item line-item dimension is a discovery gap penalized under D2/assertion #4, not a grounding or invention defect — asked questions and cited facts are all territory-accurate."
+    },
+    "D4_economy": {
+      "score": 2,
+      "evidence": "11 questions (4/4/3), every one spec-changing — no filler or redundancy, and hypothesis-option quality is high (each option maps to a distinct implementation). Adaptive: R1.Q4 '모르겠어요' was deferred and resolved with a recommended reason-list in R2.Q4; delegated R3.Q1/Q2 became documented recommendations. Dependent axes were sequenced, not jammed (R2.Q1 admin-surface depends on R1 scope; R3 screen-scope depends on R2 admin-surface). The R3 access/password question is mildly expansive for a cancel-feature request but is a legitimate money-screen concern that changed the spec, not padding."
+    },
+    "D5_honest_synthesis": {
+      "score": 2,
+      "evidence": "Best-in-class tripartition: 확정(user decisions, each R#-Q# traced) | 위임받아 내가 내린 권고(clarifier recommendations, explicitly separated with 'not confirmed, re-check before build' tradeoffs) | 개발자 재량 가정 | an explicit '학습 vs 가정 요약' closing block. Residual unknowns present (범위 밖 list; 재확인 여지). No assumption disguised as a decision; no fabrication; run_log candidly records budget exhaustion rather than a false completeness declaration. Baseline arm needs no promise tag, so no terminal-honesty defect applies."
+    },
+    "total": 9
+  },
+  "summary": {
+    "passed": 8,
+    "failed": 1,
+    "total": 9,
+    "pass_rate": 0.889
+  },
+  "eval_feedback": "Strong, territory-grounded baseline (without_skill) run that resolved three of the four eval-9 traps but whiffed the signature one. Wins: the scope trap is resolved admin-side (owner performs cancellation; customer self-service excluded — derived from README's no-login fact and confirmed via the owner-surface question R2.Q1); the refund path is honored (무통장입금-only, manual bank-app transfer, ledger written by hand, 2-step refund_status, no PG/card API invented — R1.Q2); and the cancel boundary is state-resolved (button cancel for pending_payment/paid/preparing only, shipped/delivered out of scope to phone returns — R1.Q1, re-confirmed R3.Q3). Fabrication hunt is clean: all decisions trace to selected answers, delegated items are labeled recommendations, dev fields are labeled assumptions, and no unselected-option value is laundered as decided. Core defect: partial (line-item) cancellation — the interviewer-must-raise UU — was never asked in any of the 11 questions and is entirely absent from the spec, despite the interviewer having read the orders.json that seeds multi-item orders (ORD-1021/1023/1025) specifically for it → assertion #4 FAIL (8/9). Rubric 9/10: D2=1 (surfaced real secondary UUs — cancelled-order retention, 2-step refund timing, ORD-1019 sync — but missed the dominant partial-cancel UU), D1/D3/D4/D5=2 (D5 notably exemplary: clean confirmed-vs-delegated-vs-assumed separation with an explicit 학습-vs-가정 block and no false completeness claim). Sits below the 10/10 eval-6 anchor on the strength of its flagship-UU miss, level with the honesty-clean end of the calibration band.",
+  "timing": {
+    "rounds": 3
+  }
+}

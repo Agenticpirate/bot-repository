@@ -1,0 +1,241 @@
+{
+  "id": "messaging",
+  "name": "Messaging",
+  "description": "List channels, read messages, send messages, reply in threads, and manage reactions in Slack.",
+  "actions": {
+    "list-channels": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://slack.com/api",
+        "path": "/conversations.list",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "queryTemplate": {
+          "types": {
+            "$value": "$input.types",
+            "$default": "public_channel,private_channel"
+          },
+          "limit": {
+            "$value": "$input.limit",
+            "$default": 20
+          },
+          "cursor": "$input.cursor",
+          "exclude_archived": {
+            "$value": "$input.excludeArchived",
+            "$default": true
+          }
+        }
+      },
+      "output": {
+        "successPath": "$response.ok",
+        "errorMessagePath": "$response.error",
+        "responseMap": {
+          "count": {
+            "$length": "$response.channels"
+          },
+          "nextCursor": "$response.response_metadata.next_cursor",
+          "items": {
+            "$each": "$response.channels",
+            "map": {
+              "id": "$item.id",
+              "name": "$item.name",
+              "topic": "$item.topic.value",
+              "purpose": "$item.purpose.value",
+              "isPrivate": "$item.is_private",
+              "isArchived": "$item.is_archived",
+              "memberCount": "$item.num_members",
+              "createdAt": "$item.created"
+            }
+          }
+        }
+      }
+    },
+    "get-channel": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://slack.com/api",
+        "path": "/conversations.info",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "queryTemplate": {
+          "channel": "$input.channel",
+          "include_num_members": true
+        }
+      },
+      "output": {
+        "successPath": "$response.ok",
+        "errorMessagePath": "$response.error",
+        "responseSelect": "channel",
+        "responseMap": {
+          "id": "$data.id",
+          "name": "$data.name",
+          "topic": "$data.topic.value",
+          "purpose": "$data.purpose.value",
+          "isPrivate": "$data.is_private",
+          "isArchived": "$data.is_archived",
+          "memberCount": "$data.num_members",
+          "createdAt": "$data.created",
+          "creator": "$data.creator"
+        }
+      }
+    },
+    "list-messages": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://slack.com/api",
+        "path": "/conversations.history",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "queryTemplate": {
+          "channel": "$input.channel",
+          "limit": {
+            "$value": "$input.limit",
+            "$default": 20
+          },
+          "cursor": "$input.cursor",
+          "oldest": "$input.oldest",
+          "latest": "$input.latest"
+        }
+      },
+      "output": {
+        "successPath": "$response.ok",
+        "errorMessagePath": "$response.error",
+        "responseMap": {
+          "count": {
+            "$length": "$response.messages"
+          },
+          "hasMore": "$response.has_more",
+          "nextCursor": "$response.response_metadata.next_cursor",
+          "items": {
+            "$each": "$response.messages",
+            "map": {
+              "type": "$item.type",
+              "user": "$item.user",
+              "text": "$item.text",
+              "ts": "$item.ts",
+              "threadTs": "$item.thread_ts",
+              "replyCount": "$item.reply_count",
+              "reactions": "$item.reactions"
+            }
+          }
+        }
+      }
+    },
+    "get-thread": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://slack.com/api",
+        "path": "/conversations.replies",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "queryTemplate": {
+          "channel": "$input.channel",
+          "ts": "$input.ts",
+          "limit": {
+            "$value": "$input.limit",
+            "$default": 20
+          },
+          "cursor": "$input.cursor"
+        }
+      },
+      "output": {
+        "successPath": "$response.ok",
+        "errorMessagePath": "$response.error",
+        "responseMap": {
+          "count": {
+            "$length": "$response.messages"
+          },
+          "hasMore": "$response.has_more",
+          "items": {
+            "$each": "$response.messages",
+            "map": {
+              "user": "$item.user",
+              "text": "$item.text",
+              "ts": "$item.ts",
+              "threadTs": "$item.thread_ts",
+              "reactions": "$item.reactions"
+            }
+          }
+        }
+      }
+    },
+    "send": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://slack.com/api",
+        "path": "/chat.postMessage",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "channel": "$input.channel",
+          "text": "$input.text",
+          "thread_ts": "$input.threadTs",
+          "unfurl_links": "$input.unfurlLinks",
+          "unfurl_media": "$input.unfurlMedia"
+        }
+      },
+      "output": {
+        "successPath": "$response.ok",
+        "errorMessagePath": "$response.error",
+        "responseMap": {
+          "channel": "$response.channel",
+          "ts": "$response.ts",
+          "message": {
+            "text": "$response.message.text",
+            "user": "$response.message.user",
+            "ts": "$response.message.ts"
+          }
+        }
+      }
+    },
+    "react": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://slack.com/api",
+        "path": "/reactions.add",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "channel": "$input.channel",
+          "timestamp": "$input.timestamp",
+          "name": "$input.name"
+        }
+      },
+      "output": {
+        "successPath": "$response.ok",
+        "errorMessagePath": "$response.error",
+        "responseMap": {
+          "ok": "$response.ok"
+        }
+      }
+    },
+    "remove-react": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://slack.com/api",
+        "path": "/reactions.remove",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "channel": "$input.channel",
+          "timestamp": "$input.timestamp",
+          "name": "$input.name"
+        }
+      },
+      "output": {
+        "successPath": "$response.ok",
+        "errorMessagePath": "$response.error",
+        "responseMap": {
+          "ok": "$response.ok"
+        }
+      }
+    }
+  }
+}

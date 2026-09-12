@@ -1,0 +1,1642 @@
+{
+ "metadata": {
+  "skill_name": "interview",
+  "skill_version": "3.1.1",
+  "skill_path": "/Users/october/prj/agent-plugins/plugins/clarify/skills/interview",
+  "executor_model": "e7: claude-fable-5 / e3,4,5,6,8,9 + adapted: claude-opus-4-8 (xhigh)",
+  "analyzer_model": "evals 3-7: claude-opus-4-8 xhigh graders (anchored) · eval-8: claude-opus-4-8 both arms (ws re-executed by a fresh session after workflow interruption, identical prompts; discarded fable-5 pass kept as reliability check — assertion outcomes 100% identical, rubric ±1) · eval-9: claude-opus-4-8 xhigh both arms, single uninterrupted workflow (bl r2 grading.json had one stray brace repaired, content untouched)",
+  "simulator": "isolated separate agents (sonnet-5 high) — no role-switch, file relay only",
+  "timestamp": "2026-07-10T23:58:52Z",
+  "evals_run": [
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "purpose": "iteration-5 full cycle: symmetric-arm, isolated-simulator measurement of v3.1.1; holdout generations — gen-1 e6/e7 (v3.1.0-rc), gen-2 e8 (frozen v3.1.0-rc, post e6-r6 fabrication correction), gen-3 e9 (frozen v3.1.1 conservative-CAPPED policy); e5-r2/r3 + e6-r4..6 are 1-cycle-adapted regression runs, not holdouts"
+ },
+ "notes": [
+  "arm-scoped assertions: baselines are graded only on the 9 'both' quality assertions; with_skill adds 7 contract assertions.",
+  "e7 = pure holdout (untouched by any policy iteration). e6/e5 adapted runs are 1-cycle-adapted (two SKILL rules added after first batch).",
+  "A7 claim-audit was heading-level over-strict in first batch; mech fixed to substance-only, e6-ws r2/r3 mechanically corrected (r2 16/16, r3 14/16).",
+  "Adapted-rule outcome: e5 core-goal FAIL->PASS x2 (rubric 8->10,10), e6 write-path miss not reproduced (10/10 x3 vs pre 10/9/6).",
+  "Downstream (eval-7 specs -> blind Fable implementers): both arms 5/5, byte-identical cleaned CSV; with_skill 5 vs baseline 6 invented decisions, row-level guard (ws) more robust than checksum guard (bl).",
+  "Trigger auto-invocation measurement excluded on this machine (see trigger-eval-README.md) — Codex skills-context budget exceeded (165 skills dropped), Claude Code 368-skill contention; explicit /clarify:interview verified working on Codex.",
+  "eval-8 grader provenance: Opus 4.8 both arms (symmetric). ws gradings re-executed by a fresh session after the original workflow died mid-grading (identical prompts); a first accidental Fable 5 pass was discarded for grader-model symmetry and kept as reliability check — assertion outcomes 100% identical, rubric ±1.",
+  "Fabrication findings: 1/32 graded runs — e6 with_skill r6 (corrected post-hoc by gate review; unselected-option rule frozen afterwards held 0 findings on eval-8).",
+  "eval-8 (gen-2 pure holdout, frozen policy v3.1.0-rc): fabrication 0/6 — frozen unselected-option rule quarantined option-only values as assumptions in all 3 ws runs. Planted already-ordered UU missed by ALL 6 runs (both arms, no differential). ws contract 7/7·6/7·6/7 — #6 terminal-tag FAIL on r1/r3 (COMPLETE at exhausted 3/3 cap with ground-truth material axis unasked; r2 self-terminated with spare budget, COMPLETE defensible). Gate round-2 verdict: exhausted-cap COMPLETE is structurally dishonest → v3.1.1 conservative-CAPPED rule.",
+  "eval-9 (gen-3 pure holdout, frozen policy v3.1.1, 주문 취소·기존 시스템 fixture): ws contract 7/7×3 (pass 1.0), terminal tags all correct under the conservative-CAPPED rule (r1/r3 burned 3/3 budget → CAPPED with genuine Still Open; r2 self-terminated 2/3 → COMPLETE), fabrication 0/6. Marquee UU (partial cancellation, seeded by multi-item orders in orders.json): ws 2/3 vs bl 1/3 — first holdout with a UU differential in the skill's favor. Executors Opus xhigh, simulators Sonnet (isolated), graders Opus xhigh symmetric both arms."
+ ],
+ "run_summary": {
+  "with_skill_all": {
+   "n": 20,
+   "pass_rate": {
+    "mean": 0.9685,
+    "min": 0.875,
+    "max": 1.0
+   },
+   "rubric": {
+    "mean": 9.35,
+    "scores": [
+     10,
+     10,
+     8,
+     10,
+     10,
+     10,
+     9,
+     6,
+     10,
+     10,
+     9,
+     10,
+     10,
+     10,
+     8,
+     9,
+     9,
+     10,
+     9,
+     10
+    ]
+   }
+  },
+  "with_skill_first_batch": {
+   "n": 9,
+   "pass_rate": {
+    "mean": 0.9787,
+    "min": 0.875,
+    "max": 1.0
+   },
+   "rubric": {
+    "mean": 9.22,
+    "scores": [
+     10,
+     10,
+     8,
+     10,
+     9,
+     6,
+     10,
+     10,
+     10
+    ]
+   }
+  },
+  "with_skill_adapted": {
+   "n": 5,
+   "pass_rate": {
+    "mean": 0.9875,
+    "min": 0.9375,
+    "max": 1.0
+   },
+   "rubric": {
+    "mean": 9.8,
+    "scores": [
+     10,
+     10,
+     10,
+     10,
+     9
+    ]
+   }
+  },
+  "without_skill": {
+   "n": 12,
+   "pass_rate": {
+    "mean": 0.9445,
+    "min": 0.7778,
+    "max": 1.0
+   },
+   "rubric": {
+    "mean": 9.17,
+    "scores": [
+     10,
+     10,
+     10,
+     9,
+     9,
+     9,
+     9,
+     9,
+     7,
+     9,
+     9,
+     10
+    ]
+   }
+  },
+  "eval6_holdout_gen1": {
+   "with_skill": {
+    "n": 3,
+    "pass_rate": {
+     "mean": 0.9583,
+     "min": 0.875,
+     "max": 1.0
+    },
+    "rubric": {
+     "mean": 8.33,
+     "scores": [
+      10,
+      9,
+      6
+     ]
+    }
+   },
+   "without_skill": {
+    "n": 3,
+    "pass_rate": {
+     "mean": 1.0,
+     "min": 1.0,
+     "max": 1.0
+    },
+    "rubric": {
+     "mean": 10,
+     "scores": [
+      10,
+      10,
+      10
+     ]
+    }
+   }
+  },
+  "eval7_holdout_gen1": {
+   "with_skill": {
+    "n": 3,
+    "pass_rate": {
+     "mean": 1.0,
+     "min": 1.0,
+     "max": 1.0
+    },
+    "rubric": {
+     "mean": 10,
+     "scores": [
+      10,
+      10,
+      10
+     ]
+    }
+   },
+   "without_skill": {
+    "n": 3,
+    "pass_rate": {
+     "mean": 1.0,
+     "min": 1.0,
+     "max": 1.0
+    },
+    "rubric": {
+     "mean": 9,
+     "scores": [
+      9,
+      9,
+      9
+     ]
+    }
+   }
+  },
+  "eval8_holdout_gen2": {
+   "with_skill": {
+    "n": 3,
+    "pass_rate": {
+     "mean": 0.8958,
+     "min": 0.875,
+     "max": 0.9375
+    },
+    "rubric": {
+     "mean": 8.67,
+     "scores": [
+      8,
+      9,
+      9
+     ]
+    }
+   },
+   "without_skill": {
+    "n": 3,
+    "pass_rate": {
+     "mean": 0.8519,
+     "min": 0.7778,
+     "max": 0.8889
+    },
+    "rubric": {
+     "mean": 8.33,
+     "scores": [
+      9,
+      9,
+      7
+     ]
+    }
+   }
+  },
+  "eval9_holdout_gen3": {
+   "with_skill": {
+    "n": 3,
+    "pass_rate": {
+     "mean": 0.9792,
+     "min": 0.9375,
+     "max": 1.0
+    },
+    "rubric": {
+     "mean": 9.67,
+     "scores": [
+      10,
+      9,
+      10
+     ]
+    }
+   },
+   "without_skill": {
+    "n": 3,
+    "pass_rate": {
+     "mean": 0.9259,
+     "min": 0.8889,
+     "max": 1.0
+    },
+    "rubric": {
+     "mean": 9.33,
+     "scores": [
+      9,
+      9,
+      10
+     ]
+    }
+   }
+  }
+ },
+ "downstream": {
+  "with_skill": {
+   "checklist": [
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "score": 5,
+   "invented_decisions": 5,
+   "notes": "Final orders.csv has exactly 11 data rows equal to first-occurrence dedup of the 15-row original; 1003 line1+2 and 1007 line1+2 all preserved; every kept row is byte-identical to an original row (verified programmatically). Backup orders.csv.bak contains the full pre-cleanup 15-row file. Import guard implemented as row-level exact-match skip (grep -qxF) — functionally tested: second run imports 0 rows. Also produced dedup_report.md documenting removed rows and preservation check. Did NOT update CHANGELOG (logged as a deliberate minimal-change decision). Decisions log has 5 entries, several citing explicit spec language ('1건만 유지', report format called '비물질적 구현 세부', guard 'batch 또는 동일 행'), indicating the spec pre-answered most ambiguities."
+  },
+  "without_skill": {
+   "checklist": [
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "score": 5,
+   "invented_decisions": 6,
+   "notes": "Final orders.csv is byte-identical to the with_skill arm's: 11 correct data rows, all four partial-shipment rows preserved, no row lost or altered (verified programmatically). Backup orders.csv.bak-20260702-dedup contains the full pre-cleanup 15-row file (spec even suggested this filename). Import guard implemented as a SHA-256 whole-file checksum ledger — functionally tested: second run warns and exits 0 with no duplicate rows. Updated CHANGELOG with a cleanup entry documenting the 4 removed rows and 15→11 count. Decisions log has 6 entries; the spec delegated backup filename, keep-which-duplicate, removal-record location, entry date, guard mechanism, and commit policy."
+  },
+  "verdict": "Tie on the acceptance checklist: 5/5 vs 5/5, with byte-identical final CSVs — both specs fully transmitted the load-bearing constraints (identical-row-only dedup, partial-shipment preservation, backup, guard). Secondary signals split: with_skill logged marginally fewer invented decisions (5 vs 6) and its row-level guard is more robust against partial/renamed re-imports than without_skill's whole-file checksum, while without_skill left a better operational trail (CHANGELOG entry). No safety or correctness separation between the arms on this eval."
+ },
+ "runs": [
+  {
+   "eval_id": 3,
+   "configuration": "with_skill",
+   "run_number": 1,
+   "adapted": false,
+   "holdout_generation": null,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 15,
+    "failed": 0,
+    "total": 15
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 leads with the highest-architecture axes for a no-build project: approach (JSDoc-check vs .ts-strip vs .ts-compile — determines the entire build/deploy story), adoption scope, completion criteria, deploy/runtime feasibility. Zero administrative detail. Only refinement: 'who/why-now' was never asked, so the collaborator motivation stayed hidden — a different high-leverage axis skipped, not admin padding."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "Standout dimension. Interviewer-raised, brief-absent UUs landed as constraints/decisions: node-20 can't natively strip .ts (the user's chosen approach was infeasible without a bump), erasable-only syntax limits, test-import breakage on rename, vendor .d.ts, CI type-regression gate. Well beyond the ≥1 bar; two match the assertion's own examples."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Every territory claim verified accurate against the fixture; questions and options are anchored in real facts (jsconfig include=src/lib, parse-first JSDoc, vendor DO-NOT-EDIT, ci.yml node 20, README no-build). Codebase inspected before asking; audit maps claims to file:line."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "8 questions, high hypothesis-option quality (each option → a genuinely different implementation), exemplary adaptive sequencing (runtime path and test/import correctly deferred to R2 as dependents of the R1 .ts decision; R3 pins the concrete deliverable). Softest spot: R3.Q2 re-confirms an R1-deferred criterion the user again deferred — mild redundancy, within calibration tolerance for a final lock-in."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Decisions / Assumptions / Surfaced / Still Open cleanly partitioned; user-deferred items sit as Assumptions with 'flag before building on them', residual unknowns carry resolution paths (smoke tests). No fabrication; motivation/state claims deliberately excluded and self-attested in the claim audit."
+    },
+    "total": 10
+   },
+   "eval_feedback": "15/15, rubric 10/10 — a strong with_skill run. D2/D3 are the showcase: the interviewer inspected ci.yml, caught that the user's own '.ts + 런타임 스트립' choice was infeasible on node 20, and forced the runtime decision; it also surfaced erasable-only limits, the test-import ripple, vendor .d.ts, and a CI type-regression gate, all landed in the spec with correct decision/assumption provenance. Deployment constraint honored explicitly (node native stripping, no silent bundler), scope trap resolved toward gradual adoption, and the fabrication hunt is clean — the brief-only collaborator motivation and 2-week deadline were correctly NOT invented. Two honest gaps worth flagging for policy (neither breaches a dimension threshold): (1) the interview never asked 'who/why-now', so the entire driving motivation (a collaborator joining in 2 weeks) and the resulting 2-week completion window in the expected_output went unsurfaced — leading with a why/trigger question would have raised it; (2) R2's option language runs jargon-dense (erasable-only, allowImportingTsExtensions, native-stripping version numbers) for a tutorial-level persona — every term is glossed inline and the recommend-default escape absorbs it, so #10 passes, but it is the weakest surface. Terminal tag COMPLETE is correct (cap reached with all identified material axes asked; last two asked-and-deferred, not un-asked). Executor/version confounds may apply vs earlier iterations.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-3/with_skill/run-1"
+  },
+  {
+   "eval_id": 4,
+   "configuration": "with_skill",
+   "run_number": 1,
+   "adapted": false,
+   "holdout_generation": null,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 16,
+    "failed": 0,
+    "total": 16
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 leads with the four biggest deciders — output scope / data-source integration / settlement direction / calculation exceptions — no administrative detail. R2 leads with execution form (highest-leverage delivery axis for greenfield), then correctness-critical rate-source and message-content. Only quibble: R2 spent a slot on 결과 위치 while the comparably-material 정산 범위·주기 axis went to the cap — minor, and honestly triaged."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "The 3.3% withholding-tax deduction — the eval's designated unknown-unknown hidden behind '금액이 정확해야 해요' — was interviewer-raised via R1.Q4's option and pulled '아 맞다, 3.3% 떼고 보내야 해요' out of the user, then landed as Scope/Constraint/Success-Criterion/Surfaced. The 세전·공제·세후 breakdown (R2.Q4) is a second surfaced item."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Greenfield handled correctly: no codebase, so the interviewer grounds in the request's own domain and asks the integration point (where the settlement data lives → 구글 시트) per SKILL's greenfield caveat. Questions use the user's actual vocabulary; no fact derivable from the request is re-asked; run_log documents the (correctly skipped) territory sweep."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "All 8 questions are spec-changing with plausible competing hypotheses; multiSelect used precisely where choices aren't exclusive; the deferral '추천해주세요' handled as a flagged assumption, not a decision; dependent axes correctly sequenced to R2 (rate-source and execution-form depend on R1 establishing the sheet). No filler, no fixed-count padding."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Decisions / Assumptions / Surfaced / Still Open tri-partition is exact: the one delegated axis is a flagged assumption, the un-asked axis is Still Open with a resolution path and no invented default, the motivation is a sourced quote, and a written Claim audit ledger backs every line. No fabrication; the user's map is genuinely improved (tax + breakdown surfaced)."
+    },
+    "total": 10
+   },
+   "eval_feedback": "Showcase greenfield-cap run: 16/16, rubric 10/10. The CAPPED terminal tag is used correctly — a genuinely material axis (settlement period/scope) went unasked at cap=2 and sits in Still Open with a resolution path rather than being invented as an assumption, exactly the honest-triage behavior eval-4 tests. Fabrication hunt is clean: every brief-only specific (mentor count, July, CSV fallback, 1원-unit, terminal/CLI exec preference) is absent, and the 3.3% withholding-tax unknown-unknown was interviewer-elicited, not assumed. One watch-item for the eval set, not this run: R2's slot allocation left the period axis for the cap while spending one on output-location — the two are comparably material, so a brief that runs out of ambiguity would better exercise the COMPLETE path; every with_skill run this iteration still ends CAPPED/owner-blocked, leaving the exit-control-question clause untested by eval-4.",
+   "timing": {
+    "rounds": 2
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-4/with_skill/run-1"
+  },
+  {
+   "eval_id": 5,
+   "configuration": "with_skill",
+   "run_number": 1,
+   "adapted": false,
+   "holdout_generation": null,
+   "result": {
+    "pass_rate": 0.9333,
+    "passed": 14,
+    "failed": 1,
+    "total": 15
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 1,
+     "evidence": "R1 avoids all administrative trivia and every question is architecture-flavored, which keeps it off 0. But leverage ordering fails materially: it led with boss-authority DESIGN axes (role model, refund grantee) that the proxy predictably deferred, and the single highest-leverage, requester-answerable, spec-defining axis — 'who is it for / what access do they need' — was NEVER asked across all three rounds. That omission sank the core goal. Worse than iteration-4 (D1=2) where the same R1 owner-policy lead was recovered by an R2 who-for question; here there is no recovery."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "Two genuine interviewer-first unknown-unknowns landed: audit logging of refund actions (grounded in refunds.js recording no actor) → Assumption; and the single-owner-gate / staff-identity-separation precondition → Still Open blocker with resolution path. The payment_key/paymentKey territory bug was also flagged (out of scope). Strong UU work."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "All auth-relevant files read/re-verified before the claim audit; questions and spec carry real territory (requireOwner+OWNER_EMAIL single gate, dormant users.role migration 002, irreversible POST /admin/refunds via Toss PG, missing session middleware, no password column in 001). Every territory claim independently verified accurate against the fixture."
+    },
+    "D4_economy": {
+     "score": 1,
+     "evidence": "8 questions across 3 rounds yet the load-bearing requester-answerable question (who/what access) was never asked; the budget was consumed circling the login/identity axis (R1.Q4→R2.Q2→R3.Q1) — partially defensible adaptive drill-down (R2 detected the shared-account contradiction, R3 resolved it) but a misallocation that spent the entire budget on a tangent and then declared CAPPED. Filler/redundancy present and the core wedge omitted → 1, below iteration-3/4's clean 2."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Given what was elicited, the synthesis is honest and well-partitioned: Decisions/Assumptions/Still Open tripartition with resolution paths, owner-pending flags, and a prominent honest admission that enforcement alone has near-zero effect while the owner account is shared. No fabrication; every claim sourced. The honesty is high even though coverage (core goal) failed — D5 measures the integrity of the synthesis, not completeness."
+    },
+    "total": 8
+   },
+   "eval_feedback": "Decisive failure: the interviewer never asked the one requester-answerable, core-goal-defining question — 'who needs access and to which menus' — and instead spent all three rounds on the login/identity-infrastructure tangent (R1.Q4 → R2.Q2 → R3.Q1). Because the simulated user answers only what is asked, the two CS part-timers and their orders/stats/posts-not-refunds need never surfaced, so the final spec resolves the wrong thing (concluding the shared owner account makes enforcement pointless) and the core-goal assertion fails. This is a clear regression from iterations 3 and 4, whose winning runs asked the who-for/tasks question (R1 or R2) and captured the core, exactly the ordering risk iteration-4's feedback flagged ('when the requester's authority is unknown, lead with the axes any operator can answer'). Everything the run DID do is strong: proxy/authority handling is textbook (policy axes → pending-owner assumptions, only within-authority items in Decisions), the dormant users.role column and refund irreversibility are territory-anchored and verified, two real unknown-unknowns land, no fabrication, and the CAPPED tag is honestly applied. But the cap is self-inflicted — budget was burned on the identity tangent rather than the core wedge, so CAPPED masks a leverage/economy miss rather than genuinely insufficient budget. 14/15 assertions, rubric 8/10 (D1 and D4 docked for the missed core axis).",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-5/with_skill/run-1"
+  },
+  {
+   "eval_id": 5,
+   "configuration": "with_skill",
+   "run_number": 2,
+   "adapted": true,
+   "holdout_generation": null,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 15,
+    "failed": 0,
+    "total": 15
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "Recovered to 2 (run-1 was 1). R1 leads with all architecture axes and — decisively — includes the highest-leverage requester-answerable, spec-defining axis '스태프에게 무엇을 열어줄 것인가' (R1.Q2), which the proxy CAN answer and which captured the core (통계·주문·공지 / 환불 차단). No administrative trivia. The owner-policy axes (역할 구조·감사) are also in R1 but correctly deferred to assumptions; the load-bearing scope axis is not deferred to a later round the way run-1 omitted it entirely. (Headcount/identity 'who' not asked, but the scope dimension — the biggest spec-divider — is nailed in R1.)"
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "Three genuine interviewer-first unknown-unknowns landed in the spec: audit logging of irreversible actions (R1.Q4, grounded in refunds.js recording no actor) → Assumption; the missing staff auth/login path (R2.Q1) → Still Open build blocker with resolution path; customer PII exposure via /admin/orders SELECT * incl paymentKey (R2.Q2) → masking Assumption. Strong UU work, each territory-grounded."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "All auth-relevant files read AND re-verified before the summary (run_log). Questions and spec carry real territory: requireOwner+OWNER_EMAIL single gate (server.js:14, auth.js), dormant users.role migration 002, irreversible POST /admin/refunds via real TossPayments cancel (pg.js), missing non-owner login route (grep 0 hits), orders SELECT * PII incl paymentKey. Every territory claim independently verified accurate against the fixture."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "Recovered to 2 (run-1 was 1). All 8 questions are material and non-filler: R1 captured the core + surfaced the audit UU; R2 was justified adaptive drill-down (discovered the auth blocker, then the downstream PII UU); R3 revisited sequencing and role-grant method precisely because R2 territory (no login route) invalidated R1's 'management UI' assumption — principled re-ask, self-documented, not redundancy. Hypothesis options are high-quality (each leads to a distinct implementation; '추천대로' fallback for 모르겠어요). Budget spent on the core wedge first, then genuine residual axes — the opposite of run-1's tangent-burn."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Clean, honest tripartition: Decisions Made (requester-authority only) / Assumptions (5, each pending-owner or provenance-flagged) / Still Open (auth blocker + owner-pending policies, each with a resolution path), plus Surfaced Along the Way. Every claim sourced in the claim audit; no fabrication. Honest CAPPED note explains the proxy's authority/knowledge limits and why no further round was run. Synthesis integrity high AND coverage complete (core captured)."
+    },
+    "total": 10
+   },
+   "eval_feedback": "The two adapted-SKILL rules both landed and fixed run-1's decisive miss without any regression. Rule 1 (requester-answerable-axes-first under limited authority): R1.Q2 asked the load-bearing 'what access do the staff need' axis — the single spec-defining question the proxy CAN answer — and the user answered 통계·주문·공지 허용 / 환불 차단, capturing the core goal as a traceable Decision. This directly reverses run-1, where that axis was never asked and the core-goal assertion FAILED. Rule 2 (greenfield/territory write-path probing): the interview probed how staff accounts and roles get created (R1.Q3), discovered via territory that no non-owner login route exists (R2.Q1), and carried that as an honest Still Open build blocker — turning a silent gap into a named, owner/dev-routed unknown. Everything run-1 already did well is preserved: proxy/authority handling is textbook (owner-policy axes → pending-owner assumptions, only within-authority items in Decisions), the dormant users.role column and refund irreversibility are territory-anchored and verified, three real unknown-unknowns land (audit log, auth blocker, order PII), and no fabrication. The CAPPED tag is correctly applied and — unlike run-1 — externally forced by owner authority plus the auth blocker rather than self-inflicted by budget mismanagement, since the core was already captured in R1. 15/15 assertions, rubric 10/10 (D1 and D4 both recover from run-1's 1s). Note: the resuming/finishing invocation correctly trusted the state file over a stale prompt template and refused to overwrite answered rounds — honest lifecycle handling, no fabricated extra round.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-5/with_skill/run-2"
+  },
+  {
+   "eval_id": 5,
+   "configuration": "with_skill",
+   "run_number": 3,
+   "adapted": true,
+   "holdout_generation": null,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 15,
+    "failed": 0,
+    "total": 15
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 avoids all administrative trivia — every question is architecture/design-changing. R1 still led with owner-deferrable design axes (권한 모델, 역할 관리) and the highest-leverage requester-answerable, spec-defining axis (who-for / what-access) arrived in R2 (R2.Q3 alba-tasks) rather than R1 — but it DID arrive within budget and captured the core, which is exactly iteration-4's R1-owner-lead + R2-who-for-recovery pattern that scored D1=2. Decisive improvement over run-1 (D1=1), where the who-for axis was never asked and the core sank. The new requester-answerable-axes-first rule landed as the R2 'proxy pivot' (front-loading operator-answerable 접속방식/역할단계/알바업무); it did not fully reorder R1, hence recovery rather than a flawless lead — but the leverage outcome is right."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "Multiple genuine interviewer-first unknown-unknowns land in the spec: offboarding/session revocation (R2.Q4 → Assumption), fail-closed default for unassigned 'member' accounts (R3.Q2, grounded in migration 002's blanket 'member' stamp → over-grant/lockout risk → Assumption), refund-actor audit logging (refunds.js records no actor → Still Open, surfaced not fabricated), and the single-owner-gate fate / staff-identity separation (BLOCKING Still Open). Richer UU coverage than run-1. Strong."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "All auth-relevant files read/grepped/re-verified before the claim audit; questions and spec carry real territory (requireOwner+OWNER_EMAIL single gate server.js:13, dormant users.role migration 002, irreversible POST /admin/refunds via Toss PG pg.js, missing session middleware, no credential column in migrations/001). Every territory claim independently verified accurate against the fixture — no generic templates."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "10 questions across 3 rounds, and — unlike run-1 (D4=1, core wedge omitted, budget burned circling the auth axis) — the load-bearing requester-answerable question (alba-tasks) WAS asked and the core captured, while 4 UUs and the auth blocker were also surfaced. Adaptive sequencing is correct: dependent auth questions are progressively narrowed across rounds (R1.Q2 status → R2.Q1 operator-answerable reframe → R3.Q1 what-to-build-given-blocker), not lazily duplicated, and every question's answer shaped the spec (decision / assumption / blocker routing). Mild imperfection: two R1 slots on owner-deferrable axes predictably yielded 추천대로 deferrals and the auth axis consumed three slots — not tight, but no pure filler and no core omission → clean 2."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Honest, well-partitioned synthesis: Decisions / Assumptions / Still Open tripartition with pending-대표 flags, a contingent-assumption flag on 착수 범위 (dependent on the unresolved auth blocker), and Still Open carrying the un-asked 감사 로그 as an admission rather than a fabricated default. No fabrication; every claim sourced via the Phase-5 claim audit; CAPPED honestly reflects genuinely-remaining material axes. The user's map is measurably improved (multi-admin premise, offboarding, fail-closed, PG-irreversibility all made explicit)."
+    },
+    "total": 10
+   },
+   "eval_feedback": "Both new SKILL.md rules landed and fixed run-1's decisive miss with no regression. run-1 (8/10) failed the core-goal assertion and docked D1/D4 because the interviewer never asked the single requester-answerable, spec-defining question (who needs access / which menus) and burned all three rounds on the login-infrastructure tangent. Here the requester-answerable-axes-first rule surfaces as an explicit R2 'proxy pivot' that front-loads operator-answerable axes, so R2.Q3 asks the alba-tasks question and the user selects 주문조회+통계+공지, while R1.Q3 blocks refunds for alba — the core goal (orders/stats/posts open, refunds 403) lands in Decisions + Success Criteria, fully traceable. The greenfield/write-path probing rule shows up as sustained, honest pursuit of the team-auth path (R1.Q2 → R2.Q1 → R3.Q1), correctly terminating it as a BLOCKING Still Open when the operator defers externally rather than fabricating a login model. Everything run-1 did well is preserved: textbook proxy/authority handling (role model, role tiers, audit retention all deferred pending 대표 / Still Open), territory-anchored and verified (dormant users.role, refund irreversibility, no credential column), 4 interviewer-first unknown-unknowns, zero fabrication (no CS/2명/지난달-사고/월요일 leakage), and a correctly-applied CLARIFICATION CAPPED (auth path unresolvable in-session + un-asked 감사 로그 genuinely remain). 15/15 assertions, rubric 10/10 — D1 recovers to 2 (iteration-4's R1-owner-lead + R2-recovery pattern) and D4 recovers to 2 (core wedge captured, adaptive sequencing, no filler). One residual imperfection worth noting for the next tightening: R1.Q3 entangles the within-authority alba-block with owner-adjacent refund-grantee/approval-flow sub-axes, and the who-for axis arrives a round later than ideal — neither defeats an assertion, but a cleaner run would separate 'alba cannot refund' (user) from 'who else / approval design' (owner) and lead R1 with the alba-tasks axis directly.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-5/with_skill/run-3"
+  },
+  {
+   "eval_id": 6,
+   "configuration": "with_skill",
+   "run_number": 1,
+   "adapted": false,
+   "holdout_generation": 1,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 16,
+    "failed": 0,
+    "total": 16
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 led with 연동 지점 (the write-path/integration axis that splits the whole spec) and harvested the read-only+CSV reframe immediately; who/structure/scope followed. No administrative questions in any round."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "Interviewer-raised dup exclusion AND the deeper read-only-can't-see-issuance-history insight (R3.Q2) both landed; the latter reframed 'exclude already-received' as a documented future-batch risk in Still Open — textbook unknown-unknown surfacing for a greenfield hand-off."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Greenfield-aware (empty-dir Territory Notes); leads with integration point rather than re-asking derivable facts; all questions speak the user's actual situation vocabulary (민수/CSV/read-only/마케팅CRM)."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "12 questions, no filler — every answer changed the spec; multiSelect used for the genuinely non-exclusive filter/notify questions; dependent 코드 방식 (R1.Q3) correctly resolved downstream (R2.Q3); recommended defaults offered throughout."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Exemplary Decisions/Assumptions/Surfaced/Still Open partition with a full claim-audit ledger; the read-only dedup limitation is honestly surfaced rather than papered over; no fabrication."
+    },
+    "total": 10
+   },
+   "eval_feedback": "Showcase with_skill run and the target policy working end-to-end: R1.Q1 led with the integration point, which surfaced the read-only + CSV-to-민수 hand-off on the very first payload; the deliverable is exactly the brief's ideal 3-column CSV, dup protection was interviewer-raised, notification correctly excluded to marketing CRM, and the read-only-can't-see-issuance-history blind spot landed as a Still Open risk. Claim audit at correct '### ' level ending Clarification Progress; COMPLETE tag correct. 16/16, rubric 10/10. No weaknesses of note.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-6/with_skill/run-1"
+  },
+  {
+   "eval_id": 6,
+   "configuration": "with_skill",
+   "run_number": 2,
+   "adapted": false,
+   "holdout_generation": 1,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 16,
+    "failed": 0,
+    "total": 16
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 led with 연동 지점 / 대상 / 채널 / 생명주기 — all architecture-splitting, no admin. Slightly lower yield than run-1 because the CSV-handoff reframe surfaced only at R2.Q1 rather than R1."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "Redemption gap and idempotency were interviewer-raised and landed; import match-key identity was surfaced to Still Open. Multiple genuine UUs reflected as decisions/assumptions."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Greenfield-aware and adaptive; questions speak the user's situation vocabulary and don't re-ask derivable facts."
+    },
+    "D4_economy": {
+     "score": 1,
+     "evidence": "Two economy dents: (a) R1's feature-build framing (전달 채널 / 생명주기) was partly mooted once R2 revealed the deliverable is a CSV hand-off, and (b) on R3.Q2 the interviewer recommended '쿠폰코드를 우리가 생성' as the default immediately after the user had specified a 3-column (no-code) CSV, and a brief-aligned option ('코드는 민수님/기존 시스템이 부여 — CSV엔 대상만') existed but was not steered to — adding a 4th column the user did not ask for."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Tri-partition is present and the code-gen over-reach is honestly filed as a delegated Assumption with a Still Open resolution (CSV format pending 민수 sign-off); every line traces. Minor wart: the Goal prose elevates the code-gen assumption to deliverable prominence."
+    },
+    "total": 9
+   },
+   "eval_feedback": "Solid run that resolves the core traps (CSV hand-off / no direct DB writes, one-off scope, interviewer-raised dedup, notification excluded) but with two flaws. (1) Contract: the claim audit is emitted as a top-level '## Claim audit' section rather than a '### Claim audit' block ending Clarification Progress — mech FAIL on A7. (2) Quality: after the user explicitly named a 3-column CSV (회원ID/금액/사유), the interviewer's recommended default on R3.Q2 added a 'we generate the coupon code' 4th column, drifting from the brief's model where 민수's system owns code generation; it's honestly filed as a delegated assumption, so not a fabrication, but it's the run's main quality dent (D4=1). 15/16, rubric 9/10.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-6/with_skill/run-2"
+  },
+  {
+   "eval_id": 6,
+   "configuration": "with_skill",
+   "run_number": 3,
+   "adapted": false,
+   "holdout_generation": 1,
+   "result": {
+    "pass_rate": 0.875,
+    "passed": 14,
+    "failed": 2,
+    "total": 16
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 1,
+     "evidence": "R1 was architecture-oriented and admin-free, but the single highest-leverage axis (how issuance is written / who can write to the DB) was never asked; the round chased a feature-build hypothesis, and R1.Q4 (code·사용제한) was lower-leverage than a data-access question would have been."
+    },
+    "D2_unknown_unknowns": {
+     "score": 1,
+     "evidence": "Dup protection and the 0원-결제 risk were interviewer-raised and landed, but the scenario's defining unknown-unknown (read-only access → CSV hand-off to 민수) was completely missed, and the other 'surfaced' items (min-order, expiry, redemption) are generic e-commerce template defaults bolted onto a mis-scoped feature rather than discoveries about this user."
+    },
+    "D3_territory": {
+     "score": 1,
+     "evidence": "Greenfield-aware and R1.Q1 grounds partially, but the bulk of questioning is generic template (platform brand list, min-order, expiry) and none of the user's real situational constraints surfaced — closer to templated than situation-grounded."
+    },
+    "D4_economy": {
+     "score": 1,
+     "evidence": "Questions were spec-changing within the run's model but low-value against the actual task: three rounds spent on generic coupon-feature parameters (platform, benefit, notification, expiry, min-order, dup, completion) while the one decisive integration question was never asked; R2.Q1 platform-brand question was mooted by the user's '개발팀이 정함' deferral."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Within its (wrong) model the synthesis is honest and well-structured: Decisions/Assumptions/Surfaced/Still Open cleanly separated, assumptions flagged and sourced, claim audit thorough. Minor smudge: '결제 시 차감' in Scope 포함 is unflagged."
+    },
+    "total": 6
+   },
+   "eval_feedback": "Weakest with_skill run: it missed eval-6's central integration trap entirely. By treating the coupon request as a generic feature build and never probing data-access / write-path, it never surfaced the read-only + CSV-to-민수 reality and instead specced a direct-issuance feature (admin button → 쿠폰함 적립 → 결제 차감) the read-only requester cannot deploy — A9 FAIL. Questioning stayed on generic e-commerce templates (platform brands, min-order, expiry) rather than the user's situation — A16/D3 FAIL. Plus the claim audit is emitted at '## ' not '### ' and outside Clarification Progress — A7 FAIL. It still handled the shallower traps well (interviewer-raised dedup, notification excluded, honest tri-partition), so 13/16, rubric 6/10. This is a leverage/territory variance failure, not a scaffolding failure — with_skill run-1 nailed the same trap within the 4-question budget by leading with the integration point.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-6/with_skill/run-3"
+  },
+  {
+   "eval_id": 6,
+   "configuration": "with_skill",
+   "run_number": 4,
+   "adapted": true,
+   "holdout_generation": 1,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 16,
+    "failed": 0,
+    "total": 16
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 led with 연동/형태 (the write-path/who-can-write axis that splits the entire spec) and harvested the read-only + CSV-to-민수 reframe immediately; who/trigger/channel followed. No administrative questions in any round."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "Interviewer-raised dup exclusion (R2.Q3) AND the read-only-can't-read-issuance-history contradiction (R3.Q2) both landed; the run then caught the deeper unknown — the fixed CSV contract lacks the key its own assumed idempotency mechanism requires — and surfaced it as Still Open #1, driving an honest CAPPED. Textbook UU surfacing for a greenfield hand-off."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Greenfield-aware (run_log: empty-dir, no code sweep); leads with the integration point instead of re-asking derivable facts; every question speaks the user's actual situation vocabulary (민수/CSV/읽기 전용/쿠폰함/캠페인)."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "11 questions, no filler — every answer changed the spec; multiSelect used for the genuinely non-exclusive axes (발송 시점, 전달 경로, 세그먼트, 발급 규칙, 성공 검증); dependent campaign-key detail correctly deferred out of R3 rather than blind-designed; recommended defaults offered throughout."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Exemplary Decisions/Assumptions/Surfaced/Still Open partition with a full claim-audit ledger; the read-only dedup limitation and the CSV-contract key gap are honestly surfaced rather than papered over, and the unsourced key value is demoted to Still Open. The CAPPED tag matches the honest state. No fabrication."
+    },
+    "total": 10
+   },
+   "eval_feedback": "Showcase with_skill run matching run-1's behavior on substance: R1.Q1 led with the integration/write-path axis, which surfaced the read-only + CSV-to-민수 hand-off on the very first payload; the deliverable is exactly the brief's ideal 3-column CSV [회원ID, 쿠폰 금액, 발급 사유], dup protection was interviewer-raised (R2.Q3), notification correctly excluded, and the read-only-can't-see-issuance-history blind spot deepened into a CSV-contract key gap that drove an honest <promise>CLARIFICATION CAPPED</promise>. The two adapted rules landed cleanly: requester-answerable-axes-first (R1 led with operator-answerable integration/segment axes, owner-policy items like 만료/캠페인키 routed to assumptions/Still Open pending 대표·마케팅/민수) and greenfield write-path probing (R1.Q1 opened on how issuance enters the system, immediately exposing read-only+hand-off). No regression vs run-1: 16/16, rubric 10/10. Where run-3 (6/10) treated the request as a generic feature build and specced direct-DB writes, this run reproduced run-1's win and, if anything, showed sharper metacognition by CAPPING on the genuine key-column contract gap instead of over-claiming COMPLETE.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-6/with_skill/run-4"
+  },
+  {
+   "eval_id": 6,
+   "configuration": "with_skill",
+   "run_number": 5,
+   "adapted": true,
+   "holdout_generation": 1,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 16,
+    "failed": 0,
+    "total": 16
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 led with 통합 지점 (the write-path/integration axis that splits the whole spec) and embedded the DB-write-access sub-probe in the option text, harvesting the read-only + CSV-to-민수 reframe on the very first payload; who/data-model/scope followed. No administrative questions in any round."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "Interviewer-raised dup exclusion (R3.Q4) landed as a hard Constraint/Success Criterion, and the code-model conflict (고유 코드 assumption vs code-less CSV) was surfaced and reconciled; the identifier match-key risk and total-exposure budget check were also raised — textbook unknown-unknown surfacing for a greenfield hand-off."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Greenfield-aware (empty-dir Territory Notes); leads with the integration/write-path axis rather than re-asking derivable facts; every question speaks the user's actual situation vocabulary (민수/조회 권한/CSV/마케팅 CRM). Directly recovers the axis run-3 failed."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "12 questions, no filler — every answer changed the spec; multiSelect used for the genuinely non-exclusive axes (대상·트리거, 전달 채널); dependent axes correctly sequenced (코드 모델 R1 → 코드 생성 주체 R3; CSV 계약 R2 → 회원 식별자 R3); recommended defaults offered throughout, and owner-policy axes carried a '민수님 확인' delegation option."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Exemplary Decisions/Assumptions/Surfaced/Still Open partition with a full claim-audit ledger; owner-authority items (회원 식별자, CSV 양식) honestly routed to Still Open (pending 민수) rather than presented as user decisions; the derived 총 노출액 caution kept out of the spec body; no fabrication."
+    },
+    "total": 10
+   },
+   "eval_feedback": "Showcase with_skill run replicating run-1's 10/10: the adapted rules landed cleanly and fixed run-3's misses without regression. Greenfield write-path probing worked — R1.Q1 led with the integration point and embedded the DB-write-access sub-probe, surfacing the read-only + CSV-to-민수 hand-off on the first payload; the deliverable is exactly the brief's ideal 3-column CSV, dup protection was interviewer-raised (R3.Q4), notification correctly excluded to marketing CRM. Requester-answerable-axes-first under limited authority also landed: R2 explicitly prioritized operator-answerable cadence/workflow axes while carrying owner-delegation options, and R3's 회원 식별자 was correctly routed to Still Open (pending 민수) as an authority-delegated axis rather than forced into a user decision. Claim audit at correct '### ' level; COMPLETE tag honest (all material axes asked; residuals are owner-pending, not unasked). Fabrication hunt clean — the brief's 300-count never leaked. 16/16, rubric 10/10. No weaknesses of note.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-6/with_skill/run-5"
+  },
+  {
+   "eval_id": 6,
+   "configuration": "with_skill",
+   "run_number": 6,
+   "adapted": true,
+   "holdout_generation": 1,
+   "result": {
+    "pass_rate": 0.9375,
+    "passed": 15,
+    "failed": 1,
+    "total": 16
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 led with 연동 지점 (the write-path/integration axis that decides the whole deliverable form) and harvested the read-only + CSV-to-민수 reframe on the very first payload; who/trigger/scope/data-model followed. No administrative questions in any round — the new 'greenfield write-path probing' rule landed cleanly."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "Interviewer-raised dup/re-run safety (R2.Q3) landed as 멱등 Constraints/Success; the deeper 'first-issuance → real dup risk lives in future re-runs, dedup this batch is CSV-internal + import unique constraint' insight (R3.Q4) landed in Surfaced/Still Open; plus the 정지·미인증-포함 filter flag. Textbook UU surfacing for a greenfield proxy hand-off."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Greenfield-aware (empty-dir Territory Notes, no invented code); leads with the integration point instead of re-asking derivable facts; every question speaks the user's real situational vocabulary (민수/조회전용/CSV/마케팅CRM/내 쿠폰함/MySQL). Closer to situation-grounded than templated throughout."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "12 questions, no filler — every answer changed the spec. multiSelect used for the genuinely non-exclusive 전달채널(R1.Q3) and 대상범위(R3.Q2); dependent axes correctly deferred (산출물 형태 depends on 연동지점 → R2; 중복 판별 근거 depends on 산출물 → R3.Q4) rather than jammed into R1. Recommended defaults offered throughout; requester-answerable axes front-loaded, owner-policy deferred with delegation options — the new 'requester-answerable-axes-first under limited authority' rule visible in the Diagnosis notes."
+    },
+    "D5_honest_synthesis": {
+     "score": 1,
+     "evidence": "Corrected 2→1: tripartite structure otherwise accurate and traceable, but one derived value (calendar-month KST boundary) was presented as decided with a laundered source (unselected option description) instead of a recorded assumption — '가정이 결정처럼 위장' on one axis. Kept at 1 (not 0) because unlike the iteration-3 D5=0 anchors the value derives from user-implied content (R1/R2 '7월 신규/2026년 7월'), not from hidden-brief leakage."
+    },
+    "total": 9
+   },
+   "eval_feedback": "Second showcase with_skill run, matching run-1: R1.Q1 led with the write-path/integration axis (연동 지점), which surfaced the read-only + CSV-to-민수 hand-off on the very first payload. The deliverable is the brief's intended CSV hand-off with no direct production-DB writes (R3.Q1 sharpened it to a read-only SELECT the requester runs to produce the CSV — deeper territory reasoning, not a regression); dup protection was interviewer-raised (R2.Q3, 'first-issuance so real risk is future re-runs' landed in Still Open); notification correctly excluded to marketing CRM; one-off scoped with reusable generalization in Scope 제외. The two new SKILL rules landed exactly as intended — greenfield write-path probing (R1.Q1) and requester-answerable-axes-first with owner policy deferred (R2 front-loads 산출물/주기/멱등, 사용조건 → Assumption-pending-owner). COMPLETE tag correct (residuals are owner/third-party deferrals, not budget-starved material axes). Only smudge: an unsourced 리텐션/활성화 motivation gloss in the Reason field (non-material). 16/16, rubric 10/10 — the adapted rules fix run-3's write-path/generic-template miss without regressing anything. [CORRECTION 2026-07-11: no-fabrication FAIL + D5 2→1 per production-gate review finding (unselected-option source laundering), verified against answers_round_3.md/questions_round_3.json/state snapshot by the orchestrating session.]",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 1,
+   "_source": "eval-6/with_skill/run-6"
+  },
+  {
+   "eval_id": 6,
+   "configuration": "without_skill",
+   "run_number": 1,
+   "adapted": false,
+   "holdout_generation": 1,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 9,
+    "failed": 0,
+    "total": 9
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 led with context/type/trigger/delivery/scope — all architecture-splitting; R2 immediately pivoted to the write-path once read-only surfaced. No administrative questions."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "The read-only → where-do-you-write catch and the ledger-file solution for re-run dedup are top-tier unknown-unknown work; it also flagged the code-gen authority branch and the marketing-decision nature of validity period. Exemplary."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Greenfield-aware and deeply situation-grounded (MySQL read-only, 민수, CSV, urgency); questions never re-ask derivable facts and adapt round-to-round."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "5/5/4 questions (free-form format), each spec-changing; strong hypothesis options with recommended defaults ('회원별 1회용 고유코드 권장'); dependent axes deferred and resolved adaptively."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Six-section partition of decisions / accepted-defaults / 민수-pending / open recommendations / residual risks / build spec, with explicit 착수-가능 vs 차단 gating; even flags the code-gen authority as a risk rather than asserting it. No fabrication."
+    },
+    "total": 10
+   },
+   "eval_feedback": "Exceptional baseline run — it fully solved the eval-6 integration trap without any skill scaffolding. R2.Q1 asked the read-only write-path question head-on, surfaced the CSV-to-민수 hand-off, invented a ledger-file mechanism for re-run dedup under read-only, excluded notification, and honestly flagged the code-generation authority branch as an unresolved assumption. Free-form format let it ask 14 questions vs the skill's 4-per-round cap, which clearly helped surface the trap. 9/9 on the both-arm assertions, rubric 10/10. Matches with_skill run-1 and exceeds with_skill run-3.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-6/without_skill/run-1"
+  },
+  {
+   "eval_id": 6,
+   "configuration": "without_skill",
+   "run_number": 2,
+   "adapted": false,
+   "holdout_generation": 1,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 9,
+    "failed": 0,
+    "total": 9
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 led with context/benefit/audience/trigger/code/delivery/scope — all architecture-splitting, no admin. R2/R3 stayed on the highest-leverage integration and idempotency axes."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "Idempotency and the dedup-must-read-the-DB derivation are excellent; also surfaced the redemption-method branch (code column needed or not) and the 회원ID-insufficient-for-notification risk. Multiple genuine UUs land in spec."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Greenfield-aware and situation-grounded; adaptive across rounds; never re-asks derivable facts and correctly routes code-facts to '민수 확인'."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "7/6/4 questions (free-form) — dense but each shaped the spec or mapped a real 민수-dependency boundary; strong recommended-default hypotheses; adaptive sequencing. Slightly higher volume than run-1 but not padded."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Four-way inline tagging (확정/추천채택/가정/개발자·민수 확인) plus a pre-handoff checklist and residual recommendations; the code-column question is honestly left as a민수-owned branch. No fabrication."
+    },
+    "total": 10
+   },
+   "eval_feedback": "Strong baseline run that resolves every trap: CSV hand-off / no direct requester DB writes, one-off scope, interviewer-raised idempotency (with the sharp derivation that dedup must read the DB's issuance history), notification excluded, and the redemption-method branch surfaced as a 민수-owned unknown. Honest four-way tagging of decisions/defaults/assumptions/code-facts. 9/9, rubric 10/10.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-6/without_skill/run-2"
+  },
+  {
+   "eval_id": 6,
+   "configuration": "without_skill",
+   "run_number": 3,
+   "adapted": false,
+   "holdout_generation": 1,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 9,
+    "failed": 0,
+    "total": 9
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 led with context/meaning/code/targeting/delivery/operator-scope — all architecture-splitting, no admin; R2/R3 stayed on the write-path and dedup axes that decide the whole deliverable."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "The read-only↔dedup contradiction surfaced in §5 is the sharpest UU work across all six runs — it proves the user's stated preference (dedup at CSV stage) may be un-implementable given read-only + unknown coupon schema, and routes it to a blocking 민수 confirmation. Idempotency and timezone also land."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Greenfield-aware and deeply situation-grounded; the R3 pivot on the read-only revelation is exemplary adaptive territory work; never re-asks derivable facts and routes code-facts to 민수."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "6/6/4 questions (free-form), each spec-shaping; the one mild inefficiency (R2.Q2 redemption-attribute questions that don't land in the 3-column CSV) arose from the pre-pivot INSERT-script framing and is honestly recorded as '민수 영역', not padding. Strong recommended-default hypotheses."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Rigorous 확정/가정/미해결 split with per-fact source table, a blocking-contradiction section, and a pre-handoff checklist; assumptions never disguised as decisions. No fabrication."
+    },
+    "total": 10
+   },
+   "eval_feedback": "The most rigorous run in the set. It solved the integration trap (3-column CSV matching the brief exactly, read-only requester, 민수 INSERT), then went further than any other run by surfacing the read-only↔dedup contradiction as a BLOCKING item — proving the user's stated dedup preference may be un-implementable and routing it to 민수 with an (A)/(B) resolution. Honest 확정/가정/미해결 tri-partition with source-mapped facts. 9/9, rubric 10/10.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-6/without_skill/run-3"
+  },
+  {
+   "eval_id": 7,
+   "configuration": "with_skill",
+   "run_number": 1,
+   "adapted": false,
+   "holdout_generation": 1,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 16,
+    "failed": 0,
+    "total": 16
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 leads with the dedup-criterion question — the axis that decides which rows are destroyed — then recurrence scope then apply/verify. Zero administrative detail."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "Partial-shipment trap, script non-idempotency, and backup were all interviewer-raised before the user voiced them and each landed as a Scope item, Constraint, or Success Criterion."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "All fixture files read pre-round-1; questions carry exact duplicated rows (all batch-0702), the CHANGELOG 7/2 incident, README partial-shipment rule, and the append-only import script. Claim audit sources every fact to a file path."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "3 questions, all spec-changing, all with Recommended defaults; correctly judged round 2 non-material (skip-vs-reject and report format yield the same contract) and closed after one round — no filler, no padding."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Clean tri-partition (Decisions / Assumptions-flagged / Surfaced / Still Open=none) and a Claim audit mapping every After-spec claim to a source; hidden incident cause never fabricated."
+    },
+    "total": 10
+   },
+   "eval_feedback": "Textbook holdout result: the destructive trap was surfaced interviewer-first in R1.Q1 (완전 동일 행 vs order_id+line_no key vs batch-only), the user's confirmation locked partial-shipment preservation, and backup + idempotency guard both landed from interviewer-raised questions. Single batched round of 3 was genuinely sufficient — the run reasoned explicitly that remaining candidates (skip-vs-reject, report format) share the same contract and are non-material, which is exactly the economy the rubric rewards. Note the orchestrator relaunched this slot as 'invocation #1' over already-complete artifacts; the run treated disk as authoritative, re-verified every claim, and made no content changes — a clean recovery worth codifying in the harness's round-bookkeeping contract.",
+   "timing": {
+    "rounds": 0
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-7/with_skill/run-1"
+  },
+  {
+   "eval_id": 7,
+   "configuration": "with_skill",
+   "run_number": 2,
+   "adapted": false,
+   "holdout_generation": 1,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 16,
+    "failed": 0,
+    "total": 16
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 leads with the dedup-criterion trap, then apply method, recurrence, and verification — the four spec-defining axes, no administrative detail."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "Three interviewer-first UUs landed: partial-shipment trap (Constraint), recurrence guard (Still Open), and downstream-consumer impact (Surfaced) — the last goes beyond the brief."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Files re-verified with sort|uniq -d; questions carry the CHANGELOG 7/2 incident, README partial-shipment rule, and cron+append root cause. Not generic."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "4 questions, all material, Recommended defaults; correctly skipped round 2. Q4 bundles verification+downstream but both are related and option-resolved — not filler."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Decisions / Surfaced / Still Open partition is honest (no assumptions because all axes decided); Claim audit sources all 10 claims; hidden incident cause stays out of the spec."
+    },
+    "total": 10
+   },
+   "eval_feedback": "Strongest of the three with_skill runs on breadth: it added a fourth question probing downstream consumers of the CSV — a real unknown-unknown beyond the brief — and folded verification into it economically. The trap was resolved with an explicit Constraint banning key-based dedup, and recurrence was correctly parked in Still Open with a reoccurrence-risk note when the user chose data-cleanup-only. Two things to watch (neither fails an assertion): (1) the Reason clause '원장 수치가 부풀려진 상태' is an inference not present in dialogue — harmless here but grounding-note bleed to monitor; (2) run_log flags it overwrote stale Jul-10 artifacts from a reused RUN_DIR whose earlier answers differed (import guard in-scope vs this run's exclude) — a real harness confusion hazard for the reused-slot pattern.",
+   "timing": {
+    "rounds": 1
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-7/with_skill/run-2"
+  },
+  {
+   "eval_id": 7,
+   "configuration": "with_skill",
+   "run_number": 3,
+   "adapted": false,
+   "holdout_generation": 1,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 16,
+    "failed": 0,
+    "total": 16
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 leads with the dedup-criterion trap; Q2 (delivery form) and Q3 (recurrence) and Q4 (success) are all design-relevant, no administrative naming/color detail."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "Partial-shipment trap, recurrence guard, backup, and the cron-registration residual all interviewer-raised and landed as Scope/Constraint/Still Open."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "All files read and verified; questions cite exact rows, CHANGELOG, README, and append-only script; even checked .git absence to ground the backup constraint. Not generic."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "4 questions, all material, Recommended defaults, multiSelect correctly applied to the non-exclusive recurrence question; round 2 correctly skipped. No filler."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Decisions / flagged Assumption / Surfaced / Still Open tri-partition; state file marks 'decided' vs 'assumed'; Claim audit sources every claim including the .git-absence inference."
+    },
+    "total": 10
+   },
+   "eval_feedback": "Cleanest tri-partition of the three: the one delegated axis (output form, '잘 모르겠어서 추천대로') was correctly demoted to a flagged Assumption while backup itself stayed a Constraint, and multiSelect was used exactly where the rubric wants it (non-exclusive recurrence question). It also went a step further on territory by verifying the project is not a git repo to justify the backup-is-only-recovery Constraint — grounding a claim rather than assuming it. Recurrence landed in scope while the un-fixable cron-registration cause was honestly parked in Still Open. Same reused-RUN_DIR / 'invocation #1 over complete artifacts' friction the other runs hit; handled correctly by re-verifying and not re-asking.",
+   "timing": {
+    "rounds": 0
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-7/with_skill/run-3"
+  },
+  {
+   "eval_id": 7,
+   "configuration": "without_skill",
+   "run_number": 1,
+   "adapted": false,
+   "holdout_generation": 1,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 9,
+    "failed": 0,
+    "total": 9
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 leads with the scope/dedup-rule decision (the trap), then recurrence, safety, validation — spec-shaping, no administrative detail."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "Partial-shipment trap, backup, and recurrence all interviewer-raised before the user voiced them and each landed in the spec."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Read the fixture and cited the CHANGELOG 7/2 incident, exact batch-0702 rows, and the partial-shipment convention; re-verified in run_log. Not generic."
+    },
+    "D4_economy": {
+     "score": 1,
+     "evidence": "4 material questions, no filler, and it economically resolved delegated items without a round 2 — but the questions are open prose ('요구사항이 있나요?') without disciplined hypothesis options, and q4 shipped a wrong expected value (13). Caps below the hypothesis-option bar for a 2."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "학습/가정/주의 partition is honest and even self-corrects its own round-1 arithmetic slip and flags export-file uncertainty."
+    },
+    "total": 9
+   },
+   "eval_feedback": "A strong baseline: on this eval the territory (CHANGELOG names the incident, README explains partial shipment) makes trap-resolution accessible to any careful agent, and this run inspected the files, surfaced the trap + backup + recurrence interviewer-first, and produced measurable success criteria — so all 9 quality assertions pass. It even self-corrected a round-1 arithmetic slip (13→11) in the final summary, which strengthens D5. The gap versus the skill arm is D4 (open prose questions instead of hypothesis options, plus the transient wrong expected value) and the entire contract layer (no state file, no batched-option protocol, no claim audit) that the with_skill assertions cover. Honest read: this holdout's informative territory compresses the quality gap between arms to a single dimension (question economy).",
+   "timing": {
+    "rounds": 0
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-7/without_skill/run-1"
+  },
+  {
+   "eval_id": 7,
+   "configuration": "without_skill",
+   "run_number": 2,
+   "adapted": false,
+   "holdout_generation": 1,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 9,
+    "failed": 0,
+    "total": 9
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 leads with the dedup-rule trap, then scope, deliverable, prevention — spec-shaping, no administrative detail."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "Partial-shipment trap, the order_id/line_no-collision edge case, backup, and recurrence all interviewer-raised and landed in the spec."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Read the fixture; questions cite the CHANGELOG 7/2 incident, the '아직 정리 못 함' note, and cron root cause; whole-file scan verified for hidden duplicates. Not generic."
+    },
+    "D4_economy": {
+     "score": 1,
+     "evidence": "4 material questions, no filler, and it economically resolved 3 delegated ('추천해주세요') axes as recommendations instead of a wasted round 2 — but questions are open prose without disciplined hypothesis options, capping below a 2."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Confirmed vs delegated-recommendation vs learned/assumed partition is explicit and honest; each delegated item names the deferral."
+    },
+    "total": 9
+   },
+   "eval_feedback": "Baseline handled heavy delegation gracefully — the user answered '추천해주세요' on 3 of 4 axes and the run converted each into a labeled recommendation rather than burning a confirmation round, keeping the confirmed/delegated/assumed boundary crisp. It also surfaced a genuine edge case the brief never mentions (same order_id+line_no but differing content → report-only, never auto-delete), which is exactly the unknown-unknown instinct the rubric prizes. All 9 quality assertions pass; the only quality gap vs the skill arm is D4 (open prose vs hypothesis options). As with the other baseline runs, this eval's explicit CHANGELOG/README territory lets a careful agent resolve the destructive trap without the skill scaffold, so the arms separate mainly on the contract layer and question economy.",
+   "timing": {
+    "rounds": 0
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-7/without_skill/run-2"
+  },
+  {
+   "eval_id": 7,
+   "configuration": "without_skill",
+   "run_number": 3,
+   "adapted": false,
+   "holdout_generation": 1,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 9,
+    "failed": 0,
+    "total": 9
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 leads with the dup-definition trap; scope/safety/prevention/verification follow — all spec-shaping, no administrative detail."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "Partial-shipment trap, backup, recurrence, and export-file verification all interviewer-raised and landed in the spec."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Read the fixture; cites the CHANGELOG 7/2 incident, exact rows, README partial-shipment rule, and the append-only import script. Not generic."
+    },
+    "D4_economy": {
+     "score": 1,
+     "evidence": "5 questions in one round with two fully open-ended (q3, q5) and some dependency (scope depends on the dup rule); all material and no rambling, but the count exceeds the disciplined batch and the open format lacks hypothesis-option quality — below a 2."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "학습/가정 partition explicit, assumptions named (first-occurrence, filename, mechanism), residual export-file uncertainty recorded. Honest."
+    },
+    "total": 9
+   },
+   "eval_feedback": "Baseline resolves the destructive trap correctly (exact-row dedup, partial shipments preserved, order_id-level explicitly rejected) and grounds every question in the CHANGELOG/README territory, so all 9 quality assertions pass. The one quality drag is D4: it asked 5 questions in a single round — two of them fully open-ended and at least one dependent on the dup-rule answer — where the skill arm delivers ≤4 hypothesis-option questions with adaptive sequencing. Consistent with the other two baseline runs, this holdout's self-documenting territory lets a careful non-skill agent land the trap, so the arm gap concentrates in question economy and the missing contract layer (state file, batched options, claim audit, promise tag).",
+   "timing": {
+    "rounds": 0
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-7/without_skill/run-3"
+  },
+  {
+   "eval_id": 8,
+   "configuration": "with_skill",
+   "run_number": 1,
+   "adapted": false,
+   "holdout_generation": 2,
+   "result": {
+    "pass_rate": 0.875,
+    "passed": 14,
+    "failed": 2,
+    "total": 16
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 led with the highest-leverage axes — data source (decides deliverable form), 부족 판단 기준(core logic), 표시 방식(scope), cadence — and the data-source Other harvested the CSV-email reframe on the first payload. No administrative questions in any round. Textbook leverage ordering."
+    },
+    "D2_unknown_unknowns": {
+     "score": 1,
+     "evidence": "Partial. It surfaced a genuine interviewer-originated, brief-absent UU (stale/absent-CSV → 착오 발주 방지, landed as assumption) plus the repeat-alert probe — so not 0. But it whiffed the scenario's dominant, brief-flagged UU: 이미 발주한(미입고) 상품을 매일 목록에서 제외 (+ ordered-state recording) — the direct analog of the anchors' duplicate-issuance protection that earned them D2=2 — was never raised, and 품절(재고 0) 긴급 상단 표시 was also never surfaced. Catching a secondary UU while missing the central one is a real regression on the heart dimension → 1."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Greenfield-aware (empty dir, territory walk skipped); questions ground in the user's actual vocabulary (안전재고/CSV/발주/품목별) and situation (solo owner, no dev, deferred everything technical to recommended defaults); no re-asking of request-derivable facts, no generic platform-brand list. The terminal-surface recommendation is a minor situational-fit smudge but grounding/vocab/no-re-ask are all satisfied."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "10 questions (4/3/3, tapering as unknowns resolved), no filler — every asked question's answer changed the spec. Recommended default offered on each question; dependent axes correctly sequenced (R2 CSV access path depends on R1 data source; R3 컬럼 구조 depends on R2 폴더 decision) rather than jammed into R1; multiSelect used for the genuinely non-exclusive R1.Q3 알림 방법. The missed UUs are a discovery gap (D2), not padding — the questions actually asked were economical."
+    },
+    "D5_honest_synthesis": {
+     "score": 1,
+     "evidence": "Sourcing discipline is exemplary — clean tripartition, a full 10-line claim audit, and the option-description-derived '부족분' formula correctly recorded as an assumption (the exact axis run-6 was docked for; this run is clean there, so not 0). But the synthesis is not fully honest about its own gaps: state/run_log flatly assert '미질문 material 축 없음' / 'No material axis went un-asked' — false, since 이미-발주 제외 and 품절 긴급 표시 were never asked — and 'Still Open' actively rationalizes the cap-stop as '미질문 축이 아니라 첫 실행 실측으로 해소', papering over a CAPPED condition as COMPLETE. False completeness declaration + under-reported residuals in the 'honest synthesis' dimension → corrected to 1."
+    },
+    "total": 8
+   },
+   "eval_feedback": "Format-clean with_skill run that whiffed its signature trap. Strengths: R1 led with the data-source/integration axis (D1=2) and the R1.Q1 Other harvested the CSV-email reframe on the first payload; cadence (하루 1회, R1.Q4), integration (folder-saved CSV attachment, no invented API/DB, R1.Q1→R2.Q1), and threshold (per-product 안전재고, not a global fixed number, R1.Q2) traps were all resolved via asked questions; and — unlike the run-6 anchor — the one option-description-derived value (부족분 = 안전재고 − 현재수량) is correctly tagged as an assumption rather than laundered as decided, so no-fabrication passes cleanly. Core defect: the brief's central interviewer-must-raise UU — 이미 발주했으나 미입고 상품의 매일 재노출 제외 (+ ordered-state recording) — was never asked in any of the 10 questions, and 품절 긴급 표시 was also never surfaced; the run then declared CLARIFICATION COMPLETE and affirmatively (falsely) claimed no material axis went un-asked. Since the 3-round budget ran out with material axes unasked, the tag should be CAPPED → terminal-tag assertion FAIL, already-ordered-exclusion assertion FAIL (2 assertion fails, 14/16). Rubric 8/10: D2=1 (caught a real brief-absent UU in stale-CSV but missed the dominant already-ordered/sold-out UUs) and D5=1 (clean sourcing/tripartition but a false completeness declaration in the synthesis); D1/D3/D4=2. Sits clearly below the 10/10 and 9/10 eval-6 anchors, as its signature-trap miss + terminal mislabel warrant.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-8/with_skill/run-1"
+  },
+  {
+   "eval_id": 8,
+   "configuration": "with_skill",
+   "run_number": 2,
+   "adapted": false,
+   "holdout_generation": 2,
+   "result": {
+    "pass_rate": 0.9375,
+    "passed": 15,
+    "failed": 1,
+    "total": 16
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 led with 재고 데이터 위치 — the source/integration axis that decides deliverable form (direct connect vs file hand-off) — and harvested the 샵플 07:00 CSV reframe on the first payload; 기준/후속/채널 followed. No administrative questions in any round."
+    },
+    "D2_unknown_unknowns": {
+     "score": 1,
+     "evidence": "Docked 2→1. A genuine interviewer-raised UU (silent-data-gap warning, R2.Q3 — not even in the brief) did land in the spec as Success Criteria/Assumption, which clears the letter of the rubric. But the run missed the brief's designated PRIMARY UU — the already-ordered exclusion (재입고 대기 상품이 매일 재출현) — which is never probed in any of the 8 questions and is absent from the final spec, directly undercutting the '아침 10분 발주 결정' success criterion. Catching a secondary blind-spot while missing the material one keeps this off a clean 2."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Greenfield-aware (empty dir, no invented code); leads with the source/integration point instead of re-asking derivable facts; questions speak the user's real vocabulary (샵플 CSV/안전재고/07:00 메일) and respect the spreadsheet-level, no-developer persona by defaulting to manual execution."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "8 questions, no filler — every answer changed the spec. multiSelect used for the genuinely non-exclusive R1.Q2 channel; dependent axes correctly deferred (CSV 수급/실행 모델 depend on source → R2/R3) rather than jammed into R1; recommended defaults offered on every deferrable. R2.Q2's channel re-ask was a legitimate re-confirmation of the R1.Q2 defer, not padding."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Exemplary Decisions/Assumptions/Surfaced/Still Open partition with a full 8-row claim-audit ledger; deferred and option-description-sourced values are honestly filed as Assumptions (no disguise, no laundering), and the unsourced CSV encoding detail is flagged Still Open rather than asserted. No fabrication. Honesty of the synthesis is complete for what was covered (the coverage gap is a D2 matter, not a D5 one)."
+    },
+    "total": 9
+   },
+   "eval_feedback": "Strong with_skill run on a gen-2 holdout that nails three of the four traps and stays fabrication-clean, but misses the brief's designated primary unknown-unknown. WINS: cadence trap resolved to a run-and-see manual tool with real-time monitoring AND per-product push both in Scope 제외 (R2.Q2 free-text + R3.Q1); integration honored to the sole 샵플 07:00 CSV email path with no invented API (R1.Q1 led with the source axis); threshold correctly per-product 안전재고 from CSV, global fixed threshold offered-but-not-adopted (R1.Q3); and — the model behavior of note — every option-description-sourced value (수동 실행/지정 폴더, 데이터-미수신→빈/깨진 CSV 경고 reinterpretation) is filed under Assumptions with an 8-row claim audit, avoiding the run-6-style source laundering. Clean COMPLETE at cap with spare budget. MISS: the already-ordered exclusion (재입고 대기 상품이 매일 재출현 + 발주 기록 병행 입력) is never interviewer-raised and never lands in the spec — the interview instead spent its blind-spot slot on the data-missing warning (a real but secondary UU). That single miss carries the already-ordered assertion FAIL and docks D2 2→1. 15/16, rubric 9/10 — calibration-parallel to the run-6 anchor (one both-arm trap FAIL + one docked dimension).",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-8/with_skill/run-2"
+  },
+  {
+   "eval_id": 8,
+   "configuration": "with_skill",
+   "run_number": 3,
+   "adapted": false,
+   "holdout_generation": 2,
+   "result": {
+    "pass_rate": 0.875,
+    "passed": 14,
+    "failed": 2,
+    "total": 16
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 led with the data-source/integration axis and the judgment rule — the two answers (샵플 CSV email, per-product 안전재고 column) redrew the product from alert-sender to digest-viewer in one round. No administrative questions in any round."
+    },
+    "D2_unknown_unknowns": {
+     "score": 1,
+     "evidence": "Several secondary UUs were interviewer-raised and landed (빈 안전재고, 이상치 rows, 다점포 dup rows, off-by-one boundary — the first two aren't even in the brief), which alone would merit 2. Docked to 1 because the brief's designated, workflow-central UU — already-ordered items reappearing in every morning's digest — was never conceived across 12 questions, and the final cap round spent its budget on edge-case precision instead. The user's map keeps exactly the hole this interview existed to find: the shipped spec re-lists ordered products daily."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Greenfield handled honestly (empty project/ noted, no pretend code sweep); questions ground in the persona's real situation and adopt her vocabulary progressively; the R3.Q1 invitation to paste the actual CSV header line is territory-walking by proxy — the best available move when the territory is a file the assistant can't see."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "12 questions, zero filler — every answer changed the spec. Recommend-default options attached wherever '잘 모르겠어요' was likely (used 5 times, all correctly harvested as assumptions). Dependent axes correctly sequenced: ingestion path and output surface waited for the R1 CSV reveal; column mapping waited for R2's file-based ingestion. multiSelect used exactly once, on the genuinely non-exclusive 목록 내용 question."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Exemplary bookkeeping: tri-partition clean, claim audit maps 18 claims including motivation and non-selection provenance, and the one unselected-option-only value (인코딩) is explicitly quarantined as a pure assumption — the exact failure mode corrected in eval-6/run-6, handled right here. No fabrication, no laundering. (The COMPLETE-vs-CAPPED mis-tag stems from a blind spot, not dishonest bookkeeping, and is priced under the terminal-tag assertion.)"
+    },
+    "total": 9
+   },
+   "eval_feedback": "Strong run that cleanly resolved three of the four gen-2 traps in round 1: cadence (실시간 hypothesis offered, once-daily morning manual run decided), integration (샵플 POS daily CSV email surfaced by the R1 data-source question, no API invented), and threshold (공통 기준 offered, user's Other landed the per-product 안전재고 column). Fabrication hygiene is the run's standout: the encoding value that exists only in an unselected option's description was explicitly recorded as a pure assumption with provenance — the eval-6/run-6 laundering lesson applied correctly — and brief-only facts (7시, 10분) never leaked. The single substantive failure is the already-ordered trap: across all 12 questions nothing probed ordered-but-not-received items reappearing in tomorrow's digest, so the 발주 기록 exclusion mechanism never entered the spec, and the shipped tool would nag about every ordered product each morning. That miss cascades into the terminal tag: run_log declared 'material 미질문 축 0' and emitted COMPLETE at the 3/3 cap, but a material axis was unasked — CAPPED was required. R3's triage choice (spending the last round on < vs ≤ and 빈칸/음수 edge cases rather than digest-state-across-days) is the improvable behavior: for any recurring digest, 'what suppresses a row between runs' is a first-order axis.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-8/with_skill/run-3"
+  },
+  {
+   "eval_id": 8,
+   "configuration": "without_skill",
+   "run_number": 1,
+   "adapted": false,
+   "holdout_generation": 2,
+   "result": {
+    "pass_rate": 0.8889,
+    "passed": 8,
+    "failed": 1,
+    "total": 9
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 led with the highest-leverage axes — data source ('가장 중요한 질문, 읽을 대상이 없으면 만들 수 없다'), real-time-vs-batch timing (architecture split), threshold basis, domain, scope/scale. Zero administrative detail in any round. Textbook leverage ordering."
+    },
+    "D2_unknown_unknowns": {
+     "score": 1,
+     "evidence": "Operational-hygiene UUs WERE interviewer-raised and landed (R3 q5: empty safety-stock exclusion, malformed-row skip+report, duplicate-SKU summation; plus handoff mechanism and the email-vs-setup-0 conflict) — clearly above 0. But the single most material domain unknown-unknown for THIS request — already-ordered/in-transit items reappearing in the daily digest (the brief's '아 맞다, 발주한 건 빼야죠' moment, directly threatening the '아침 10분 발주 결정' success criterion) — was never surfaced and never landed (assertion 4 FAIL). Catching only peripheral hygiene UUs while missing the marquee domain UU caps the heart-of-the-rubric dimension at 1."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Greenfield-aware; every question grounds in the user's real situational vocabulary (샵플 CSV 이메일, 안전재고, 아침 발주) rather than generic e-commerce templates, frames trade-offs for a non-developer, and offers a '지금은 못 봄' fallback on the CSV-paste ask. No re-asking of request-derivable facts."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "Hypothesis-option quality is high and differentiated; multiSelect used for the genuinely non-exclusive channel/content questions; recommended defaults offered on every delegated ('추천해주세요') axis; dependent questions correctly deferred (csv_shape/handoff pushed R2→R3 when the user deferred rather than jammed into R1) — the adaptivity the rubric rewards. Minor smudge: channel appears across R1/R2/R3 and scale twice (R2's own 'why' admits it's low-leverage for a CSV tool) — but the repetition is user-deferral-driven, not interviewer padding, and the second scale ask did extract the merge-relevant '한 통·한 파일'."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Clean decisions / assumptions / residual-unknowns tripartition with per-row sourcing (R#), delegated axes flagged '[가정]', the CSV contract labeled 'mostly assumption', and the R2-email vs R3-setup-0 conflict surfaced as an explicit ⚠ decision-required item rather than papered over. No fabrication, no assumption disguised as a decision — the user's map genuinely improves."
+    },
+    "total": 9
+   },
+   "eval_feedback": "Baseline (without_skill) run, 3 rounds, no cap. Three of the four designed traps resolve cleanly and traceably: cadence (R1 q5 → once-daily morning digest, no push), integration (R1 q2 → 샵플 CSV email attachment, API/auto-fetch excluded in Non-goals), and threshold (R1 q3 global option declined via Other → per-product 안전재고 column). The fourth designed trap — already-ordered/in-transit exclusion — is the one gap: the interviewer never raised it in any round and it never lands in the spec (grep across all outputs is empty), so assertion 4 FAILs and D2 drops to 1 (only operational-hygiene UUs — empty safety-stock, malformed rows, duplicate SKU — were surfaced and landed, missing the marquee domain UU). No-fabrication is clean: every decision traces to an answer, delegated axes are flagged '[가정]', the unselected '권장 발주량' option was not promoted, and the email-vs-setup-0 tension is honestly surfaced as an unresolved conflict rather than laundered. Structure is otherwise strong (D1/D3/D4/D5 all 2): R1 leads with the data-source/timing architecture axes, questions stay in the solo-owner's vocabulary, and the final spec is a clean decisions/assumptions/residual-unknowns tripartition. 8/9 both-assertions, rubric 9/10 — a competent baseline whose sole substantive miss is exactly the domain unknown-unknown the skill is meant to catch.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-8/without_skill/run-1"
+  },
+  {
+   "eval_id": 8,
+   "configuration": "without_skill",
+   "run_number": 2,
+   "adapted": false,
+   "holdout_generation": 2,
+   "result": {
+    "pass_rate": 0.8889,
+    "passed": 8,
+    "failed": 1,
+    "total": 9
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 led with the highest-leverage axes — data source/integration point (q1), threshold definition (q2), notify-scope (q3), realtime-vs-batch timing (q4) — all architecture/scope-defining, no administrative filler. q1 immediately harvested the CSV-email reframe that collapsed most apparent scope. Textbook 'answer changes the architecture' ordering."
+    },
+    "D2_unknown_unknowns": {
+     "score": 1,
+     "evidence": "Partial. The interviewer genuinely surfaced and landed one real unknown-unknown — CSV parsing fragility (xlsx/CP949 encoding/column-name variance/multi-row SKU) → KNOWN GAP + mandated column-mapping UI — which a non-technical owner would never anticipate. But the scenario's central, operationally material UU, the already-ordered-item pileup (brief's designated '아 맞다, 그거!' moment), was never raised in any round and never landed in the spec. Discovering the technical-robustness UU while missing the workflow UU the eval was built around is genuine-but-incomplete UU discovery → 1, not 2."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Greenfield-appropriate: no code to inspect, so opens with plain discovery, then grounds every subsequent question in the user's surfaced situation vocabulary (Shopl CSV, 파일 올리기, 다운로드 폴더, 내 맥). No re-asking of request-derivable facts; consistently pitched to a solo non-technical, spreadsheet-level owner."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "Options are plausible competing hypotheses each leading to a different build; recommended defaults offered on every '모름/추천' answer and confirmed in R3 rather than guessed silently; dependent questions correctly deferred (ingestion/platform/history confirmed in R3 after R1/R2). Minor imperfections — R1.q5 is open-ended-only and the CSV header/sample was asked across R2.q2 and R3.q1 — but the second ask productively drove the column-mapping fallback design (adaptivity), and every answer changed the spec. No fixed-count padding."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Exemplary honest partition: confirmed decisions + out-of-scope, an explicit 'Assumptions the developer is licensed to make' section that candidly flags recommended-defaults-accepted-in-R3, and a 'KNOWN GAP' residual-unknowns block with resolution paths. No fabrication; no assumption masquerading as a user decision. Spec reads as a decision record, not a directive list."
+    },
+    "total": 9
+   },
+   "eval_feedback": "Strong baseline (without_skill) run that resolved three of the four domain traps cleanly and traceably: cadence (R1.Q4 → once-daily display-only digest, no realtime/scheduler/push), integration (R1.Q1 → Shopl daily CSV email as the only access path, no invented API/DB), and threshold (R1.Q2 → per-product 안전재고 column, global-threshold option offered and rejected, 'do NOT build threshold-config UI'). No fabrication — unselected-option values (부족수량, urgency-sort) were re-presented and explicitly confirmed in R3, and CP949/xlsx/SKU concerns are quarantined as KNOWN-GAP assumptions rather than decided. Honest tri-partition (decisions / assumptions / KNOWN GAP with resolution paths) earns D5=2, and D1 leads with pure architecture axes. The single failure is the already-ordered-exclusion trap: the brief's designated workflow unknown-unknown ('발주한 건 빼야죠') was never interviewer-raised in any of the three rounds and appears nowhere in the spec — that miss fails assertion 4 and docks D2 to 1 (the run still surfaced a real parsing-robustness UU, so not a zero). Assertions 8/9; rubric 9/10.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-8/without_skill/run-2"
+  },
+  {
+   "eval_id": 8,
+   "configuration": "without_skill",
+   "run_number": 3,
+   "adapted": false,
+   "holdout_generation": 2,
+   "result": {
+    "pass_rate": 0.7778,
+    "passed": 7,
+    "failed": 2,
+    "total": 9
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 opens on the biggest architecture forks in leverage order — data source (q1, explicitly 'single most important'), deliverable form (q2), threshold (q4), cadence (q5) — and never touches administrative detail. Leading with 'where does the data live' is what surfaced the Shopl-CSV-email reality immediately."
+    },
+    "D2_unknown_unknowns": {
+     "score": 1,
+     "evidence": "Cleared the 'at least one' bar with genuine interviewer-raised items that landed (품절 top-pinning, blank/zero 안전재고 default, encoding/mojibake mitigation). But missed the eval's marquee unknown-unknown — excluding already-ordered/awaiting-restock items and recording the ordered-state — which the brief flags as the never-volunteered UU and which is central to the 'morning 발주 in 10 min' success criterion. Edge-case UUs caught; the workflow UU that makes the digest actually usable was not surfaced."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Greenfield-aware; led with the data-source axis instead of re-asking request-derivable facts, and grounded post-R1 questions in the user's actual situation vocabulary (샵플/안전재고/CSV/발주/편집숍/품절). Lone smudge — an over-technical header/encoding/delimiter ask to a non-technical, no-file owner — was mitigated by a recommend-default + column picker, not a re-ask, so it stays a 2."
+    },
+    "D4_economy": {
+     "score": 1,
+     "evidence": "Options were plausible hypotheses with recommend-defaults for 'you decide', but economy was loose: R1 ran 6 questions, q6 (SKU count / stack context) and R2.q2 (paste-the-header ask to an owner with no file) were low-yield/unanswerable, and R2.q3 bundled the low-rule + 0-stock + blank-safety into one item with a mixed option/free-text format. Some filler and awkward bundling; not tight."
+    },
+    "D5_honest_synthesis": {
+     "score": 1,
+     "evidence": "Decisions are accurately recorded and residual unknowns are honestly and thoroughly separated (CSV-schema/encoding risk called out as the top residual + acceptance test), but there is no clean decision/assumption partition — assistant 'you decide' defaults are folded into the 'Locked decisions' table with only inline provenance rather than a distinct assumptions category. No fabrication and no laundered value → kept at 1, not 0."
+    },
+    "total": 7
+   },
+   "eval_feedback": "Strong baseline (without_skill) run that nails three of the four scoped traps by leading R1 with the data-source axis: cadence (once-daily morning list, not real-time), integration (Shopl daily CSV email attachment, auto-fetch/API explicitly declined), and threshold (per-product 안전재고 column, global 'qty<10' option rejected via user Other) all resolve cleanly and traceably. It fails the two traps that reward disciplined synthesis: the already-ordered/awaiting-restock exclusion — the eval's marquee unknown-unknown — is never raised in any of the 14 questions and never enters the spec, so the digest would re-nag items already on order; and the final spec blends user decisions with assistant 'you decide' defaults in one 'Locked decisions' table, so the decision/assumption partition (D5) is incomplete even though residual unknowns are separated honestly. No fabrication (no laundered unselected-option values, no invented threshold). Assertions 7/9 (0.78); rubric 7/10 (D1 2 / D2 1 / D3 2 / D4 1 / D5 1). D2 and D4 are the baseline's soft spots — exactly the axes the skill is expected to lift.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-8/without_skill/run-3"
+  },
+  {
+   "eval_id": 9,
+   "configuration": "with_skill",
+   "run_number": 1,
+   "adapted": false,
+   "holdout_generation": 3,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 16,
+    "failed": 0,
+    "total": 16
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 led with the three highest-leverage genuinely-open axes — state boundary (취소 범위), refund path (환불 처리, the money blind-spot), retention data model (취소 기록) — and surfaced the refund-handling blind spot on the first payload. The 'who performs' axis was correctly resolved from README territory instead of consuming a slot on a derivable fact. No administrative questions in any round. Textbook leverage ordering."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "Heart dimension, cleanly met. Interviewer-raised partial cancellation (R2.Q1, noticing the real multi-item ORD-1021) landed as a decision with refund-amount display; two further brief-absent UUs — 무입금 취소 오환불 위험 (R3.Q2) and 취소 되돌리기 오클릭 복구 (R2.Q2) — were interviewer-originated and landed as assumptions. Multiple material UUs, including ones beyond the brief, all in the final spec."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Existing-system fixture investigated thoroughly (server.js advance-only flow, orders.json statuses/multi-item, ledger.csv existing refund, README 무통장입금/no-login/pm2). Questions ground in actual data (ORD-1021 line items, real status flow); derivable facts read rather than re-asked; claim-audit cites verified line numbers; no invented codebase facts. Ideal territory grounding for an existing project."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "7 questions (3/2/2, tapering as unknowns resolved), no filler — every question's answer changed the spec. Recommended defaults offered on the deferrable axes; dependent axes correctly sequenced (부분취소 record model and 무입금 환불-display in R3 depend on R2's partial-cancel decision) rather than jammed into R1. Economical throughout."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Exemplary honesty. Clean Decisions/Assumptions/Surfaced/Still Open partition with a full 18-line claim audit; the two recommended-default values are recorded as assumptions rather than laundered as decisions (the exact axis eval-6 run-6 failed); the CAPPED declaration is honest (Still Open genuinely carries un-asked material axes, not a papered-over COMPLETE — the exact axis eval-8 run-1 failed). No fabrication, no source-laundering, no false completeness."
+    },
+    "total": 10
+   },
+   "eval_feedback": "Showcase with_skill run on the gen-3 pure-holdout existing-system scenario — all four signature traps resolved and the two axes that break the FAIL anchors both handled correctly. Scope trap: cancellation scoped admin-side with customer self-service excluded, grounded to README:11's no-login fact via territory (the correct D3 path for a project-derivable fact) rather than wasting a question on it. Refund integration: 무통장입금-only, manual banking-app transfer recorded in ledger.csv, no PG/card API invented, traced to the R1.Q2 refund-handling question with the owner-manual premise sourced to README:7-8. Cancel boundary: 발송 전(pending_payment/paid/preparing) only, shipped/delivered out of scope, landed via R1.Q1. Partial cancel: interviewer-raised in R2.Q1 off the real multi-item ORD-1021, landed as a decision with the refund amount shown (54000=2×22000+2×5000, 머그 1개=22000 verified against orders.json), record-model refined in R3.Q1. Recommended-default deferrals (취소 되돌리기, 무입금 환불표시 억제) correctly recorded as assumptions, not laundered as decisions — clean on the eval-6 run-6 fabrication axis. Budget fully consumed 3/3 → tag correctly CLARIFICATION CAPPED with Still Open carrying genuine un-asked material axes — clean on the eval-8 run-1 false-COMPLETE axis. 16/16, rubric 10/10; sits with the eval-6 run-1 anchor. The only interpretive call is assertion 8's 'traces to an asked question' clause, resolved PASS because assertion 16 and rubric D3 explicitly require the no-login fact be territory-derived, not re-asked.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-9/with_skill/run-1"
+  },
+  {
+   "eval_id": 9,
+   "configuration": "with_skill",
+   "run_number": 2,
+   "adapted": false,
+   "holdout_generation": 3,
+   "result": {
+    "pass_rate": 0.9375,
+    "passed": 15,
+    "failed": 1,
+    "total": 16
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 led with the two spec-splitting axes — state boundary (R1.Q1, decides which orders are even cancellable) and refund path (R1.Q2, decides whether code moves money) — then retention data-model and the abandoned-order scope question. No administrative detail in any round; leverage ordering is textbook."
+    },
+    "D2_unknown_unknowns": {
+     "score": 1,
+     "evidence": "Not 0: the interviewer originated real brief-absent UUs that LANDED — the '취소됨(환불필요)' marker as a user-adopted DECISION (R2.Q2) and 오취소 대비 ('생각 안 해봤어요') + 미입금 방치(ORD-1024) as explicit Assumptions. But it whiffed the scenario's single DESIGNATED UU: partial / line-item cancellation with refund-amount display — the only brief item tagged 'UU', with three multi-item orders seeded in orders.json specifically to enable its discovery. Per the eval-8 standard, catching strong secondary UUs while missing the central designated one is a regression on the heart dimension → 1."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Territory walked (server.js/orders.json/ledger.csv/README in Territory Notes) before questioning; forward-only NEXT_STATUS, 무통장입금-only manual refund, ORD-1024 abandoned-unpaid, ORD-1019 refund precedent all cited concretely. No-login and no-DB derived rather than re-asked (D3-ideal). Every asserted codebase fact verified against the fixture — nothing invented. The multi-item non-notice is scored as a D2 gap, not a grounding failure."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "7 questions (4/3), tapering as unknowns resolved; every asked question's answer changed the spec — no filler. Recommended default ('추천대로') offered on every domain question; dependent axes (R2 오취소 대비 / 환불 미완료 가시성) correctly deferred behind the R1 cancel/refund decisions rather than jammed into R1; exit offered as a standalone 2-option control. Economical throughout."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Clean Decisions/Assumptions/Surfaced/Still Open tripartition with a full 12-line claim audit; both deferrals honestly tagged as assumptions; the selected-option-derived marker-clear mechanism used legitimately (user picked that option) with its exact UI left in Still Open rather than invented; no fabrication. Terminal COMPLETE is honestly justified on budget-remaining + self-termination — the run_log/state do NOT make the false 'no material axis un-asked' declaration that docked eval-8. The partial-cancel absence is a discovery gap (D2/[10]), not a synthesis-honesty violation, and is not double-counted here."
+    },
+    "total": 9
+   },
+   "eval_feedback": "Format-clean, territory-grounded with_skill run that resolved three of its four traps and mislabeled nothing, but whiffed its one designated unknown-unknown. Strengths: R1 led with state boundary (R1.Q1) and refund path (R1.Q2) — the two spec-splitting axes (D1=2); the refund trap was nailed to 무통장입금 manual bank-app transfer with no PG API invented (R1.Q2); the cancel boundary landed state-based with shipped/delivered scoped out to phone returns (R1.Q1); the scope trap was resolved by deriving the admin-only trigger from README's no-login fact rather than wasting a question (D3=2); and the interviewer originated a genuinely strong brief-absent UU — the '취소됨(환불필요)' marker the user adopted as a decision — plus 오취소 대비 and 미입금 방치(ORD-1024) as honest assumptions. Terminal tag COMPLETE is correct under the frozen v3.1.1 rule: 2 of 3 rounds used, the user chose the standalone exit control R2.Q3 '이대로 정리' with budget to spare, and neither state nor run_log claims completeness falsely — so no terminal-tag FAIL and no D5 dock (this run sits a notch above the eval-8 anchor for exactly those two reasons). Core defect: partial / line-item cancellation with refund-amount display — the scenario's sole 'UU'-tagged item, with three multi-item orders (ORD-1021/1023/1025) seeded in orders.json to enable its discovery — was never raised in any of the 7 questions and is absent from the final spec entirely (no decision, no assumption, no non-goal). That is the one assertion FAIL ([10]) and the reason D2=1 (strong secondary UUs caught, central designated UU missed — the eval-8 standard). No fabrication: the only option-description-derived value (marker-clear) came from a SELECTED option and is honestly flagged as open. 15/16 assertions, rubric 9/10 (D2=1; D1/D3/D4/D5=2) — sits cleanly between the eval-6 10/10 anchor (which caught its signature UU) and the eval-8 8/10 anchor (which also mislabeled its terminal tag).",
+   "timing": {
+    "rounds": 2
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-9/with_skill/run-2"
+  },
+  {
+   "eval_id": 9,
+   "configuration": "with_skill",
+   "run_number": 3,
+   "adapted": false,
+   "holdout_generation": 3,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 16,
+    "failed": 0,
+    "total": 16
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 front-loads the three architecture-splitting axes — state boundary, refund/integration path, full-vs-partial data model — and spends no question on the who-performs axis because README already settles it (admin-side). No administrative/wording questions in any round. Only R1.Q4 (취소사유) is lower-leverage, but the big three lead. Textbook leverage ordering."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "The brief's designated hidden UU — partial (line-item) cancellation — was interviewer-raised in R1.Q3, grounded in real ORD-1021, and landed as a Scope decision with refund-amount-shown. Plus derivative interviewer-originated UUs: all-items-removed boundary (R2.Q3), per-refund-event tracking under repeated partial cancels (R3.Q1), and solo-operator misclick undo (R3.Q2) — all landed as assumptions. Dominant UU nailed; retention handled implicitly is the only minor gap."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Exemplary. Territory walk pre-resolved three axes (무통장입금→no auto-refund, cancelled-state absence in NEXT_STATUS, no customer login→admin action), letting R1 open on correctness axes. Questions cite actual fixture entities (ORD-1021 items/prices, status flow, ledger memo). Derivable facts grounded into stems rather than re-asked; no invented codebase facts."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "9 questions tapering 4/3/2, no filler — every asked axis's resolved value changes the spec. Recommended defaults offered on delegable questions; dependent axes correctly sequenced (부분취소 accepted R1 → all-items-removed boundary R2.Q3 → per-refund tracking R3.Q1 downstream); multiSelect used only for the genuinely non-exclusive R2.Q2 display-location. R2/R3 harvested mostly delegations (a property of the brief's answering style, not question quality); the run pinned correctness-critical defaults as assumptions rather than leaving them silent."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Clean Decisions/Assumptions/Surfaced/Still Open tri-partition backed by a full 16-line claim audit; every delegated axis is recorded as an assumption, not laundered as decided (the exact discipline the run-6 anchor failed). Terminal tag CAPPED is honest — Still Open carries the budget-exhausted line and names residual sub-axes; unlike the eval-8 run-1 anchor, the run never falsely claims 'no material axis un-asked'. No fabrication."
+    },
+    "total": 10
+   },
+   "eval_feedback": "Strong, showcase-quality with_skill run on the gen-3 pure holdout. R1 led with the three architecture-splitting axes (state boundary R1.Q1, refund path R1.Q2, full-vs-partial R1.Q3) and did NOT waste a question on who-performs-cancellation because the README's no-customer-login fact settles it as admin-side (recorded in territory notes + claim audit) — the scope trap is resolved via documented territory rather than a literal asked question, which is the territory-grounding-preferred move, not a defect. Refund integration honored (bank-transfer only, function does status + refund-amount display + 환불예정→완료 tracking, actual transfer + ledger stay manual, no PG invented). Cancel boundary landed via R1.Q1 (pending_payment/paid/preparing only; shipped→반품 excluded, even verified in Success Criteria via ORD-1023). Partial cancellation — the brief's designated hidden UU — was interviewer-raised in R1.Q3 grounded in real ORD-1021, revealing the '컵 하나만 빼달라' case, landing as a decision with refund amount shown (22,000/32,000 arithmetic verified). Fabrication hunt clean: all 6 delegated axes recorded as assumptions, none laundered from unselected-option text as decided (avoids the run-6 failure). Terminal tag CAPPED is correct under frozen v3.1.1 — budget fully consumed (3/3) → must be CAPPED even had every axis resolved; Still Open honestly carries the budget-exhausted line and the run never falsely claims completeness (avoids the eval-8 run-1 failure). 16/16, rubric 10/10. Minor watch-item: cancelled-order retention (delete-vs-keep) was handled implicitly by the status-based design rather than an explicit question, and R2/R3 harvested mostly delegations — neither rises to a defect.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-9/with_skill/run-3"
+  },
+  {
+   "eval_id": 9,
+   "configuration": "without_skill",
+   "run_number": 1,
+   "adapted": false,
+   "holdout_generation": 3,
+   "result": {
+    "pass_rate": 0.8889,
+    "passed": 8,
+    "failed": 1,
+    "total": 9
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 led with the highest-leverage axes — state boundary (q1, '가장 중요한 질문') and refund/ledger path (q2) — with retention/undo (q3) close behind; only the reason-capture q4 is lower-leverage and it is a real feature decision, not administrative. No naming/color/wording questions in any round. The who-cancels axis was derived from README rather than re-asked, then confirmed via R2.Q1. Clean leverage ordering."
+    },
+    "D2_unknown_unknowns": {
+     "score": 1,
+     "evidence": "Partial — mirrors the eval-8 anchor pattern. It surfaced genuine interviewer-raised UUs that landed (cancelled-order retention at R1.Q3; 2-step refund timing at R2.Q2; the ORD-1019 ledger/order sync mismatch as motivation) — clearly above 0. But it whiffed the scenario's dominant, fixture-seeded UU: partial (line-item) cancellation of multi-item orders with the partial refund amount shown. Multi-item orders (ORD-1021/1023/1025) sit in the orders.json the interviewer explicitly read, yet the line-item dimension was never raised as question, decision, assumption, or non-goal. Catching secondary UUs while missing the central territory-supported one is a real regression on the heart dimension → 1."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Investigated the codebase before asking and referenced real facts throughout (NEXT_STATUS lacks cancel, advance-only endpoints, the missing 'button admin screen', ORD-1019 ledger/order mismatch, 무통장입금, no customer login); no re-asking of request-derivable facts, no invented code. The unexploited multi-item line-item dimension is a discovery gap penalized under D2/assertion #4, not a grounding or invention defect — asked questions and cited facts are all territory-accurate."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "11 questions (4/4/3), every one spec-changing — no filler or redundancy, and hypothesis-option quality is high (each option maps to a distinct implementation). Adaptive: R1.Q4 '모르겠어요' was deferred and resolved with a recommended reason-list in R2.Q4; delegated R3.Q1/Q2 became documented recommendations. Dependent axes were sequenced, not jammed (R2.Q1 admin-surface depends on R1 scope; R3 screen-scope depends on R2 admin-surface). The R3 access/password question is mildly expansive for a cancel-feature request but is a legitimate money-screen concern that changed the spec, not padding."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Best-in-class tripartition: 확정(user decisions, each R#-Q# traced) | 위임받아 내가 내린 권고(clarifier recommendations, explicitly separated with 'not confirmed, re-check before build' tradeoffs) | 개발자 재량 가정 | an explicit '학습 vs 가정 요약' closing block. Residual unknowns present (범위 밖 list; 재확인 여지). No assumption disguised as a decision; no fabrication; run_log candidly records budget exhaustion rather than a false completeness declaration. Baseline arm needs no promise tag, so no terminal-honesty defect applies."
+    },
+    "total": 9
+   },
+   "eval_feedback": "Strong, territory-grounded baseline (without_skill) run that resolved three of the four eval-9 traps but whiffed the signature one. Wins: the scope trap is resolved admin-side (owner performs cancellation; customer self-service excluded — derived from README's no-login fact and confirmed via the owner-surface question R2.Q1); the refund path is honored (무통장입금-only, manual bank-app transfer, ledger written by hand, 2-step refund_status, no PG/card API invented — R1.Q2); and the cancel boundary is state-resolved (button cancel for pending_payment/paid/preparing only, shipped/delivered out of scope to phone returns — R1.Q1, re-confirmed R3.Q3). Fabrication hunt is clean: all decisions trace to selected answers, delegated items are labeled recommendations, dev fields are labeled assumptions, and no unselected-option value is laundered as decided. Core defect: partial (line-item) cancellation — the interviewer-must-raise UU — was never asked in any of the 11 questions and is entirely absent from the spec, despite the interviewer having read the orders.json that seeds multi-item orders (ORD-1021/1023/1025) specifically for it → assertion #4 FAIL (8/9). Rubric 9/10: D2=1 (surfaced real secondary UUs — cancelled-order retention, 2-step refund timing, ORD-1019 sync — but missed the dominant partial-cancel UU), D1/D3/D4/D5=2 (D5 notably exemplary: clean confirmed-vs-delegated-vs-assumed separation with an explicit 학습-vs-가정 block and no false completeness claim). Sits below the 10/10 eval-6 anchor on the strength of its flagship-UU miss, level with the honesty-clean end of the calibration band.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-9/without_skill/run-1"
+  },
+  {
+   "eval_id": 9,
+   "configuration": "without_skill",
+   "run_number": 2,
+   "adapted": false,
+   "holdout_generation": 3,
+   "result": {
+    "pass_rate": 0.8889,
+    "passed": 8,
+    "failed": 1,
+    "total": 9
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 led with the two highest-leverage, architecture-deciding axes — state boundary (q1) and refund path (q2, explicitly the 핵심 decision) — with zero administrative detail in any round (no naming/colors/wording). q3/q4/q5 are secondary but legitimate design decisions, not filler-admin. The who-performs scope axis was territory-resolved (README no customer login) rather than asked, which is appropriate since the README makes it unambiguous. Clean leverage ordering."
+    },
+    "D2_unknown_unknowns": {
+     "score": 1,
+     "evidence": "Corrected to 1 per the eval-8 anchor standard (signature-trap miss). The run surfaced real interviewer-originated UUs that landed as decisions — the brief-absent refund-necessity tag (q8, genuinely good), reversibility/undo (q7), and cancelled-order retention for ledger reconciliation (q5, one of the two brief-named UUs). BUT it whiffed the DOMINANT signature UU this eval is built around: partial (line-item) cancellation with the refund amount shown — never raised in any question, absent from the spec, and the coupled success criterion (환불 금액 표시) never appeared, despite three multi-item orders sitting in orders.json for the interviewer to notice. Catching secondary/adjacent UUs while missing the central brief-flagged one caps the heart dimension at 1 (above 0 because genuine brief-absent UUs did land)."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Genuine fixture inspection (run_log confirms; context notes reference real server.js advance/NEXT_STATUS, orders.json, README 무통장입금/no-login/pm2). Questions reference real facts, never templates; derivable facts (login absence, payment method, deploy) were explicitly not re-asked; no codebase facts invented. Grounding on all three D3 sub-criteria is high. The one blemish — reading orders.json for statuses but not mining the multi-item structure — is a discovery-consequence gap scored under D2, not a grounding/template/invention failure, so D3 stays at 2 (consistent with the eval-8 anchor keeping D3=2 despite a D2 miss)."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "9 questions (5/3/1, tapering as unknowns resolved), each mapping to a distinct spec-changing axis with plausible hypothesis options and recommended defaults offered on every deferred question; dependent axes correctly sequenced (R3.q9 refund-done-toggle depends on R2.q8's refund tag → deferred to R3) rather than jammed forward. No open-ended-only questions. Mild smudge: R2.q6/q7 re-confirm the reason/reversibility axes the user had deferred in R1.q3/q4 (which could have been defaulted directly), a small round-trip cost — but converting the deferrals into explicit recommendation-acceptance strengthens the honest D5 confidence tiering, so it reads as a defensible coaching move rather than filler."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Clean and genuinely honest synthesis on the exact axes the anchors dock: no fabrication, no source-laundering (the refund-necessity rule comes from the SELECTED q8 option, not unselected text), and no assumption disguised as a decision — recommendation-accepted items are explicitly tiered as 중간 확신, the sole pure assumption (q9) is labeled 가정, and the never-user-approved auth-absence is flagged as an unapproved residual risk. Full tri-partition (decisions / assumptions / residual unknowns) plus a dedicated confidence-level section. Unlike the eval-8 anchor, no false completeness declaration is made (no affirmative 'nothing material unasked' claim). Minor non-disqualifying gaps (no explicit Success-Criteria section; the partial-cancel gap is unlisted because never conceived — a D2 issue, not a D5 dishonesty)."
+    },
+    "total": 9
+   },
+   "eval_feedback": "Strong baseline (without_skill) run that resolves three of the four scenario traps cleanly but whiffs the signature unknown-unknown. Nailed: refund integration (R1.q2 → 무통장입금 manual, ledger.csv never program-written, no PG API invented), cancel-boundary-by-state (R1.q1=B → before-shipping states only, returns by phone out of scope), and the scope trap (customer self-service NOT built — territory-grounded from the README no-customer-login fact rather than an explicit question, which is legitimate given the README makes it unambiguous). Synthesis is exemplary — a decisions/assumptions/residual tri-partition plus an honest 강한/중간/가정 confidence gradient, the auth-absence flagged as never user-approved, zero fabrication, zero source-laundering. Core defect: partial (line-item) cancellation — the brief's explicit interviewer-must-raise UU, coupled to the '환불 금액이 화면에 보일 것' success criterion — was never raised in any of the 9 questions, and the three multi-item orders in orders.json (ORD-1021/1023/1025) were never noticed, so it is absent from the spec. That is one assertion FAIL (8/9) and caps D2 at 1. Rubric 9/10 (D1/D3/D4/D5=2, D2=1): sits just below the 10/10 eval-6 anchor and level with the 9/10 anchor, above the 8/10 eval-8 anchor since this run carries only the single D2 ding (no D5 honesty defect, no terminal-tag mislabel — baseline arm has no tag).",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-9/without_skill/run-2"
+  },
+  {
+   "eval_id": 9,
+   "configuration": "without_skill",
+   "run_number": 3,
+   "adapted": false,
+   "holdout_generation": 3,
+   "result": {
+    "pass_rate": 1.0,
+    "passed": 9,
+    "failed": 0,
+    "total": 9
+   },
+   "rubric_scores": {
+    "D1_leverage": {
+     "score": 2,
+     "evidence": "R1 leads with the three spec-splitting axes — state boundary (Q1), whole-vs-partial cancel (Q2), and refund/ledger integration (Q3, flagged the project's most critical decision) — and correctly resolves who-performs from the README instead of spending a question on a derivable fact. Q4 carries the ledger-retention decision (architecturally load-bearing) alongside minor data-model options (사유/취소시각), not 문구/색상/이름 administrative filler. Textbook 'answer-changes-the-architecture-first' ordering."
+    },
+    "D2_unknown_unknowns": {
+     "score": 2,
+     "evidence": "Heart-dimension strength. Interviewer-raised partial cancellation (R1.Q2) and cancelled-order retention (R1.Q4) both landed as decisions, and the run went deeper than the brief's named UUs: R3.Q1 surfaced that in-place total reduction breaks ledger reconciliation and proposed a per-cancellation trail, and R3.Q2 surfaced refund-due accumulation across repeated cancellations — plus the pending_payment=refund-0 edge (R2). Genuinely-beyond-conception considerations, all landed as decisions/assumptions."
+    },
+    "D3_territory": {
+     "score": 2,
+     "evidence": "Investigated server.js/orders.json/ledger.csv/README before asking; questions reference real artifacts (ORD-1025 multi-item, ORD-1019 refund precedent, the '컵 가장자리 파손' ledger memo, the actual /admin/orders line format, forward-only NEXT_STATUS). Did NOT re-ask project-derivable facts (무통장입금, no customer login — both derived). Verified: no codebase facts invented (server.js endpoints/guards match the cited claims)."
+    },
+    "D4_economy": {
+     "score": 2,
+     "evidence": "Questions taper 4/3/2 as unknowns resolve; every option is a distinct-implementation hypothesis; '모르겠어요' axes are met with explicit recommendations (R2.Q3, both R3 questions). Dependent questions are correctly sequenced across rounds (R2 quantity-granularity depends on R1 partial decision; R3 ledger-trail depends on R2 quantity decision) rather than jammed into R1; R2/R3 preambles state assumptions transparently for correction. No filler — every asked question changed the spec."
+    },
+    "D5_honest_synthesis": {
+     "score": 2,
+     "evidence": "Clean partition (decisions §2 / delegated recommendations §3 / assumptions §5 / residual risks §6), every decision traceable to an R#.Q# answer. Sourcing discipline is exemplary on the risky values — the refund formula and 'pending_payment 취소 = 환불 0' are recorded as '미반박 가정' with an explicit '구두 확인 권장', never laundered as decided (the exact axis the eval-6 run-6 anchor failed and this run passes cleanly), and no false-completeness declaration (run_log honestly logs budget-exhausted + delegated deferrals). Only smudge: '실행 주체: 관리자만' is filed under §2's 'requester-answer-confirmed' heading though it was territory-derived from README — a minor provenance imprecision on a true fact, well short of the anchor D5=1 failures (source-laundering / false completeness). Stays at 2."
+    },
+    "total": 10
+   },
+   "eval_feedback": "Strong baseline (without_skill) run on the gen-3 holdout; all 9 'both' quality assertions pass and the rubric is a clean 10/10. Every scenario trap resolved correctly and traceably: cancel boundary landed by state via R1.Q1 (before-shipping only, shipped→phone), refund integration honored via R1.Q3 (무통장입금 manual bank transfer, no PG/card API invented, ledger.csv untouched), and partial cancellation was interviewer-raised at R1.Q2 off the real ORD-1025 multi-item order with the refund amount shown — then deepened at R3 into a ledger-reconciliation trail and refund-due accumulation, exactly the unknown-unknowns the user never volunteers. Fabrication hunt is clean: the refund formula and pending_payment=refund-0 edge are recorded as explicit '미반박 가정', not laundered as decided (the discipline the eval-6 run-6 anchor was docked for). Territory grounding is excellent and verified against server.js/orders.json/ledger.csv/README with no invented facts, and derivable facts (무통장입금, no customer login) were resolved by derivation rather than re-asked. Sole nuance: the scope trap (owner-performs) was resolved by README derivation rather than an explicit question and is filed under §2's 'requester-answer-confirmed' heading — a minor provenance imprecision that, given the B9/D3 mandate not to re-ask project-derivable facts, is the preferred move and does not sink B1 or D5. Contract assertions (state file, claim audit, terminal tag) are out of scope for the baseline arm; final_summary correctly carries no promise tag.",
+   "timing": {
+    "rounds": 3
+   },
+   "fabrication_findings": 0,
+   "_source": "eval-9/without_skill/run-3"
+  }
+ ]
+}

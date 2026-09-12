@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    spring-config.xml
+    Spring bean configuration for service layer components.
+    Place this file in: resources/<extensionname>-spring.xml
+-->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="
+           http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans.xsd
+           http://www.springframework.org/schema/tx
+           http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <!--
+        =====================================
+        DAO LAYER BEANS
+        =====================================
+        Alias pattern allows other extensions to override the implementation.
+    -->
+
+    <alias name="defaultCustomProductDAO" alias="customProductDAO"/>
+    <bean id="defaultCustomProductDAO" class="com.example.core.daos.impl.DefaultProductDAO">
+        <property name="flexibleSearchService" ref="flexibleSearchService"/>
+    </bean>
+
+    <!--
+        =====================================
+        SERVICE LAYER BEANS
+        =====================================
+    -->
+
+    <alias name="defaultCustomProductService" alias="customProductService"/>
+    <bean id="defaultCustomProductService" class="com.example.core.services.impl.DefaultProductService">
+        <property name="productDAO" ref="customProductDAO"/>
+        <property name="platformProductService" ref="productService"/>
+        <property name="modelService" ref="modelService"/>
+        <property name="warehouseService" ref="warehouseService"/>
+        <property name="stockService" ref="stockService"/>
+    </bean>
+
+    <!--
+        =====================================
+        CONVERTER / POPULATOR BEANS
+        =====================================
+    -->
+
+    <bean id="customProductPopulator" class="com.example.facades.populators.ProductPopulator"/>
+
+    <alias name="defaultCustomProductConverter" alias="customProductConverter"/>
+    <bean id="defaultCustomProductConverter" parent="abstractPopulatingConverter">
+        <property name="targetClass" value="com.example.facades.data.ProductData"/>
+        <property name="populators">
+            <list>
+                <ref bean="customProductPopulator"/>
+            </list>
+        </property>
+    </bean>
+
+    <!--
+        =====================================
+        FACADE LAYER BEANS
+        =====================================
+    -->
+
+    <alias name="defaultExampleProductFacade" alias="exampleProductFacade"/>
+    <bean id="defaultExampleProductFacade" class="com.example.facades.impl.DefaultProductFacade">
+        <property name="productService" ref="customProductService"/>
+        <property name="productConverter" ref="customProductConverter"/>
+    </bean>
+
+    <!--
+        =====================================
+        TRANSACTION CONFIGURATION
+        =====================================
+    -->
+
+    <!-- Enable @Transactional annotation support -->
+    <tx:annotation-driven transaction-manager="txManager"/>
+
+</beans>

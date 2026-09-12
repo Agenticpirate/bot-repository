@@ -1,0 +1,937 @@
+# Constructive Authz Policy Types (Authz*) — Detailed Reference
+
+Complete documentation for the 25 Authz nodes exported by the canonical Constructive DB registry, plus the platform-applied `AuthzHumanOnly` guard. `AuthzComposite` composes registry nodes, while `AuthzColumnSecurity` generates write triggers instead of stored RLS policies.
+
+> **Source of truth:** use `packages/node-type-registry/src/authz/index.ts` and the registry's `allNodeTypes` assembly in `constructive-db`. The generated blueprint union currently contains 24 of the 25 registry Authz nodes and omits `AuthzColumnSecurity`; do not infer that the node is unavailable or hand-edit generated output. Regenerate it through the backend codegen workflow only when backend work is explicitly in scope.
+
+Each mechanism is described as:
+- **Intent**: what it's for
+- **Config**: JSON shape (keys)
+- **Semantics**: what it authorizes (in words)
+- **Use when** / **Avoid when**
+
+---
+
+## `AuthzDirectOwner`
+
+**Intent:** Direct personal ownership.
+
+**Config:**
+```json
+{ "entity_field": "owner_id" }
+```
+
+**Semantics:** Authorize when the row's `{entity_field}` equals the actor's user id.
+
+**Use when:**
+- The row is owned by exactly one user, and ownership is represented directly on the row.
+
+**Avoid when:**
+- Ownership can be an organization (or user-as-org) and you want "org members can access." Prefer `AuthzEntityMembership` (org scope) instead.
+- **The row is membership-scoped** — it lives inside an org/entity/app and the owner is only supposed to see it *while they are a member*. Permissive policies are ORed, so a bare `AuthzDirectOwner` beside `AuthzEntityMembership`/`AuthzAppMembership` lets a removed member keep reading and editing every row they authored. Use the compound owner policies instead, which require ownership **and** current membership:
+
+| Where the membership lives | Use instead of `AuthzDirectOwner` |
+|---|---|
+| App-global rows (no entity column) | `AuthzAppMemberOwner` |
+| `entity_id` (or similar) is on the row | `AuthzMemberOwner` |
+| Entity is reached through a related table (FK hop) | `AuthzRelatedMemberOwner` |
+
+`AuthzDirectOwner` remains correct for personal, user-bound tables that have no membership context (emails, devices, credentials, settings) and for rows whose owner is *not* a member by construction (a pending membership row the applicant must read, an invite receiver, a share grantee).
+
+---
+
+## `AuthzDirectOwnerAny`
+
+**Intent:** Multi-owner OR logic.
+
+**Config:**
+```json
+{ "entity_fields": ["sender_id", "receiver_id"] }
+```
+
+**Semantics:** Authorize when the actor id matches **any** of the fields.
+
+**Use when:**
+- A record has multiple relevant user id columns and any of them confer access.
+
+**Avoid when:**
+- The row is membership-scoped. Like `AuthzDirectOwner`, this is a bare ownership check and does not consult membership, so it survives revocation. Fence each owner column with `AuthzMemberOwner` / `AuthzAppMemberOwner` (one policy per column, or an `AuthzComposite` `OR` of them) when the owners are expected to be current members.
+
+---
+
+## `AuthzAppMembership`
+
+**Intent:** App-level membership gate (hardcoded to `membership_type=1`).
+
+**Config (minimal):**
+```json
+{}
+```
+
+**Config (with a capability requirement):**
+```json
+{ "capabilities": ["admin_capabilities"] }
+```
+
+Optional keys:
+- `capabilities` (string[]) — capability names of any kind, merged into one mask
+- `levels` (string[]) — trust-ladder rung names (`kind = 'level'` catalog rows), merged into the same mask
+- `is_admin` (boolean)
+- `is_owner` (boolean)
+
+> **Note:** `membership_type` is not configurable — it is always `1` (app-level). For entity-scoped membership checks, use `AuthzEntityMembership`.
+
+**Semantics:** "The actor has app-level membership, optionally matching capability/admin flags."
+
+**Use when:**
+- App-level admin checks.
+- Global feature gating.
+
+**Avoid when:**
+- Entity-scoped resources (anything that should be constrained by a row's field). Use `AuthzEntityMembership` instead.
+
+---
+
+## `AuthzAppMemberOwner`
+
+**Intent:** Require both direct row ownership and active app membership.
+
+**Config (typical):**
+```json
+{
+  "owner_field": "owner_id",
+  "capabilities": ["write_content"]
+}
+```
+
+Required key:
+- `owner_field` — column containing the owning user's id.
+
+Optional keys:
+- `capabilities` (string[]) / `levels` (string[])
+- `is_admin` / `is_owner`
+
+**Semantics:** Authorize only when `{owner_field}` equals the actor's user id **and** the actor has app-level membership (`membership_type=1`) satisfying any configured capability or role flags.
+
+**Use when:**
+- A globally scoped row is author-owned, but authorship must stop granting access when the author loses app membership.
+
+**Avoid when:**
+- The row belongs to an organization or another entity. Use `AuthzMemberOwner` when the entity is directly on the row, or `AuthzRelatedMemberOwner` when it is reached through a related table.
+
+---
+
+## `AuthzEntityMembership`
+
+**Intent:** **Bound** membership-to-row.
+
+**Config (minimal):**
+```json
+{ "entity_field": "entity_id", "membership_type": 2 }
+```
+
+Optional keys:
+- `sel_field` (default `entity_id`)
+- `membership_type` or `entity_type`
+- `capabilities` (string[]) / `levels` (string[])
+- `is_admin` / `is_owner`
+
+**Semantics:** "The actor is a member of the entity referenced by this row's `{entity_field}`."
+
+**Use when:**
+- Org-owned or group-owned resources.
+- `owner_id` that may refer to either a user or an org (because users are orgs via personal orgs).
+
+---
+
+## `AuthzMemberOwner`
+
+**Intent:** Compound policy requiring BOTH ownership AND entity membership. The actor must own the row (owner_field = current_user_id) AND be a member of the entity referenced by entity_field.
+
+**Config (typical):**
+```json
+{
+  "owner_field": "owner_id",
+  "entity_field": "entity_id",
+  "membership_type": 3
+}
+```
+
+Optional keys:
+- `sel_field` — SPRT column to select for entity match (default: `entity_id`)
+- `capabilities` (string[]) / `levels` (string[])
+- `entity_type` — string name resolved to membership_type via membership types module
+
+**Semantics:** "The actor owns this row (owner_field = current_user_id) AND the actor is a member of the entity referenced by entity_field."
+
+**Use when:**
+- Private data within an entity scope — e.g., personal chat threads that belong to a team/dataroom but only the author can see.
+- Personal notes, draft documents, or preferences scoped to an entity.
+- Any table where rows are both user-owned AND entity-scoped.
+
+**Do NOT use when:**
+- You want all entity members to see all rows (use `AuthzEntityMembership` instead).
+- You want just ownership without entity scoping (use `AuthzDirectOwner` instead).
+
+**Paired data node:** `DataMemberOwner` — creates both `owner_id` + `entity_id` columns with FKs, indexes, and applies this policy automatically.
+
+---
+
+## `AuthzRelatedEntityMembership`
+
+**Intent:** Entity membership where the entity isn't directly on the protected row, but reachable via a join.
+
+**Config (typical):**
+```json
+{
+  "entity_field": "post_id",
+  "membership_type": 2,
+  "obj_schema": "public",
+  "obj_table": "posts",
+  "obj_field": "organization_id"
+}
+```
+
+**Semantics:** "Look up the related row and authorize based on membership in the entity referenced there."
+
+**Use when:**
+- Protected rows reference another table (FK), and that related table carries `entity_id` / org id.
+
+Required and lookup keys:
+- `entity_field` is required.
+- Select the membership scope with `membership_type` or `entity_type`.
+- Identify the related table with `obj_schema` + `obj_table`, or `obj_table_id`; identify its entity field with `obj_field`, or `obj_field_id`.
+- Optional membership filters are `capabilities` (string[]), `levels` (string[]), `is_admin`, and `is_owner`; `sel_field` and `sprt_join_field` default to `entity_id`.
+
+---
+
+## `AuthzRelatedMemberOwner`
+
+**Intent:** Require direct row ownership and membership in an entity reached through a related table.
+
+**Config (typical):**
+```json
+{
+  "owner_field": "owner_id",
+  "entity_field": "post_id",
+  "membership_type": 2,
+  "obj_schema": "public",
+  "obj_table": "posts",
+  "obj_field": "organization_id"
+}
+```
+
+Required keys:
+- `owner_field` — column containing the owning user's id.
+- `entity_field` — column on the protected row referencing the related table.
+
+Related-table keys:
+- Identify the related table with `obj_schema` + `obj_table`, or with `obj_table_id`.
+- Identify its entity field with `obj_field`, or with `obj_field_id`.
+- `sel_field` and `sprt_join_field` default to `entity_id`.
+
+Membership filters may use `membership_type` or `entity_type`, plus `capabilities` (string[]), `levels` (string[]), `is_admin`, and `is_owner`.
+
+**Semantics:** Authorize only when `{owner_field}` equals the actor's user id **and** the related row resolves to an entity in which the actor has the required membership. Ownership stops granting access when that membership is lost.
+
+**Use when:**
+- A child row is author-owned while its membership scope exists only on a parent or related object.
+
+**Avoid when:**
+- The entity id is already on the protected row. Use `AuthzMemberOwner` instead.
+
+---
+
+## `AuthzPeerOwnership`
+
+**Intent:** Peer visibility via shared entity membership (direct owner field on protected row).
+
+**Config (typical):**
+```json
+{ "owner_field": "owner_id", "membership_type": 2 }
+```
+
+Optional keys:
+- `capabilities` (string[]) / `levels` (string[])
+- `is_admin` / `is_owner`
+
+**Semantics (in words):**
+- Find the entities (orgs/groups) the actor belongs to.
+- Find **other users** who belong to those same entities.
+- Allow access when the row's `{owner_field}` is one of those peer user ids.
+
+**Use when:**
+- "People in the same org can see each other's user-owned objects."
+
+**Avoid when:**
+- The owner is not directly on the protected row (then use `AuthzRelatedPeerOwnership`).
+
+---
+
+## `AuthzRelatedPeerOwnership`
+
+**Intent:** Peer visibility via shared entity membership **through a related table**.
+
+**Config (typical):**
+```json
+{
+  "entity_field": "message_id",
+  "membership_type": 2,
+  "obj_schema": "public",
+  "obj_table": "messages",
+  "obj_field": "sender_id"
+}
+```
+
+Required and lookup keys:
+- `entity_field` is required.
+- Select the membership scope with `membership_type` or `entity_type`.
+- Identify the related table with `obj_schema` + `obj_table`, or `obj_table_id`; identify its owner field with `obj_field`, or `obj_field_id`.
+
+Optional keys:
+- `obj_ref_field` (defaults to `id`)
+- `capabilities` (string[]) / `levels` (string[])
+- `is_admin` / `is_owner`
+
+**Semantics (in words):**
+- Find peers of the actor (as in `AuthzPeerOwnership`).
+- Join the related table where each peer is the related row's owner (`obj_field`).
+- Allow access when the protected row's `{entity_field}` matches those related rows.
+
+**Use when:**
+- Protected row points at another object, and that object's owner is what should be peer-visible.
+
+---
+
+## `AuthzOrgHierarchy`
+
+**Intent:** Visibility via org hierarchy (manager/subordinate relationships).
+
+**Config (typical):**
+```json
+{ "direction": "down", "anchor_field": "owner_id", "entity_field": "entity_id" }
+```
+
+Required keys:
+- `direction` — `down` lets managers see subordinate data; `up` lets subordinates see manager data.
+- `anchor_field` — user field that anchors hierarchy traversal.
+
+Optional keys:
+- `entity_field` (default `entity_id`)
+- `max_depth` — maximum hierarchy depth to traverse.
+
+**Semantics:** Authorize based on hierarchy closure relationships anchored at a user field (often `owner_id`).
+
+**Use when:**
+- Manager sees subordinate-owned records.
+- Subordinate sees manager-owned records.
+
+---
+
+## `AuthzTemporal`
+
+**Intent:** Time-window constraints.
+
+**Config (typical):**
+```json
+{ "valid_from_field": "valid_from", "valid_until_field": "valid_until" }
+```
+
+Either field can be omitted (at least one is required):
+- `valid_from_field` only -> "accessible from this time onward" (open-ended future)
+- `valid_until_field` only -> "accessible until this time" (open-ended past)
+- Both -> classic time window
+
+Additionally, a NULL column value in `valid_until` is treated as "no expiry" (`valid_until IS NULL OR valid_until > now()`), making the window dynamic per row.
+
+Optional keys:
+- `valid_from_inclusive` (default `true`)
+- `valid_until_inclusive` (default `false`)
+
+**Semantics:** Authorize only when "now" is within the configured time window. Omitting a field removes that boundary.
+
+**Use when:**
+- Scheduled content.
+- Expiring invites.
+- Open-ended "accessible after publish date" (use `valid_from_field` only).
+
+> **Combination guidance:** `AuthzTemporal` answers *when* access is valid, not *who* has access. On its own it means "anyone can access within the time window." In practice, always combine it with an identity-based policy — either as a **restrictive** top-level policy (ANDed with a permissive identity policy) or inside an `AuthzComposite` boolean tree (`AND`/`OR`/`NOT`).
+
+> **Overlap with `AuthzPublishable`:** You could approximate published-content gating with `AuthzTemporal` (e.g. `valid_from_field: "published_at"` with no `valid_until_field`). However, `AuthzPublishable` additionally provides the `is_published` boolean toggle, which lets authors unpublish content independently of time. Use `AuthzPublishable` when you need an explicit on/off switch; use `AuthzTemporal` when access is purely time-driven.
+
+---
+
+## `AuthzPublishable`
+
+> **READ-only policy.** `AuthzPublishable` should only be applied to the `select` privilege. It controls who can *read* published content — it should **never** be used for `insert`, `update`, or `delete`. For write operations (authorship, editing, deletion), use an identity-based policy like `AuthzEntityMembership` or `AuthzDirectOwner`. A typical blog pattern is: `AuthzEntityMembership` for all CRUD privileges, plus a second `AuthzPublishable` policy **only for `select`** to open reads to the public.
+
+**Intent:** Draft/published gating.
+
+**Config (default fields):**
+```json
+{}
+```
+
+Optional keys:
+- `is_published_field` (default `"is_published"`)
+- `published_at_field` (default `"published_at"`)
+- `require_published_at` (default `true`)
+
+**Semantics:** Authorize when a record is published (and, if `require_published_at=true`, when `published_at <= now`).
+
+**Use when:**
+- Public content that is only visible after publishing.
+- **Only for `select`** — never for `insert`, `update`, or `delete`.
+
+> **Combination guidance:** `AuthzPublishable` answers *whether content is published*, not *who* can see it. On its own it means "anyone can see published content." In practice, always combine it with an identity-based policy — either as a **restrictive** top-level policy (ANDed with a permissive identity policy like `AuthzEntityMembership`) or inside an `AuthzComposite` boolean tree (`AND`/`OR`/`NOT`). See the "Permissive vs Restrictive policies in RLS" section for examples.
+
+> **Typical pattern (e.g., blog posts):**
+> 1. `AuthzEntityMembership` (permissive) for `select`, `insert`, `update`, `delete` — locks down all CRUD to org/entity members (authors).
+> 2. `AuthzPublishable` (permissive) for `select` only — opens published content for reads to anyone authenticated.
+>
+> This way, authorship is protected by membership, but published content is publicly readable.
+
+> **Overlap with `AuthzTemporal`:** The time component of `AuthzPublishable` (`published_at <= now`) is a subset of what `AuthzTemporal` can express. The key difference is the `is_published` boolean -- a deliberate on/off toggle that `AuthzTemporal` does not provide. If you only need time-window access with no manual toggle, `AuthzTemporal` is sufficient.
+
+---
+
+## `AuthzMemberList`
+
+> **Not recommended.** This policy relies on a UUID array column rather than a proper foreign-key relationship. It does not scale well and bypasses normal relational integrity. Prefer `AuthzEntityMembership` or `AuthzPeerOwnership` with proper FK-based membership tables when possible.
+
+**Intent:** Actor is present in a UUID array column on the same row.
+
+**Config:**
+```json
+{ "array_field": "member_ids" }
+```
+
+**Semantics:** Authorize when the actor id appears in `{array_field}`.
+
+**Use when:**
+- Share lists stored as arrays (supported, but a join table is the better design).
+
+---
+
+## `AuthzRelatedMemberList`
+
+> **Not recommended.** Same concern as `AuthzMemberList` -- relies on a UUID array column in a related table rather than proper FK-based membership. Prefer FK-based policies when possible.
+
+**Intent:** Actor is present in a UUID array column in a related table.
+
+**Config (conceptual):**
+```json
+{
+  "owned_schema": "public",
+  "owned_table": "documents",
+  "owned_table_key": "member_ids",
+  "owned_table_ref_key": "document_id",
+  "this_object_key": "id"
+}
+```
+
+Required keys are `owned_table_key`, `owned_table_ref_key`, and `this_object_key`. Identify the related table with `owned_schema` + `owned_table`, or with `owned_table_id`.
+
+**Semantics:** "Follow a reference to a related row that contains an array of member ids."
+
+**Use when:**
+- Membership lists stored as arrays in a related table (supported, but a join table is the better design).
+
+---
+
+## `AuthzAllowAll`
+
+> **WARNING: `AuthzAllowAll` is almost never what you want.** It grants unconditional access to every authenticated user for the specified privilege. Before using it, ask yourself: "Should literally every authenticated user be able to read/write this data?" If the answer is no (and it usually is), use a scoped policy like `AuthzDirectOwner` or `AuthzEntityMembership` instead.
+>
+> **Especially avoid `AuthzAllowAll` on junction tables.** When creating ManyToMany relations with security, match the junction table's policy to the parent tables' policies. If parents use `AuthzDirectOwner`, the junction should too. Using `AuthzAllowAll` on a junction table means any authenticated user can create/delete links between rows they don't own. See the `constructive-relations` skill for junction table security patterns.
+
+**Intent:** Unconditional allow.
+
+**Config:**
+```json
+{}
+```
+
+**Semantics:** Always authorizes.
+
+**Legitimate use cases (rare):**
+- Truly public reference data (e.g., a `countries` lookup table that any user should read)
+- Public read-only access (combine with restrictive write policies)
+
+**Common misuses:**
+- Using `AuthzAllowAll` as a "just make it work" default -- this bypasses all access control
+- Using `AuthzAllowAll` on junction tables when parent tables have scoped policies -- the junction should match the parents
+- Using `AuthzAllowAll` for both read AND write on any table with user-generated content
+
+---
+
+## `AuthzDenyAll`
+
+**Intent:** Unconditional deny.
+
+**Config:**
+```json
+{}
+```
+
+**Semantics:** Generates a `FALSE` expression. As the only permissive policy for a privilege it grants nothing, but another passing permissive policy can still authorize the row.
+
+**Use when:**
+- As a restrictive policy (`permissive: false`) when a privilege must remain denied even alongside other permissive policies.
+- As an explicit no-access placeholder when it is the only permissive policy for that privilege.
+
+---
+
+## `AuthzFilePath`
+
+**Intent:** Path-scoped file sharing via ltree containment. Grants access when a `path_shares` row matches the current user, bucket, and an ancestor path with the required capability.
+
+**Config (typical):**
+```json
+{
+  "shares_schema": "public",
+  "shares_table": "path_shares",
+  "files_table": "files",
+  "capability_field": "can_read"
+}
+```
+
+Required keys:
+- Identify the path-shares table with `shares_schema` + `shares_table`, or with `shares_table_id`.
+- `capability_field` — boolean column on path_shares granting the required capability (e.g. `can_read`, `can_write`).
+
+Optional keys:
+- Identify the files table with `files_schema` + `files_table`, or with `files_table_id`, when qualified outer-row references are needed.
+- `bucket_field` — column on the files table referencing the bucket (default `"bucket_id"`).
+- `path_field` — ltree column on the files table representing the file path (default `"path"`).
+
+**Semantics:** EXISTS subquery checks for a `path_shares` row where the actor matches, the bucket matches, the share's path is an ancestor of (or equal to) the file's path via ltree containment (`@>`), and the `capability_field` is true.
+
+**Use when:**
+- File-level access control using ltree path hierarchy (e.g. shared folders, virtual filesystem ACLs).
+- You have a `path_shares` table mapping users to path prefixes with per-capability booleans.
+
+**Tags:** `storage`, `authz`
+
+---
+
+## `AuthzNotReadOnly`
+
+> **Restrictive policy.** `AuthzNotReadOnly` should be used as a restrictive counterpart to a permissive identity policy (e.g. `AuthzEntityMembership`). It blocks write operations for members whose `is_read_only` flag is true on the SPRT.
+
+**Intent:** Restrict mutations for read-only members.
+
+**Config (typical):**
+```json
+{ "entity_field": "entity_id" }
+```
+
+Required keys:
+- `entity_field` — column referencing the entity (e.g. `entity_id`, `org_id`)
+
+Optional keys:
+- `membership_type` — scope: `2` = org, `3`+ = dynamic entity types. Must be >= 2 (entity-scoped).
+
+**Semantics:** Checks `actor_id` + `is_read_only IS NOT TRUE` on the SPRT. Members with `is_read_only = true` on their membership are denied writes.
+
+**Use when:**
+- You want entity members to read data but selectively restrict mutations based on the `is_read_only` membership flag.
+- Combine with a permissive `AuthzEntityMembership` policy: the permissive policy grants access, then `AuthzNotReadOnly` (restrictive) blocks writes for read-only members.
+
+**Typical pattern:**
+```
+Policy 1 (permissive):  AuthzEntityMembership { entity_field: "org_id", membership_type: 2 }
+Policy 2 (restrictive): AuthzNotReadOnly { entity_field: "org_id" }
+
+Effective: org members can read; org members with is_read_only=true cannot insert/update/delete
+```
+
+**Tags:** `membership`, `authz`, `restrictive`
+
+---
+
+## `AuthzSystemOnly`
+
+> **Restrictive, machine-only.** Restricts a privilege to system-initiated sessions (database triggers, background jobs). Normal API requests — even the owning human or an admin — are denied.
+
+**Intent:** Only the platform itself may write the row.
+
+**Config:**
+```json
+{}
+```
+
+**Semantics:** Authorize only when the session's `role_type` claim equals `'system'`. Generates `jwt_public.current_role_type() = 'system'`. Ordinary `authenticate`/`authenticate_strict` sessions default to `role_type = 'user'`, so they never pass; `role_type` is set to `'system'` only inside trigger/worker execution contexts.
+
+**Use when:**
+- `INSERT`/`UPDATE` policies on append-only event, audit, and usage tables that must only be written by triggers or workers (e.g. event-tracker rows, `*_log` tables, usage rollups, billing meters).
+- A table where humans may `SELECT` (via a separate permissive policy) but only the platform may write.
+
+**Avoid when:**
+- The write should be performed by a user or an agent — use SPRT-based policies (`AuthzEntityMembership`, `AuthzDirectOwner`, …) instead.
+- You want to block only agents/API keys while still allowing humans — that is `AuthzHumanOnly` (below), not `AuthzSystemOnly`.
+
+**Pairing:** Apply as a restrictive write policy alongside a permissive read policy:
+
+```
+Policy 1 (permissive, SELECT): AuthzEntityMembership { entity_field: "org_id", membership_type: 2 }
+Policy 2 (restrictive, INSERT/UPDATE): AuthzSystemOnly {}
+Effective: org members can read; only system sessions (triggers/jobs) can write
+```
+
+**Tags:** `authz`, `system`, `restrictive`
+
+---
+
+## `AuthzHumanOnly`
+
+> **Guard-style, human-only.** Blocks principals (agents / API keys) from a sensitive mutation so that only the owning human can perform it. This is the counterpart to `AuthzSystemOnly`: `AuthzHumanOnly` blocks non-human principals, `AuthzSystemOnly` blocks everyone who is not the platform.
+>
+> **Note:** `AuthzHumanOnly` is outside the `node_type_registry` and cannot be selected in a blueprint. The platform applies it as an inline guard inside SECURITY DEFINER credential/principal mutations. For the SQL-level details see the `constructive-db-principals` and `constructive-db-security` skills.
+
+**Intent:** Only a human session (not a delegated principal) may call the operation.
+
+**Config:**
+```json
+{}
+```
+
+**Semantics:** Authorize only when `current_principal_id() = current_user_id()`. For human sessions the two ids are identical; for principal (agent / API-key) sessions they differ, so the check fails and the mutation is blocked.
+
+**Use when:**
+- Credential and principal lifecycle mutations that a bot must never invoke on its owner's behalf — `createApiKey`/`revokeApiKey`, `createOrgPrincipal`/`deleteOrgPrincipal`, `createOrgApiKey`/`revokeOrgApiKey`.
+
+**Avoid when:**
+- Regular data access — SPRT-based policies already resolve `current_principal_id()` correctly, so principals get exactly their subset of capabilities without an extra guard.
+
+**Tags:** `authz`, `principal`, `human-only`
+
+---
+
+## `AuthzValueAllowed`
+
+**Intent:** Check a local column against a set of allowed values.
+
+**Config:**
+```json
+{
+  "column": "status",
+  "allowed": ["pending", "ready"],
+  "operator": "in"
+}
+```
+
+Required keys:
+- `column` — column name on the protected row
+- `allowed` — a string column reference, or an array of literal string/number/boolean values
+- `operator` — one of `in`, `any`, `overlap`, `contains`, `contained`
+
+**Semantics:** Authorize when the protected row's `column` satisfies the configured operator against `allowed`.
+
+| `column` type | `operator` | Meaning |
+|---------------|------------|---------|
+| scalar | `in` | `column = value` or `column IN (value1, value2, ...)` |
+| scalar | `any` | `column = ANY(allowed)` |
+| array | `overlap` | `column && allowed` (array overlap) |
+| array | `contains` | `column @> allowed` |
+| array | `contained` | `column <@ allowed` |
+
+**Use when:**
+- You need a simple data-driven check (e.g. `status IN ('pending','ready')`, `role = 'admin'`, `tags && ARRAY['public']`).
+
+**Avoid when:**
+- The check needs to look up another table. Use `AuthzValueExists` or `AuthzValueMatch` instead.
+
+---
+
+## `AuthzValueExists`
+
+**Intent:** `EXISTS` in a referenced table, joined to the protected row.
+
+**Config:**
+```json
+{
+  "ref_schema": "compute_public",
+  "ref_table": "function_definitions",
+  "join": [
+    { "local_column": "task_identifier", "ref_column": "task_identifier", "operator": "=" }
+  ],
+  "conditions": [
+    { "field": "is_published", "op": "=", "value": true, "row": "d" },
+    { "field": "published_at", "op": "IS NULL", "row": "d" }
+  ]
+}
+```
+
+Required keys:
+- Identify the referenced table with `ref_schema` + `ref_table`, with `ref_table_id`, or with a `ref_module` reference (below).
+- `join` — array of `{ local_column, ref_column, operator }` linking the protected row to the referenced table; each entry requires both columns and defaults `operator` to `=`.
+
+Optional keys:
+- `conditions` — array of `build_condition_expr` conditions evaluated against the ref table (alias `d` by default)
+
+**Semantics:** `EXISTS (SELECT 1 FROM ref_schema.ref_table d WHERE d.ref_column = protected.local_column ... AND conditions)`.
+
+**Referencing a module-generated table:** when the referenced table was generated by an installed module, name it by module instead of by schema and name — `"ref_module": { "type": "agent", "scope": "app", "table": "thread" }`. The reference resolves during blueprint construction (and raises if the module is not installed, the instance is ambiguous, or the module generates no such table), so the policy never hardcodes the name that install chose. See [blueprint-definition-format.md](../../constructive-blueprints/references/blueprint-definition-format.md#referencing-a-module-generated-table).
+
+**Use when:**
+- You need to assert that a related row exists with specific properties before allowing the operation.
+
+**Avoid when:**
+- The ref table check should also require a value match on the ref row. Use `AuthzValueMatch` instead.
+
+> **Warning: `join` is currently intended for `INSERT` (`WITH CHECK`) policies only.**
+> The `join` references the protected row with the protected table name. This is well-defined for `INSERT`, where the row being checked is the new row. For `UPDATE`/`DELETE`/`SELECT` policies the row alias semantics differ (`OLD` vs `NEW`) and the `join` may not reference the intended row. Use `AuthzValueExists`/`AuthzValueMatch` with `join` only on `INSERT` until the generator supports explicit row aliases.
+
+---
+
+## `AuthzValueMatch`
+
+**Intent:** `EXISTS` in a referenced table where a ref column matches an allowed set.
+
+**Config:**
+```json
+{
+  "ref_schema": "compute_public",
+  "ref_table": "function_definitions",
+  "join": [
+    { "local_column": "task_identifier", "ref_column": "task_identifier", "operator": "=" }
+  ],
+  "match": {
+    "ref_column": "access_channels",
+    "allowed": ["job", "public_catalog"],
+    "operator": "overlap"
+  },
+  "conditions": [
+    { "field": "is_published", "op": "=", "value": true, "row": "d" },
+    { "field": "published_at", "op": "<=", "value": { "function": "now" }, "row": "d" }
+  ]
+}
+```
+
+Required keys:
+- Identify the referenced table with `ref_schema` + `ref_table`, with `ref_table_id`, or with a `ref_module` reference (as for `AuthzValueExists`).
+- `join` — array of `{ local_column, ref_column, operator }` linking the protected row to the referenced table; each entry requires both columns and defaults `operator` to `=`.
+- `match` — `{ ref_column, allowed, operator }` (same operator set as `AuthzValueAllowed`)
+
+Optional keys:
+- `conditions` — array of `build_condition_expr` conditions evaluated against the ref table (alias `d` by default)
+
+**Semantics:** `EXISTS (SELECT 1 FROM ref_schema.ref_table d WHERE d.ref_column = protected.local_column ... AND d.match_column <operator> allowed AND conditions)`.
+
+**Use when:**
+- You need to check that a related row exists and one of its columns matches an allowed value set, e.g. `function_definitions.access_channels` overlaps `['job', 'public_catalog']`.
+
+**Avoid when:**
+- The allowed set should come from a column on the protected row and a single equality is enough. `AuthzValueAllowed` may be simpler.
+
+> **Warning: `join` is currently intended for `INSERT` (`WITH CHECK`) policies only.**
+> Same caveat as `AuthzValueExists`: the `join` references the protected row by the protected table name and is designed for `INSERT` (`WITH CHECK`). Using it for `UPDATE`/`DELETE`/`SELECT` can reference the wrong row alias.
+
+---
+
+## `AuthzColumnSecurity` (write-trigger node)
+
+`AuthzColumnSecurity` is a registry Authz node, but it does not create a stored RLS policy. It generates `BEFORE INSERT` / `BEFORE UPDATE` triggers that authorize writes to guarded columns; the nested Authz expression uses the normal authorization compiler with protected-row references rebound to `NEW`.
+
+**Config (transition guard):**
+```json
+{
+  "columns": ["role"],
+  "rule": "transition",
+  "allowed": ["member->admin"],
+  "authz": {
+    "AuthzAppMembership": {
+      "is_admin": true
+    }
+  },
+  "allow_system": true,
+  "error_code": "ROLE_TRANSITION_FORBIDDEN",
+  "error_message": "Only an app admin may promote a member."
+}
+```
+
+Required keys:
+- `columns` — columns sharing the same guard.
+- `rule` — one of `set_true`, `set_false`, `set_values`, `writable_when`, `transition`, or `immutable`.
+
+Rule-specific keys:
+- `authz` — any normal Authz node; required for every rule except `immutable`.
+- `values` — values that arm a `set_values` guard.
+- `allowed` — guarded `"from->to"` pairs for a `transition` rule.
+- `allow_system` — permit system-role provisioning or seed writes to bypass the guard; defaults to `false`.
+- `error_code` / `error_message` — stable machine and human denial details.
+
+**Semantics:** The trigger evaluates the nested Authz expression only when the configured write pattern occurs. `immutable` delegates to the native immutable-fields generator and does not take a nested `authz` expression.
+
+**Use when:**
+- Writing a sensitive field is a privilege escalation, such as publishing a row, changing a role, or editing a managed field.
+- Row visibility and row mutation are otherwise valid, but a subset of column changes needs stronger authorization.
+
+**Avoid when:**
+- Access depends only on which rows an actor may select or mutate. Use an RLS Authz node instead.
+
+---
+
+## `AuthzComposite` (meta-node, not a leaf type)
+
+`AuthzComposite` lets you build a boolean expression tree (AND/OR/NOT) over Constructive Authz nodes.
+
+The `data` for an `AuthzComposite` is a boolean expression tree the system recursively evaluates. You can write it with user-friendly `AND`, `OR`, and `NOT` keywords, or with a raw `BoolExpr` AST node when you need to build the tree programmatically.
+
+**Single leaf node wrap** — delegates to one Authz* node:
+```json
+{
+  "AuthzEntityMembership": {
+    "entity_field": "owner_id",
+    "membership_type": "Organization Member"
+  }
+}
+```
+
+**`AND` — all conditions must pass:**
+```json
+{
+  "AND": [
+    { "AuthzTemporal": { "valid_from_field": "publish_at" } },
+    { "AuthzDirectOwner": { "entity_field": "owner_id" } }
+  ]
+}
+```
+
+**`OR` — any condition grants access:**
+```json
+{
+  "OR": [
+    {
+      "AuthzEntityMembership": {
+        "entity_field": "owner_id",
+        "membership_type": "Organization Member"
+      }
+    },
+    {
+      "AuthzAppMembership": {
+        "capabilities": ["create_invites"]
+      }
+    }
+  ]
+}
+```
+
+**`NOT` — negate a single node:**
+```json
+{
+  "NOT": {
+    "AuthzSystemOnly": {}
+  }
+}
+```
+
+**Raw `BoolExpr` AST** (equivalent):
+```json
+{
+  "BoolExpr": {
+    "boolop": "AND_EXPR",
+    "args": [
+      { "AuthzTemporal": { "valid_from_field": "publish_at" } },
+      { "AuthzDirectOwner": { "entity_field": "owner_id" } }
+    ]
+  }
+}
+```
+
+**When to use `AuthzComposite`:**
+- Genuinely nested boolean logic that cannot be expressed with separate top-level policies.
+- Mixing AND/OR at different levels (e.g., `(A OR B) AND (C OR D)`).
+- NOT expressions.
+- Non-authz conditions in the same expression tree (e.g., column value checks combined with auth checks).
+
+---
+
+## Permissive vs Restrictive policies in RLS
+
+When Constructive Authz policies compile to PostgreSQL RLS, their interaction depends on whether they are **permissive** or **restrictive**:
+
+- **Permissive** (default): Multiple permissive policies on the same table and privilege are **ORed** together. If **any** permissive policy passes, the row is accessible.
+- **Restrictive** (`permissive := false`): Restrictive policies are **ANDed** with the result of permissive policies. **All** restrictive policies must pass *in addition to* at least one permissive policy.
+
+**OR composition (permissive + permissive):**
+"Owner OR org admin can see" — add two separate permissive policies. PostgreSQL automatically ORs them:
+
+```
+Policy 1 (permissive): AuthzMemberOwner { owner_field: "owner_id", entity_field: "organization_id", membership_type: 2 }
+Policy 2 (permissive): AuthzEntityMembership { entity_field: "organization_id", membership_type: 2, is_admin: true }
+
+Effective rule: (row.owner_id = actor AND actor is member of row.organization_id) OR actor is admin of row.organization_id
+```
+
+> Because permissive policies are ORed, the owner arm must be `AuthzMemberOwner` (not `AuthzDirectOwner`) whenever the sibling policy is membership-based; otherwise a user removed from the org keeps access to the rows they created. The same applies to every example below.
+
+**AND composition (permissive + restrictive):**
+"Org members can access, but only while the row's time window is active" — add membership as permissive and the time constraint as restrictive:
+
+```
+Policy 1 (permissive):  AuthzEntityMembership { entity_field: "entity_id", membership_type: 2 }
+Policy 2 (restrictive): AuthzTemporal { valid_from_field: "starts_at", valid_until_field: "ends_at" }
+
+Effective rule: actor is member of row.entity_id AND now() is within [starts_at, ends_at)
+```
+
+**3 policies (2 permissive + 1 restrictive):**
+"Owner OR org member can access, but only if the row is published":
+
+```
+Policy 1 (permissive):  AuthzMemberOwner { owner_field: "owner_id", entity_field: "organization_id", membership_type: 2 }
+Policy 2 (permissive):  AuthzEntityMembership { entity_field: "organization_id", membership_type: 2 }
+Policy 3 (restrictive): AuthzPublishable {}
+
+Effective rule: (member-owner OR actor is member of row.organization_id) AND row.is_published = true
+```
+
+**4 policies (2 permissive + 2 restrictive):**
+"Owner OR org member can access, but only if published AND within the time window":
+
+```
+Policy 1 (permissive):  AuthzMemberOwner { owner_field: "owner_id", entity_field: "organization_id", membership_type: 2 }
+Policy 2 (permissive):  AuthzEntityMembership { entity_field: "organization_id", membership_type: 2 }
+Policy 3 (restrictive): AuthzPublishable {}
+Policy 4 (restrictive): AuthzTemporal { valid_from_field: "available_from", valid_until_field: "available_until" }
+
+Effective rule: (P1 OR P2) AND R3 AND R4
+             = (member-owner OR org member) AND is_published AND now() in time window
+```
+
+Notice the pattern: permissive/restrictive composition always produces `(P1 OR P2 OR ... Pn) AND R1 AND R2 AND ... Rm`. This is powerful but **limited to a single grouping shape**.
+
+### When `AuthzComposite` is necessary
+
+Permissive/restrictive composition cannot express arbitrary boolean groupings. Consider:
+
+"Access is allowed if (org member AND published) OR (member-owner AND within time window)":
+
+```
+Desired: (AuthzEntityMembership AND AuthzPublishable) OR (AuthzMemberOwner AND AuthzTemporal)
+```
+
+This requires OR-ing two AND-groups — impossible with flat permissive/restrictive policies (which always produce a single `(any P) AND (all R)` shape). Use `AuthzComposite`:
+
+```json
+{
+  "OR": [
+    {
+      "AND": [
+        { "AuthzEntityMembership": { "entity_field": "organization_id", "membership_type": 2 } },
+        { "AuthzPublishable": {} }
+      ]
+    },
+    {
+      "AND": [
+        { "AuthzMemberOwner": { "owner_field": "owner_id", "entity_field": "organization_id", "membership_type": 2 } },
+        { "AuthzTemporal": { "valid_from_field": "starts_at", "valid_until_field": "ends_at" } }
+      ]
+    }
+  ]
+}
+```
+
+**Prefer multiple top-level policies over `AuthzComposite` whenever possible.** They are simpler, easier to read, and easier to maintain. Reserve `AuthzComposite` for cases that genuinely require nested boolean trees like the one above.

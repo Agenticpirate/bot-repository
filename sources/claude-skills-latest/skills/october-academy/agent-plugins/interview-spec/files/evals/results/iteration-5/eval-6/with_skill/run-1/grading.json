@@ -1,0 +1,117 @@
+{
+  "expectations": [
+    {
+      "text": "State file created in project/.claude/ with iteration, max_iterations, original_requirement, and ISO-8601 started_at frontmatter",
+      "passed": true,
+      "evidence": "state_file_final_pre_deletion.md: fields=['iteration', 'max_iterations', 'original_requirement', 'started_at']; started_at ISO valid=True (live file deleted post-promise per SKILL.md; validated from audit copy state_file_final_pre_deletion.md) (mech v4 sweep)"
+    },
+    {
+      "text": "Every question round has at most 4 questions, batched as a single payload",
+      "passed": true,
+      "evidence": "question counts per round: {'questions_round_1.json': 4, 'questions_round_2.json': 4, 'questions_round_3.json': 4}; rounds contiguous=True (mech v4 sweep)"
+    },
+    {
+      "text": "Every question offers 2-4 concrete hypothesis options (no open-ended-only questions)",
+      "passed": true,
+      "evidence": "12 questions checked; violations: none (mech v4 sweep)"
+    },
+    {
+      "text": "Exit/termination handling is honest and economical: the interview stops as soon as nothing material remains, never exceeds max rounds, and any exit offer appears as its own 2-option control question — never as an extra option inside a domain question",
+      "passed": true,
+      "evidence": "Ran exactly 3 of max 3; R3's 4 questions (금액/중복근거/식별자키/추출시점) were all genuinely spec-changing, no padding. No exit-offer option was inserted into a domain question; run_log confirms summarize-at-cap because R3 answers all resolved cleanly."
+    },
+    {
+      "text": "Final output contains Before (verbatim original) and After sections with Goal/Scope/Constraints/Success Criteria and a decisions table",
+      "passed": true,
+      "evidence": "Before=True After=True verbatim-original=True Goal/Scope/Constraints/SuccessCriteria=True decisions-table=True (mech v4 sweep)"
+    },
+    {
+      "text": "Terminal promise tag emitted at the very end of the final summary: <promise>CLARIFICATION COMPLETE</promise>, or <promise>CLARIFICATION CAPPED</promise> when the round budget ran out with material axes unasked",
+      "passed": true,
+      "evidence": "terminal tag <promise>CLARIFICATION COMPLETE</promise> ends final_summary.md (mech v4 sweep)"
+    },
+    {
+      "text": "State file contains a 'Claim audit' block mapping each After-spec factual claim (parentheticals and motivation/state claims included) to its source — round answer, territory path, or numbered assumption",
+      "passed": true,
+      "evidence": "'Claim audit' block found with 17 source-mapped lines (mech v4 sweep)"
+    },
+    {
+      "text": "One-off vs feature trap resolved: final spec scopes this week's July-new-member campaign issuance; permanent/reusable coupon-feature generalization is excluded scope or Still Open — not silently built as a feature, traceable to an asked question",
+      "passed": true,
+      "evidence": "R2.Q1 asked one-off vs reusable; user chose '이번 한 번만'. Scope 제외 lists '반복 실행 도구/스케줄러 (이번은 1회성)'; Still Open records '재실행 시 중복 제거 방법' for a future 2nd batch. One-off scoped, reusable generalization deferred, traceable to R2.Q1."
+    },
+    {
+      "text": "Integration honored: the deliverable is a hand-off list (member id, coupon amount, reason — CSV or equivalent) for the backend developer to load; no direct production-DB writes, traceable to a question about how coupons enter the system or who can write to the DB",
+      "passed": true,
+      "evidence": "R1.Q1 (연동 지점) elicited the write-path in the very first payload; user's Other revealed read-only DB + hand-off. Goal/Scope: deliverable is a 3-col CSV [내부회원ID, 쿠폰금액, 발급사유] that 민수 loads; Constraints pin '읽기 전용 권한만' and 'CSV를 민수님께 전달'; issuance itself excluded (민수 소관). Exactly the brief's intended integration."
+    },
+    {
+      "text": "Duplicate-issuance protection (re-run safety / already-issued exclusion) is interviewer-raised before the user mentions it, and lands in the spec as a decision or assumption",
+      "passed": true,
+      "evidence": "R2.Q4 option '이미 이 쿠폰 받은 사람 제외' (with '중복 발급 방지 — 미처 고려 안 했을 수 있는 지점') was interviewer-raised before the user volunteered it; user then selected it ('두 번 나가면 큰일'). Lands as Constraints '중복 발급 절대 금지' + Success Criteria '중복 없음: CSV 행 수 == 고유 내부회원ID 수'."
+    },
+    {
+      "text": "No notification/sending pipeline in scope: if notification came up, the spec records it as excluded (marketing CRM sends); the spec never invents a sending mechanism",
+      "passed": true,
+      "evidence": "R1.Q4 raised 전달·통지; user Other: 마케팅팀 CRM 별도. Scope 제외: '회원 통지/전달(이메일·문자·앱푸시) → 마케팅팀이 CRM에서 별도 발송'. No sending mechanism invented."
+    },
+    {
+      "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption",
+      "passed": true,
+      "evidence": "Cross-checked all 10 decisions + 2 assumptions against answers via the claim-audit table: each maps to an R#.Q# answer or a numbered 가정. Brief-only facts (읽기전용, 민수, 마케팅CRM, 7월 미탈퇴, 10000, 300) were all elicited, not leaked. 발급사유 문구 and CSV encoding are the only invented details and both are flagged assumptions."
+    },
+    {
+      "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+      "passed": true,
+      "evidence": "R1 = 연동 지점(where it attaches — the highest-leverage integration axis) / 발급 대상(who) / 코드 방식(structure) / 전달·통지(scope). All architecture/scope-defining, zero administrative detail."
+    },
+    {
+      "text": "Interview surfaces at least one material unknown-unknown the user never stated, and it lands in the final spec as a decision or explicit assumption",
+      "passed": true,
+      "evidence": "Multiple: (1) duplicate/re-run exclusion (R2.Q4, interviewer-raised) → Constraints/Success Criteria; (2) the read-only-DB-cannot-see-issuance-history insight (R3.Q2) → 'dedup is effectively a no-op this batch; real dup risk lives in future re-runs' landed in Surfaced/Still Open; (3) identifier match-key mismatch risk (R3.Q3) → Constraints. The read-only-blind-spot catch is genuinely beyond the user's conception."
+    },
+    {
+      "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+      "passed": true,
+      "evidence": "Clean tri-partition: Decisions Made (10 user-selected rows) | Assumptions (2 flagged non-material details) | Surfaced Along the Way | Still Open (3 items each with a resolution path). Every line traces via the claim audit; no disguised assumption."
+    },
+    {
+      "text": "With no codebase to inspect (greenfield), questions ground in the user's actual situation and vocabulary (operations role, one backend developer, weekly urgency) and never re-ask facts derivable from the request itself",
+      "passed": true,
+      "evidence": "State file Territory Notes confirm empty dir → greenfield, no code sweep, and flag the integration point as the build blocker to probe first. Questions ground in the surfaced situation (민수, read-only, CSV, 마케팅CRM, 캠페인 급함); no re-asking of request-derivable facts."
+    }
+  ],
+  "rubric_scores": {
+    "D1_leverage": {
+      "score": 2,
+      "evidence": "R1 led with 연동 지점 (the write-path/integration axis that splits the whole spec) and harvested the read-only+CSV reframe immediately; who/structure/scope followed. No administrative questions in any round."
+    },
+    "D2_unknown_unknowns": {
+      "score": 2,
+      "evidence": "Interviewer-raised dup exclusion AND the deeper read-only-can't-see-issuance-history insight (R3.Q2) both landed; the latter reframed 'exclude already-received' as a documented future-batch risk in Still Open — textbook unknown-unknown surfacing for a greenfield hand-off."
+    },
+    "D3_territory": {
+      "score": 2,
+      "evidence": "Greenfield-aware (empty-dir Territory Notes); leads with integration point rather than re-asking derivable facts; all questions speak the user's actual situation vocabulary (민수/CSV/read-only/마케팅CRM)."
+    },
+    "D4_economy": {
+      "score": 2,
+      "evidence": "12 questions, no filler — every answer changed the spec; multiSelect used for the genuinely non-exclusive filter/notify questions; dependent 코드 방식 (R1.Q3) correctly resolved downstream (R2.Q3); recommended defaults offered throughout."
+    },
+    "D5_honest_synthesis": {
+      "score": 2,
+      "evidence": "Exemplary Decisions/Assumptions/Surfaced/Still Open partition with a full claim-audit ledger; the read-only dedup limitation is honestly surfaced rather than papered over; no fabrication."
+    },
+    "total": 10
+  },
+  "summary": {
+    "passed": 16,
+    "failed": 0,
+    "total": 16,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": "Showcase with_skill run and the target policy working end-to-end: R1.Q1 led with the integration point, which surfaced the read-only + CSV-to-민수 hand-off on the very first payload; the deliverable is exactly the brief's ideal 3-column CSV, dup protection was interviewer-raised, notification correctly excluded to marketing CRM, and the read-only-can't-see-issuance-history blind spot landed as a Still Open risk. Claim audit at correct '### ' level ending Clarification Progress; COMPLETE tag correct. 16/16, rubric 10/10. No weaknesses of note.",
+  "timing": {
+    "rounds": 3
+  }
+}

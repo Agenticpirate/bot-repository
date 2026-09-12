@@ -1,0 +1,46 @@
+{
+  "id": "retweet",
+  "name": "Retweet",
+  "description": "Retweet and unretweet tweets.",
+  "actions": {
+    "create": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://api.x.com",
+        "path": "/2/users/{userId}/retweets",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "tweet_id": "$input.tweetId"
+        }
+      },
+      "output": {
+        "responseSelect": "data",
+        "responseMap": {
+          "retweeted": {
+            "$value": "$data.retweeted",
+            "$default": false
+          }
+        }
+      }
+    },
+    "delete": {
+      "upstream": {
+        "method": "DELETE",
+        "baseUrl": "https://api.x.com",
+        "path": "/2/users/{userId}/retweets/{tweetId}",
+        "auth": { "mode": "bearer" }
+      },
+      "output": {
+        "responseSelect": "data",
+        "responseMap": {
+          "retweeted": {
+            "$not": "$data.retweeted",
+            "$default": true
+          }
+        }
+      }
+    }
+  }
+}

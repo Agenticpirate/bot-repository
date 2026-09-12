@@ -1,0 +1,106 @@
+{
+  "id": "mail",
+  "name": "Mail",
+  "description": "List Gmail threads, inspect thread details, and send email.",
+  "actions": {
+    "list-threads": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://gmail.googleapis.com",
+        "path": "/gmail/v1/users/me/threads",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "queryTemplate": {
+          "q": "$input.query",
+          "labelIds": "$input.labelId",
+          "maxResults": {
+            "$value": "$input.maxResults",
+            "$default": 10
+          },
+          "pageToken": "$input.pageToken",
+          "includeSpamTrash": {
+            "$value": "$input.includeSpamTrash",
+            "$default": false
+          }
+        }
+      },
+      "output": {
+        "responseMap": {
+          "count": {
+            "$length": "$response.threads"
+          },
+          "nextPageToken": "$response.nextPageToken",
+          "resultSizeEstimate": "$response.resultSizeEstimate",
+          "items": {
+            "$each": "$response.threads",
+            "map": {
+              "threadId": "$item.id",
+              "snippet": "$item.snippet",
+              "historyId": "$item.historyId"
+            }
+          }
+        }
+      }
+    },
+    "get-thread": {
+      "upstream": {
+        "method": "GET",
+        "baseUrl": "https://gmail.googleapis.com",
+        "path": "/gmail/v1/users/me/threads/{threadId}",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "pathParams": {
+          "threadId": "$input.threadId"
+        },
+        "queryTemplate": {
+          "format": {
+            "$value": "$input.format",
+            "$default": "full"
+          }
+        }
+      },
+      "output": {
+        "responseMap": {
+          "threadId": "$response.id",
+          "historyId": "$response.historyId",
+          "snippet": "$response.snippet",
+          "messages": {
+            "$each": "$response.messages",
+            "map": {
+              "messageId": "$item.id",
+              "threadId": "$item.threadId",
+              "labelIds": "$item.labelIds",
+              "snippet": "$item.snippet",
+              "internalDate": "$item.internalDate",
+              "headers": "$item.payload.headers",
+              "mimeType": "$item.payload.mimeType"
+            }
+          }
+        }
+      }
+    },
+    "send": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://gmail.googleapis.com",
+        "path": "/gmail/v1/users/me/messages/send",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "raw": "$input.raw",
+          "threadId": "$input.threadId"
+        }
+      },
+      "output": {
+        "responseMap": {
+          "messageId": "$response.id",
+          "threadId": "$response.threadId",
+          "labelIds": "$response.labelIds"
+        }
+      }
+    }
+  }
+}

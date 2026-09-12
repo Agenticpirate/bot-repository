@@ -1,0 +1,442 @@
+# Walk-Through Guidance
+
+This file defines the low-level file-wise walk-through.
+
+It covers:
+
+- file ownership by review block;
+- reading order;
+- human checkpoints;
+- attention routing;
+- walk-through structure;
+- inline findings; and
+- review discipline.
+
+Shared trust, naming, and writing-style rules stay in
+[review-core-guidance.md](./review-core-guidance.md).
+
+## Review unit
+
+Review file-wise.
+
+Each changed file belongs to exactly one review block.
+These review blocks are the canonical file grouping for the whole
+review, not only for the walk-through.
+A file may touch multiple concerns, but it still has one review home.
+Review the whole file in that block at the smallest useful level, such
+as type, function, method, field, query, migration, config entry, or
+test expectation.
+Keep all changed elements of that file in the same block even when some
+support another topic.
+
+If a file also matters for another topic, mention that briefly in
+prose or link to the other section. Do not place the same file in
+multiple review blocks.
+
+## Review block ownership
+
+Review blocks are file-owning buckets, not perfect semantic
+partitions.
+
+Choose the review block by the main reason the file changed or by the
+main question the reviewer must answer for that file.
+If one changed element belongs conceptually to another topic, still
+review it in the file's own block. If that secondary topic matters,
+mention it briefly in prose or link to the other section.
+
+For renamed or moved files, review the old and new path as one file
+slot in the block that explains the move or changed responsibility.
+
+For deleted files, review them once in the block that explains the
+removed behavior or removed public surface.
+
+## Method
+
+Use this sequence by default:
+
+1. Identify the branch base and changed-file inventory for each
+   involved repository.
+2. Read task, subtask, ticket, pull request or merge request
+   description, or other intent material only far enough to create
+   background for the review.
+3. Propose the review blocks as the canonical file grouping, their
+   order, and the exact file assignment where every changed file
+   belongs to exactly one block.
+4. Do a survey pass over the changed files and diff before writing
+   detailed review text.
+5. From that survey, identify the provisional highest-attention areas.
+   Focus on behavior, contract, compatibility, orchestration,
+   persistence, parsers or rewriters, deletions, and weak or missing
+   verification.
+6. For each provisional highest-attention area, note:
+   - the central risk;
+   - the old/new behavior comparison that must be checked;
+   - the strongest relevant evidence found so far; and
+   - the most likely blind spot.
+7. Inside each block, order files top-down: from the controlling entry
+   point or public surface through the collaborators, data types,
+   helpers, deletions, and tests that explain it.
+8. Create the file ownership table and all review-block and file-level
+   headings before writing detailed review text.
+9. For a large, mixed, or provisionally high-risk change, present the
+   proposed block order, file assignment, and provisional
+   highest-attention areas for human review before detailed review
+   continues.
+10. Review each assigned file exactly once.
+11. Inside each file, review in source order unless another local
+    order explains the changed elements and their relationships better.
+12. At the smallest useful level, record:
+    - what changed;
+    - why it appears to exist;
+    - which historical intent, context, or final code behavior it
+      appears to support;
+    - what contract, runtime path, or rule it affects;
+    - relevant tests and what they prove; and
+    - findings, including missing or insufficient verification, open
+      evidence questions, or reviewer attention points where they
+      arise.
+13. Keep a findings list as part of the walk-through, not as a
+    separate afterthought.
+14. After the detailed walk-through, do a short confirmation pass over
+    the highest-attention areas. Update that routing if deeper reading
+    changes the real risk center. Check that each highest-attention
+    area received explicit old/new comparison and either concrete
+    verification evidence or a finding or open question when evidence
+    is weak or missing.
+15. End each review block with durable notes such as open risks,
+    unresolved evidence, reviewer attention points, and useful next
+    review focus.
+16. End the document with final verification notes or other final
+    notes only when they help the reviewer.
+
+Apply the shared review criteria where they help.
+Do not turn them into a global merge verdict unless the assessment mode
+is also active or the user explicitly asks for one.
+
+## Human checkpoints
+
+For large or mixed changes, prefer an iterative block-wise workflow over
+generating the full walk-through in one pass.
+
+The first checkpoint should propose all review blocks, their order, one
+owning block for every changed file, and when needed the provisional
+highest-attention areas.
+The human may then accept the proposal, ask to change the order, move
+files, split or merge blocks, or discuss the trade-off before detailed
+review continues.
+
+Use each checkpoint to validate file ownership, attention routing,
+review depth, review block boundaries, and whether the current findings
+are useful.
+
+Checkpoints are conversation steps, not sections in the review file.
+Update the walk-through file only with the durable outcome of that
+discussion when it affects the document.
+
+## Attention routing
+
+Attention routing happens after the initial file inventory and diff
+skim, not before any reading.
+
+It is a workflow step, not a required section in the review file.
+
+Use it to make review priority explicit before detailed file-by-file
+writing begins.
+
+Attention areas do not override review block ownership. They guide
+depth and scrutiny; every changed file still belongs to exactly one
+review block.
+
+For large, mixed, redesign, migration, orchestration, or
+compatibility-heavy changes, identify the provisional
+highest-attention areas early and surface them at the first human
+checkpoint when a checkpoint is used.
+
+For each highest-attention area, name:
+- the central risk;
+- the old/new behavior comparison that must be checked;
+- the strongest relevant evidence found so far; and
+- the most likely blind spot.
+
+Use that routing to decide depth.
+High-attention areas need deeper comparison and explicit links to the
+tests or other evidence that support the behavior claim.
+Lower-risk mechanical areas may stay brief unless deeper reading shows
+a real risk.
+
+If the closing confirmation pass shows that a highest-attention area
+still lacks enough evidence or behavior comparison, record a finding or
+an open question.
+
+## Walk-through file shape
+
+Write one walk-through file by default.
+Split it into multiple files only when the user explicitly asks for
+that or one file would become impractical to review.
+
+Keep the file ownership table readable.
+Prefer file names only.
+Add only as many parent folders as needed to disambiguate files with
+the same name.
+Use explicit rename arrows and compact review-block labels.
+Avoid long full paths inside table cells.
+
+Link both columns in the file ownership table.
+File labels should link to explicit file anchors, and review-block
+labels should link to explicit review-block anchors.
+Use explicit anchors for every review block and every file section.
+
+Use the approved walk-through style. The outer structure is fixed, and
+inner analysis should follow the same heading-versus-prose pattern:
+
+```markdown
+# <subject> Branch Walk-Through
+
+<introductory orientation prose>
+
+## Scope Summary
+
+### <repository or other scope partition>
+
+Base: <exact comparison base>
+
+Changed files: <count>. See `File Ownership Table`.
+
+<optional scope-exclusion or range note>
+
+## Review Findings
+
+### Finding <scope-prefix>-<number>: <summary>
+
+**Priority:** <priority>
+
+**Affected surface:**
+- <surface>
+
+**Evidence:**
+- <observed evidence>
+
+**Why it matters:**
+<impact>
+
+**Review note:** <current-state note>
+
+## File Ownership Table
+
+<short table guidance prose>
+
+| File | Review block |
+| --- | --- |
+| [<minimal file label>](#file-<stable-id>) | [<Owning Theme>](#review-block-<stable-id>) |
+
+<a id="review-block-<stable-id>"></a>
+
+## Review Block 1: <Owning Theme>
+
+Repository: `<repository>`
+
+**Review purpose:** <why this block exists and why it appears here>
+
+**Project-level review criteria:**
+- Intent: <block-level judgment>
+- Implementation: <block-level judgment>
+- Verification: <block-level judgment>
+- Complexity: <block-level judgment>
+
+or
+
+**Review-block criteria:**
+- Intent: <block-level judgment>
+- Implementation: <block-level judgment>
+- Verification: <block-level judgment>
+- Complexity: <block-level judgment>
+
+<a id="file-<stable-id>"></a>
+
+### `<minimal file label>`
+
+**Primary reason:** <why this file belongs here>
+
+<analysis prose>
+
+**Intent:** <judgment when needed>
+**Implementation review:** <judgment when needed>
+**Verification:** <how the change is tested and what that evidence proves; if coverage is insufficient, say why>
+**Complexity:** <burden judgment when needed>
+
+### Review Block 1 Notes
+
+## Verification Notes
+
+<scope label>:
+
+- Working directory: `<path>`
+- Command: `<command>`
+- Log: `<log-path>`
+- Result: `<result>`
+```
+
+Start with short orientation prose before `## Scope Summary` when it
+helps the reviewer.
+Keep the exact top-level section order shown above.
+Place `## Review Findings` before `## File Ownership Table`.
+In each `### <repository or other scope partition>` under `## Scope
+Summary`, state the exact comparison base used and the reviewed changed-file count.
+Add explicit exclusion or range notes there when they matter, for
+example when inherited changes are intentionally excluded or when the
+walk-through file itself is outside the reviewed diff.
+Use finding IDs in the form `<scope-prefix>-<number>`.
+Use `Repository: ...` when repository context helps, especially in
+multi-repository reviews. Omit it when the block already has clear
+single-repository context.
+Every review block and every file section must have an explicit anchor.
+Use `**Project-level review criteria:**` when a block establishes
+criteria for a whole repository or project slice. Otherwise use
+`**Review-block criteria:**`.
+In those block-level criteria sections, use bullet points.
+Do not add block-status lines.
+Inside file sections, keep analysis in prose.
+Do not add fourth-level headings under file sections.
+Do not write local-topic headings such as `#### Deleted behavior` or
+`#### Purchase JSON compile validation`.
+When you need to distinguish changed elements or local topics, name
+those elements in prose or with inline code labels.
+Use neither extra heading levels nor the block-level bullet-list form
+inside file sections.
+Use inline bold labels such as `Intent`, `Implementation review`,
+`Verification`, and `Complexity` when they help.
+Use `### Review Block <number> Notes` only when that block has durable
+end notes worth keeping.
+In `## Verification Notes`, use one labeled subsection per repository,
+module, or other verified scope and list `Working directory`,
+`Command`, `Log`, and `Result` in that order.
+
+The `Review Findings` section should make unresolved findings easy to
+scan.
+Keep the detailed explanation in the owning file section where the
+finding was discovered.
+When analysis in a file section contributes to a listed finding,
+reference that finding by ID at the relevant point.
+Do not write `No issue found`, `No issues found`, or similar clearance
+statements in file sections, analysis paragraphs, or review-block
+notes.
+If no finding applies, stop after the analysis instead of writing a
+clearance line.
+
+In `Verification Notes` and any inline verification reference,
+identify each cited test precisely enough that the reviewer can find it
+directly.
+Always include the owning test file and the complete in-file path to
+that specific test case.
+Use the language or test framework's normal separator in that path.
+If the outermost test class or suite name is the same as the file name
+without the extension, omit that duplicate and start with the next
+nested container.
+For Java, use `.` between path segments, not `#`.
+Do not cite only the leaf test name.
+
+## Ordering inside each review block
+
+Order files top-down, from entry point to dependencies.
+Start with the block's controlling entry point, public contract,
+orchestration owner, or first file a reviewer must understand for that
+block.
+Then follow the direct collaborators, data and value types, helpers,
+deletions, and verification evidence needed to understand that owner.
+
+For API or data-structure blocks, that usually means public contract
+first, generated or serialized shape next, consuming or persistence
+surfaces after that, and tests next to the production surface they
+verify.
+
+## Tests and evidence
+
+Group tests with production files by default.
+Place each test file immediately after the production file or production
+group it verifies.
+
+Use a separate test or evidence review block only for tests and
+fixtures that cannot be naturally owned by one changed production
+block, such as broad cross-cutting regression evidence or shared
+fixture infrastructure.
+Do not leave a test in a residual block merely because it is a test.
+
+Review the test file as a changed file in its own right.
+Walk through changed fixtures, helpers, renamed tests, new tests,
+assertions, covered behavior, and blind spots at the level needed to
+explain what the test proves.
+When you cite a referenced test, include the owning test file and the
+complete in-file path to that test case.
+Use the language or test framework's normal separator in that path.
+If the outermost test class or suite name duplicates the file name,
+omit that duplicate and keep the rest of the path.
+For Java, use `.` between path segments, not `#`.
+For each changed production file, include a `Verification:` paragraph
+in that file section.
+Use it to show how the changed behavior, contract, data shape, or
+removed surface is tested or otherwise checked, and briefly state what
+that evidence proves.
+Do not add extra sufficiency commentary when the coverage is adequate.
+If the change is missing tests or the existing tests are not sufficient
+for the changed behavior, record a finding.
+Cite those tests or other evidence there even if the test files are
+reviewed in another block.
+If no distinct file-specific verification exists, say that plainly in
+`Verification:` and treat the gap as a finding when the resulting
+coverage is insufficient.
+Keep the detailed test-file analysis in the test-file section.
+
+## Findings
+
+Integrate findings into the walk-through where the evidence appears.
+List unresolved findings in `## Review Findings` using the approved
+shape:
+
+- `### Finding <id>: <summary>`
+- `**Priority:**`
+- `**Affected surface:**`
+- `**Evidence:**`
+- `**Why it matters:**`
+- `**Review note:**` for the current-state disposition or constraint
+
+Keep the detailed explanation and code reading in the owning file
+section.
+In those detailed sections, cite finding IDs where relevant instead of
+restating the full finding, and do not add no-issue statements.
+Prefer concrete findings over broad suspicion.
+If the evidence is not yet enough to call something a defect, state it
+as an open question and say what would confirm or disconfirm it.
+
+When a finding is fixed during the walk-through process and the fix is
+validated, delete that finding from the walk-through document.
+If a finding is accepted, deferred, or intentionally left unfixed,
+keep it in the walk-through document and update its wording only as
+needed to reflect that current state.
+Do not keep fixed findings in place as history.
+Rewrite nearby prose only when needed so the remaining walk-through
+still matches the current state.
+
+## Review discipline
+
+Do not let semantic grouping hide file-wise review.
+
+Do not duplicate files across review blocks.
+
+Do not split one file's changes across review blocks.
+Once a file is attached to an owning review block, discuss every changed
+element of that file in that review block, even when the element
+belongs to another cross-cutting concern.
+
+Do not treat task or subtask text as final-design authority.
+It is background unless the current review explicitly establishes that
+the final code still follows it.
+
+Do not turn refactoring into a behavior claim without checking the old
+and new call paths.
+
+Do not review tests only as changed files.
+Map each meaningful test change back to the behavior, contract, or
+removed surface it protects.
+
+Do not defer findings until the end if the finding is easier to
+understand next to the changed element.

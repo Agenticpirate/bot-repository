@@ -1,0 +1,82 @@
+{
+  "expectations": [
+    {
+      "text": "Cadence trap resolved: final spec is a once-daily morning digest the user runs/receives, not real-time monitoring or per-product push alerts — traceable to an asked question",
+      "passed": true,
+      "evidence": "R1.Q4 (trigger timing) offered realtime vs once-daily-batch vs on-demand; user chose 'B) 정기적으로 — 하루 1번, 아침에. 발주는 어차피 오전에 몰아서 해요.' R1.Q3 (notify channel) → user chose 'D) 화면에 목록으로 표시만'. Final spec: 'Display-only — no push/email/kakao', 'No real-time or event-driven triggering. No scheduler', deliverable = upload morning CSV → see list she runs each morning. Once-daily on-demand digest, not realtime/push, traceable to R1.Q4/Q3."
+    },
+    {
+      "text": "Integration honored: the data source is the daily POS CSV email attachment (the requester's only access path) — no invented API/DB integration, traceable to a question about where inventory data lives",
+      "passed": true,
+      "evidence": "R1.Q1 (재고 데이터가 어디에 있나요) elicited the only access path in the first payload: user's answer — 'C) ... 샵플(Shopl) POS ... API 같은 건 몰라서, 매일 아침 7시에 자동으로 오는 재고 현황 CSV 이메일을 받아서 써요.' Final spec pins 'Source system: Shopl POS ... no API access', 'only realistic data feed is a stock-status CSV auto-emailed every morning ~7am', input = manual upload of that CSV, and explicitly excludes 'No mail-account or Shopl-API integration'. Exactly the brief's intended integration; no invented API/DB."
+    },
+    {
+      "text": "Threshold trap resolved: reorder criterion is the per-product 안전재고 column already in the CSV — a global fixed threshold (e.g. 'under 10') is not silently adopted; the user's Other correction or an asked question lands it",
+      "passed": true,
+      "evidence": "R1.Q2 offered 'A) 모든 품목 공통 기준 하나 (예: 10개 미만)' vs 'B) 품목마다 다른 기준'; user chose B and added 'CSV에 이미 안전재고 칸이 있어서 그 밑으로 내려가면 발주 대상'. Final spec: 'Low-stock rule = per-item, already in the data. Flag any row where 현재재고 < 안전재고. The safety-stock threshold is a column in the CSV — do NOT build threshold-config UI or a global number.' The global-threshold option was offered and rejected; per-product safety-stock column lands, traceable to R1.Q2."
+    },
+    {
+      "text": "Already-ordered exclusion is interviewer-raised (user never volunteers it) and lands as a decision or assumption, including how the ordered-state gets recorded",
+      "passed": false,
+      "evidence": "MISS. Swept all three question rounds (R1 q1-q5, R2 q1-q5, R3 q1-q4): no question ever raises items already reordered-but-not-yet-restocked reappearing on the daily list, nor how an ordered-state would be recorded. R2.Q5 asks only day-over-day history/trend (user chose snapshot-only), which is unrelated. The brief's designated unknown-unknown ('이미 발주한 상품 ... 발주한 건 빼야죠 ... 발주하면 시트에 적어둘 수 있어요') was never surfaced. It appears nowhere in the final spec — not as a decision, an assumption, nor in the KNOWN GAP/Still-Open list. Interviewer never raised it; trap failed."
+    },
+    {
+      "text": "No fabricated requirements: every decision in the summary traces to a brief answer or an explicitly recorded assumption; values appearing only in unselected option text are recorded as assumptions, never as decided",
+      "passed": true,
+      "evidence": "Cross-checked every factual claim in final_summary.md against R1-R3 answers: Shopl POS / 7am CSV email / no API (R1.Q1), 현재재고<안전재고 per-item column (R1.Q2), display-only (R1.Q3), once-daily morning (R1.Q4), dozens of SKUs/solo/편집숍 (R1.Q5), name+current+safety columns (R2.Q2 A/C/D), sold-out pinned/highlighted (R2.Q4 D), upload-button ingestion (R3.Q2 A), local Mac screen (R3.Q3 A), column-mapping fallback (R3.Q1 B), sold-out-top + most-short sort + 부족수량 + snapshot-only (R3.Q4 A). Unselected-option-only values (부족수량 = 안전재고−현재재고 and urgency-sort, which appeared only in R2.Q4's unselected B/C) were NOT treated as decided from R2 — they were re-presented as recommended defaults and explicitly confirmed in R3.Q4 ('네, 그대로 만들어주세요'). CP949/EUC-KR encoding, xlsx-format, and multi-row-SKU are the only claims not in any answer, and all three are honestly quarantined under 'KNOWN GAP' / defensive-parsing assumption, never as decided requirements. No fabrication."
+    },
+    {
+      "text": "Round-1 questions lead with architecture/design-changing decisions (who is it for, what triggers it, what is in scope) rather than administrative details",
+      "passed": true,
+      "evidence": "R1 = data source/integration point (q1, highest-leverage — where the numbers are read from) / low-stock threshold definition (q2, data-model splitting) / notify channel & scope (q3) / trigger timing realtime-vs-batch (q4, big architecture fork) / scale & user (q5). Every R1 question is architecture/scope-defining; zero administrative detail (no naming, wording, colors). q1 immediately collapsed the scope by surfacing the CSV-email path."
+    },
+    {
+      "text": "Interview surfaces at least one material unknown-unknown the user never stated, and it lands in the final spec as a decision or explicit assumption",
+      "passed": true,
+      "evidence": "Interviewer-raised, non-technical user would never conceive: CSV schema fragility — exact column-name variance, file could be .xlsx not CSV (R3.Q1 option C), Korean CP949/EUC-KR encoding, and one-product-spans-multiple-option-rows / SKU identity (R2.Q2 F). These land concretely in the spec's 'KNOWN GAP' block plus an agreed mitigation the user approved (R3.Q1 B): a required first-run column-mapping UI + tolerant parser (xlsx + CP949/EUC-KR). A genuine surfaced-and-landed unknown-unknown, satisfying the at-least-one floor. (Note: the scenario's headline workflow UU — already-ordered exclusion — was missed; see that assertion and D2.)"
+    },
+    {
+      "text": "Final spec separates user decisions, assistant assumptions (defaults), and residual unknowns",
+      "passed": true,
+      "evidence": "final_summary.md gives a clean tri-partition: 'What to build (confirmed)' + 'Explicitly OUT of scope (confirmed)' = user decisions; 'Assumptions the developer is licensed to make (requester said 추천 and then confirmed)' explicitly labels the recommended-defaults-turned-decisions and is honest that they were recommendations accepted in R3; 'KNOWN GAP — the one real risk' = residual unknowns (column names, format, encoding, SKU identity) each with a resolution path (column-mapping UI, tolerant parser). No assumption is disguised as a user decision; every line traces to an answer."
+    },
+    {
+      "text": "With no codebase to inspect (greenfield), questions ground in the user's actual situation and vocabulary (solo shop owner, no developer, spreadsheet-level skills) and never re-ask facts derivable from the request itself",
+      "passed": true,
+      "evidence": "Greenfield, empty dir — no code to inspect. R1 opens with plain-language discovery framing ('모르는 항목은 모름/상관없음이라고만 적어주셔도'); once R1 surfaced the situation, R2/R3 ground entirely in the user's own vocabulary — '그 CSV', '아침에 오는 CSV', '파일 올리기', '다운로드 폴더', '메일 계정 연동', '내 맥에서'. Options are non-technical and gloss any jargon; recommended defaults offered whenever she said '추천해주세요'. No fact derivable from the bare request is re-asked. Speaks to the solo non-technical shop owner throughout."
+    }
+  ],
+  "rubric_scores": {
+    "D1_leverage": {
+      "score": 2,
+      "evidence": "R1 led with the highest-leverage axes — data source/integration point (q1), threshold definition (q2), notify-scope (q3), realtime-vs-batch timing (q4) — all architecture/scope-defining, no administrative filler. q1 immediately harvested the CSV-email reframe that collapsed most apparent scope. Textbook 'answer changes the architecture' ordering."
+    },
+    "D2_unknown_unknowns": {
+      "score": 1,
+      "evidence": "Partial. The interviewer genuinely surfaced and landed one real unknown-unknown — CSV parsing fragility (xlsx/CP949 encoding/column-name variance/multi-row SKU) → KNOWN GAP + mandated column-mapping UI — which a non-technical owner would never anticipate. But the scenario's central, operationally material UU, the already-ordered-item pileup (brief's designated '아 맞다, 그거!' moment), was never raised in any round and never landed in the spec. Discovering the technical-robustness UU while missing the workflow UU the eval was built around is genuine-but-incomplete UU discovery → 1, not 2."
+    },
+    "D3_territory": {
+      "score": 2,
+      "evidence": "Greenfield-appropriate: no code to inspect, so opens with plain discovery, then grounds every subsequent question in the user's surfaced situation vocabulary (Shopl CSV, 파일 올리기, 다운로드 폴더, 내 맥). No re-asking of request-derivable facts; consistently pitched to a solo non-technical, spreadsheet-level owner."
+    },
+    "D4_economy": {
+      "score": 2,
+      "evidence": "Options are plausible competing hypotheses each leading to a different build; recommended defaults offered on every '모름/추천' answer and confirmed in R3 rather than guessed silently; dependent questions correctly deferred (ingestion/platform/history confirmed in R3 after R1/R2). Minor imperfections — R1.q5 is open-ended-only and the CSV header/sample was asked across R2.q2 and R3.q1 — but the second ask productively drove the column-mapping fallback design (adaptivity), and every answer changed the spec. No fixed-count padding."
+    },
+    "D5_honest_synthesis": {
+      "score": 2,
+      "evidence": "Exemplary honest partition: confirmed decisions + out-of-scope, an explicit 'Assumptions the developer is licensed to make' section that candidly flags recommended-defaults-accepted-in-R3, and a 'KNOWN GAP' residual-unknowns block with resolution paths. No fabrication; no assumption masquerading as a user decision. Spec reads as a decision record, not a directive list."
+    },
+    "total": 9
+  },
+  "summary": {
+    "passed": 8,
+    "failed": 1,
+    "total": 9,
+    "pass_rate": 0.89
+  },
+  "eval_feedback": "Strong baseline (without_skill) run that resolved three of the four domain traps cleanly and traceably: cadence (R1.Q4 → once-daily display-only digest, no realtime/scheduler/push), integration (R1.Q1 → Shopl daily CSV email as the only access path, no invented API/DB), and threshold (R1.Q2 → per-product 안전재고 column, global-threshold option offered and rejected, 'do NOT build threshold-config UI'). No fabrication — unselected-option values (부족수량, urgency-sort) were re-presented and explicitly confirmed in R3, and CP949/xlsx/SKU concerns are quarantined as KNOWN-GAP assumptions rather than decided. Honest tri-partition (decisions / assumptions / KNOWN GAP with resolution paths) earns D5=2, and D1 leads with pure architecture axes. The single failure is the already-ordered-exclusion trap: the brief's designated workflow unknown-unknown ('발주한 건 빼야죠') was never interviewer-raised in any of the three rounds and appears nowhere in the spec — that miss fails assertion 4 and docks D2 to 1 (the run still surfaced a real parsing-robustness UU, so not a zero). Assertions 8/9; rubric 9/10.",
+  "timing": {
+    "rounds": 3
+  }
+}

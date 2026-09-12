@@ -1,0 +1,448 @@
+---
+name: constructive-data-modeling
+description: "Model Constructive application data through the SDK: tables, fields, relations, constraints, indexes, enums, views, identity columns, temporal and exclusion constraints, and database provisioning inputs. Use when creating or changing a schema, defining keys and referential actions, configuring view security, or working with metaschema operations."
+metadata:
+  author: constructive-io
+  version: "1.0.0"
+---
+
+# Constructive Data Modeling
+
+Tables, fields, relations, constraints, and indexes — the full schema lifecycle via the type-safe SDK. Everything compiles to PostgreSQL DDL through Constructive's metaschema layer.
+
+## When to Apply
+
+Use this skill when:
+- Creating tables, fields, relations, constraints, or indexes via the SDK
+- Provisioning databases with module selection
+- Defining enum types
+- Defining domain types (`CREATE DOMAIN`): base type, `NOT NULL`, `CHECK`, `DEFAULT`
+- Creating views and setting view options (`security_invoker`, `security_barrier`, `WITH [LOCAL|CASCADED] CHECK OPTION`)
+- Configuring field validation (regexp, min, max)
+- Adding identity columns (`GENERATED ALWAYS / BY DEFAULT AS IDENTITY`) with sequence options
+- Setting `api_required` on nullable FK columns
+- Adding primary key / unique / foreign key constraints
+- Declaring application-time temporal constraints (PG18): `WITHOUT OVERLAPS` keys and temporal (`WITH PERIOD`) foreign keys
+- Declaring FK column-list referential actions (PG18): `ON DELETE SET NULL (col)` / `SET DEFAULT (col)` on a subset of the FK columns
+- Declaring deferrable constraints: `DEFERRABLE` / `INITIALLY DEFERRED` on primary key / unique / foreign key constraints (`isDeferrable` / `initiallyDeferred`)
+- Declaring exclusion constraints: `EXCLUDE USING gist (col WITH op, ...)` with an optional `WHERE` predicate (`db.exclusionConstraint.create`)
+- Understanding the composition: table → fields → constraints → indexes → relations → security
+
+## The Composition Flow
+
+```
+1. Receive a provisioned database identity and endpoint descriptor
+2. Create table        → db.secureTableProvision.create({ tableName, nodeType, ... })
+3. Add fields          → db.field.create({ tableId, name, type, ... })
+4. Add constraints     → db.checkConstraint.create / db.foreignKeyConstraint.create
+5. Add indexes         → db.index.create({ tableId, fieldIds, ... })
+6. Add relations       → db.relationProvision.create({ fromTableId, toTableId, ... })
+7. Apply security      → see constructive-security skill
+```
+
+## Database Provisioning
+
+Backend preset selection is independent from frontend feature-pack installation. Use the current Constructive DB provisioning surface and preserve the returned database identity plus explicit endpoint descriptor; do not reconstruct module arrays or endpoint hostnames in application code.
+
+See [provisioning.md](./references/provisioning.md) for the boundary, then use [`constructive-blocks`](../constructive-blocks/SKILL.md) to select the frontend surface.
+
+## Tables
+
+Create tables via `secureTableProvision` (recommended) or `db.table.create`:
+
+```typescript
+await db.secureTableProvision.create({
+  data: {
+    databaseId,
+    tableName: 'projects',
+    nodeType: 'DataEntityMembership',
+    useRls: true,
+    grantRoles: ['authenticated'],
+    grantPrivileges: [['select', '*'], ['insert', '*'], ['update', '*'], ['delete', '*']] as unknown as Record<string, unknown>,
+    policyType: 'AuthzEntityMembership',
+    policyPermissive: true,
+    policyData: { entity_field: 'entity_id', membership_type: 2 },
+  },
+  select: { id: true, tableId: true, outFields: true },
+}).execute();
+```
+
+For full table management operations, see the generated `orm-*` skills in `constructive-db`.
+
+## Fields
+
+```typescript
+await db.field.create({
+  data: {
+    databaseId,
+    tableId,
+    name: 'status',
+    type: { name: 'project_status' },  // enum type
+    defaultValue: { value: 'draft' },
+    isRequired: true,
+  },
+  select: { id: true },
+}).execute();
+```
+
+Field types include: `text`, `integer`, `bigint`, `boolean`, `uuid`, `jsonb`, `timestamptz`, `date`, `numeric`, `citext`, `ltree`, `vector(N)`, and custom enums.
+
+See [field-types.md](./references/field-types.md) for the complete type reference.
+
+### Identity Columns
+
+Native PostgreSQL identity columns (`GENERATED ALWAYS / BY DEFAULT AS IDENTITY`)
+via `identityGeneration` plus optional sequence tuning in `identityOptions`:
+
+```typescript
+await db.field.create({
+  data: {
+    databaseId,
+    tableId,
+    name: 'id',
+    type: { name: 'bigint' },
+    identityGeneration: 'always',  // or 'by_default'
+    identityOptions: { start: 100, increment: 5 },  // optional: START/INCREMENT/MIN/MAX/CACHE/CYCLE
+  },
+  select: { id: true },
+}).execute();
+```
+
+Identity is mutually exclusive with `defaultValue` and `generationExpression`,
+and identity fields are hidden from the GraphQL create input automatically. See
+[identity-columns.md](./references/identity-columns.md) for the full reference.
+
+## Enum Types
+
+```typescript
+await db.enum.create({
+  data: {
+    databaseId,
+    schemaName: 'app_public',
+    name: 'project_status',
+    values: ['draft', 'active', 'archived'],
+  },
+  select: { id: true, name: true, values: true },
+}).execute();
+```
+
+## Domain Types
+
+First-class PostgreSQL domains (PG18 backend): a named base type with optional
+`NOT NULL`, `CHECK`, and `DEFAULT` constraints, enforced everywhere the domain
+is used.
+
+```typescript
+await db.domainType.create({
+  data: {
+    databaseId,
+    schemaId,
+    name: 'email',
+    baseType: { name: 'text' },        // FieldType shape (same as field.type)
+    notNull: true,
+    // CHECK (VALUE ~ '^[^@]+@[^@]+$') — FieldGeneration DSL;
+    // { column: 'value' } is the domain's VALUE pseudo-column
+    checkExpr: {
+      operator: '~',
+      left: { column: 'value' },
+      right: { value: '^[^@]+@[^@]+$' },
+    },
+    // DEFAULT 'x@y.z' — FieldDefault DSL (same shape as field defaultValue)
+    defaultExpr: { value: 'x@y.z' },
+  },
+  select: { id: true, name: true },
+}).execute();
+```
+
+Fields reference the domain by `{ name, schema }` in `field.type`, exactly like
+enums and composite types:
+
+```typescript
+await db.field.create({
+  data: {
+    databaseId,
+    tableId,
+    name: 'contact_email',
+    type: { name: 'email', schema: 'app_public' },
+    isRequired: true,
+  },
+  select: { id: true },
+}).execute();
+```
+
+- `baseType` accepts any FieldType — built-ins, enums, or other catalog types
+  (see [field-types.md](./references/field-types.md)); it is validated for
+  existence at create time.
+- `checkExpr` uses the FieldGeneration DSL (`{operator,left,right}`, `{column}`,
+  `{function}`, `{value}`, `{case}`, `{cast}`) — the same DSL as generated
+  columns. `defaultExpr` uses the FieldDefault DSL from
+  [field-types.md](./references/field-types.md).
+- Both expressions are compiled and validated server-side (allowlist AST
+  validation) before any DDL is generated; deleting the row drops the domain.
+
+## Relations
+
+Four relation types via `db.relationProvision.create`:
+
+| Type | Description |
+|------|-------------|
+| `BelongsTo` | FK on source → target PK (default) |
+| `HasMany` | FK on target → source PK |
+| `HasOne` | FK on target → source PK (unique) |
+| `ManyToMany` | Junction table auto-created |
+
+```typescript
+await db.relationProvision.create({
+  data: {
+    databaseId,
+    fromTableId: projectsTableId,
+    toTableId: organizationsTableId,
+    fromFieldName: 'organization_id',
+    apiRequired: true,
+    cascadeDelete: 'no_action',
+  },
+  select: { id: true },
+}).execute();
+```
+
+## Constraints
+
+Primary keys, unique constraints, foreign keys, and check constraints via
+`db.primaryKeyConstraint.create`, `db.uniqueConstraint.create`,
+`db.foreignKeyConstraint.create`, and `db.checkConstraint.create`. `fieldIds` is
+an ordered array; composite keys follow the array order. Check `expr` takes the
+triggerCondition DSL (`{ field, op, value }` leaf or `{ AND | OR | NOT }`
+combinator); raw AST only via the explicit `expr: { expression: <ast> }` escape.
+
+```typescript
+await db.foreignKeyConstraint.create({
+  data: {
+    databaseId,
+    tableId,                       // referencing (child) table
+    fieldIds: [authorIdFieldId],   // local columns
+    refTableId: usersTableId,      // referenced (parent) table
+    refFieldIds: [userIdFieldId],  // referenced columns
+    deleteAction: 'a',             // a=NO ACTION, r=RESTRICT, c=CASCADE, n=SET NULL, d=SET DEFAULT
+    updateAction: 'a',
+  },
+  select: { id: true },
+}).execute();
+```
+
+### FK column-list referential actions (PostgreSQL 18)
+
+With `deleteAction: 'n'` (SET NULL) or `'d'` (SET DEFAULT), `deleteSetFieldIds`
+restricts the action to a **subset** of the FK columns — only those columns are
+nulled/reset on parent delete. Omit it (default `null`) to affect the whole FK
+column list. It must be a subset of `fieldIds` and is only valid for the `'n'`/`'d'`
+delete actions.
+
+```typescript
+// FOREIGN KEY (a, b) REFERENCES u (x, y) ON DELETE SET NULL (b)
+await db.foreignKeyConstraint.create({
+  data: {
+    databaseId, tableId,
+    fieldIds: [aFieldId, bFieldId],
+    refTableId: uTableId, refFieldIds: [xFieldId, yFieldId],
+    deleteAction: 'n',
+    deleteSetFieldIds: [bFieldId],   // subset of fieldIds
+  },
+  select: { id: true },
+}).execute();
+```
+
+### Application-time temporal constraints (PostgreSQL 18)
+
+Pair an ordinary scalar key with a **period column** (a range type such as
+`tstzrange`, added as a normal field) to get temporal keys. Three optional flags
+expose this — all default to `false`, so existing constraints are unchanged. The
+period column must be the **last** entry in `fieldIds` (and `refFieldIds`).
+
+```typescript
+// PRIMARY KEY (room_id, valid_period WITHOUT OVERLAPS)
+await db.primaryKeyConstraint.create({
+  data: { databaseId, tableId, fieldIds: [roomIdFieldId, periodFieldId], withoutOverlaps: true },
+  select: { id: true },
+}).execute();
+
+// UNIQUE (room_id, valid_period WITHOUT OVERLAPS)  → db.uniqueConstraint.create + withoutOverlaps: true
+
+// FOREIGN KEY (room_id, PERIOD valid_period) REFERENCES room (id, PERIOD valid_period)
+await db.foreignKeyConstraint.create({
+  data: {
+    databaseId, tableId: bookingTableId,
+    fieldIds: [bookingRoomIdFieldId, bookingPeriodFieldId],
+    refTableId: roomTableId, refFieldIds: [roomIdFieldId, roomPeriodFieldId],
+    withPeriod: true,
+  },
+  select: { id: true },
+}).execute();
+```
+
+Temporal PK/UNIQUE build a GiST-backed exclusion index and require the
+`btree_gist` extension. A temporal FK must reference a temporal key on the
+parent. See [constraints.md](./references/constraints.md) for full examples and
+rules.
+
+### Exclusion constraints (`EXCLUDE USING ...`)
+
+Guarantee that no two rows make all the listed operators true at once — the
+generalization of `UNIQUE` to non-equality operators (e.g. "no two bookings for
+the same room overlap"). `fieldIds` and `operators` are positionally aligned, and
+an optional `whereClause` (triggerCondition DSL) makes it a partial exclusion:
+
+```typescript
+// EXCLUDE USING gist (room_id WITH =, during WITH &&) WHERE (status = 'active')
+await db.exclusionConstraint.create({
+  data: {
+    databaseId, tableId,
+    fieldIds: [roomIdFieldId, duringFieldId],
+    operators: ['=', '&&'],
+    accessMethod: 'gist',
+    whereClause: { field: 'status', op: '=', value: 'active' },
+  },
+  select: { id: true },
+}).execute();
+```
+
+`accessMethod` defaults to `gist`; a scalar `=` part needs the `btree_gist`
+extension. Exclusion constraints are create-or-delete (no in-place update). See
+[constraints.md](./references/constraints.md) for `elementExpr` expression
+elements (FieldGeneration DSL) and full rules.
+
+### Deferrable constraints (`DEFERRABLE` / `INITIALLY DEFERRED`)
+
+Postpone constraint enforcement to end-of-statement or transaction commit (for
+cyclic FKs, value swaps, bulk loads). Two optional flags — `isDeferrable` and
+`initiallyDeferred`, both defaulting to `false` — expose this on primary key,
+unique, and foreign key constraints:
+
+```typescript
+// FOREIGN KEY (author_id) REFERENCES users (id) DEFERRABLE INITIALLY DEFERRED
+await db.foreignKeyConstraint.create({
+  data: {
+    databaseId, tableId,
+    fieldIds: [authorIdFieldId],
+    refTableId: usersTableId, refFieldIds: [userIdFieldId],
+    isDeferrable: true,
+    initiallyDeferred: true,
+  },
+  select: { id: true },
+}).execute();
+
+// PRIMARY KEY (id) DEFERRABLE            → db.primaryKeyConstraint.create + isDeferrable: true
+// UNIQUE (email) DEFERRABLE INITIALLY DEFERRED → db.uniqueConstraint.create + both flags
+```
+
+`initiallyDeferred: true` implies `DEFERRABLE`; set `isDeferrable: true` too to
+keep intent explicit. `CHECK` constraints cannot be deferrable (PostgreSQL
+rejects it), so these flags do not apply to `db.checkConstraint.create`. See
+[constraints.md](./references/constraints.md) for full examples and rules.
+
+## Indexes
+
+```typescript
+await db.index.create({
+  data: {
+    databaseId,
+    tableId,
+    fieldIds: [fieldId],
+    isUnique: true,
+    accessMethod: 'btree',  // or 'gin', 'gist', 'hash'
+  },
+  select: { id: true },
+}).execute();
+```
+
+The same `db.index.create` row also carries `includeFieldIds` (INCLUDE columns),
+`opClasses`, and `options` (WITH-storage params). Two more optional fields build
+richer indexes without leaving the declarative row:
+
+- **Partial index** — `whereClause` takes a triggerCondition (`{ field, op, value }`
+  leaf or `{ AND | OR | NOT }` combinator, the same DSL as JobTrigger/AuthzComposite)
+  and generates a `WHERE` predicate.
+- **Expression index** — `indexParams` takes an array of expression elements
+  `[{ expr: <FieldGeneration DSL> }]` (e.g.
+  `{ expr: { function: 'lower', args: [{ column: 'email' }] } }`), so an index can
+  cover `lower(email)` rather than a bare column; raw AST only via the explicit
+  `{ expr: { expression: <ast> } }` escape.
+
+```typescript
+// CREATE INDEX ON events (created_at) WHERE (active = true)
+await db.index.create({
+  data: {
+    databaseId,
+    tableId,
+    fieldIds: [createdAtFieldId],
+    whereClause: { field: 'active', op: '=', value: true },
+  },
+  select: { id: true },
+}).execute();
+```
+
+Both default to `null`, so existing simple/advanced indexes are unchanged. See
+[indexes.md](./references/indexes.md) for the full matrix, the explicit raw-AST
+escape, and combining predicates with expressions.
+
+## Views
+
+Create views via `db.view.create`; `viewType` selects the view body (`View*` node
+type). The body in `data` references its source by **catalog ID**
+(`source_table_id` / `field_ids`, etc.), never a raw schema/table name — the server
+resolves names and enforces same-database ownership + AST validation. Three optional
+options control PostgreSQL storage attributes and update semantics: `securityInvoker`
+(default `true`), `securityBarrier` (default `false`), and `checkOption`
+(`null | 'local' | 'cascaded'`).
+
+```typescript
+await db.view.create({
+  data: {
+    databaseId,
+    schemaId,
+    name: 'owners_view',
+    viewType: 'ViewTableProjection',
+    tableId: ownersTableId,
+    data: { source_table_id: ownersTableId },
+    securityBarrier: true,
+    checkOption: 'cascaded',
+    isReadOnly: false,
+  },
+  select: { id: true },
+}).execute();
+// → CREATE VIEW app_public.owners_view
+//     WITH (security_invoker = true, security_barrier = true) AS
+//     SELECT ... WITH CASCADED CHECK OPTION
+```
+
+See [views.md](./references/views.md) for all view options, the ID-based body, and
+ownership/validation guarantees.
+
+## `api_required` (Required API Fields)
+
+For nullable FK columns that should be required at the GraphQL API level:
+
+```typescript
+await db.field.update({
+  where: { id: fieldId },
+  data: { apiRequired: true },
+  select: { id: true },
+}).execute();
+```
+
+## References
+
+| File | Content |
+|------|---------|
+| [constraints.md](./references/constraints.md) | Primary key, unique, foreign key, check, exclusion (`EXCLUDE USING`) + application-time temporal (`WITHOUT OVERLAPS` / `WITH PERIOD`) and deferrable constraints |
+| [indexes.md](./references/indexes.md) | Simple, unique, INCLUDE, opclass, access method, WITH-options + partial (`whereClause`) and expression (`indexParams`) indexes |
+| [field-types.md](./references/field-types.md) | Complete field type reference |
+| [identity-columns.md](./references/identity-columns.md) | Identity columns — `GENERATED ALWAYS / BY DEFAULT AS IDENTITY` + sequence options (`identityGeneration` / `identityOptions`) |
+| [provisioning.md](./references/provisioning.md) | Full database provisioning flow |
+| [views.md](./references/views.md) | View creation + options (`securityInvoker`, `securityBarrier`, `WITH [LOCAL\|CASCADED] CHECK OPTION`) |
+
+## Cross-References
+
+- **Security (RLS, grants, policies):** [`constructive-security`](../constructive-security/SKILL.md)
+- **Blueprint definitions:** [`constructive-blueprints`](../constructive-blueprints/SKILL.md)
+- **Generated ORM API:** [`constructive-orm`](../constructive-orm/SKILL.md)
+- **Code generation pipeline:** [`constructive-codegen`](../constructive-codegen/SKILL.md)

@@ -1,0 +1,46 @@
+{
+  "id": "like",
+  "name": "Like",
+  "description": "Like and unlike tweets.",
+  "actions": {
+    "create": {
+      "upstream": {
+        "method": "POST",
+        "baseUrl": "https://api.x.com",
+        "path": "/2/users/{userId}/likes",
+        "auth": { "mode": "bearer" }
+      },
+      "input": {
+        "bodyTemplate": {
+          "tweet_id": "$input.tweetId"
+        }
+      },
+      "output": {
+        "responseSelect": "data",
+        "responseMap": {
+          "liked": {
+            "$value": "$data.liked",
+            "$default": false
+          }
+        }
+      }
+    },
+    "delete": {
+      "upstream": {
+        "method": "DELETE",
+        "baseUrl": "https://api.x.com",
+        "path": "/2/users/{userId}/likes/{tweetId}",
+        "auth": { "mode": "bearer" }
+      },
+      "output": {
+        "responseSelect": "data",
+        "responseMap": {
+          "liked": {
+            "$not": "$data.liked",
+            "$default": true
+          }
+        }
+      }
+    }
+  }
+}

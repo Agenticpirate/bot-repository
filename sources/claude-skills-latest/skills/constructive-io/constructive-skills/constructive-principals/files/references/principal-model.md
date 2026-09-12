@@ -1,0 +1,93 @@
+---
+name: constructive-principals-model
+description: Principal identity model — dual-claim identity vs authority, user type 3, capability subsetting via allowedMask, isReadOnly, bypassStepUp, and what meters to the human vs the principal.
+---
+
+# Principal Identity Model
+
+A principal is a **delegated identity**: a human (or org admin) creates it, and it acts on their behalf with a *subset* of their capabilities. This document explains the model from the application layer — you never write SQL to use it.
+
+## Identity vs Authority (dual-claim)
+
+Every authenticated session carries two identities. For a normal human, both are the same value:
+
+| Identity | Resolves to | Used for |
+|----------|-------------|----------|
+| **User** (owner) | Always the human | Billing, metering, rate limits, storage ownership, `created_by`/`updated_by`, ownership policies |
+| **Principal** | The principal (or the human, if not a principal) | Capability checks only |
+
+The consequence you care about: **when an agent/API-key does something, the money, quota, and audit trail all attach to the owning human**, but *what it is allowed to do* is governed by the principal's own (narrower) capabilities.
+
+For non-principal sessions the two are identical, so there is zero behavioral change for normal users.
+
+## The identity row
+
+A principal is backed by a real user row with `type = 3`:
+
+| User type | Meaning |
+|-----------|---------|
+| `1` | Regular human |
+| `2` | Organization |
+| `3` | Principal (API key / agent) |
+
+You rarely touch this directly — `createOrgPrincipal` / `createApiKey` manage it for you. But it's why a principal shows up as a `db.user` row with `type = 3`.
+
+## Capability subsetting
+
+```
+principal_capabilities = owner_capabilities & allowedMask
+```
+
+- `allowedMask = null` → the principal inherits **all** of the owner's capabilities.
+- A narrower `allowedMask` → the principal gets only the overlap. It can **never** exceed the owner.
+- If the owner later loses a capability (or is removed from an org), the principal loses it automatically. If the owner regains it, the principal regains it (the scoping intent is preserved).
+
+You almost never need to hand-build a mask. Prefer:
+- `isReadOnly` for "can read but not write" (see below), and
+- `principalEntity` rows for "only these orgs" (see [org-scoping.md](./org-scoping.md)).
+
+## Principal fields (`db.principal`)
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `id` | UUID | Principal record id |
+| `ownerId` | UUID | The owning human |
+| `userId` | UUID | The principal's own identity row (`type = 3`) |
+| `name` | String | Display name, e.g. `'billing-bot'` |
+| `isReadOnly` | Boolean | Entity-scoped read-only flag |
+| `bypassStepUp` | Boolean | Skip MFA step-up (default `true` — principals can't perform MFA) |
+| `useAdminOwner` | Boolean | Derive authority from the owner's admin membership |
+| `parentPrincipalId` | UUID | Set when this is a child minted by `createChildPrincipal` |
+| `depth` | Int | 0 for a root principal, `parent.depth + 1` for children |
+| `expiresAt` | Datetime | When the principal stops authenticating (children default to their parent's ceiling) |
+| `createdBySessionId` | UUID | The session that minted it (audit) |
+
+`createdAt` / `updatedAt` are read-only. The capability mask is **per scope**: `allowedMask` lives on `principalScopeOverride` rows (one per `membershipType`) and is set through `setPrincipalScope`, not on the principal row itself.
+
+### `isReadOnly`
+
+Marks the principal as read-only at the membership/entity-scope level. Complementary to a **read-only API key** (`accessLevel: 'read_only'`), which enforces read-only at the PostgreSQL transaction level for that specific credential. Use the API-key access level when you want a credential that *physically* cannot write; see [`constructive-security` → read-only-access.md](../../constructive-security/references/read-only-access.md).
+
+### `bypassStepUp`
+
+Principals cannot complete an interactive MFA step-up (there's no human at the keyboard). `bypassStepUp` defaults to `true` so an agent isn't wedged by a `GuardStepUp` policy. Set it to `false` only if you have an out-of-band way to satisfy step-up.
+
+## Human-only management
+
+Creating, widening, deleting, and issuing standing keys for principals is guarded by `AuthzHumanOnly`: a principal **cannot** manage other principals. If a principal-authenticated session calls `createOrgPrincipal` / `createApiKey` / `setPrincipalScope` / `setPrincipalEntities` / `updatePrincipal` / `createPrincipalFromPreset`, it fails (`PRINCIPAL_CANNOT_CREATE_PRINCIPAL`). This prevents privilege-escalation chains. See [`constructive-security`](../../constructive-security/SKILL.md).
+
+The deliberate exceptions are the two operations that can only **shrink** authority: `createChildPrincipal` (a strictly narrower, ephemeral child of the calling principal) and `mintAccessToken` (a short-lived token for the principal the caller already is). See [delegation.md](./delegation.md) and [access-tokens.md](./access-tokens.md).
+
+## What meters where
+
+| System | Attributes to |
+|--------|---------------|
+| Peoplestamps (`created_by`/`updated_by`) | Human (`current_user_id()`) — audit survives principal deletion |
+| Principalstamps (`created_by_principal`/`updated_by_principal`) | Acting principal (`current_principal_id()`) — records the agent/API key/service that acted (equals the human for a non-principal session) |
+| Billing / metering | Human |
+| Rate limits | Human |
+| Storage ownership | Human |
+| Ownership policies (`AuthzDirectOwner`) | Human |
+| Capability checks (RLS) | Principal's own capabilities |
+
+**Peoplestamps vs principalstamps.** These are independent, opt-in blueprint nodes (`DataPeoplestamps` / `DataPrincipalstamps`) — enable either, both, or neither per table. Peoplestamps always attribute to the **human owner** (so billing/ownership/audit stay stable even when an agent acts, and the audit trail survives principal deletion). Principalstamps additionally record **who actually acted** — useful when you need to see that an agent or API key, not the human, performed a write. Principal columns carry no FK to the users table; they hold whatever principal id the session presents.
