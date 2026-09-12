@@ -1,7 +1,6 @@
 # clawskills.sh
 
 OpenClaw skill gallery.
-- Last updated: 2026-09-12T22:07:08Z
-- Skill hrefs on homepage: **5167**; openclaw/integration hrefs: **41**
-- Fetched HTML for first 2000 skill pages + all integrations (ok=2041 fail=0)
-- No public JSON dump; homepage is a 7MB listing shell.
+- Last updated: 2026-09-12T22:43:12Z
+- Skill hrefs: **5167**; skill HTML on disk: **5153** (this pass attempted 3167 ok=3153 fail=14)
+- No public JSON dump.

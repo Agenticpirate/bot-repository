@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenClaw Agent Operations Runbook - Monitor, Audit & Recover Agents</title>
+  <meta name="description" content="A practical OpenClaw operations runbook for monitoring agents, reviewing audit trails, controlling approvals, running security checks, updating safely, and recovering broken channels.">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#e85d04">
+  <link rel="alternate" type="application/rss+xml" title="OpenClaw Guide RSS Feed" href="/rss.xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=20260623b">
+  <!--seo:start-->
+  <link rel="canonical" href="https://openclaw.com.au/operations">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="OpenClaw Guide">
+  <meta property="og:title" content="OpenClaw Agent Operations Runbook - Monitor, Audit &amp; Recover Agents">
+  <meta property="og:description" content="A practical OpenClaw operations runbook for monitoring agents, reviewing audit trails, controlling approvals, running security checks, updating safely, and recovering broken channels.">
+  <meta property="og:url" content="https://openclaw.com.au/operations">
+  <meta property="og:image" content="https://openclaw.com.au/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="en_AU">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="OpenClaw Agent Operations Runbook - Monitor, Audit &amp; Recover Agents">
+  <meta name="twitter:description" content="A practical OpenClaw operations runbook for monitoring agents, reviewing audit trails, controlling approvals, running security checks, updating safely, and recovering broken channels.">
+  <meta name="twitter:image" content="https://openclaw.com.au/og-image.png">
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","@id":"https://openclaw.com.au/operations#article","headline":"OpenClaw Agent Operations Runbook - Monitor, Audit & Recover Agents","description":"A practical OpenClaw operations runbook for monitoring agents, reviewing audit trails, controlling approvals, running security checks, updating safely, and recovering broken channels.","url":"https://openclaw.com.au/operations","inLanguage":"en-AU","dateModified":"2026-07-18","isPartOf":{"@id":"https://openclaw.com.au/#website"},"publisher":{"@id":"https://openclaw.com.au/#org"}},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://openclaw.com.au/"},{"@type":"ListItem","position":2,"name":"OpenClaw Agent Operations Runbook - Monitor, Audit & Recover Agents","item":"https://openclaw.com.au/operations"}]}]}</script>
+  <!--seo:end-->
+  <link rel="stylesheet" href="/cinematic.css?v=20260624a">
+  <script>(function(h){if(!matchMedia('(prefers-reduced-motion: reduce)').matches){h.classList.add('js-reveal');window.__rvFB=setTimeout(function(){h.classList.remove('js-reveal')},2600);}}(document.documentElement));</script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div id="lobster-layer" data-lobster aria-hidden="true"><img src="/assets/lobster-hero.svg" alt="" class="lobster-poster" width="800" height="800"></div>
+    <!-- Navigation (shared — edit partials/nav.html, then run scripts/build_site.py) -->
+  <nav class="nav" aria-label="Primary">
+    <div class="nav-container">
+      <a href="/" class="nav-logo">
+        <span class="logo-icon">🦞</span>
+        <span class="logo-text">OpenClaw Guide</span>
+      </a>
+      <div class="nav-links">
+        <!-- Get Started Dropdown -->
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            Get Started
+            <svg class="dropdown-arrow" width="10" height="6" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
+          </button>
+          <div class="nav-mega-menu">
+            <div class="mega-menu-section">
+              <div class="mega-menu-title">Quick Start</div>
+              <a href="/quickstart" class="mega-menu-item">
+                <span class="mega-item-icon" aria-hidden="true">⚡</span>
+                <div>
+                  <span class="mega-item-title">Quick Start Guide</span>
+                  <span class="mega-item-desc">Zero to agent in 10 minutes</span>
+                </div>
+              </a>
+              <a href="/prompts" class="mega-menu-item">
+                <span class="mega-item-icon" aria-hidden="true">🎭</span>
+                <div>
+                  <span class="mega-item-title">Personas</span>
+                  <span class="mega-item-desc">Create unique AI personalities</span>
+                </div>
+              </a>
+              <a href="/prompt-library" class="mega-menu-item">
+                <span class="mega-item-icon" aria-hidden="true">📚</span>
+                <div>
+                  <span class="mega-item-title">Prompt Library</span>
+                  <span class="mega-item-desc">Ready-to-use prompt templates</span>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Features Dropdown -->
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            Features
+            <svg class="dropdown-arrow" width="10" height="6" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
+          </button>
+          <div class="nav-mega-menu mega-menu-wide">
+            <div class="mega-menu-grid">
+              <div class="mega-menu-section">
+                <div class="mega-menu-title">Communication</div>
+                <a href="/channels" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">📱</span>
+                  <div>
+                    <span class="mega-item-title">Channels</span>
+                    <span class="mega-item-desc">Connect Telegram, WhatsApp, Discord &amp; more</span>
+                  </div>
+                </a>
+                <a href="/nodes" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">📡</span>
+                  <div>
+                    <span class="mega-item-title">Nodes</span>
+                    <span class="mega-item-desc">Control devices remotely</span>
+                  </div>
+                </a>
+              </div>
+              <div class="mega-menu-section">
+                <div class="mega-menu-title">Capabilities</div>
+                <a href="/tools" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🧰</span>
+                  <div>
+                    <span class="mega-item-title">Tools</span>
+                    <span class="mega-item-desc">Built-in agent capabilities</span>
+                  </div>
+                </a>
+                <a href="/skills" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🛠️</span>
+                  <div>
+                    <span class="mega-item-title">Skills</span>
+                    <span class="mega-item-desc">Extend with custom abilities</span>
+                  </div>
+                </a>
+                <a href="/multi-agent" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🤖</span>
+                  <div>
+                    <span class="mega-item-title">Multi-Agent</span>
+                    <span class="mega-item-desc">Orchestrate multiple AI agents</span>
+                  </div>
+                </a>
+                <a href="/team-coordination" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🧩</span>
+                  <div>
+                    <span class="mega-item-title">Team Coordination</span>
+                    <span class="mega-item-desc">Agents working together</span>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Learn Dropdown -->
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            Learn
+            <svg class="dropdown-arrow" width="10" height="6" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
+          </button>
+          <div class="nav-mega-menu mega-menu-wide">
+            <div class="mega-menu-grid">
+              <div class="mega-menu-section">
+                <div class="mega-menu-title">Guides</div>
+                <a href="/workspace" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">📁</span>
+                  <div>
+                    <span class="mega-item-title">Workspace</span>
+                    <span class="mega-item-desc">Customize personality &amp; memory</span>
+                  </div>
+                </a>
+                <a href="/memory" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🧠</span>
+                  <div>
+                    <span class="mega-item-title">Memory Guide</span>
+                    <span class="mega-item-desc">Build persistent AI context</span>
+                  </div>
+                </a>
+                <a href="/context-engineering" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🧭</span>
+                  <div>
+                    <span class="mega-item-title">Context Engineering</span>
+                    <span class="mega-item-desc">Shape instructions, memory, tools &amp; proof</span>
+                  </div>
+                </a>
+                <a href="/mcp-security" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🛡️</span>
+                  <div>
+                    <span class="mega-item-title">MCP Security</span>
+                    <span class="mega-item-desc">Scope tools, plugins, secrets &amp; approvals</span>
+                  </div>
+                </a>
+                <a href="/automation" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">⚙️</span>
+                  <div>
+                    <span class="mega-item-title">Automation</span>
+                    <span class="mega-item-desc">Cron jobs &amp; scheduled tasks</span>
+                  </div>
+                </a>
+                <a href="/workflows" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🔄</span>
+                  <div>
+                    <span class="mega-item-title">Workflows</span>
+                    <span class="mega-item-desc">Real-world automation patterns</span>
+                  </div>
+                </a>
+                <a href="/background-task-agents" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🕒</span>
+                  <div>
+                    <span class="mega-item-title">Background Tasks</span>
+                    <span class="mega-item-desc">Cron, webhooks, approvals &amp; retries</span>
+                  </div>
+                </a>
+                <a href="/operations" class="mega-menu-item active" aria-current="page">
+                  <span class="mega-item-icon" aria-hidden="true">📋</span>
+                  <div>
+                    <span class="mega-item-title">Operations Runbook</span>
+                    <span class="mega-item-desc">Monitor, audit &amp; recover agents</span>
+                  </div>
+                </a>
+                <a href="/use-cases" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">💡</span>
+                  <div>
+                    <span class="mega-item-title">Use Cases</span>
+                    <span class="mega-item-desc">Real-world examples &amp; ideas</span>
+                  </div>
+                </a>
+                <a href="/cms-automation" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">📝</span>
+                  <div>
+                    <span class="mega-item-title">CMS Automation</span>
+                    <span class="mega-item-desc">Publish to WordPress, Shopify &amp; more</span>
+                  </div>
+                </a>
+                <a href="/best-practices" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🏆</span>
+                  <div>
+                    <span class="mega-item-title">Best Practices</span>
+                    <span class="mega-item-desc">Tips for power users</span>
+                  </div>
+                </a>
+              </div>
+              <div class="mega-menu-section">
+                <div class="mega-menu-title">Reference</div>
+                <a href="/architecture" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🏗️</span>
+                  <div>
+                    <span class="mega-item-title">Architecture</span>
+                    <span class="mega-item-desc">How OpenClaw works under the hood</span>
+                  </div>
+                </a>
+                <a href="/security" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🔐</span>
+                  <div>
+                    <span class="mega-item-title">Security</span>
+                    <span class="mega-item-desc">Safety &amp; privacy features</span>
+                  </div>
+                </a>
+                <a href="/troubleshooting" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🔧</span>
+                  <div>
+                    <span class="mega-item-title">Troubleshooting</span>
+                    <span class="mega-item-desc">Fix common issues</span>
+                  </div>
+                </a>
+                <a href="/faq" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">❓</span>
+                  <div>
+                    <span class="mega-item-title">FAQ</span>
+                    <span class="mega-item-desc">Common questions answered</span>
+                  </div>
+                </a>
+                <a href="/updates" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">📦</span>
+                  <div>
+                    <span class="mega-item-title">Updates</span>
+                    <span class="mega-item-desc">Latest releases &amp; changes</span>
+                  </div>
+                </a>
+                <a href="/enterprise-agent-platforms" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🏢</span>
+                  <div>
+                    <span class="mega-item-title">Enterprise Platforms</span>
+                    <span class="mega-item-desc">Self-hosted agents vs governed clouds</span>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <a href="/about" class="nav-link-simple">About</a>
+        <a href="https://docs.openclaw.ai" target="_blank" rel="noopener" class="nav-link-simple">Docs</a>
+        <a href="https://github.com/openclaw/openclaw" target="_blank" rel="noopener" class="nav-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+      <button class="nav-mobile-toggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="nav-links">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+
+  <section class="hero hero-small">
+    <div class="hero-content">
+      <div class="hero-badge">Agent Operations</div>
+      <h1>OpenClaw <span class="gradient-text">Operations Runbook</span></h1>
+      <p class="hero-subtitle">
+        A practical day-two checklist for keeping local AI agents observable, recoverable,
+        permissioned, and boring enough to trust.
+      </p>
+      <div class="hero-cta">
+        <a href="#daily-loop" class="btn btn-primary">Start the runbook</a>
+        <a href="/security" class="btn btn-secondary">Security baseline</a>
+      </div>
+    </div>
+  </section>
+
+  <main id="main" class="content-page">
+    <div class="content-container">
+      <div class="callout callout-info">
+        <strong>Use this when:</strong>
+        an OpenClaw Gateway is answering real people, connected to real channels, or allowed to use tools that can touch files, accounts, websites, or infrastructure.
+      </div>
+
+      <section class="best-practice-section" id="why-ops">
+        <div class="section-header">
+          <span class="section-icon">01</span>
+          <h2>Why Agent Operations Matters</h2>
+        </div>
+
+        <div class="practice-card">
+          <h3>The trend: agent demos are becoming operated systems</h3>
+          <p>Current agent work is shifting toward observability, human approval, policy, and audit trails. The hard part is no longer proving an agent can act once. It is proving the agent can be watched, paused, corrected, updated, and recovered without losing context or widening access by accident.</p>
+          <p>OpenClaw is well suited to that style because the Gateway is the control plane for channels, sessions, tools, the Control UI, nodes, and routing. Treat it like infrastructure.</p>
+        </div>
+
+        <div class="comparison-grid">
+          <div class="comparison-item">
+            <h4>What to observe</h4>
+            <ul>
+              <li>Gateway reachability and WebSocket health</li>
+              <li>Channel delivery, backlog, and pairing state</li>
+              <li>Agent session ownership and recent tool use</li>
+              <li>Provider auth, model routing, and spend surprises</li>
+              <li>Security audit findings after config changes</li>
+            </ul>
+          </div>
+          <div class="comparison-item">
+            <h4>What to control</h4>
+            <ul>
+              <li>Who can message the bot</li>
+              <li>Which agents receive which channels</li>
+              <li>Which tools are available from non-local senders</li>
+              <li>When human approval is required</li>
+              <li>How updates and rollback are handled</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="best-practice-section" id="daily-loop">
+        <div class="section-header">
+          <span class="section-icon">02</span>
+          <h2>Daily Operator Loop</h2>
+        </div>
+
+        <div class="practice-card">
+          <h3>Five-minute morning check</h3>
+          <p>Run the fast checks first. They catch most failures without pulling you into log archaeology.</p>
+          <div class="code-example">
+            <pre><code>openclaw status
+openclaw gateway status
+openclaw health --json
+openclaw doctor</code></pre>
+          </div>
+          <ul class="practice-list">
+            <li><strong>Green path:</strong> Gateway reachable, expected channels connected, no new critical doctor findings.</li>
+            <li><strong>Yellow path:</strong> One channel degraded, provider warning, or pending device approval. Fix before widening access.</li>
+            <li><strong>Red path:</strong> Gateway down, unexpected public exposure, open DM policy, failed auth, or tool permissions broader than intended.</li>
+          </ul>
+        </div>
+
+        <div class="practice-card">
+          <h3>Check the browser Control UI</h3>
+          <p>The Control UI is the quickest way to inspect live chat, activity, nodes, config, and sessions. For local operators, the default URL is:</p>
+          <div class="code-example">
+            <pre><code>http://127.0.0.1:18789/</code></pre>
+          </div>
+          <p>New browsers or remote devices can require explicit device pairing. If a browser reports pairing required, list pending requests and approve the correct one.</p>
+          <div class="code-example">
+            <pre><code>openclaw devices list
+openclaw devices approve &lt;requestId&gt;</code></pre>
+          </div>
+        </div>
+
+        <div class="practice-card">
+          <h3>Tail logs only after status narrows the problem</h3>
+          <p>Logs are useful, but start with status and health so you know what you are looking for.</p>
+          <div class="code-example">
+            <pre><code>openclaw logs --follow
+
+# If RPC is down, fall back to the newest local log:
+tail -f "$(ls -t /tmp/openclaw/openclaw-*.log | head -1)"</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="best-practice-section" id="weekly-audit">
+        <div class="section-header">
+          <span class="section-icon">03</span>
+          <h2>Weekly Audit Loop</h2>
+        </div>
+
+        <div class="practice-card">
+          <h3>Run the security audit before and after access changes</h3>
+          <p>Run the audit whenever you add a channel, change a DM policy, expose the Gateway beyond loopback, add a reverse proxy, install new plugins, or give an agent broader tools.</p>
+          <div class="code-example">
+            <pre><code>openclaw security audit
+openclaw security audit --deep
+openclaw security audit --json</code></pre>
+          </div>
+          <p>Use <code>--fix</code> for narrow common repairs only after reviewing what the audit found.</p>
+          <div class="code-example">
+            <pre><code>openclaw security audit --fix</code></pre>
+          </div>
+        </div>
+
+        <div class="practice-card">
+          <h3>Review the exposure inventory</h3>
+          <p>Keep a short written inventory for any Gateway that accepts messages from outside the host.</p>
+          <div class="checklist">
+            <div class="checklist-item">
+              <span class="check">✓</span>
+              <div><strong>Gateway URL and bind mode</strong><p>Loopback, LAN, tailnet, Tailscale Serve, trusted proxy, or public internet.</p></div>
+            </div>
+            <div class="checklist-item">
+              <span class="check">✓</span>
+              <div><strong>Auth source</strong><p>Token, password, Tailscale identity headers, or trusted-proxy identity headers.</p></div>
+            </div>
+            <div class="checklist-item">
+              <span class="check">✓</span>
+              <div><strong>Reachable agents</strong><p>Which channels can wake which agents, and which sessions are used for DMs or groups.</p></div>
+            </div>
+            <div class="checklist-item">
+              <span class="check">✓</span>
+              <div><strong>Tool profile</strong><p>Browser, exec, file, message, node, and external account access available to those agents.</p></div>
+            </div>
+            <div class="checklist-item">
+              <span class="check">✓</span>
+              <div><strong>Rollback point</strong><p>Where config and credentials are backed up before widening access.</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="practice-card">
+          <h3>Keep shared trust boundaries honest</h3>
+          <p>OpenClaw's practical security model is a personal assistant boundary: one trusted operator, potentially many agents. If mutually untrusted people can message the same tool-enabled agent, treat them as sharing that agent's delegated tool authority. Split gateways, credentials, OS users, or hosts when trust boundaries differ.</p>
+        </div>
+      </section>
+
+      <section class="best-practice-section" id="approvals">
+        <div class="section-header">
+          <span class="section-icon">04</span>
+          <h2>Approvals and Human Control</h2>
+        </div>
+
+        <div class="practice-card">
+          <h3>Use approval gates where consequences leave the chat</h3>
+          <p>Require human approval for work that sends external messages, changes production systems, spends money, modifies customer data, or exposes credentials. Routine read-only status checks can stay automatic; irreversible or public actions should pause.</p>
+          <ul class="practice-list">
+            <li><strong>Low risk:</strong> status checks, local search, summaries, read-only reports.</li>
+            <li><strong>Medium risk:</strong> draft generation, file edits in a review branch, staging deploys.</li>
+            <li><strong>High risk:</strong> public posts, email sends, production deploys, broad filesystem access, shell commands from remote senders.</li>
+          </ul>
+        </div>
+
+        <div class="practice-card">
+          <h3>Pair unknown senders instead of processing them</h3>
+          <p>For Telegram, WhatsApp, Signal, iMessage, Microsoft Teams, Discord, Google Chat, and Slack-style channels, prefer pairing and allowlists over open public DMs. Unknown senders should get pairing flow, not an agent with tools.</p>
+          <div class="code-example">
+            <pre><code>openclaw pairing approve
+openclaw doctor</code></pre>
+          </div>
+        </div>
+
+        <div class="practice-card">
+          <h3>Make group chats mention-gated by default</h3>
+          <p>Group chats create noisy, ambiguous input. Require mentions, narrow allowed groups, and keep tool-heavy work in a safer session unless the group is intentionally trusted.</p>
+        </div>
+      </section>
+
+      <section class="best-practice-section" id="updates">
+        <div class="section-header">
+          <span class="section-icon">05</span>
+          <h2>Update and Rollback Routine</h2>
+        </div>
+
+        <div class="practice-card">
+          <h3>Preview first, then update</h3>
+          <p>Use the built-in updater for supervised installs because it coordinates install type, Gateway service metadata, doctor checks, and restart behavior.</p>
+          <div class="code-example">
+            <pre><code>openclaw update --dry-run
+openclaw update
+openclaw doctor
+openclaw status --deep</code></pre>
+          </div>
+        </div>
+
+        <div class="practice-card">
+          <h3>Know your channel choice</h3>
+          <p>Stable is the default for working systems. Beta and dev are useful when you need a specific fix, but they deserve tighter monitoring after upgrade.</p>
+          <div class="code-example">
+            <pre><code>openclaw update --channel stable --dry-run
+openclaw update --channel beta --dry-run
+openclaw update status --json</code></pre>
+          </div>
+        </div>
+
+        <div class="practice-card">
+          <h3>Keep a recovery path</h3>
+          <p>Before changing install channel, channel policy, or Gateway exposure, record the current config path, package root, managed service Node path, and recent known-good version. If an npm package update fails part-way through, rerun the official installer rather than guessing which package tree is half-swapped.</p>
+        </div>
+      </section>
+
+      <section class="best-practice-section" id="incident">
+        <div class="section-header">
+          <span class="section-icon">06</span>
+          <h2>Incident Response</h2>
+        </div>
+
+        <div class="practice-card">
+          <h3>First response checklist</h3>
+          <div class="checklist">
+            <div class="checklist-item">
+              <span class="check">1</span>
+              <div><strong>Stop widening access</strong><p>Do not add channels, tools, or proxy exposure while debugging.</p></div>
+            </div>
+            <div class="checklist-item">
+              <span class="check">2</span>
+              <div><strong>Check status and health</strong><p>Run <code>openclaw status --all</code>, <code>openclaw gateway status</code>, and <code>openclaw health --verbose</code>.</p></div>
+            </div>
+            <div class="checklist-item">
+              <span class="check">3</span>
+              <div><strong>Contain risky surfaces</strong><p>Return the Gateway to loopback-only access or disable the affected channel if exposure is unclear.</p></div>
+            </div>
+            <div class="checklist-item">
+              <span class="check">4</span>
+              <div><strong>Review recent config and updates</strong><p>Look for changed DM policy, new plugins, model/provider auth changes, and recently approved devices.</p></div>
+            </div>
+            <div class="checklist-item">
+              <span class="check">5</span>
+              <div><strong>Repair, then verify</strong><p>Run doctor, security audit, a channel test message, and a small tool test before declaring recovery.</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="practice-card">
+          <h3>Common recovery commands</h3>
+          <div class="code-example">
+            <pre><code>openclaw status --all
+openclaw status --deep
+openclaw gateway status --deep
+openclaw doctor
+openclaw security audit --deep
+openclaw logs --follow</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="best-practice-section" id="sources">
+        <div class="section-header">
+          <span class="section-icon">07</span>
+          <h2>Source Notes</h2>
+        </div>
+        <div class="practice-card">
+          <p>This runbook reflects the July 2026 OpenClaw docs positioning: Node 24 recommended, <code>openclaw onboard</code> for setup, the Gateway as the control plane, Control UI device pairing, <code>openclaw status</code>/<code>doctor</code>/<code>health</code> for diagnostics, <code>openclaw security audit</code> for hardening checks, and <code>openclaw update</code> for supervised updates.</p>
+          <p>It also tracks the broader agent operations trend: production agents need monitoring, auditability, approvals, and rollback discipline before they deserve more autonomy.</p>
+        </div>
+      </section>
+    </div>
+    <!--related:start-->
+  <aside class="related-guides" aria-label="Related guides">
+    <h2>Related guides</h2>
+    <div class="related-guides-grid">
+      <a class="related-guide-card" href="/background-task-agents">
+        <span class="rg-title">Background Task Agents</span>
+        <span class="rg-desc">Run cron, webhook, and heartbeat agents without losing control.</span>
+      </a>
+      <a class="related-guide-card" href="/security">
+        <span class="rg-title">Security</span>
+        <span class="rg-desc">Run OpenClaw safely with tight boundaries.</span>
+      </a>
+      <a class="related-guide-card" href="/troubleshooting">
+        <span class="rg-title">Troubleshooting</span>
+        <span class="rg-desc">Fix common issues fast.</span>
+      </a>
+    </div>
+  </aside>
+  <!--related:end-->
+  </main>
+
+    <!-- Footer (shared — edit partials/footer.html, then run scripts/build_site.py) -->
+  <footer class="footer site-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section footer-brand-col">
+          <div class="footer-brand">
+            <span class="logo-icon" aria-hidden="true">🦞</span>
+            <span>OpenClaw Guide</span>
+          </div>
+          <p class="footer-desc">A practical, community-maintained field guide to installing, securing, and getting real work out of OpenClaw.</p>
+          <p class="footer-disclaimer">This is a community resource, not the official OpenClaw website.</p>
+        </div>
+        <div class="footer-section">
+          <h4 class="footer-subtitle">Guide</h4>
+          <a href="/quickstart" class="footer-link">Quick Start</a>
+          <a href="/channels" class="footer-link">Channels</a>
+          <a href="/skills" class="footer-link">Skills</a>
+          <a href="/workspace" class="footer-link">Workspace</a>
+          <a href="/context-engineering" class="footer-link">Context Engineering</a>
+          <a href="/mcp-security" class="footer-link">MCP Security</a>
+          <a href="/automation" class="footer-link">Automation</a>
+          <a href="/operations" class="footer-link">Operations</a>
+          <a href="/best-practices" class="footer-link">Best Practices</a>
+        </div>
+        <div class="footer-section">
+          <h4 class="footer-subtitle">Reference</h4>
+          <a href="/architecture" class="footer-link">Architecture</a>
+          <a href="/security" class="footer-link">Security</a>
+          <a href="/troubleshooting" class="footer-link">Troubleshooting</a>
+          <a href="/faq" class="footer-link">FAQ</a>
+          <a href="/updates" class="footer-link">Updates</a>
+          <a href="/enterprise-agent-platforms" class="footer-link">Enterprise Platforms</a>
+          <a href="/about" class="footer-link">About</a>
+        </div>
+        <div class="footer-section">
+          <h4 class="footer-subtitle">Community &amp; links</h4>
+          <a href="https://docs.openclaw.ai" class="footer-link" target="_blank" rel="noopener">Official Docs</a>
+          <a href="https://github.com/openclaw/openclaw" class="footer-link" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://discord.com/invite/clawd" class="footer-link" target="_blank" rel="noopener">Discord Community</a>
+          <a href="https://clawhub.ai" class="footer-link" target="_blank" rel="noopener">ClawHub Skills</a>
+          <a href="/rss.xml" class="footer-link">RSS Feed</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p class="footer-copy">&copy; 2026 OpenClaw Guide · OpenClaw is open source under the MIT License.</p>
+        <p class="footer-meta">
+          <span>Last updated <time datetime="2026-07-18">18 July 2026</time></span>
+          <span aria-hidden="true">·</span>
+          <span>Built by <a href="https://hooraydigital.au" target="_blank" rel="noopener">Hooray Digital</a>, a Brisbane web design studio</span>
+        </p>
+      </div>
+    </div>
+  </footer>
+  <script src="script.js?v=20260623c" defer></script>
+  <script src="favicon-animated.js?v=20260623" defer></script>
+  <script type="module" src="/cinematic.js?v=20260624a"></script>
+  <script type="module" src="/lobster3d.js?v=20260624a"></script>
+  <script src="/softnav.js?v=20260624a" defer></script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+---
+name: github-flow
+metadata:
+  author: es6kr
+  version: "0.1.0"
+depends-on:
+  - cleanup
+  - code-workflow
+  - web-browser
+description: |
+  GitHub issue/PR workflow automation. Topics — auth-scope (gh CLI priority + account mapping + batch scope refresh + 404 checklist), commit-message-discipline (commit message authoring + amend refresh + PUBLIC English enforcement), dependencies (blocked-by/sub-issues via GraphQL), epic-bundle (deferred findings → Epic + sub-issues), expand (expand-vs-split mid-work), identity-auth (gh account map + scope refresh + GH_TOKEN fallback), merge (CI/review gates + no autonomous push), plan-to-issue (MD → issue body), pr (PR with test plan), publish (branch + draft PR + CI watch + ready + merge, one topic), push-guards (branch/push-reject/force-push/main-push), register (dup check + strategy), review (structured comments), review-apply (deferred feedback apply), sanitize (PUBLIC repo personal data scan), upstream-issue (external OSS feature/bug). Use when: "plan to issue", "issue register", "create PR", "PR body", "code review", "merge PR", "PR squash", "sanitize", "PII", "expand PR", "blocked by", "epic bundle", "upstream issue", "review apply", "sub-issue", "gh auth", "force push", "push reject", "branch change forbid", "auth scope", "account mapping", "scope refresh", "commit message", "PUBLIC repo English".
+---
+
+# GitHub Flow
+
+Convert plans, research, and implementation results into GitHub issues and PRs.
+
+## Topics
+
+| Topic | Description | Guide |
+|-------|-------------|-------|
+| auth-scope | gh CLI priority + account mapping + batch scope refresh + org-repo 404 checklist | [auth-scope.md](./auth-scope.md) |
+| commit-message-discipline | Commit message authoring, message update on amend, PUBLIC repo English enforcement, git operation type continuity, verb selection (`.md` as source code) | [commit-message-discipline.md](./commit-message-discipline.md) |
+| dependencies | Manage native Issue Relationships (blocked-by/blocking) via addBlockedBy/removeBlockedBy GraphQL mutations | [dependencies.md](./dependencies.md) |
+| epic-bundle | Bundle deferred review findings across multiple PRs into one Epic tracking issue (checklist + native sub-issues + epic label) | [epic-bundle.md](./epic-bundle.md) |
+| expand | Decide expand-vs-split when new findings emerge mid-work and update title/body | [expand.md](./expand.md) |
+| identity-auth | Owner-based gh account mapping for commit author identity + gh auth scope refresh + GH_TOKEN env fallback for org repo 404 | [identity-auth.md](./identity-auth.md) |
+| merge | CI success and AI review check then merge with commit cleanup, including pre-merge blockedBy verification | [merge.md](./merge.md) |
+| plan-to-issue | Convert plan/research MD to GitHub issue body or comments | [plan-to-issue.md](./plan-to-issue.md) |
+| pr | Create PR with structured body, test plan, and optional visual attachments. Every distinct PR number in an AskUserQuestion payload needs its own clickable URL — this is an authoring rule you apply yourself. `resources/block-pr-url-gate.sh` exists but is **not currently registered in any hook config**, so nothing enforces it at runtime | [pr.md](./pr.md) |
+| publish | Package a working-tree change into its own branch + draft PR against a staging-base branch, watch CI, ready-transition, content-review ask, merge — the full repeated sequence in one topic | [publish.md](./publish.md) |
+| push-guards | Branch-change ask + push rejection ask + force-push CI status check + main/master push restriction + shared-branch direct-push restriction | [push-guards.md](./push-guards.md) |
+| register | Evaluate duplicates and decide registration strategy (new issue vs comment vs sub-issue) | [register.md](./register.md) |
+| review | Review PR code and post structured review comments | [review.md](./review.md) |
+| review-apply | Apply deferred [REVIEW_FEEDBACK] items from fix_plan to code, update PR Summary | [review-apply.md](./review-apply.md) |
+| sanitize | HARD STOP scan for personal data before posting to PUBLIC repos | [sanitize.md](./sanitize.md) |
+| upstream-issue | Register feature requests/bug reports on external open-source repos with duplicate check + draft + sanitize | [upstream-issue.md](./upstream-issue.md) |
+
+## Topic Dependencies
+
+```text
+github-flow (issue/PR workflow)
+  ├─→ plan-to-issue (issue body content)
+  ├─→ epic-bundle (deferred findings across PRs → one Epic issue)
+  │     ├─→ uses plan-to-issue (Epic body) + register (dup check) + dependencies (sub-issues)
+  │     └─→ receives from: consolidate next step (auto-suggest when deferred findings accumulate)
+  ├─→ register (evaluate duplicates and decide strategy)
+  ├─→ pr (PR body content + visual attachments)
+  ├─→ review (post structured review comments)
+  ├─→ expand (mid-work scope expansion)
+  ├─→ dependencies (Issue Relationships: blocked-by/blocking)
+  │     └─→ used by merge step 5 (pre-merge blockedBy check)
+  ├─→ merge (CI/Review/Test Plan/blockedBy verification → squash+merge)
+  ├─→ review-apply (deferred [REVIEW_FEEDBACK] → code fix → Summary update)
+  │     └─→ receives from: consolidate Step 7 (deferred registration)
+  ├─→ sanitize (HARD STOP scan before posting to PUBLIC repos)
+  └─→ upstream-issue (external repo feature request/bug report with duplicate check + draft + sanitize)
+```
+
+- **dependencies → merge**: dependencies adds blockedBy relationships. merge.md step 5 queries the same field to gate merge until predecessors are CLOSED
+- **plan-to-issue → dependencies**: when a plan has frontmatter `chain:` declaring a sequential issue order, dependencies applies it to GitHub
+- All topics → sanitize: any text published to PUBLIC repos (issue body, PR body, comments, review text) must pass sanitize HARD STOP first
+
+## Applicability
+
+This skill applies automatically when `git remote get-url origin` contains `github.com`. For non-GitHub remotes (GitLab, Bitbucket, etc.), this skill does not apply.
+
+## Core Rules
+
+### 1. Verification Plan Required
+
+Every issue body and PR body must include a verification/test plan section. This is shared with code-workflow's plan step.
+
+### 2. No Internal Paths in Issues/PRs
+
+`.ralph/docs/`, `.ralph/fix_plan.md`, `.omc/` and other internal working paths must **never** appear in GitHub issue body, comments, or PR body. These are local-only artifacts.
+
+**Instead of**: "See `.ralph/docs/generated/plan-180.md`"
+**Write**: The actual content inline, or "See the implementation plan comment below"
+
+### 3. Body vs Comment Selection
+
+| Content Type | Target | Reason |
+|-------------|--------|--------|
+| Implementation plan (confirmed) | Issue body update | Stable reference for the issue |
+| Checklist (impl/verify) | Issue body update | Trackable via GitHub checkbox |
+| Discussion items / open questions | Issue comment | Threaded, time-stamped, doesn't clutter body |
+| Progress updates | Issue comment | Chronological record |
+| Review feedback summary | Issue comment | Preserves review history |
+
+### 4. Check for existing open PRs before starting repo-wide fix work (HARD STOP)
+
+Before starting work on a repo-wide or config-level problem (broken CI config, a stale/misconfigured file affecting many components, a systemic lint failure, etc.), run `gh pr list -R <owner>/<repo> --state open` and skim titles for the same problem. Someone (including a past session under your own account) may have already fixed it in an unmerged PR.
+
+**Why**: independently re-deriving a fix that already exists in an open PR wastes the work, and — worse — if both land, the later one can silently supersede or conflict with the earlier one without either author knowing. Case: a claude-plugins CI-fix session spent significant work rebuilding `release-please-config.json`'s `packages` list from scratch, unaware that PR #17 (same author, ~7 hours earlier) had already implemented the identical fix; PR #17 had to be closed as superseded once the duplication was discovered mid-review.
+
+| # | Don't | Do |
+|---|-------|-----|
+| 1 | Jump straight into fixing a CI/config-level problem because it's clearly broken | `gh pr list --state open` first — skim titles for the same file/problem area |
+| 2 | Assume "I'd have noticed if this were already being worked on" | Open PRs from earlier in the same day (even your own past sessions) are easy to miss without an explicit check |
+| 3 | Only check open PRs when multiple sessions are known to be active | Run the check unconditionally before repo-wide fix work — it's a single `gh pr list` call |

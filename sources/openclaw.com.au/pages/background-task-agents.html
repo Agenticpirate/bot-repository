@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Background Task Agents – Run OpenClaw Workflows Safely</title>
+  <meta name="description" content="Design OpenClaw background task agents for cron jobs, webhooks, heartbeats, approvals, retries, audit trails, and safe recovery.">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#e85d04">
+  <link rel="alternate" type="application/rss+xml" title="OpenClaw Guide RSS Feed" href="/rss.xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=20260623b">
+  <!--seo:start-->
+  <link rel="canonical" href="https://openclaw.com.au/background-task-agents">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="OpenClaw Guide">
+  <meta property="og:title" content="Background Task Agents – Run OpenClaw Workflows Safely">
+  <meta property="og:description" content="Design OpenClaw background task agents for cron jobs, webhooks, heartbeats, approvals, retries, audit trails, and safe recovery.">
+  <meta property="og:url" content="https://openclaw.com.au/background-task-agents">
+  <meta property="og:image" content="https://openclaw.com.au/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="en_AU">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Background Task Agents – Run OpenClaw Workflows Safely">
+  <meta name="twitter:description" content="Design OpenClaw background task agents for cron jobs, webhooks, heartbeats, approvals, retries, audit trails, and safe recovery.">
+  <meta name="twitter:image" content="https://openclaw.com.au/og-image.png">
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","@id":"https://openclaw.com.au/background-task-agents#article","headline":"Background Task Agents \u2013 Run OpenClaw Workflows Safely","description":"Design OpenClaw background task agents for cron jobs, webhooks, heartbeats, approvals, retries, audit trails, and safe recovery.","url":"https://openclaw.com.au/background-task-agents","inLanguage":"en-AU","dateModified":"2026-07-18","isPartOf":{"@id":"https://openclaw.com.au/#website"},"publisher":{"@id":"https://openclaw.com.au/#org"}},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://openclaw.com.au/"},{"@type":"ListItem","position":2,"name":"Background Task Agents","item":"https://openclaw.com.au/background-task-agents"}]}]}</script>
+  <!--seo:end-->
+  <link rel="stylesheet" href="/cinematic.css?v=20260624a">
+  <script>(function(h){if(!matchMedia('(prefers-reduced-motion: reduce)').matches){h.classList.add('js-reveal');window.__rvFB=setTimeout(function(){h.classList.remove('js-reveal')},2600);}}(document.documentElement));</script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div id="lobster-layer" data-lobster aria-hidden="true"><img src="/assets/lobster-hero.svg" alt="" class="lobster-poster" width="800" height="800"></div>
+    <!-- Navigation (shared — edit partials/nav.html, then run scripts/build_site.py) -->
+  <nav class="nav" aria-label="Primary">
+    <div class="nav-container">
+      <a href="/" class="nav-logo">
+        <span class="logo-icon">🦞</span>
+        <span class="logo-text">OpenClaw Guide</span>
+      </a>
+      <div class="nav-links">
+        <!-- Get Started Dropdown -->
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            Get Started
+            <svg class="dropdown-arrow" width="10" height="6" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
+          </button>
+          <div class="nav-mega-menu">
+            <div class="mega-menu-section">
+              <div class="mega-menu-title">Quick Start</div>
+              <a href="/quickstart" class="mega-menu-item">
+                <span class="mega-item-icon" aria-hidden="true">⚡</span>
+                <div>
+                  <span class="mega-item-title">Quick Start Guide</span>
+                  <span class="mega-item-desc">Zero to agent in 10 minutes</span>
+                </div>
+              </a>
+              <a href="/prompts" class="mega-menu-item">
+                <span class="mega-item-icon" aria-hidden="true">🎭</span>
+                <div>
+                  <span class="mega-item-title">Personas</span>
+                  <span class="mega-item-desc">Create unique AI personalities</span>
+                </div>
+              </a>
+              <a href="/prompt-library" class="mega-menu-item">
+                <span class="mega-item-icon" aria-hidden="true">📚</span>
+                <div>
+                  <span class="mega-item-title">Prompt Library</span>
+                  <span class="mega-item-desc">Ready-to-use prompt templates</span>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Features Dropdown -->
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            Features
+            <svg class="dropdown-arrow" width="10" height="6" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
+          </button>
+          <div class="nav-mega-menu mega-menu-wide">
+            <div class="mega-menu-grid">
+              <div class="mega-menu-section">
+                <div class="mega-menu-title">Communication</div>
+                <a href="/channels" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">📱</span>
+                  <div>
+                    <span class="mega-item-title">Channels</span>
+                    <span class="mega-item-desc">Connect Telegram, WhatsApp, Discord &amp; more</span>
+                  </div>
+                </a>
+                <a href="/nodes" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">📡</span>
+                  <div>
+                    <span class="mega-item-title">Nodes</span>
+                    <span class="mega-item-desc">Control devices remotely</span>
+                  </div>
+                </a>
+              </div>
+              <div class="mega-menu-section">
+                <div class="mega-menu-title">Capabilities</div>
+                <a href="/tools" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🧰</span>
+                  <div>
+                    <span class="mega-item-title">Tools</span>
+                    <span class="mega-item-desc">Built-in agent capabilities</span>
+                  </div>
+                </a>
+                <a href="/skills" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🛠️</span>
+                  <div>
+                    <span class="mega-item-title">Skills</span>
+                    <span class="mega-item-desc">Extend with custom abilities</span>
+                  </div>
+                </a>
+                <a href="/multi-agent" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🤖</span>
+                  <div>
+                    <span class="mega-item-title">Multi-Agent</span>
+                    <span class="mega-item-desc">Orchestrate multiple AI agents</span>
+                  </div>
+                </a>
+                <a href="/team-coordination" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🧩</span>
+                  <div>
+                    <span class="mega-item-title">Team Coordination</span>
+                    <span class="mega-item-desc">Agents working together</span>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Learn Dropdown -->
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+            Learn
+            <svg class="dropdown-arrow" width="10" height="6" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
+          </button>
+          <div class="nav-mega-menu mega-menu-wide">
+            <div class="mega-menu-grid">
+              <div class="mega-menu-section">
+                <div class="mega-menu-title">Guides</div>
+                <a href="/workspace" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">📁</span>
+                  <div>
+                    <span class="mega-item-title">Workspace</span>
+                    <span class="mega-item-desc">Customize personality &amp; memory</span>
+                  </div>
+                </a>
+                <a href="/memory" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🧠</span>
+                  <div>
+                    <span class="mega-item-title">Memory Guide</span>
+                    <span class="mega-item-desc">Build persistent AI context</span>
+                  </div>
+                </a>
+                <a href="/context-engineering" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🧭</span>
+                  <div>
+                    <span class="mega-item-title">Context Engineering</span>
+                    <span class="mega-item-desc">Shape instructions, memory, tools &amp; proof</span>
+                  </div>
+                </a>
+                <a href="/mcp-security" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🛡️</span>
+                  <div>
+                    <span class="mega-item-title">MCP Security</span>
+                    <span class="mega-item-desc">Scope tools, plugins, secrets &amp; approvals</span>
+                  </div>
+                </a>
+                <a href="/automation" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">⚙️</span>
+                  <div>
+                    <span class="mega-item-title">Automation</span>
+                    <span class="mega-item-desc">Cron jobs &amp; scheduled tasks</span>
+                  </div>
+                </a>
+                <a href="/workflows" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🔄</span>
+                  <div>
+                    <span class="mega-item-title">Workflows</span>
+                    <span class="mega-item-desc">Real-world automation patterns</span>
+                  </div>
+                </a>
+                <a href="/background-task-agents" class="mega-menu-item active" aria-current="page">
+                  <span class="mega-item-icon" aria-hidden="true">🕒</span>
+                  <div>
+                    <span class="mega-item-title">Background Tasks</span>
+                    <span class="mega-item-desc">Cron, webhooks, approvals &amp; retries</span>
+                  </div>
+                </a>
+                <a href="/operations" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">📋</span>
+                  <div>
+                    <span class="mega-item-title">Operations Runbook</span>
+                    <span class="mega-item-desc">Monitor, audit &amp; recover agents</span>
+                  </div>
+                </a>
+                <a href="/use-cases" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">💡</span>
+                  <div>
+                    <span class="mega-item-title">Use Cases</span>
+                    <span class="mega-item-desc">Real-world examples &amp; ideas</span>
+                  </div>
+                </a>
+                <a href="/cms-automation" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">📝</span>
+                  <div>
+                    <span class="mega-item-title">CMS Automation</span>
+                    <span class="mega-item-desc">Publish to WordPress, Shopify &amp; more</span>
+                  </div>
+                </a>
+                <a href="/best-practices" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🏆</span>
+                  <div>
+                    <span class="mega-item-title">Best Practices</span>
+                    <span class="mega-item-desc">Tips for power users</span>
+                  </div>
+                </a>
+              </div>
+              <div class="mega-menu-section">
+                <div class="mega-menu-title">Reference</div>
+                <a href="/architecture" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🏗️</span>
+                  <div>
+                    <span class="mega-item-title">Architecture</span>
+                    <span class="mega-item-desc">How OpenClaw works under the hood</span>
+                  </div>
+                </a>
+                <a href="/security" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🔐</span>
+                  <div>
+                    <span class="mega-item-title">Security</span>
+                    <span class="mega-item-desc">Safety &amp; privacy features</span>
+                  </div>
+                </a>
+                <a href="/troubleshooting" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🔧</span>
+                  <div>
+                    <span class="mega-item-title">Troubleshooting</span>
+                    <span class="mega-item-desc">Fix common issues</span>
+                  </div>
+                </a>
+                <a href="/faq" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">❓</span>
+                  <div>
+                    <span class="mega-item-title">FAQ</span>
+                    <span class="mega-item-desc">Common questions answered</span>
+                  </div>
+                </a>
+                <a href="/updates" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">📦</span>
+                  <div>
+                    <span class="mega-item-title">Updates</span>
+                    <span class="mega-item-desc">Latest releases &amp; changes</span>
+                  </div>
+                </a>
+                <a href="/enterprise-agent-platforms" class="mega-menu-item">
+                  <span class="mega-item-icon" aria-hidden="true">🏢</span>
+                  <div>
+                    <span class="mega-item-title">Enterprise Platforms</span>
+                    <span class="mega-item-desc">Self-hosted agents vs governed clouds</span>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <a href="/about" class="nav-link-simple">About</a>
+        <a href="https://docs.openclaw.ai" target="_blank" rel="noopener" class="nav-link-simple">Docs</a>
+        <a href="https://github.com/openclaw/openclaw" target="_blank" rel="noopener" class="nav-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+      <button class="nav-mobile-toggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="nav-links">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+  <section class="hero hero-small">
+    <div class="hero-content">
+      <div class="hero-badge">Agent Workflows</div>
+      <h1>Background Task Agents</h1>
+      <p class="hero-subtitle">A practical pattern for running OpenClaw agents on schedules, events, and heartbeats without turning useful automation into silent risk.</p>
+      <div class="hero-cta">
+        <a href="#decision" class="btn btn-primary">Choose the trigger</a>
+        <a href="/automation" class="btn btn-secondary">Automation basics</a>
+      </div>
+    </div>
+  </section>
+
+  <main id="main" class="content-page">
+    <div class="content-container">
+      <div class="callout callout-info">
+        <strong>The 2026 shift:</strong>
+        agent work is moving from one-shot chat replies toward operated background systems. The winning pattern is bounded autonomy with clear triggers, narrow context, approval gates, logs, and recovery paths.
+      </div>
+
+      <section class="best-practice-section" id="decision">
+        <div class="section-header">
+          <span class="section-icon">01</span>
+          <h2>Pick the Right Trigger</h2>
+        </div>
+        <div class="comparison-grid">
+          <div class="comparison-item">
+            <h4>Cron</h4>
+            <p>Use cron when the task belongs to a clock: daily reports, backups, publishing checks, ranking snapshots, invoice reminders, or weekly summaries.</p>
+            <ul>
+              <li>Best for predictable cadence.</li>
+              <li>Keep prompts short and task-specific.</li>
+              <li>Prefer isolated sessions for repeatable output.</li>
+            </ul>
+          </div>
+          <div class="comparison-item">
+            <h4>Webhook</h4>
+            <p>Use webhooks when the task belongs to an external event: a form submission, GitHub issue, payment, calendar update, lead capture, or CMS publish event.</p>
+            <ul>
+              <li>Validate the sender before invoking the agent.</li>
+              <li>Store the raw event id for dedupe.</li>
+              <li>Return fast, then process in the background.</li>
+            </ul>
+          </div>
+          <div class="comparison-item">
+            <h4>Heartbeat</h4>
+            <p>Use heartbeats when the task is opportunistic: inbox triage, quiet monitoring, light project checks, reminders, or asking whether anything needs attention.</p>
+            <ul>
+              <li>Batch several checks into one pass.</li>
+              <li>Let timing drift unless precision matters.</li>
+              <li>Reply only when there is a useful signal.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="best-practice-section" id="contract">
+        <div class="section-header">
+          <span class="section-icon">02</span>
+          <h2>Write a Task Contract</h2>
+        </div>
+        <div class="practice-card">
+          <h3>Every background agent needs a narrow contract</h3>
+          <p>A background task should say exactly what it can read, what it can change, when it should notify a human, and what counts as done. Vague prompts are fine for chat. They are risky for unattended work.</p>
+          <div class="code-example">
+            <pre><code>Task: check new website leads once per hour.
+Read: lead inbox, CRM notes, public prospect website.
+Write: append CRM note and draft outreach only.
+Notify: urgent if budget signal, broken form, or hot lead.
+Do not: send email, edit the website, or contact the prospect.
+Finish with: lead count, qualified leads, draft links, blockers.</code></pre>
+          </div>
+        </div>
+        <div class="practice-card">
+          <h3>Separate read, draft, and act phases</h3>
+          <p>The simplest safety upgrade is to split jobs into phases. Let the agent gather evidence and prepare the change automatically. Gate the public or irreversible action behind approval.</p>
+          <ul class="practice-list">
+            <li><strong>Read:</strong> inspect inputs, pull status, gather context, summarize evidence.</li>
+            <li><strong>Draft:</strong> create the proposed file, message, issue comment, content section, or deployment note.</li>
+            <li><strong>Act:</strong> send, publish, deploy, delete, migrate, spend, or modify production data only when the rules allow it.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="best-practice-section" id="context">
+        <div class="section-header">
+          <span class="section-icon">03</span>
+          <h2>Control Context and Cost</h2>
+        </div>
+        <div class="practice-card">
+          <h3>Background runs should not inherit the whole world by default</h3>
+          <p>Recent OpenClaw community discussion keeps circling the same production pain: cron and child sessions can become expensive or confusing when they inherit too much toolbox, transcript, or project context. Give each recurring task only the context it actually needs.</p>
+          <ul class="practice-list">
+            <li>Use a dedicated task prompt instead of a giant general instruction.</li>
+            <li>Pass exact files, URLs, IDs, or project notes instead of broad workspace access.</li>
+            <li>Prefer summaries and state files for recurring memory.</li>
+            <li>Make the model choice explicit for cheap checks versus high-risk reasoning.</li>
+          </ul>
+        </div>
+        <div class="practice-card">
+          <h3>Keep a small state file</h3>
+          <p>State turns a repeated task from "start over again" into "continue from the last known checkpoint". It also makes failures easier to audit.</p>
+          <div class="code-example">
+            <pre><code>{
+  "lastRun": "2026-07-04T04:00:00Z",
+  "lastEventId": "evt_12345",
+  "lastSuccess": "2026-07-04T04:00:18Z",
+  "consecutiveFailures": 0,
+  "lastHumanNotification": "2026-07-03T23:12:00Z"
+}</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="best-practice-section" id="approval">
+        <div class="section-header">
+          <span class="section-icon">04</span>
+          <h2>Add Approval Gates</h2>
+        </div>
+        <div class="practice-card">
+          <h3>Gate the consequence, not the research</h3>
+          <p>Do not make a human approve every harmless lookup. That kills the point of agents. Gate the point where the result leaves the machine, touches production, spends money, or changes customer-visible data.</p>
+          <div class="comparison-grid">
+            <div class="comparison-item">
+              <h4>Usually automatic</h4>
+              <ul>
+                <li>Status checks</li>
+                <li>Read-only reports</li>
+                <li>Draft creation</li>
+                <li>Local file analysis</li>
+              </ul>
+            </div>
+            <div class="comparison-item">
+              <h4>Usually approval-gated</h4>
+              <ul>
+                <li>Email sends and public posts</li>
+                <li>Production deploys</li>
+                <li>Deletes and migrations</li>
+                <li>Credential or access changes</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="best-practice-section" id="retries">
+        <div class="section-header">
+          <span class="section-icon">05</span>
+          <h2>Design Failure Handling</h2>
+        </div>
+        <div class="practice-card">
+          <h3>A failed tool call should create a recovery path</h3>
+          <p>Current agent operations work is paying more attention to retry behavior, persistent session state, stderr handling, and tool failures. Treat tool failure as a normal state, not a surprise.</p>
+          <ul class="practice-list">
+            <li><strong>Retry once</strong> for transient network, provider, or channel errors.</li>
+            <li><strong>Fallback</strong> to a read-only summary when the write path fails.</li>
+            <li><strong>Stop</strong> on authentication, permission, schema, or destructive-action uncertainty.</li>
+            <li><strong>Notify</strong> only when human action can actually unblock the task.</li>
+          </ul>
+        </div>
+        <div class="practice-card">
+          <h3>Use a dead-letter note for stuck work</h3>
+          <p>If a task fails repeatedly, write the input, error, attempted fixes, and next manual step to a known place. That is faster than hunting through logs after the user notices the missing result.</p>
+        </div>
+      </section>
+
+      <section class="best-practice-section" id="blueprint">
+        <div class="section-header">
+          <span class="section-icon">06</span>
+          <h2>Starter Blueprint</h2>
+        </div>
+        <div class="practice-card">
+          <h3>Safe daily content task</h3>
+          <p>This pattern fits research, changelog, SEO, or documentation work where the agent can draft and commit, but public communications still need a clear report.</p>
+          <div class="code-example">
+            <pre><code>Trigger: cron, daily at 14:00 Australia/Brisbane.
+Context: site repo, previous daily note, official release/source URLs.
+Steps:
+1. Check current repo status.
+2. Research official updates and community issue themes.
+3. Improve one page or add one focused guide.
+4. Run build, parser, XML, diff, and HTTP smoke checks.
+5. Commit and push only the scoped site changes.
+6. Report the exact page, sources, and verification.</code></pre>
+          </div>
+        </div>
+        <div class="practice-card">
+          <h3>Operator checklist before increasing autonomy</h3>
+          <div class="checklist">
+            <div class="checklist-item">
+              <span class="check">1</span>
+              <div><strong>One owner</strong><p>Someone knows which human is accountable for the task.</p></div>
+            </div>
+            <div class="checklist-item">
+              <span class="check">2</span>
+              <div><strong>One trigger</strong><p>The task has a clear cron, webhook, heartbeat, or manual start path.</p></div>
+            </div>
+            <div class="checklist-item">
+              <span class="check">3</span>
+              <div><strong>One state file</strong><p>Last run, last event, and last success are visible.</p></div>
+            </div>
+            <div class="checklist-item">
+              <span class="check">4</span>
+              <div><strong>One approval rule</strong><p>The agent knows exactly when to stop and ask.</p></div>
+            </div>
+            <div class="checklist-item">
+              <span class="check">5</span>
+              <div><strong>One recovery note</strong><p>Failures leave enough evidence for a human or later agent to resume.</p></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="best-practice-section" id="sources">
+        <div class="section-header">
+          <span class="section-icon">07</span>
+          <h2>Source Notes</h2>
+        </div>
+        <div class="practice-card">
+          <p>This guide reflects the July 2026 OpenClaw release stream, including <code>v2026.7.1-beta.1</code>, ongoing work around CLI onboarding proof, voice-call persisted state, Telegram progress callbacks, MCP stdio transport errors, supervisor stream errors, session compaction locks, and open discussion around tool-failure fallback and retry behavior.</p>
+          <p>It also follows the broader AI-agent trend toward orchestrated workflows with traceability, approval ownership, context isolation, and production recovery instead of unbounded autonomous action.</p>
+          <p class="release-links">
+            Sources:
+            <a href="https://github.com/openclaw/openclaw/releases" target="_blank" rel="noopener noreferrer">OpenClaw releases</a>
+            <span>•</span>
+            <a href="https://github.com/openclaw/openclaw/issues/99801" target="_blank" rel="noopener noreferrer">Tool-failure fallback issue</a>
+            <span>•</span>
+            <a href="https://github.com/openclaw/openclaw/pull/99717" target="_blank" rel="noopener noreferrer">CLI channel picker proof PR</a>
+            <span>•</span>
+            <a href="https://github.com/openclaw/openclaw/pull/99797" target="_blank" rel="noopener noreferrer">Voice-call persisted state PR</a>
+          </p>
+        </div>
+      </section>
+    </div>
+    <!--related:start-->
+  <aside class="related-guides" aria-label="Related guides">
+    <h2>Related guides</h2>
+    <div class="related-guides-grid">
+      <a class="related-guide-card" href="/automation">
+        <span class="rg-title">Automation</span>
+        <span class="rg-desc">Cron jobs, heartbeats &amp; webhooks.</span>
+      </a>
+      <a class="related-guide-card" href="/workflows">
+        <span class="rg-title">Workflows</span>
+        <span class="rg-desc">Real-world automation patterns.</span>
+      </a>
+      <a class="related-guide-card" href="/operations">
+        <span class="rg-title">Operations Runbook</span>
+        <span class="rg-desc">Monitor, audit, update, and recover live agents.</span>
+      </a>
+    </div>
+  </aside>
+  <!--related:end-->
+  </main>
+    <!-- Footer (shared — edit partials/footer.html, then run scripts/build_site.py) -->
+  <footer class="footer site-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section footer-brand-col">
+          <div class="footer-brand">
+            <span class="logo-icon" aria-hidden="true">🦞</span>
+            <span>OpenClaw Guide</span>
+          </div>
+          <p class="footer-desc">A practical, community-maintained field guide to installing, securing, and getting real work out of OpenClaw.</p>
+          <p class="footer-disclaimer">This is a community resource, not the official OpenClaw website.</p>
+        </div>
+        <div class="footer-section">
+          <h4 class="footer-subtitle">Guide</h4>
+          <a href="/quickstart" class="footer-link">Quick Start</a>
+          <a href="/channels" class="footer-link">Channels</a>
+          <a href="/skills" class="footer-link">Skills</a>
+          <a href="/workspace" class="footer-link">Workspace</a>
+          <a href="/context-engineering" class="footer-link">Context Engineering</a>
+          <a href="/mcp-security" class="footer-link">MCP Security</a>
+          <a href="/automation" class="footer-link">Automation</a>
+          <a href="/operations" class="footer-link">Operations</a>
+          <a href="/best-practices" class="footer-link">Best Practices</a>
+        </div>
+        <div class="footer-section">
+          <h4 class="footer-subtitle">Reference</h4>
+          <a href="/architecture" class="footer-link">Architecture</a>
+          <a href="/security" class="footer-link">Security</a>
+          <a href="/troubleshooting" class="footer-link">Troubleshooting</a>
+          <a href="/faq" class="footer-link">FAQ</a>
+          <a href="/updates" class="footer-link">Updates</a>
+          <a href="/enterprise-agent-platforms" class="footer-link">Enterprise Platforms</a>
+          <a href="/about" class="footer-link">About</a>
+        </div>
+        <div class="footer-section">
+          <h4 class="footer-subtitle">Community &amp; links</h4>
+          <a href="https://docs.openclaw.ai" class="footer-link" target="_blank" rel="noopener">Official Docs</a>
+          <a href="https://github.com/openclaw/openclaw" class="footer-link" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://discord.com/invite/clawd" class="footer-link" target="_blank" rel="noopener">Discord Community</a>
+          <a href="https://clawhub.ai" class="footer-link" target="_blank" rel="noopener">ClawHub Skills</a>
+          <a href="/rss.xml" class="footer-link">RSS Feed</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p class="footer-copy">&copy; 2026 OpenClaw Guide · OpenClaw is open source under the MIT License.</p>
+        <p class="footer-meta">
+          <span>Last updated <time datetime="2026-07-18">18 July 2026</time></span>
+          <span aria-hidden="true">·</span>
+          <span>Built by <a href="https://hooraydigital.au" target="_blank" rel="noopener">Hooray Digital</a>, a Brisbane web design studio</span>
+        </p>
+      </div>
+    </div>
+  </footer>
+  <script type="module" src="/cinematic.js?v=20260624a"></script>
+  <script type="module" src="/lobster3d.js?v=20260624a"></script>
+  <script src="/softnav.js?v=20260624a" defer></script>
+</body>
+</html>

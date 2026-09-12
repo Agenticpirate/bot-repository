@@ -6,19 +6,19 @@ Additive ingest on `main`. Skip trees already under `sources/`. Script: `scripts
 
 | Item | Dest | Notes |
 | --- | --- | --- |
-| clawhub.ai | `sources/clawhub.ai/` | **Deepened** this pass: resume `/api/v1/skills` cursor + SKILL.md file API. clawhub.com is the same app (homepage snapshot only). |
+| clawhub.ai | `sources/clawhub.ai/` | **Deepened**: `/api/v1/skills` **5275** slugs (pages 000–139; cursor still live — resume continues). **4947** SKILL.md. clawhub.com is the same app (homepage snapshot only). |
 | VoltAgent/awesome-openclaw-skills | `sources/github/VoltAgent-awesome-openclaw-skills/` | 5300+ link index (points at clawskills.sh). Already cloned. |
 | mergisi/awesome-openclaw-agents | `sources/github/mergisi-awesome-openclaw-agents/` | 205 SOUL.md templates + agents.json. Already cloned. |
-| souls.directory | `sources/souls.directory/` | Public `GET /api/souls/{handle}/{slug}.md`. Leftover API pass this batch. |
-| clawskills.sh | `sources/clawskills.sh/` | 5167 skill hrefs; remaining HTML pages fetched this batch. |
+| souls.directory | `sources/souls.directory/` | Public `GET /api/souls/{handle}/{slug}.md`. **3147** SOUL.md on disk. |
+| clawskills.sh | `sources/clawskills.sh/` | 5167 skill hrefs; **5153** skill HTML on disk (14 leftover fails). |
 
 ## New / first-time archives
 
 | Item | Dest | Status |
 | --- | --- | --- |
-| openclaw.com.au/skills | `sources/openclaw.com.au/` | Docs/guide sitemap (no per-skill JSON; `/api/skills` 404). |
-| agent.soulid.io | `sources/agent.soulid.io/` | Homepage agent hrefs + HTML. No public JSON API. |
-| cerealskill/openclaw-agents | `sources/github/cerealskill-openclaw-agents/` | SOUL.md + IDENTITY.md agent bundles. |
+| openclaw.com.au/skills | `sources/openclaw.com.au/` | Sitemap **33** guide pages (no per-skill JSON; `/api/skills` 404). |
+| agent.soulid.io | `sources/agent.soulid.io/` | **259** agent HTML pages. No public JSON API. |
+| cerealskill/openclaw-agents | `sources/github/cerealskill-openclaw-agents/` | **527** SOUL.md + **522** IDENTITY.md. |
 | thedaviddias/souls-directory | `sources/github/thedaviddias-souls-directory/` | Site source for souls.directory (not a SOUL dump). |
 | raulvidis/openclaw-multi-agent-kit | `sources/github/raulvidis-openclaw-multi-agent-kit/` | SOUL/IDENTITY/skill templates. |
 | Humain-Cloud/HumAIn-Uno | `sources/github/Humain-Cloud-HumAIn-Uno/` | Product + TypeScript seed-agents (no SKILL/SOUL.md dump). |
