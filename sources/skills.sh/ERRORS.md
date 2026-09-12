@@ -1,20 +1,20 @@
 # skills.sh errors
 
-Updated: 2026-09-12T21:58:46Z
+Updated: 2026-09-12T21:59:27Z
 
 ## Rate limit
 
 Live `GET /api/download/{owner}/{repo}/{slug}` returns HTTP 429 `{"error":"rate_limit_exceeded","message":"Rate limit exceeded. Maximum 60 requests per hour."}` with `Retry-After: 60`.
 
-Target is all 19998 sitemap ids. 18661 have full `files/` + hash. 1252 remain.
+Target is all 19998 sitemap ids. 18710 have full `files/` + hash. 1202 remain.
 Prefer `scripts/fill_skills_sh_from_github.py` for bulk fill. This API client is only for leftovers and stays under the 60/hour cap.
 
 ## Permanent misses
 
-85 ids returned HTTP 404 from the download API; page HTML was saved once.
+86 ids returned HTTP 404 from the download API; page HTML was saved once.
 
 Recent failures / fallbacks:
 
-- `microsoft/azure-skills/file-test-bug` html_fallback: HTTP 404
+- `flutter/agent-plugins/flutter-environment-setup-macos` html_fallback: HTTP 404
 
 Resume: `python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`
