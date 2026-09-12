@@ -1,0 +1,25 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('docs');
+  return entries.map(entry => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+
+const h1 = headings.find(h => h.depth === 1);
+const title = h1?.text || entry.id.replace(/-/g, ' ');
+const description = `n8n guide: ${title}`;
+---
+
+<BaseLayout title={title} description={description}>
+  <article>
+    <Content />
+  </article>
+</BaseLayout>

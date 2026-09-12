@@ -1,0 +1,618 @@
+---
+import ReactFlowPreview from "../../components/flow/ReactFlowPreview";
+import WorkflowFileInput from "./WorkflowFileInput.astro";
+import Tags from "./Tags.astro";
+import Alert from "./Alert.astro";
+import { t } from "i18next";
+import { localizePath } from "astro-i18next";
+import PrivateHostedToogle from "./PrivateHostedToogle.astro";
+---
+
+<form id="uploadForm">
+  <div class="grid sm:grid-cols-6 sm:gap-4">
+    <div class="sm:col-span-2 sm:col-start-1">
+      <!-- Basic Info`` -->
+      <div class="pb-12">
+        <h2 class="text-xl font-semibold leading-7">
+          {t("uploadpage.workflowinfo")}
+        </h2>
+        <!-- Basic info -->
+        <div class="grid grid-cols-1 gap-2">
+          <!-- WorkFlow File -->
+          <div class="sm:col-span-full">
+            <label for="dsl-file" class="block text-sm font-medium leading-6"
+              >{t("uploadpage.uploadfile")}<sup class="ml-1 text-red-500">*</sup></label
+            >
+            <WorkflowFileInput />
+          </div>
+          <!-- Name -->
+          <div class="sm:col-span-full">
+            <label
+              for="workflowname"
+              class="block text-sm font-medium leading-6"
+              >{t("uploadpage.name")}<sup class="ml-1 text-red-500">*</sup
+              ></label
+            >
+            <div class="mt-2">
+              <div class="flex items-center">
+                <div class="flex-none px-2" id="workflowIcon">🫣</div>
+                <input
+                  type="text"
+                  name="workflowname"
+                  id="workflowname"
+                  autocomplete="workflowname"
+                  class="input input-bordered w-full"
+                  placeholder="Workflow Name"
+                  required="required"
+                />
+              </div>
+            </div>
+          </div>
+          <!-- Version -->
+          <div class="sm:col-span-full">
+            <label for="version" class="block text-sm font-medium leading-6"
+              >{t("uploadpage.version")}<sup class="ml-1 text-red-500">*</sup
+              ></label
+            >
+            <div class="mt-2 flex rounded-md shadow-sm">
+              <span
+                class="inline-flex italic items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 dark:bg-[--darkbgoffset] text-gray-500 text-sm"
+              >
+                V
+              </span>
+              <input
+                type="number"
+                step="0.1"
+                min="0.1"
+                name="version"
+                id="version"
+                value="1.0"
+                class="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md border border-gray-300 bg-transparent sm:text-sm"
+                placeholder="1.0"
+                required="required"
+              />
+            </div>
+            <div
+              class="mt-2 p-4 bg-gray-50 dark:bg-[--darkbgoffset] rounded-md"
+            >
+              <div class="space-y-1">
+                <p class="text-xs leading-normal text-gray-400">
+                  ⚠️ We recommend labeling it as <span class="font-semibold"
+                    >v1.0</span
+                  >.
+                </p>
+                <p class="text-xs leading-normal text-gray-400">
+                  This section is for uploading the initial version of your
+                  workflow.
+                </p>
+                <p class="text-xs leading-normal text-gray-400">
+                  For any future updates, you can visit the <a
+                    href={localizePath("/user/host")}
+                    class="hover:link font-semibold hover:text-dark"
+                    >👉 User Center</a
+                  > to upload newer versions.
+                </p>
+              </div>
+            </div>
+            <!-- Description -->
+            <div class="mt-4 sm:col-span-full">
+              <label
+                for="description"
+                class="block text-sm font-medium leading-6"
+                >{t("uploadpage.des")}<sup class="ml-1 text-red-500">*</sup
+                ><small class="text-gray-400 ml-1"
+                  >[Markdown is supported]</small
+                ></label
+              >
+              <div class="mt-2">
+                <textarea
+                  id="description"
+                  name="description"
+                  rows="12"
+                  class="textarea textarea-bordered w-full"
+                  required="required"
+                  placeholder="Describe your workflow with a few key points, such as:
+    - Introduction
+    - Capabilities
+    - Usage
+    - Restrictions
+    - Dify Version Requirement
+    - Sponsorship 
+    - Copyright
+    - Others
+    *Support Markdown*"
+                ></textarea>
+              </div>
+            </div>
+            <!-- Dropdown Tags -->
+            <Tags />
+          </div>
+        </div>
+        <!-- Author Info -->
+        <div class="pb-12">
+          <div class="mt-5 grid grid-cols-1">
+            <div class="sm:col-span-full">
+              <label
+                for="author-name"
+                class="block text-sm font-medium leading-6"
+                >{t("uploadpage.authorname")}<sup class="ml-1 text-red-500"
+                  >*</sup
+                ></label
+              >
+              <div class="mt-2">
+                <input
+                  type="text"
+                  name="author-name"
+                  id="author-name"
+                  class="input input-bordered w-full"
+                  placeholder="Enter author's name"
+                  required="required"
+                />
+              </div>
+            </div>
+            <div class="mt-4 sm:col-span-full">
+              <label
+                for="social-link"
+                class="block text-sm font-medium leading-6"
+                >{t("uploadpage.authorlink")}<sup class="ml-1 text-red-500"
+                  >*</sup
+                ></label
+              >
+              <div class="mt-2">
+                <input
+                  id="social-link"
+                  name="social-link"
+                  class="input input-bordered w-full"
+                  placeholder="Enter link or social account"
+                  required="required"
+                />
+              </div>
+              <div class="mt-1">
+                <p class="text-xs leading-5 text-gray-400">
+                  Please enter author's social account username or URL. <br
+                  />Include the social platform name after the account username.
+                  For example:
+                </p>
+                <ul
+                  class="list-disc list-inside text-xs text-gray-400 break-all leading-5"
+                >
+                  <li>@username(Twitter/Instagram/Tiktok/Github/LinkedIn)</li>
+                  <li>facebook.com/username</li>
+                  <li>http://website.com</li>
+                  <li>authorEmail@example.com</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Public / Private -->
+        <div class="my-4">
+          <PrivateHostedToogle
+            isTitled={true}
+            title={t("explorepage.modetitle")}
+            publicAlertMsg={t("uploadpage.publicmsg")}
+            privateAlertMsg={t("uploadpage.privatemsg")}
+          />
+        </div>
+        <!-- For Workspace  -->
+        <div class="border-b border-gray-900/10 pt-8 pb-4">
+          <h2 class="text-base font-semibold leading-7">
+            {t("uploadpage.workspaceshare")}
+          </h2>
+          <div class="form-control">
+            <label class="label cursor-pointer">
+              <span class="label-text">{t("uploadpage.personalavailable")}</span>
+              <input type="radio" id="forPersonal" name="workspaceshare" class="radio checked:bg-primary" checked="checked" />
+            </label>
+            <label class="label cursor-pointer">
+              <span class="label-text">{t("uploadpage.workspacesharing")}</span>
+              <input type="radio" id="forWorkspace" name="workspaceshare" class="radio checked:bg-primary" />
+            </label>
+          </div>
+          <label class="label">
+            <span class="label-text text-xs">{t("uploadpage.yourworkspace")}</span>
+            <select id="workspaceSelector" class="select select-bordered w-full" disabled>
+              <option disabled selected>...</option>
+            </select>
+          </label>
+          <Alert id="workspaceAlert" type="hidden" message={t("uploadpage.workspacemsg")}/>
+        </div>
+        <!-- Notifications -->
+        <div class="border-b border-gray-900/10 pt-8 pb-4">
+          <h2 class="text-base font-semibold leading-7">
+            {t("uploadpage.notifytitle")}
+          </h2>
+          <ul class="list-disc list-inside text-xs">
+            <li class="leading-6 text-gray-600">
+              {t("uploadpage.notify1")}
+            </li>
+            <li class="leading-6 text-gray-600">
+              {t("uploadpage.notify2")}
+            </li>
+            <li class="leading-6 text-gray-600">
+              {t("uploadpage.notify3")}
+            </li>
+          </ul>
+        </div>
+        <!-- Button -->
+        <div class="mt-6 flex items-center justify-end gap-x-6">
+          <button
+            type="submit"
+            class="btn-tertiary w-full px-3 py-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+            >{t("uploadpage.uploadbtn")}</button
+          >
+        </div>
+      </div>
+    </div>
+    <div
+      id="reactflow-preview"
+      class="mt-8 sm:mt-0 sm:col-span-4 sm:col-start-3"
+    >
+      <h2 class="text-xl font-semibold leading-7">
+        {t("uploadpage.previewtitle")}
+      </h2>
+      <div class="w-full h-[500px] sm:h-[600px]">
+        <ReactFlowPreview client:only="react" />
+      </div>
+      <div>
+        <small class="text-sm text-gray-400"
+          >{t("uploadpage.previewhint")}</small
+        >
+      </div>
+    </div>
+  </div>
+</form>
+
+<script>
+  /// <reference path="../../env.d.ts" />
+  // Process YAML ReactFlow Data
+  import { parseYamlToReactFlow, paresYamlToJSON } from "../flow/yamlParser.ts";
+  const dslfile = document.getElementById("dsl-file") as HTMLInputElement;
+  const uploadContainer = document.getElementById(
+    "upload-container",
+  ) as HTMLElement;
+
+  // Get the modal element
+  const modal = document.getElementById("modal") as HTMLDialogElement;
+  const modalTitle = document.getElementById(
+    "modalTitle",
+  ) as HTMLHeadingElement;
+  const modalContent = document.getElementById(
+    "modalContent",
+  ) as HTMLDivElement;
+
+  // Function to handle file upload
+  function handleFile(event: Event | DragEvent) {
+    let file: File | undefined;
+    if ("dataTransfer" in event) {
+      // Drag and drop event
+      file = event.dataTransfer?.files[0];
+    } else if ("target" in event) {
+      // File input event
+      const target = event.target as HTMLInputElement;
+      file = target.files?.[0];
+    }
+
+    if (file) {
+      const workflow_name = document.getElementById(
+        "workflowname",
+      ) as HTMLInputElement;
+      const description = document.getElementById(
+        "description",
+      ) as HTMLTextAreaElement;
+      const workflow_icon = document.getElementById(
+        "workflowIcon",
+      ) as HTMLDivElement;
+      const fileIndicator = document.getElementById(
+        "fileIndicator",
+      ) as HTMLInputElement;
+      fileIndicator.innerHTML = `Selected File: <br><span class="font-semibold text-base">${file.name}</span>`;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const target = e.target as FileReader;
+        const yamlContent = target.result as string;
+        try {
+          const yamlData = paresYamlToJSON(yamlContent);
+          workflow_name.value = yamlData.app.name;
+          description.value = yamlData.app.description;
+          workflow_icon.innerText = yamlData.app.icon || "😃";
+          // console.log("yamlData loaded");
+          const { nodes, edges } = parseYamlToReactFlow(yamlContent);
+          // Update the ReactFlow component
+          if (typeof (window as any).updateReactFlow === "function") {
+            (window as any).updateReactFlow(nodes, edges);
+          } else {
+            console.error("updateReactFlow function not found");
+          }
+        } catch (error) {
+          console.error("Error parsing YAML file:", error);
+          // alert(
+          //   "Unsupported file format. Please upload a valid Dify DSL file.",
+          // );
+          modalTitle.innerText = "⚠️ Error";
+          modalContent.innerText =
+            "Unsupported file format. Please upload a valid Dify DSL file.";
+          modal.showModal();
+          dslfile.value = ""; // Clear the file input field
+          workflow_name.value = "";
+          description.value = "";
+        }
+      };
+      reader.readAsText(file);
+    }
+  }
+
+  // Event listener for file input
+  if (dslfile) {
+    dslfile.addEventListener("change", function (event) {
+      if (event.target) {
+        handleFile(event);
+      }
+    });
+  }
+
+  uploadContainer.addEventListener("drop", (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    uploadContainer.classList.remove("bg-gray-100");
+    const dragEvent = e as DragEvent;
+    if (dragEvent.dataTransfer && dragEvent.dataTransfer.files.length > 0) {
+      const file = dragEvent.dataTransfer.files[0];
+      if (file.name.endsWith(".yml") || file.name.endsWith(".yaml")) {
+        handleFile(e);
+      } else {
+        // alert("Please upload a Dify DSL file.");
+        modalTitle.innerText = "⚠️ Error";
+        modalContent.innerText =
+          "Unsupported file format. Please upload a valid Dify DSL file.";
+        modal.showModal();
+      }
+    }
+  });
+</script>
+<script>
+  import type { GetWorkspacesResponse } from "../../utils/tools";
+  import { fetchUserWorkspaces } from "../../utils/tools";
+  // Get the modal element
+  const modal = document.getElementById("modal") as HTMLDialogElement;
+  const modalTitle = document.getElementById(
+    "modalTitle",
+  ) as HTMLHeadingElement;
+  const modalContent = document.getElementById(
+    "modalContent",
+  ) as HTMLDivElement;
+  const confirmBtn = document.getElementById("confirmBtn") as HTMLButtonElement;
+  // Get the file indicator
+  const fileIndicator = document.getElementById(
+    "fileIndicator",
+  ) as HTMLInputElement;
+  // Get the file input
+  const dslfile = document.getElementById("dsl-file") as HTMLInputElement;
+  // Get redio element
+  const personalRadio = document.getElementById("forPersonal") as HTMLInputElement;
+  const workspaceRadio = document.getElementById("forWorkspace") as HTMLInputElement;
+  // Get workspace selector element
+  const workspaceSelector = document.getElementById("workspaceSelector") as HTMLSelectElement | null;
+  // Get workspace alert element
+  const workspaceAlert = document.getElementById("workspaceAlert") as HTMLElement;
+  // Get private toggle input
+  const privateToggle = document.getElementById("private",) as HTMLInputElement;
+  // Get public alert
+  const publicAlert = document.getElementById(
+        "public-alert",
+    ) as HTMLDivElement;
+    // Get private alert
+    const privateAlert = document.getElementById(
+        "private-alert",
+    ) as HTMLDivElement;
+
+  // Check user's workspace
+  async function checkUserWorkspace() {
+    try{
+      if(workspaceSelector){
+        workspaceSelector.innerHTML = `<option disabled selected>Loading...</option>`
+      }
+      const { user, workspacesObject } = await fetchUserWorkspaces() as GetWorkspacesResponse;
+      console.log("workspacesObject", workspacesObject);
+      if (workspacesObject.joined.total === 0) {
+        personalRadio.checked = true;
+        workspaceRadio.disabled = true;
+        workspaceRadio.checked = false;
+        workspaceAlert.classList.toggle("hidden", true);
+        privateToggle.value = "off";
+        privateToggle.checked = false;
+        privateAlert.classList.toggle("hidden", true);
+        publicAlert.classList.toggle("hidden", false);
+        if(workspaceSelector){
+          workspaceSelector.innerHTML = `<option disabled selected>You haven't joined any workspace.</option>`
+        }
+      } else {
+        workspaceRadio.disabled = false;
+        workspaceAlert.classList.toggle("hidden", false);
+        if(workspaceSelector){
+          // remove all options in selector
+          workspaceSelector.innerHTML = '';
+          // add options from workspacesObject
+          workspacesObject.joined.workspaces.forEach((workspace) => {
+            const option = document.createElement("option");
+            option.value = workspace.id;
+            option.textContent = workspace.name;
+            workspaceSelector.appendChild(option);
+          });
+          workspaceAlert.classList.toggle("hidden", false);
+          workspaceSelector.disabled = false;
+          privateToggle.value = "on";
+          privateToggle.checked = true;
+          privateAlert.classList.toggle("hidden", false);
+          publicAlert.classList.toggle("hidden", true);
+        }
+      }
+    } catch (error){
+      personalRadio.checked = true;
+      workspaceRadio.disabled = true;
+      workspaceRadio.checked = false;
+      workspaceAlert.classList.toggle("hidden", true);
+      if(workspaceSelector){
+          workspaceSelector.innerHTML = `<option disabled selected>No Workspace Found</option>`
+      }
+      if ((error as Error).message === "JWT Expired") {
+        sessionStorage.removeItem("username");
+        modalTitle.innerText = "😮 Oops...";
+        modalContent.innerText = "Your login has expired, please login again!";
+        const confirmBtn = document.getElementById(
+          "confirmBtn",
+        ) as HTMLButtonElement;
+        confirmBtn.textContent = "Login again";
+        confirmBtn.classList.toggle("btn-error", true);
+        confirmBtn.classList.toggle("hidden", false);
+        confirmBtn.addEventListener("click", (event: Event) => {
+          event.preventDefault();
+          window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname + window.location.search);
+        });
+        modal.showModal();
+      } else {
+        console.error("Error loading workspace data:", error);
+        modalTitle.innerText = "⚠️ Error";
+        confirmBtn.classList.toggle("hidden", true);
+        modalContent.innerText =
+          "Failed to fetch workspace data. Please Login again or check your connection.";
+        modal.showModal();
+      }
+    }
+  }
+  
+  // Add listener to workspace radio
+  workspaceRadio.addEventListener("click", () => {
+    checkUserWorkspace();
+  });
+
+  // Upload Form
+  const form = document.getElementById("uploadForm") as HTMLFormElement;
+  async function handleSubmit(event: Event) {
+    event.preventDefault();
+    // Show loading modal
+    modalTitle.innerText = "⏳ Processing...";
+    modalContent.innerText = "Workflow is uploading...";
+    confirmBtn.classList.toggle("hidden", true);
+    modal.showModal();
+    // Get form data
+    const formData = new FormData(form);
+    const selectedTags = document.querySelectorAll(".tag");
+    const file = formData.get("dsl-file") as unknown as HTMLInputElement
+    // Check if all required fields are filled
+    if (
+      !formData.get("workflowname") ||
+      !formData.get("description") ||
+      file.size == 0 ||
+      !formData.get("version") ||
+      !formData.get("author-name") ||
+      !formData.get("social-link") ||
+      selectedTags.length === 0
+    ) {
+      modalTitle.innerText = "😮 Oops";
+      modalContent.innerText = "Please fill out all required(*) fields.";
+      modal.showModal();
+      return;
+    } else {
+      // Required fields are filled, proceed with form submission
+      // Add Icon to form data
+      const workflow_icon = document.getElementById(
+        "workflowIcon",
+      ) as HTMLInputElement;
+      formData.append("icon", workflow_icon.innerText);
+      // Add the selected tags to the form data
+      const selectedTagsTree = document.getElementById("selectedTags");
+      const tags: string[] = [];
+      selectedTags.forEach((tag) => {
+        tags.push(tag.textContent as string);
+      });
+      formData.append("tags", JSON.stringify(tags));
+      // Check if workflow is private, add private in formData
+      if(privateToggle.checked){
+        formData.append("isPrivate", "on")
+      } else {
+        formData.append("isPrivate", "off")
+      }
+      // Check if workspace is selected, add workspace_id in formData 
+      let workspace_id = "";
+      if(workspaceRadio.checked && workspaceSelector){
+        workspace_id = workspaceSelector.value || ""
+        formData.append("workspace_id", workspace_id)
+      }
+      console.log(
+        "FormData>>>",
+        formData.get("tags"),
+        formData.get("dsl-file"), typeof(formData.get("dsl-file")),
+        formData.get("workspace_id"),
+        formData.get("isPrivate"),
+      );
+      // Send form data to the server
+      try {
+        const response = await fetch("/api/workflow/upload", {
+          method: "POST",
+          body: formData,
+        });
+        if (response.ok) {
+          console.log("Response>>>", response.json());
+          // alert("Upload successful!");
+          modalTitle.innerText = "🎉 Tada!";
+          modalContent.innerText = "Upload successful!";
+          confirmBtn.classList.toggle("hidden", true);
+          modal.showModal();
+          // Reset the fileIndicator
+          fileIndicator.innerText = "Requirement: Dify DSL Workflow File(.yml)";
+          // Reset the workflow icon
+          workflow_icon.innerText = "🫣";
+          // Clear the form
+          form.reset();
+          // Clear the file input
+          dslfile.value = "";
+          // Clear the selected tags
+          selectedTagsTree!.innerHTML = "";
+        } else if (response.status === 401) {
+          sessionStorage.removeItem("username");
+          modalTitle.innerText = "😮 Oops...";
+          modalContent.innerText =
+            "Your login has expired, please login again!";
+          confirmBtn.textContent = "Login again";
+          confirmBtn.classList.toggle("btn-error", true);
+          confirmBtn.classList.toggle("hidden", false);
+          confirmBtn.addEventListener("click", (event: Event) => {
+            event.preventDefault();
+            window.location.href =
+              "/login?redirect=" +
+              encodeURIComponent(
+                window.location.pathname + window.location.search,
+              );
+          });
+          modal.showModal();
+        } else {
+          // alert(
+          //   "An error occurred while uploading the file. Please try again or contact us with email: diflowy@greenerai.top",
+          // );
+          modalTitle.innerText = "😮 Oops...";
+          confirmBtn.classList.toggle("hidden", true);
+          modalContent.innerText =
+            "An error occurred while uploading the file. Please try again or contact us with email: diflowy@greenerai.top";
+          modal.showModal();
+        }
+      } catch (error) {
+        console.error("Error uploading file:", error);
+        // alert(
+        //   "Your network is unreachable. Please check your internet connection and try again.",
+        // );
+        modalTitle.innerText = "😮 Oops...";
+        confirmBtn.classList.toggle("hidden", true);
+        modalContent.innerText =
+          "Your network is unreachable. Please check your internet connection and try again.";
+        modal.showModal();
+      }
+    }
+  }
+
+  // When DOM Loaded
+  document.addEventListener("DOMContentLoaded", () => {
+    // Add event listener to the form
+    form.addEventListener("submit", handleSubmit);
+  });
+</script>

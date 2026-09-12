@@ -1,0 +1,3 @@
+# theautomation.directory errors
+
+None.

@@ -1,0 +1,3 @@
+# automationscookbook.com errors
+
+None.

@@ -89,8 +89,13 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [sigrix.io/marketplace/crews](https://sigrix.io/marketplace/crews) — listing HTML
 - [marketplace.dify.ai/templates](https://marketplace.dify.ai/templates) — listing HTML
 - Coze / Botpress / Voiceflow / Zapier Agents / Gumloop / Pipedream — public listing HTML
-- [make.com](https://www.make.com/api/v2/templates/public) — API 401 (login)
+- [make.com](https://www.make.com/api/v2/templates/public) — API 401 (login); `/en/templates` HTML 403
 - Activepieces `/v1/templates` — HTML app shell, not JSON
+- [n8n.io official templates](https://n8n.io/workflows) — `api.n8n.io` search index + per-id workflow JSON
+- CrewAI marketplace + [crewAIInc/crewAI-examples](https://github.com/crewAIInc/crewAI-examples) + [awesome-crewai](https://github.com/crewAIInc/awesome-crewai)
+- Zapier templates / workflow-gallery + [zapier/community-skills](https://github.com/zapier/community-skills)
+- Community workflow packs: scrapernode/zie619 n8n, svcvit Dify, Diflowy, langflow, coze, botpress/solutions
+- Listing HTML: workflows.so, automationflows.io, n8ntemplates.me, theautomation.directory, automationscookbook.com, arahi.ai, beam.ai
 
 Notes and leftovers: [docs/source-candidates.md](docs/source-candidates.md), [docs/source-candidates-batch2.md](docs/source-candidates-batch2.md), [docs/source-candidates-batch3-claude-muse-workflows.md](docs/source-candidates-batch3-claude-muse-workflows.md), [docs/claude-ecosystem-sources.md](docs/claude-ecosystem-sources.md), [docs/muse-research.md](docs/muse-research.md).
 
@@ -193,6 +198,17 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | claudecowork.im | 3927 |
 | madewithclaude.com | 2 |
 | claudebuilds.com | 2 |
+| github/davila7-claude-code-templates | 6390 |
+| github/Chat2AnyLLM-awesome-claude-plugins | 33 |
+| github/obra-superpowers | 113 |
+| github/jeremylongshore-claude-code-plugins-plus | 22119 |
+| github/daymade-claude-code-skills | 501 |
+| github/netresearch-claude-code-marketplace | 36 |
+| github/ananddtyagi-cc-marketplace | 309 |
+| github/TheCraigHewitt-cowork-starter-pack | 18 |
+| github/jitangupta-cowork-boilerplate | 43 |
+| github/helgejo-cowork-template | 7 |
+| github/machine-costas-claude-projects-templates | 30 |
 | github/ZeroPointRepo-GrokBotDev | 918 |
 | botdirectory.ai | 646 |
 | botmarket.bot | 701 |

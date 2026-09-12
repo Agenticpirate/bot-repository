@@ -1,0 +1,39 @@
+on:
+  push:
+    tags:
+      - "bpib-v*" # Push events to matching bpib-v*
+
+name: Release BP Image Builder
+
+jobs:
+  build:
+    name: Create Release
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: custom_tools/bp_image_builder/
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup NodeJS
+        uses: actions/setup-node@v2
+        with:
+          node-version: "12.13"
+      - name: Build
+        working-directory: ${{ github.workspace }}/custom_tools/bp_image_builder/
+        run: yarn && yarn package
+      - name: Get Package Version
+        id: package-version
+        uses: notiz-dev/github-action-json-property@release
+        with:
+          path: "${{ github.workspace }}/custom_tools/bp_image_builder/package.json"
+          prop_path: "version"
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: v${{ steps.package-version.outputs.prop }}
+          files: |
+            ${{ github.workspace }}/custom_tools/bp_image_builder/bin/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: botpress/solutions

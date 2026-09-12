@@ -1,0 +1,40 @@
+---
+import { t, changeLanguage } from "i18next";
+import MainLayout from "../../../layouts/MainLayout.astro";
+import SectionTitle from "../../../components/ui/SectionTitle.astro";
+import Section from "../../../components/sections/Section.astro";
+import Breadcrumbs from "../../../components/ui/Breadcrumbs.astro";
+import BlogCard from "../../../components/ui/Blog-Card.astro";
+import { getCollection } from "astro:content";
+import "../../../styles/globals.css";
+
+changeLanguage("pt");
+
+const allPosts = await getCollection("blog");
+const filteredPosts = allPosts.filter((post: {
+    data: {
+        lang: string;
+    };
+}) => post.data.lang === "en");
+// 按日期倒序排序
+allPosts.sort((a: any, b: any) => {
+    const dateA = new Date(a.data.pubDate).getTime();
+    const dateB = new Date(b.data.pubDate).getTime();
+    return dateB - dateA;
+});
+const urlList = Astro.url.pathname.split("/").filter(Boolean);
+const description = t("blogpage.description");
+---
+
+<MainLayout
+  title={t("site.blog")}
+  description={t("site.description")}
+>
+  <Breadcrumbs urlList={urlList} />
+  <div class="mt-20">
+    <Section>
+      <SectionTitle sectionTitle={t("blogpage.title")} description={description} />
+      <BlogCard allPosts={filteredPosts}></BlogCard>
+    </Section>
+  </div>
+</MainLayout>

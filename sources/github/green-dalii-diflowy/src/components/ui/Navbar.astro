@@ -1,0 +1,324 @@
+---
+import { Image } from "astro:assets";
+import { Icon } from "astro-icon/components";
+import brand from "../../assets/brand.svg";
+import Modal from "./AlertModal.astro";
+import { t } from "i18next";
+import { localizePath } from "astro-i18next";
+import { LanguageSelector } from "astro-i18next/components";
+
+const translations = {
+  login: t("navbar.login"),
+  logout: t("navbar.logout"),
+  userCenter: t("navbar.usercenter"),
+  loginURL: localizePath("/login")
+};
+
+const navLinks = [
+  {
+    name: t("navbar.explore"),
+    href: localizePath("/explore"),
+  },
+  {
+    name: t("navbar.share"),
+    href: localizePath("/upload"),
+  },
+  {
+    name: t("navbar.host"),
+    href: localizePath("/user/host"),
+  },
+  // {
+  //   name: t("navbar.pricing"),
+  //   href: localizePath("/pricing"),
+  // },
+  {
+    name: t("navbar.blog"),
+    href: localizePath("/blog"),
+  },
+  {
+    name: t("navbar.about"),
+    href: localizePath("/about"),
+  },
+];
+---
+
+<!-- Navbar -->
+<div
+  class="fixed w-full top-0 z-10 py-3 px-5 h-auto flex items-center justify-center header lg:dark:bg-[#1c232a6b] dark:bg-[#1c232a] dark:border-[#39506669]"
+>
+  <nav
+    aria-label="Main Navigation"
+    role="navigation"
+    class="w-full lg:w-1/4 flex h-full items-center justify-between"
+  >
+    <!-- Brand -->
+    <div class="xl:flex-none">
+      <a href={localizePath("/")}>
+        <Image
+          src={brand}
+          alt="Brand Logo"
+          class="w-28 sm:w-[6em]"
+          loading="eager"
+        />
+      </a>
+    </div>
+
+    <!-- Hamburger menu -->
+    <button
+      aria-label="menu"
+      role="button"
+      aria-controls="navmenu"
+      aria-expanded="false"
+      id="menuButton"
+      class="w-10 h-10 lg:hidden cursor-pointer contents"
+    >
+      <Icon name="bars">
+    </button>
+  </nav>
+  <!-- Nav Menu -->
+  <div
+    id="navmenu"
+    class="w-full px-5 lg:px-0 absolute top-full z-10 lg:static lg:flex lg:flex-grow lg:items-center lg:justify-center overflow-hidden duration-500 h-0 lg:h-full dropdowns dark:bg-[#1c232a] lg:dark:bg-transparent dark:border-[#3950668a]"
+  >
+    <!-- Nav Links -->
+    <ul
+      class="flex flex-col lg:flex-row lg:flex-grow lg:justify-center lg:gap-10"
+    >
+      {
+        navLinks.map((link) => {
+          return (
+            <li class="p-2 px-0">
+              <a
+                id={link.name}
+                href={link.href}
+                class="block text-base text-center text-dark hover:text-black dark:text-white dark:hover:text-blue"
+              >
+                {link.name}
+              </a>
+            </li>
+          );
+        })
+      }
+    </ul>
+    <!-- Language Selector -->
+    <div class="flex items-center justify-center py-4 lg:py-0 lg:mr-4">
+      <Icon name="language" class="w-5 h-5 text-base text-dark dark:text-white" />
+      <LanguageSelector id="langSelect" languageMapping={{ "zh-Hant": "繁体中文", "zh": "简体中文", }} aria-label="languageSelecter" showFlag={false} class="bg-transparent text-base text-center text-dark hover:text-black dark:text-white dark:hover:text-blue" />
+    </div>
+
+    <!-- Login -->
+    <div class="inline-block w-full lg:w-auto">
+      <div class="flex xl:flex-row xl:items-center xl:gap-4 flex-col xl:ml-4">
+        <button class="btn-secondary w-full xl:w-auto py-2 text-dark border-dark dark:text-white dark:border-white" id="user-menu-button">{t("navbar.login")}</button>
+      </div>
+    </div>
+  </div>
+  <!-- User Dropdown menu -->
+  <div id="user-dropdown" class="hidden fixed z-50 top-44 right-1/4 sm:right-1/2 lg:right-4 lg:top-12 mt-2 w-40 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5">
+    <div class="py-1 w-full" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button">
+      <a href={localizePath("/user")} class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700" role="menuitem">
+        <div class="flex items-center">
+          <Icon name="user" />
+          <span class="ml-2">{t("navbar.usercenter")}</span>
+        </div>
+      </a>
+      <a href="#" id="logout-link" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700" role="menuitem">
+        <div class="flex items-center">
+          <Icon name="logout" />
+          <span class="ml-2">{t("navbar.logout")}</span>
+        </div>
+      </a>
+    </div>
+  </div>
+</div>
+<!-- Translations -->
+<div id="navtranslations" class="hidden" data-translations={JSON.stringify(translations)}></div>
+<!-- modal -->
+<Modal />
+
+<script>
+  // dropdown menu
+  document.addEventListener("DOMContentLoaded", (_) => {
+    const menuButton = document.getElementById("menuButton");
+    const navMenu = document.getElementById("navmenu");
+
+    let isMenuOpen = false;
+
+    if (menuButton && navMenu) {
+      menuButton.addEventListener("click", () => {
+        /* Handle the height transition */
+        isMenuOpen = !isMenuOpen;
+
+        menuButton.setAttribute("aria-expanded", `${isMenuOpen}`);
+
+        if (isMenuOpen) {
+          navMenu.style.height = `${navMenu.scrollHeight + 20}px`;
+        } else {
+          navMenu.style.height = "0px";
+        }
+      });
+
+      window.addEventListener("resize", () => {
+        /* Resize cleanup screen state*/
+        if (window.innerWidth >= 1024) {
+          /* Add height if menu was closed and then resize happened */
+          navMenu.style.height = "auto";
+          navMenu.classList.remove("h-0");
+        } else {
+          /* Prevent opened menu when going from bit to small */
+          navMenu.style.height = "0px";
+        }
+      });
+    }
+  });
+</script>
+<script>
+  import type { GetUserInfoResponse } from "../../utils/tools";
+
+  // Get translations data
+  const translationsElement = document.getElementById('navtranslations') as HTMLDivElement;
+  const translations = JSON.parse(translationsElement.dataset.translations as string);
+  // Get the modal element
+  const modal = document.getElementById("modal") as HTMLDialogElement;
+  const modalTitle = document.getElementById(
+    "modalTitle",
+  ) as HTMLHeadingElement;
+  const modalContent = document.getElementById(
+    "modalContent",
+  ) as HTMLDivElement;
+  // Get dropdown menu element
+  const userDropdown = document.getElementById("user-dropdown") as HTMLDivElement;
+  const userMenuButton = document.getElementById("user-menu-button") as HTMLButtonElement;
+  const logoutLink = document.getElementById("logout-link") as HTMLAnchorElement;
+
+  function toggleUserDropdown() {
+    userDropdown.classList.toggle("hidden");
+    if (!userDropdown.classList.contains("hidden")) {
+      const buttonRect = userMenuButton.getBoundingClientRect();
+      userDropdown.style.top = `${buttonRect.bottom + 4}px`;
+      userDropdown.style.right = `${window.innerWidth - buttonRect.right - 15}px`;
+    }
+  }
+
+  // Close dropdown when clicking outside
+  window.addEventListener("click", function(event) {
+    if (!userMenuButton.contains(event.target as Node) && !userDropdown.contains(event.target as Node)) {
+      userDropdown.classList.add("hidden");
+    }
+  });
+
+  // confirm to logout
+  function confirmLogout(event: MouseEvent) {
+    event.preventDefault();
+    modalTitle.innerText = "🤔 Logout?";
+    modalContent.innerText = "Would you like to logout from Diflowy?";
+    const confirmBtn = document.getElementById("confirmBtn") as HTMLButtonElement;
+    confirmBtn.textContent = translations.logout;
+    confirmBtn.classList.add("btn-error");
+    confirmBtn.classList.remove("hidden");
+    confirmBtn.addEventListener("click", handleLogout);
+    modal.showModal();
+  }
+
+  // action to logout
+  async function handleLogout(event: MouseEvent) {
+    event.preventDefault();
+    try {
+      const response = await fetch("/api/logout", {
+        method: "POST",
+      });
+      if (response.ok) {
+        console.log("Logout successful");
+        sessionStorage.removeItem("username");
+        window.location.href = "/login";
+      } else {
+        console.error("Failed to log out, server returned an error.");
+      }
+    } catch (error) {
+      console.error("Failed to log out, network error:", error);
+    }
+  }
+
+  // load user from sessionStorage and update UI
+  async function loadUserFromStorage() {
+    const protectedContent = document.getElementById(
+      "protected-content",
+    ) as HTMLDivElement || null;
+    const notLogin = document.getElementById("not-login") as HTMLDivElement || null;
+    
+    try{
+      const username = sessionStorage.getItem("username");
+
+    if (username) {
+      console.log("Loaded username from sessionStorage:", username);
+      userMenuButton.textContent = username;
+      userMenuButton.addEventListener("click", toggleUserDropdown);
+      logoutLink.addEventListener("click", confirmLogout);
+      if (protectedContent) {
+        protectedContent.style.display = "block";
+        if(notLogin){
+          notLogin.style.display = "none";
+        }
+      }
+    } else {
+      console.log("No username found in sessionStorage, Call User API...");
+      const response = await fetch("/api/user");
+      if (response.status === 401) {
+        console.log("JWT is invalid");
+        sessionStorage.removeItem("username");
+        userMenuButton.textContent = translations.login;
+        userMenuButton.setAttribute("onclick", `window.location.href="${translations.loginURL}"`)
+        if(protectedContent){
+          protectedContent.style.display = "none";
+          if(notLogin){
+            notLogin.style.display = "block";
+          }
+        }
+        return;
+      }
+      const data: GetUserInfoResponse = await response.json();
+      console.log("fetch user data>>>", data);
+
+      if (data.user) {
+        console.log("User found in server response");
+        sessionStorage.setItem("username", data.user.username);
+        userMenuButton.textContent = data.user.username;
+        userMenuButton.addEventListener("click", toggleUserDropdown);
+        logoutLink.addEventListener("click", confirmLogout);
+        if (protectedContent) {
+          if(notLogin){
+            notLogin.style.display = "none";
+          }
+          protectedContent.style.display = "block";
+        }
+      } else {
+        sessionStorage.removeItem("username");
+        userMenuButton.textContent = translations.login;
+        userMenuButton.setAttribute("onclick", `window.location.href="${translations.loginURL}"`)
+        if(protectedContent){
+          if(notLogin){
+            notLogin.style.display = "block";
+          }
+          protectedContent.style.display = "none";
+        }
+      }
+    }
+    }catch(error){
+      console.log("Error fetch user data", error);
+      sessionStorage.removeItem("username");
+      userMenuButton.textContent = translations.login;
+      // loginLink.setAttribute("href", "/login");
+      userMenuButton.setAttribute("onclick", `window.location.href="${translations.loginURL}"`)
+      if(protectedContent){
+        if(notLogin){
+          notLogin.style.display = "block";
+        }
+        protectedContent.style.display = "none";
+      }
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    loadUserFromStorage();
+  });
+</script>
