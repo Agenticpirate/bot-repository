@@ -1,0 +1,87 @@
+{
+  "slug": "bookkeeping-ap",
+  "name": "Accounts payable",
+  "tagline": "Watches what the company owes: bills in, duplicates caught, and nothing paid twice or paid late by accident.",
+  "bullets": [
+    "Intake pulls amount, due date, and supplier",
+    "Duplicates flags bills already in the ledger",
+    "Due lists what falls due this week",
+    "Cards names spend with no receipt"
+  ],
+  "category": "Bookkeeping",
+  "kind": "team",
+  "status": "installable",
+  "fromXai": false,
+  "featured": false,
+  "bots": 4,
+  "addedAt": "2026-08-21T09:00:00.000Z",
+  "connectors": [
+    "Gmail",
+    "Xero",
+    "Ramp",
+    "QuickBooks"
+  ],
+  "botRoster": [
+    {
+      "name": "AP · Intake",
+      "persona": "Finds supplier invoices in the inbox and pulls out amount, due date, and supplier. Never pays anything.",
+      "connectors": [
+        "Gmail"
+      ]
+    },
+    {
+      "name": "AP · Duplicates",
+      "persona": "Flags bills that look like one already in the ledger, by supplier, amount, and reference.",
+      "connectors": [
+        "Xero",
+        "QuickBooks"
+      ]
+    },
+    {
+      "name": "AP · Due",
+      "persona": "Lists what falls due this week and what is already late, worst first.",
+      "connectors": [
+        "Xero"
+      ]
+    },
+    {
+      "name": "AP · Cards",
+      "persona": "Reconciles Ramp card spend against submitted receipts and names what has no receipt.",
+      "connectors": [
+        "Ramp"
+      ]
+    }
+  ],
+  "rooms": [
+    {
+      "name": "Payables desk group chat",
+      "members": [
+        "AP · Intake",
+        "AP · Duplicates",
+        "AP · Due",
+        "AP · Cards"
+      ]
+    }
+  ],
+  "routines": [
+    {
+      "name": "Bill sweep",
+      "owner": "AP · Intake",
+      "schedule": "Every weekday at 09:00",
+      "prompt": "Find supplier invoices in the inbox since yesterday. Pull out amount, due date, and supplier. Never pay."
+    },
+    {
+      "name": "Due this week",
+      "owner": "AP · Due",
+      "schedule": "Every Monday at 09:30",
+      "prompt": "List bills due this week and anything already overdue, worst first."
+    }
+  ],
+  "installer": "# Grok Bot Teams installer\n\nSet up a team for me called Accounts payable Team. Create the named Bots, then the group chat, then save the routines.\nAsk me only for things you cannot see. Do not start OAuth. If a connector is missing, tell me to connect it in Settings → Plugins.\n\nFrom https://botteams.io (bookkeeping-ap). Source: https://github.com/ellelion/botteams.\n\n## 1. Create these Bots\n\nCreate each Bot below. Use the names exactly. After create, set Name, Title, and Description on the profile.\nA Bot is persistent and named. Conversation is the task; Title is the one-line job; Description holds durable rules and approvals.\n\n### Accounts payable Team - Intake Bot\nCreate this Bot. Use the name exactly.\nUses connectors (already on the account): Gmail\n\nJob:\nFinds supplier invoices in the inbox and pulls out amount, due date, and supplier. Never pays anything.\n\nAfter this Bot exists, set its profile (Bot actions → Edit Profile):\n- Name: exactly Accounts payable Team - Intake Bot\n- Title: Finds supplier invoices in the inbox and pulls out amount, due date, and supplier.\n- Description: Finds supplier invoices in the inbox and pulls out amount, due date, and supplier. Never pays anything. Never send, spend, or delete anything without my approval. Wait for a confirm card when the product shows one.\n\n### Accounts payable Team - Duplicates Bot\nCreate this Bot. Use the name exactly.\nUses connectors (already on the account): Xero, QuickBooks\n\nJob:\nFlags bills that look like one already in the ledger, by supplier, amount, and reference.\n\nAfter this Bot exists, set its profile (Bot actions → Edit Profile):\n- Name: exactly Accounts payable Team - Duplicates Bot\n- Title: Flags bills that look like one already in the ledger, by supplier, amount, and reference.\n- Description: Flags bills that look like one already in the ledger, by supplier, amount, and reference. Never send, spend, or delete anything without my approval. Wait for a confirm card when the product shows one.\n\n### Accounts payable Team - Due Bot\nCreate this Bot. Use the name exactly.\nUses connectors (already on the account): Xero\n\nJob:\nLists what falls due this week and what is already late, worst first.\n\nAfter this Bot exists, set its profile (Bot actions → Edit Profile):\n- Name: exactly Accounts payable Team - Due Bot\n- Title: Lists what falls due this week and what is already late, worst first.\n- Description: Lists what falls due this week and what is already late, worst first. Never send, spend, or delete anything without my approval. Wait for a confirm card when the product shows one.\n\n### Accounts payable Team - Cards Bot\nCreate this Bot. Use the name exactly.\nUses connectors (already on the account): Ramp\n\nJob:\nReconciles Ramp card spend against submitted receipts and names what has no receipt.\n\nAfter this Bot exists, set its profile (Bot actions → Edit Profile):\n- Name: exactly Accounts payable Team - Cards Bot\n- Title: Reconciles Ramp card spend against submitted receipts and names what has no receipt.\n- Description: Reconciles Ramp card spend against submitted receipts and names what has no receipt. Never send, spend, or delete anything without my approval. Wait for a confirm card when the product shows one.\n\n## 2. Create this group chat\n\nOpen a group chat with two to six of the Bots above. Do not add more than six.\n\n### Payables desk group chat\nMembers (4, two to six Bots): Accounts payable Team - Intake Bot, Accounts payable Team - Duplicates Bot, Accounts payable Team - Due Bot, Accounts payable Team - Cards Bot\n\n## 3. Routines (confirm card required)\n\nPing each owner Bot with the routine they own so they can save it.\nA routine is owned by one Bot, and one Bot can own up to 50 of them. A confirm card will appear. I will confirm each one.\nDo not assume a routine is saved until I confirm.\n\n### Bill sweep\nOwner Bot: Accounts payable Team - Intake Bot\nSchedule: Every weekday at 09:00\n\nPrompt to save (I will confirm the card):\nFind supplier invoices in the inbox since yesterday. Pull out amount, due date, and supplier. Never pay.\n\n### Due this week\nOwner Bot: Accounts payable Team - Due Bot\nSchedule: Every Monday at 09:30\n\nPrompt to save (I will confirm the card):\nList bills due this week and anything already overdue, worst first.\n\n## 4. Connectors and how far they go\n\nConnectors are account-wide. They must already be connected.\nIf any are missing, tell me to connect them in Settings → Plugins first.\nDo not walk an OAuth flow from this prompt.\nEvery Bot on this account can reach every connected tool. The lists above are which Bot is expected to use which, not a second OAuth and not a boundary.\n\n- Gmail: Draft. Use Gmail for drafts only. Draft the message, do not send.\n- Xero: Read. Use Xero read-only. Never move funds.\n- Ramp: Read. Use Ramp read-only. Never move funds.\n- QuickBooks: Read. Use QuickBooks read-only. Never move funds.\n\n## 5. Skills\n\nSkills live under Settings → Plugins → Yours, and they are per Bot. Reference a skill with /.\nIf a skill is already installed on the account (Settings → Plugins → Yours), use it. Enable it for this Bot if / does not show it.\nIf it is not installed, fetch or load it through the Skillselion connector using the skill id. Do not install a second copy.\nConnect the Skillselion connector only when a fetch is needed. Do not start OAuth from this prompt.\nDo not pin or hide a Bot unless I say so. Hide does not pause routines.\nIf a workflow should be demonstrated later, mention Teach a task after the first success (browser workflows).\n\n### find-skills\nhttps://skillselion.com/skills/vercel-labs/skills/find-skills\nCreator: vercel-labs\nSkill id: `skill:vercel-labs/skills#find-skills`.\nScope: every Bot on this team (team scope).\n\n### handoff\nhttps://skillselion.com/skills/mattpocock/skills/handoff\nCreator: mattpocock\nSkill id: `skill:mattpocock/skills#handoff`.\nScope: every Bot on this team (team scope).\n\n\n## 6. Also\n\nStanding instructions for every Bot on this team:\n\n- Never move money. Read the ledgers and report.\n- Never file anything with a tax authority.\n\n## Human steps\n\nThese are yours. The Bot cannot do them.\n\n- Set each Bot avatar (Bot actions → Edit Profile). Attach an image if you want a custom one.\n- Create a sidebar section named exactly: Accounts payable Team. Move the group chat and Bots into it.\n- In Settings → Plugins, disable the write tools for Gmail, Xero, Ramp, QuickBooks. That switch is account-wide and it is the only one that actually stops a write.\n- Leave notifications on: Settings → \"Get notified when this Bot finishes or needs input\".\n\n## Done when\n\n- Named Bots exist\n- Named group chat exists (\"Payables desk group chat\", two to six Bots)\n- I have created section \"Accounts payable Team\"\n- Each routine has a confirmed save (or I declined)\n- Connectors listed above are already connected\n\nUninstall: delete the Bots and group chats in the Grok Bot sidebar.\nThere is no remote uninstall from this catalog.",
+  "contributor": null,
+  "contributorUrl": null,
+  "scoutedBy": null,
+  "sourceUrl": null,
+  "url": null,
+  "detailUrl": "https://botteams.io/teams/bookkeeping-ap"
+}

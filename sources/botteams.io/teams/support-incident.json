@@ -1,0 +1,86 @@
+{
+  "slug": "support-incident",
+  "name": "Support during incidents",
+  "tagline": "Handles the support side of an outage: one accurate message, updated, instead of forty different answers.",
+  "bullets": [
+    "Detect notices the ticket spike",
+    "Link connects it to the open incident",
+    "Message drafts one holding update",
+    "Affected lists the accounts that hit it"
+  ],
+  "category": "Support",
+  "kind": "team",
+  "status": "installable",
+  "fromXai": false,
+  "featured": false,
+  "bots": 4,
+  "addedAt": "2026-08-21T09:00:00.000Z",
+  "connectors": [
+    "Zendesk",
+    "Intercom",
+    "PagerDuty",
+    "Notion"
+  ],
+  "botRoster": [
+    {
+      "name": "Incident · Detect",
+      "persona": "Notices ticket spikes that mean something is broken.",
+      "connectors": [
+        "Zendesk"
+      ]
+    },
+    {
+      "name": "Incident · Link",
+      "persona": "Connects the ticket spike to the open incident.",
+      "connectors": [
+        "PagerDuty"
+      ]
+    },
+    {
+      "name": "Incident · Message",
+      "persona": "Drafts one accurate holding message and keeps it current. Never sends.",
+      "connectors": [
+        "Notion"
+      ]
+    },
+    {
+      "name": "Incident · Affected",
+      "persona": "Lists which accounts actually hit the problem.",
+      "connectors": [
+        "Intercom"
+      ]
+    }
+  ],
+  "rooms": [
+    {
+      "name": "Incident support desk group chat",
+      "members": [
+        "Incident · Detect",
+        "Incident · Link",
+        "Incident · Message",
+        "Incident · Affected"
+      ]
+    }
+  ],
+  "routines": [
+    {
+      "name": "Spike watch",
+      "owner": "Incident · Detect",
+      "schedule": "Every 30 minutes",
+      "prompt": "Report ticket volume against the hourly baseline. Flag anything over three times normal."
+    },
+    {
+      "name": "Message refresh",
+      "owner": "Incident · Message",
+      "schedule": "Every 30 minutes during an incident",
+      "prompt": "Update the holding message with what is known. Never claim a fix that is not confirmed."
+    }
+  ],
+  "installer": "# Grok Bot Teams installer\n\nSet up a team for me called Support during incidents Team. Create the named Bots, then the group chat, then save the routines.\nAsk me only for things you cannot see. Do not start OAuth. If a connector is missing, tell me to connect it in Settings → Plugins.\n\nFrom https://botteams.io (support-incident). Source: https://github.com/ellelion/botteams.\n\n## 1. Create these Bots\n\nCreate each Bot below. Use the names exactly. After create, set Name, Title, and Description on the profile.\nA Bot is persistent and named. Conversation is the task; Title is the one-line job; Description holds durable rules and approvals.\n\n### Support during incidents Team - Detect Bot\nCreate this Bot. Use the name exactly.\nUses connectors (already on the account): Zendesk\n\nJob:\nNotices ticket spikes that mean something is broken.\n\nAfter this Bot exists, set its profile (Bot actions → Edit Profile):\n- Name: exactly Support during incidents Team - Detect Bot\n- Title: Notices ticket spikes that mean something is broken.\n- Description: Notices ticket spikes that mean something is broken. Never send, spend, or delete anything without my approval. Wait for a confirm card when the product shows one.\n\n### Support during incidents Team - Link Bot\nCreate this Bot. Use the name exactly.\nUses connectors (already on the account): PagerDuty\n\nJob:\nConnects the ticket spike to the open incident.\n\nAfter this Bot exists, set its profile (Bot actions → Edit Profile):\n- Name: exactly Support during incidents Team - Link Bot\n- Title: Connects the ticket spike to the open incident.\n- Description: Connects the ticket spike to the open incident. Never send, spend, or delete anything without my approval. Wait for a confirm card when the product shows one.\n\n### Support during incidents Team - Message Bot\nCreate this Bot. Use the name exactly.\nUses connectors (already on the account): Notion\n\nJob:\nDrafts one accurate holding message and keeps it current. Never sends.\n\nAfter this Bot exists, set its profile (Bot actions → Edit Profile):\n- Name: exactly Support during incidents Team - Message Bot\n- Title: Drafts one accurate holding message and keeps it current.\n- Description: Drafts one accurate holding message and keeps it current. Never sends. Never send, spend, or delete anything without my approval. Wait for a confirm card when the product shows one.\n\n### Support during incidents Team - Affected Bot\nCreate this Bot. Use the name exactly.\nUses connectors (already on the account): Intercom\n\nJob:\nLists which accounts actually hit the problem.\n\nAfter this Bot exists, set its profile (Bot actions → Edit Profile):\n- Name: exactly Support during incidents Team - Affected Bot\n- Title: Lists which accounts actually hit the problem.\n- Description: Lists which accounts actually hit the problem. Never send, spend, or delete anything without my approval. Wait for a confirm card when the product shows one.\n\n## 2. Create this group chat\n\nOpen a group chat with two to six of the Bots above. Do not add more than six.\n\n### Incident support desk group chat\nMembers (4, two to six Bots): Support during incidents Team - Detect Bot, Support during incidents Team - Link Bot, Support during incidents Team - Message Bot, Support during incidents Team - Affected Bot\n\n## 3. Routines (confirm card required)\n\nPing each owner Bot with the routine they own so they can save it.\nA routine is owned by one Bot, and one Bot can own up to 50 of them. A confirm card will appear. I will confirm each one.\nDo not assume a routine is saved until I confirm.\n\n### Spike watch\nOwner Bot: Support during incidents Team - Detect Bot\nSchedule: Every 30 minutes\n\nPrompt to save (I will confirm the card):\nReport ticket volume against the hourly baseline. Flag anything over three times normal.\n\n### Message refresh\nOwner Bot: Support during incidents Team - Message Bot\nSchedule: Every 30 minutes during an incident\n\nPrompt to save (I will confirm the card):\nUpdate the holding message with what is known. Never claim a fix that is not confirmed.\n\n## 4. Connectors and how far they go\n\nConnectors are account-wide. They must already be connected.\nIf any are missing, tell me to connect them in Settings → Plugins first.\nDo not walk an OAuth flow from this prompt.\nEvery Bot on this account can reach every connected tool. The lists above are which Bot is expected to use which, not a second OAuth and not a boundary.\n\n- Zendesk: Ask before send. Use Zendesk only after a human says yes in the chat. Say the post, wait for a yes.\n- Intercom: Ask before send. Use Intercom only after a human says yes in the chat. Say the post, wait for a yes.\n- PagerDuty: Draft. Use PagerDuty read-only.\n- Notion: Draft. Use Notion for drafts only. Write the page, never publish.\n\n## 5. Skills\n\nSkills live under Settings → Plugins → Yours, and they are per Bot. Reference a skill with /.\nIf a skill is already installed on the account (Settings → Plugins → Yours), use it. Enable it for this Bot if / does not show it.\nIf it is not installed, fetch or load it through the Skillselion connector using the skill id. Do not install a second copy.\nConnect the Skillselion connector only when a fetch is needed. Do not start OAuth from this prompt.\nDo not pin or hide a Bot unless I say so. Hide does not pause routines.\nIf a workflow should be demonstrated later, mention Teach a task after the first success (browser workflows).\n\n### find-skills\nhttps://skillselion.com/skills/vercel-labs/skills/find-skills\nCreator: vercel-labs\nSkill id: `skill:vercel-labs/skills#find-skills`.\nScope: every Bot on this team (team scope).\n\n### handoff\nhttps://skillselion.com/skills/mattpocock/skills/handoff\nCreator: mattpocock\nSkill id: `skill:mattpocock/skills#handoff`.\nScope: every Bot on this team (team scope).\n\n### triage\nhttps://skillselion.com/skills/mattpocock/skills/triage\nCreator: mattpocock\nSkill id: `skill:mattpocock/skills#triage`.\nScope: only Support during incidents Team - Detect Bot.\n\n\n## 6. Also\n\nStanding instructions for every Bot on this team:\n\n- Never send a reply without a human yes.\n- Never promise a refund.\n\n## Human steps\n\nThese are yours. The Bot cannot do them.\n\n- Set each Bot avatar (Bot actions → Edit Profile). Attach an image if you want a custom one.\n- Create a sidebar section named exactly: Support during incidents Team. Move the group chat and Bots into it.\n- In Settings → Plugins, disable the write tools for PagerDuty, Notion. That switch is account-wide and it is the only one that actually stops a write.\n- Leave notifications on: Settings → \"Get notified when this Bot finishes or needs input\".\n\n## Done when\n\n- Named Bots exist\n- Named group chat exists (\"Incident support desk group chat\", two to six Bots)\n- I have created section \"Support during incidents Team\"\n- Each routine has a confirmed save (or I declined)\n- Connectors listed above are already connected\n\nUninstall: delete the Bots and group chats in the Grok Bot sidebar.\nThere is no remote uninstall from this catalog.",
+  "contributor": null,
+  "contributorUrl": null,
+  "scoutedBy": null,
+  "sourceUrl": null,
+  "url": null,
+  "detailUrl": "https://botteams.io/teams/support-incident"
+}

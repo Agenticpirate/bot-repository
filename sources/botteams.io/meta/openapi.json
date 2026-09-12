@@ -1,0 +1,990 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "botteams.io API",
+    "version": "2.0.0",
+    "summary": "Read the public directory of Grok Bot teams as JSON.",
+    "description": "A team is a recipe, not a bot: named Bots, one group chat where the recipe has one, standing routines, and the connectors the account needs first.\n\nNo key, no account, no auth. CORS is open, so any HTTP client can call this directly.\n\nThere is no per-team endpoint by design. /api/teams/<slug> returns 404. Filter the collection instead.\n\nConnectors in Grok Bot are account-wide. Nothing in this payload is a permission boundary.",
+    "contact": {
+      "name": "Ellelion LLC",
+      "email": "info@ellelion.com",
+      "url": "https://botteams.io"
+    },
+    "license": {
+      "name": "MIT",
+      "identifier": "MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://botteams.io",
+      "description": "Production"
+    }
+  ],
+  "security": [],
+  "paths": {
+    "/api/teams": {
+      "get": {
+        "operationId": "listTeams",
+        "summary": "List teams",
+        "description": "Teams only: two to six Bots in one group chat. A one-Bot recipe is a bot and is never returned here. Filtered and paginated. Passing cursor switches to append-safe sync mode, which walks oldest first so a team added after your last sync always lands after your cursor.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Free text. Matches name, tagline, bullets, category, slug, connector, Bot name, contributor, and the installer prompt.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "description": "Exact category, case-insensitive. One of the sections listed on the directory.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "integration",
+            "in": "query",
+            "required": false,
+            "description": "Exact connector, case-insensitive and alias-aware. Calendar and Google Calendar match the same teams.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Page number, 1-based. Ignored in cursor mode.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Teams per page. Values outside the range clamp rather than error.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "description": "Ordering. Ignored in cursor mode, which is always oldest first.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "newest",
+                "name"
+              ],
+              "default": "newest"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Pass start to begin an append-safe sync, then follow sync.nextCursor. Switches the response envelope from pagination to sync.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of teams. The envelope carries pagination, or sync when cursor was passed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/TeamPage"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TeamSync"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The cursor did not match any team, so the sync position cannot be trusted. Start again from cursor=start.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bots": {
+      "get": {
+        "operationId": "listBots",
+        "summary": "List bots",
+        "description": "Bots only: one Bot doing one job, with no group chat. A team is never returned here. Filtered and paginated. Passing cursor switches to append-safe sync mode, which walks oldest first so a bot added after your last sync always lands after your cursor.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Free text. Matches name, tagline, bullets, category, slug, connector, Bot name, contributor, and the installer prompt.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "description": "Exact category, case-insensitive. One of the sections listed on the directory.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "integration",
+            "in": "query",
+            "required": false,
+            "description": "Exact connector, case-insensitive and alias-aware. Calendar and Google Calendar match the same teams.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Page number, 1-based. Ignored in cursor mode.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Teams per page. Values outside the range clamp rather than error.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "description": "Ordering. Ignored in cursor mode, which is always oldest first.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "newest",
+                "name"
+              ],
+              "default": "newest"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Pass start to begin an append-safe sync, then follow sync.nextCursor. Switches the response envelope from pagination to sync.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of bots. The envelope carries pagination, or sync when cursor was passed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/BotPage"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BotSync"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The cursor did not match any bot, so the sync position cannot be trusted. Start again from cursor=start.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Team": {
+        "type": "object",
+        "description": "A team: two to six Bots in one group chat.",
+        "required": [
+          "slug",
+          "name",
+          "tagline",
+          "bullets",
+          "category",
+          "kind",
+          "status",
+          "fromXai",
+          "featured",
+          "bots",
+          "addedAt",
+          "connectors",
+          "botRoster",
+          "rooms",
+          "routines",
+          "installer",
+          "contributor",
+          "contributorUrl",
+          "scoutedBy",
+          "sourceUrl",
+          "url",
+          "detailUrl"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "description": "Stable identifier. Matches the filename under teams/ and the last path segment of detailUrl."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name of the team."
+          },
+          "tagline": {
+            "type": "string",
+            "description": "One line saying what the team does."
+          },
+          "bullets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Listing-card lede. Teams have one short line per Bot. A solo Bot without a list repeats the tagline as a single item."
+          },
+          "category": {
+            "type": "string",
+            "description": "Section the team files under, and the value the category filter matches."
+          },
+          "kind": {
+            "const": "team",
+            "description": "Always team on this collection."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "installable",
+              "example"
+            ],
+            "description": "installable is a recipe to use. example is a format demonstration."
+          },
+          "fromXai": {
+            "type": "boolean",
+            "description": "True when the recipe is our write-up of a job published in xAI's own Grok Bot use-case gallery. Sourcing, not endorsement: xAI does not review or certify anything on this directory."
+          },
+          "featured": {
+            "type": "boolean",
+            "description": "True when this team is pinned first on the public index."
+          },
+          "bots": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Number of Bots. Always equal to botRoster.length, and always 1 on a bot."
+          },
+          "addedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Date stated in the team file. Never inferred. Null when the file does not state one, and those sort last."
+          },
+          "connectors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Connectors the account must already have. Connectors are account-wide in Grok Bot."
+          },
+          "botRoster": {
+            "type": "array",
+            "description": "The Bots this team creates. One entry per Bot.",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "persona",
+                "connectors"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Bot name, used exactly."
+                },
+                "persona": {
+                  "type": "string",
+                  "description": "The Bot's job, in a sentence."
+                },
+                "connectors": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Which connectors this Bot is expected to use. Not a permission: every Bot on an account can reach every connected tool."
+                }
+              }
+            }
+          },
+          "rooms": {
+            "type": "array",
+            "description": "Group chats. A group chat holds two to six Bots. A bot has none, so this is empty on every item from /api/bots.",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "members"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Group chat name."
+                },
+                "members": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 2,
+                  "maxItems": 6,
+                  "description": "Bot names in the group chat."
+                }
+              }
+            }
+          },
+          "routines": {
+            "type": "array",
+            "description": "Standing routines. Each is owned by one Bot and needs a human to confirm the save.",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "owner",
+                "schedule",
+                "prompt"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Routine name."
+                },
+                "owner": {
+                  "type": "string",
+                  "description": "Bot that owns it."
+                },
+                "schedule": {
+                  "type": "string",
+                  "description": "When it runs, in words."
+                },
+                "prompt": {
+                  "type": "string",
+                  "description": "The prompt a human confirms."
+                }
+              }
+            }
+          },
+          "installer": {
+            "type": "string",
+            "description": "The full installer prompt, ready to paste into Grok Bot. This is the product: a client never has to scrape the site for it."
+          },
+          "contributor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Handle of whoever contributed the team."
+          },
+          "contributorUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Profile URL for the contributor."
+          },
+          "scoutedBy": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Who found the team, when that is not the contributor."
+          },
+          "sourceUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The post the team was based on."
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Canonical homepage for the team, when it has one."
+          },
+          "detailUrl": {
+            "type": "string",
+            "description": "Page for this team on the directory."
+          }
+        }
+      },
+      "Bot": {
+        "type": "object",
+        "description": "A bot: one Bot doing one job, with no group chat. Never Verified, because Verified is a claim about a group chat.",
+        "required": [
+          "slug",
+          "name",
+          "tagline",
+          "bullets",
+          "category",
+          "kind",
+          "status",
+          "fromXai",
+          "featured",
+          "bots",
+          "addedAt",
+          "connectors",
+          "botRoster",
+          "rooms",
+          "routines",
+          "installer",
+          "contributor",
+          "contributorUrl",
+          "scoutedBy",
+          "sourceUrl",
+          "url",
+          "detailUrl"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "description": "Stable identifier. Matches the filename under teams/ and the last path segment of detailUrl."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name of the team."
+          },
+          "tagline": {
+            "type": "string",
+            "description": "One line saying what the team does."
+          },
+          "bullets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Listing-card lede. Teams have one short line per Bot. A solo Bot without a list repeats the tagline as a single item."
+          },
+          "category": {
+            "type": "string",
+            "description": "Section the team files under, and the value the category filter matches."
+          },
+          "kind": {
+            "const": "bot",
+            "description": "Always bot on this collection."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "installable",
+              "example"
+            ],
+            "description": "installable is a recipe to use. example is a format demonstration."
+          },
+          "fromXai": {
+            "type": "boolean",
+            "description": "True when the recipe is our write-up of a job published in xAI's own Grok Bot use-case gallery. Sourcing, not endorsement: xAI does not review or certify anything on this directory."
+          },
+          "featured": {
+            "type": "boolean",
+            "description": "True when this team is pinned first on the public index."
+          },
+          "bots": {
+            "const": 1,
+            "description": "A bot is one Bot."
+          },
+          "addedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Date stated in the team file. Never inferred. Null when the file does not state one, and those sort last."
+          },
+          "connectors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Connectors the account must already have. Connectors are account-wide in Grok Bot."
+          },
+          "botRoster": {
+            "type": "array",
+            "description": "The Bots this team creates. One entry per Bot.",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "persona",
+                "connectors"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Bot name, used exactly."
+                },
+                "persona": {
+                  "type": "string",
+                  "description": "The Bot's job, in a sentence."
+                },
+                "connectors": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Which connectors this Bot is expected to use. Not a permission: every Bot on an account can reach every connected tool."
+                }
+              }
+            }
+          },
+          "rooms": {
+            "type": "array",
+            "maxItems": 0,
+            "description": "Always empty. A bot has no group chat."
+          },
+          "routines": {
+            "type": "array",
+            "description": "Standing routines. Each is owned by one Bot and needs a human to confirm the save.",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "owner",
+                "schedule",
+                "prompt"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Routine name."
+                },
+                "owner": {
+                  "type": "string",
+                  "description": "Bot that owns it."
+                },
+                "schedule": {
+                  "type": "string",
+                  "description": "When it runs, in words."
+                },
+                "prompt": {
+                  "type": "string",
+                  "description": "The prompt a human confirms."
+                }
+              }
+            }
+          },
+          "installer": {
+            "type": "string",
+            "description": "The full installer prompt, ready to paste into Grok Bot. This is the product: a client never has to scrape the site for it."
+          },
+          "contributor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Handle of whoever contributed the team."
+          },
+          "contributorUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Profile URL for the contributor."
+          },
+          "scoutedBy": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Who found the team, when that is not the contributor."
+          },
+          "sourceUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The post the team was based on."
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Canonical homepage for the team, when it has one."
+          },
+          "detailUrl": {
+            "type": "string",
+            "description": "Page for this team on the directory."
+          }
+        }
+      },
+      "Filters": {
+        "type": "object",
+        "description": "The filters the server actually applied, echoed back.",
+        "required": [
+          "q",
+          "category",
+          "integration",
+          "sort"
+        ],
+        "properties": {
+          "q": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The free text that was applied, or null."
+          },
+          "category": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The category that was applied, or null."
+          },
+          "integration": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The connector that was applied, or null."
+          },
+          "sort": {
+            "type": "string",
+            "description": "The sort actually used. Cursor mode always reports oldest."
+          }
+        }
+      },
+      "Links": {
+        "type": "object",
+        "required": [
+          "self",
+          "next",
+          "previous"
+        ],
+        "properties": {
+          "self": {
+            "type": "string",
+            "description": "This request."
+          },
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Next page, or null at the end."
+          },
+          "previous": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Previous page, or null at the start. Always null in cursor mode."
+          }
+        }
+      },
+      "TeamPage": {
+        "type": "object",
+        "description": "Page envelope for /api/teams. Returned when cursor was not passed.",
+        "required": [
+          "version",
+          "teams",
+          "pagination",
+          "filters",
+          "links"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "description": "Envelope version. Bumped only for a breaking change."
+          },
+          "teams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Team"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "required": [
+              "page",
+              "limit",
+              "total",
+              "totalPages",
+              "hasNext",
+              "hasPrevious"
+            ],
+            "properties": {
+              "page": {
+                "type": "integer"
+              },
+              "limit": {
+                "type": "integer"
+              },
+              "total": {
+                "type": "integer",
+                "description": "Items matching the filters, across all pages."
+              },
+              "totalPages": {
+                "type": "integer"
+              },
+              "hasNext": {
+                "type": "boolean"
+              },
+              "hasPrevious": {
+                "type": "boolean"
+              }
+            }
+          },
+          "filters": {
+            "$ref": "#/components/schemas/Filters"
+          },
+          "links": {
+            "$ref": "#/components/schemas/Links"
+          }
+        }
+      },
+      "TeamSync": {
+        "type": "object",
+        "description": "Sync envelope for /api/teams. Returned when cursor was passed.",
+        "required": [
+          "version",
+          "teams",
+          "sync",
+          "filters",
+          "links"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "teams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Team"
+            }
+          },
+          "sync": {
+            "type": "object",
+            "required": [
+              "returned",
+              "hasMore",
+              "nextCursor"
+            ],
+            "properties": {
+              "returned": {
+                "type": "integer",
+                "description": "Items in this response."
+              },
+              "hasMore": {
+                "type": "boolean"
+              },
+              "nextCursor": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Pass as cursor on the next call. Null at the end."
+              }
+            }
+          },
+          "filters": {
+            "$ref": "#/components/schemas/Filters"
+          },
+          "links": {
+            "$ref": "#/components/schemas/Links"
+          }
+        }
+      },
+      "BotPage": {
+        "type": "object",
+        "description": "Page envelope for /api/bots. Returned when cursor was not passed.",
+        "required": [
+          "version",
+          "bots",
+          "pagination",
+          "filters",
+          "links"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "description": "Envelope version. Bumped only for a breaking change."
+          },
+          "bots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Bot"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "required": [
+              "page",
+              "limit",
+              "total",
+              "totalPages",
+              "hasNext",
+              "hasPrevious"
+            ],
+            "properties": {
+              "page": {
+                "type": "integer"
+              },
+              "limit": {
+                "type": "integer"
+              },
+              "total": {
+                "type": "integer",
+                "description": "Items matching the filters, across all pages."
+              },
+              "totalPages": {
+                "type": "integer"
+              },
+              "hasNext": {
+                "type": "boolean"
+              },
+              "hasPrevious": {
+                "type": "boolean"
+              }
+            }
+          },
+          "filters": {
+            "$ref": "#/components/schemas/Filters"
+          },
+          "links": {
+            "$ref": "#/components/schemas/Links"
+          }
+        }
+      },
+      "BotSync": {
+        "type": "object",
+        "description": "Sync envelope for /api/bots. Returned when cursor was passed.",
+        "required": [
+          "version",
+          "bots",
+          "sync",
+          "filters",
+          "links"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "bots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Bot"
+            }
+          },
+          "sync": {
+            "type": "object",
+            "required": [
+              "returned",
+              "hasMore",
+              "nextCursor"
+            ],
+            "properties": {
+              "returned": {
+                "type": "integer",
+                "description": "Items in this response."
+              },
+              "hasMore": {
+                "type": "boolean"
+              },
+              "nextCursor": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Pass as cursor on the next call. Null at the end."
+              }
+            }
+          },
+          "filters": {
+            "$ref": "#/components/schemas/Filters"
+          },
+          "links": {
+            "$ref": "#/components/schemas/Links"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "version",
+          "error",
+          "cursor"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string",
+            "description": "What went wrong, in words."
+          },
+          "cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The cursor that was rejected."
+          }
+        }
+      }
+    }
+  }
+}
