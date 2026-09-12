@@ -9,8 +9,8 @@ This repository is a mirror for research and citation. **Canonical pages live on
 | Item | Status |
 | --- | ---: |
 | **catalog.json rows** | **219,578** |
-| **skills.sh downloaded** (files + hash) | **3,128** / 19,998 |
-| **skills.sh remaining** | **16,832** |
+| **skills.sh downloaded** (files + hash) | **3,178** / 19,998 |
+| **skills.sh remaining** | **16,782** |
 | skills.sh API cap | 60/hour (client budget 50/batch) |
 | SkillsMP SKILL.md (search GitHub raw + sitemap raw) | 1,957 + 1,695 |
 | souls.directory SOUL.md | 910 on disk (789 cataloged) |
@@ -367,7 +367,7 @@ Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/A
 
 ## Caps / failures
 
-- **skills.sh** — full skill files via the download API (`files/` + hash). The API allows 60 requests/hour; **3,128** downloaded, **16,832** remaining. Resume via `scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`.
+- **skills.sh** — full skill files via the download API (`files/` + hash). The API allows 60 requests/hour; **3,178** downloaded, **16,782** remaining. Resume via `scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`.
 - **souls.directory** — public `GET /api/souls/{handle}/{slug}.md`; **910** SOUL.md on disk. Many remaining API URLs 404/empty.
 - **openclawskills.io** — Next.js gallery; sitemap has no per-skill URLs. `github.com/openclaw/skills` is not a public repo.
 - **claude-skills-latest** — Skillselion `updatedAt` is a reindex stamp, so createdAt **or** updatedAt ≥ 2026-07-14 matches all **60,442** live skills. True `createdAt` in-window: **2,378** (**1,466** with files). Catalog: **62,817** rows, **11,049** `has_content`. skills.sh download API still 60/hour.
