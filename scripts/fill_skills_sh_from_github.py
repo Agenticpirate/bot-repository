@@ -836,6 +836,27 @@ def process_repo(owner_repo: str, items: list[dict], token: str, local_only: boo
             "pending": len(pending),
         }
 
+    if len(pending) <= 3:
+        probed = raw_probe(owner, repo, pending)
+        leftover = [i for i in pending if i["id"] in set(probed["missed"])]
+        if not leftover:
+            return {
+                "repo": owner_repo,
+                "filled": probed["filled"],
+                "missed": 0,
+                "via": "github-raw-probe",
+                "pending": len(pending),
+            }
+        cloned = _clone_extract(owner, repo, leftover, token)
+        return {
+            "repo": owner_repo,
+            "filled": probed["filled"] + cloned["filled"],
+            "missed": len(cloned["missed"]),
+            "via": f"raw+{cloned['via']}",
+            "pending": len(pending),
+            "miss_ids": cloned["missed"][:20],
+        }
+
     cloned = _clone_extract(owner, repo, pending, token)
     return {
         "repo": owner_repo,
@@ -979,6 +1000,11 @@ def main() -> int:
     parser.add_argument("--max-repos", type=int, default=0, help="0 = all pending repos")
     parser.add_argument("--local-only", action="store_true")
     parser.add_argument("--skip-local", action="store_true")
+    parser.add_argument(
+        "--raw-leftovers",
+        action="store_true",
+        help="probe remaining slugs via raw.githubusercontent.com only (includes already-cloned repos)",
+    )
     parser.add_argument("--update-catalog", action="store_true")
     parser.add_argument("--reports-only", action="store_true")
     parser.add_argument("--min-skills", type=int, default=0, help="only repos with at least N pending")
@@ -987,7 +1013,7 @@ def main() -> int:
 
     grouped = load_pending()
     skip_404 = load_miss_repos()
-    skip_done = load_done_repos()
+    skip_done = set() if args.raw_leftovers else load_done_repos()
     repos = sorted(grouped.items(), key=lambda kv: (-len(kv[1]), kv[0]))
     if skip_404:
         repos = [r for r in repos if r[0] not in skip_404]
@@ -1030,6 +1056,17 @@ def main() -> int:
     def work(pair: tuple[str, list[dict]]) -> dict:
         owner_repo, items = pair
         try:
+            if args.raw_leftovers:
+                owner, repo = owner_repo.split("/", 1)
+                pending = [i for i in items if not has_files(i["dest"])]
+                probed = raw_probe(owner, repo, pending)
+                return {
+                    "repo": owner_repo,
+                    "filled": probed["filled"],
+                    "missed": len(probed["missed"]),
+                    "via": probed["via"],
+                    "pending": len(pending),
+                }
             return process_repo(owner_repo, items, token, args.local_only)
         except Exception as exc:  # noqa: BLE001
             return {
