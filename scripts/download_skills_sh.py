@@ -404,21 +404,53 @@ def update_catalog(content: dict[str, dict]) -> int:
     return updated
 
 
+def count_filled_by_source() -> dict[str, int]:
+    """Count hashed downloads by meta.source (github-clone vs skills.sh API)."""
+    github = api = other = 0
+    if SKILLS_DIR.exists():
+        for meta_path in SKILLS_DIR.rglob("meta.json"):
+            dest = meta_path.parent
+            if not already_downloaded(dest):
+                continue
+            meta = read_meta(dest) or {}
+            src = str(meta.get("source") or "")
+            if src == "github-clone":
+                github += 1
+            elif src == "skills.sh":
+                api += 1
+            else:
+                other += 1
+    return {"github_clone": github, "skills_sh_api": api, "other": other}
+
+
 def write_reports(stats: dict, failed: list[dict], remaining: int) -> None:
     write_json(STATS_PATH, stats)
     ok = stats.get("downloaded_ok", 0)
     html_n = stats.get("html_fallback_404", 0)
     fail_n = stats.get("failed", 0)
+    github_n = stats.get("github_filled", stats.get("github_clone"))
+    api_n = stats.get("api_filled", stats.get("skills_sh_api"))
+    if github_n is None or api_n is None:
+        filled = count_filled_by_source()
+        github_n = filled["github_clone"] if github_n is None else github_n
+        api_n = filled["skills_sh_api"] if api_n is None else api_n
+        stats["github_filled"] = github_n
+        stats["api_filled"] = api_n
+        stats["other_filled"] = filled["other"]
+        write_json(STATS_PATH, stats)
     lines = [
         "# skills.sh",
         "",
         "Public agent-skills registry (Vercel). Full skill file contents via "
-        "`GET /api/download/{owner}/{repo}/{slug}` (`{files, hash}`).",
+        "`GET /api/download/{owner}/{repo}/{slug}` (`{files, hash}`), "
+        "plus GitHub shallow-clone fill for the rest.",
         "",
         f"- Last updated: {stats.get('updated_at')}",
         f"- Skill URLs in sitemap: {stats.get('sitemap_urls')}",
         f"- Unique ids: {stats.get('unique_ids')}",
         f"- Downloaded OK (files/ + hash): {ok}",
+        f"- Filled via GitHub clone: {github_n}",
+        f"- Filled via skills.sh API: {api_n}",
         f"- Permanent API 404 + page HTML fallback: {html_n}",
         f"- Failed: {fail_n}",
         f"- Remaining (no files/ yet): {remaining}",
@@ -428,7 +460,8 @@ def write_reports(stats: dict, failed: list[dict], remaining: int) -> None:
         "",
         "Each skill lives at `skills/<owner>/<repo>/<slug>/{meta.json,files/}`.",
         "Per-skill HTML is saved only for permanent download misses (HTTP 404), not for 429s.",
-        "Re-run `scripts/download_skills_sh.py` to resume; already-hashed trees are skipped.",
+        "Fast path: `scripts/fill_skills_sh_from_github.py` (shallow clone / Git Trees).",
+        "Re-run `scripts/download_skills_sh.py` only for leftovers; already-hashed trees are skipped.",
     ]
     write_text(INDEX_PATH, "\n".join(lines))
 
@@ -445,8 +478,8 @@ def write_reports(stats: dict, failed: list[dict], remaining: int) -> None:
         "",
         f"Target is all {stats.get('sitemap_urls')} sitemap ids. "
         f"{ok} have full `files/` + hash. {remaining} remain.",
-        "At 50 successful downloads/hour this is a multi-day resume job. "
-        "The downloader is resume-friendly and stays under the cap.",
+        "Prefer `scripts/fill_skills_sh_from_github.py` for bulk fill. "
+        "This API client is only for leftovers and stays under the 60/hour cap.",
         "",
         "## Permanent misses",
         "",
