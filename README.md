@@ -77,6 +77,7 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [agensi.io](https://www.agensi.io/grok-bot-marketplace) — grok marketplace HTML + skill sitemap URLs
 - [claude.com / code.claude.com docs](https://code.claude.com/docs/en/plugins-reference) — official plugin + marketplace docs (HTML/MD)
 - [claude.com/product/cowork](https://claude.com/product/cowork) — Cowork product, plugin guide, blog, /plugins directory
+- Muse hunt — no public Muse Grok gallery; see [docs/muse-research.md](docs/muse-research.md)
 - [cursor.directory](https://cursor.directory/) — **429** this host
 - [marketplace.relevanceai.com](https://marketplace.relevanceai.com/) — sitemap URL list
 - [sigrix.io/marketplace/crews](https://sigrix.io/marketplace/crews) — listing HTML
@@ -85,7 +86,7 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [make.com](https://www.make.com/api/v2/templates/public) — API 401 (login)
 - Activepieces `/v1/templates` — HTML app shell, not JSON
 
-Notes and leftovers: [docs/source-candidates.md](docs/source-candidates.md), [docs/source-candidates-batch2.md](docs/source-candidates-batch2.md), [docs/claude-ecosystem-sources.md](docs/claude-ecosystem-sources.md).
+Notes and leftovers: [docs/source-candidates.md](docs/source-candidates.md), [docs/source-candidates-batch2.md](docs/source-candidates-batch2.md), [docs/claude-ecosystem-sources.md](docs/claude-ecosystem-sources.md), [docs/muse-research.md](docs/muse-research.md).
 
 ## Attribution
 
@@ -128,6 +129,7 @@ sources/skillselion.com/
 sources/claude-plugins.dev/
 sources/claude.com-docs/
 sources/claude.com-cowork/
+sources/muse-research/
 sources/agentskill.sh/
 sources/clawhub.ai/
 sources/agensi.io/
@@ -204,6 +206,7 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | github/anthropics-financial-services | 324 |
 | github/anthropics-healthcare | 127 |
 | github/anthropics-claude-tag-plugins | 82 |
+| muse-research | 4 |
 | github/khendzel-awesome-agent-skills | 3 |
 | github/mergisi-awesome-openclaw-agents | 402 |
 | github/michielhdoteth-awesome-ai-agent-tools | 133 |

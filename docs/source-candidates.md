@@ -45,6 +45,7 @@ Do not invent serials or scrape private data.
 | [code.claude.com plugin docs](https://code.claude.com/docs/en/plugins-reference) | HTML + MD snapshots | Official marketplaces listed in plugin-marketplaces.md. |
 | [claude.com/product/cowork](https://claude.com/product/cowork) | HTML snapshots | Product, overview, plugins guide, blog, /plugins. |
 | Claude Code/Cowork extra packs | GitHub shallow clones | See [claude-ecosystem-sources.md](claude-ecosystem-sources.md): official financial/life-sciences/healthcare/tag/commerce + awesome-claude-* galleries + CLAUDE.md templates. |
+| Muse hunt | [muse-research.md](muse-research.md) + `sources/muse-research/` | No Muse Grok gallery; AgentForge/ClaudeMarket/muse.ai disambiguation only. |
 
 ## Possible later
 

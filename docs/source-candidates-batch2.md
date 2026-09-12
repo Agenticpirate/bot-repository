@@ -41,6 +41,8 @@ Second ingest list. Priority A is archived on `main`. B–D are attempted in fol
 | anthropics/claude-for-legal | Official legal plugins (294 rows). |
 | alexclowe/awesome-claude-cowork-plugins | Cowork profession plugins (409 rows). |
 | code.claude.com + claude.com/cowork | Official docs/product HTML+MD snapshots. |
+| Extra Claude galleries + official kits | See claude-ecosystem-sources.md (ComposioHQ, hesreallyhim, wshobson, financial-services, …). |
+| Muse | No gallery; docs/muse-research.md. |
 | khendzel/awesome-agent-skills | Shallow clone, 3 rows. |
 | mergisi/awesome-openclaw-agents | Shallow clone, 402 rows. |
 | michielhdoteth/awesome-ai-agent-tools | Shallow clone, 133 rows. |
