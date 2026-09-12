@@ -1,12 +1,12 @@
 # skills.sh errors
 
-Updated: 2026-09-12T12:55:36Z
+Updated: 2026-09-12T13:01:11Z
 
 ## Rate limit
 
 Live `GET /api/download/{owner}/{repo}/{slug}` returns HTTP 429 `{"error":"rate_limit_exceeded","message":"Rate limit exceeded. Maximum 60 requests per hour."}` with `Retry-After: 60`.
 
-Target is all 19998 sitemap ids. 685 have full `files/` + hash. 19302 remain.
+Target is all 19998 sitemap ids. 735 have full `files/` + hash. 19252 remain.
 At 50 successful downloads/hour this is a multi-day resume job. The downloader is resume-friendly and stays under the cap.
 
 ## Permanent misses
