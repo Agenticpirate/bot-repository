@@ -1,0 +1,539 @@
+{
+  "id": 15507,
+  "name": "Generate YouTube chapter timestamps and community posts using WayinVideo and GPT-4o-mini",
+  "description": "### Description\n\nSubmit any YouTube tutorial or how-to video URL along with your section search query and the workflow finds all the key moments automatically. WayinVideo's Find Moments API scans the full video and returns up to 15 section timestamps, which are then sorted chronologically and sent to GPT-4o-mini in one call to complete three tasks: generate clean chapter timestamps starting with 0:00, write a 3–4 sentence video description block, and write a 100–150 word YouTube Community post with the full timestamp list embedded. Everything is saved as one row in Google Sheets with Status set to Ready — ready to copy and paste directly into YouTube. Built for YouTube creators, educators, and content teams who publish long tutorial videos and want chapter timestamps and a Community post generated automatically without manual scrubbing.\n\n---\n\n## What This Workflow Does\n\n- **Finds up to 15 section moments per video** — WayinVideo's Find Moments API scans the full tutorial based on your search query and returns timestamped moments with titles and descriptions\n- **Sorts all moments chronologically** — All returned moments are sorted by start time before being sent to GPT so the chapter list is always in the correct viewing order\n- **Generates formatted chapter timestamps** — GPT writes clean 3–6 word chapter titles for every moment with exact MM:SS values, always starting with 0:00 Introduction\n- **Writes a video description block** — A 3–4 sentence description introduces the video, mentions what viewers will learn, and includes the video URL\n- **Creates a YouTube Community post with timestamps embedded** — A 100–150 word post hooks the audience, highlights 2–3 things they will learn, embeds the full chapter list, and ends with a CTA and hashtags\n- **Saves everything in one Google Sheets row** — Formatted timestamps, description block, Community post, hashtags, total chapter count, total moments found, and estimated duration are all in one row per video\n- **Polls automatically until moments are ready** — Waits 90 seconds then checks every 30 seconds until WayinVideo finishes scanning the video\n\n---\n\n## Setup Requirements\n\n### Tools Needed\n- n8n instance (self-hosted or cloud)\n- WayinVideo account with API access\n- OpenAI account with GPT-4o-mini API access\n- Google Sheets (one sheet with a tab named **Timestamp Library**)\n\n### Credentials Required\n- WayinVideo API key (pasted into **2. WayinVideo — Submit Find Moments** and **4. WayinVideo — Get Moments Results**)\n- OpenAI API key\n- Google Sheets OAuth2\n\n&gt; ⚠️ **WayinVideo API key appears in 2 steps** — replace `YOUR_WAYINVIDEO_API_KEY` in both **2. WayinVideo — Submit Find Moments** and **4. WayinVideo — Get Moments Results**. Missing either one will cause the workflow to fail.\n\n**Estimated Setup Time: 15–20 minutes**\n\n---\n\n## Step-by-Step Setup\n\n1. **Import the workflow** — Open n8n → Workflows → Import from JSON → paste the workflow JSON → click Import\n\n2. **Get your WayinVideo API key** — Log in to your WayinVideo account → go to Account Settings → copy your API key\n\n3. **Add your WayinVideo API key to node 2** — Open node **2. WayinVideo — Submit Find Moments** → find the `Authorization` header value `Bearer YOUR_WAYINVIDEO_API_KEY` → replace `YOUR_WAYINVIDEO_API_KEY` with your actual key\n\n4. **Add your WayinVideo API key to node 4** — Open node **4. WayinVideo — Get Moments Results** → find the same `Authorization` header → replace `YOUR_WAYINVIDEO_API_KEY` with the same key\n\n5. **Connect OpenAI** — Open node **9. OpenAI — GPT-4o-mini Model** → click the credential dropdown → add your OpenAI API key → test the connection\n\n6. **Create your Google Sheet tab** — Open your Google Sheet → add a tab named exactly **Timestamp Library** → add these 13 column headers in row 1: `Video URL`, `Video Title`, `Channel Name`, `Video Category`, `Total Chapters`, `Total Moments Found`, `Video Duration (min)`, `Formatted Timestamps`, `Video Description Block`, `Community Post`, `Hashtags`, `Generated On`, `Status`\n\n7. **Get your Google Sheet ID** — Open your Google Sheet in a browser → copy the string between `/d/` and `/edit` in the URL — this is your Sheet ID\n\n8. **Connect Google Sheets** — Open node **11. Google Sheets — Save Timestamp Library** → click the document field → replace `YOUR_GOOGLE_SHEET_ID` by selecting your spreadsheet or entering the Sheet ID manually → click the credential dropdown → add Google Sheets OAuth2 → authorize access\n\n9. **Activate the workflow** — Toggle the workflow to Active → copy the Form URL from node **1. Form — Video URL + Details** → open it in a browser to submit your first video\n\n---\n\n## How It Works (Step by Step)\n\n**Step 1 — Form: Video URL + Details**\nYou open the form URL in a browser and fill in six fields: the YouTube video URL, the video title, your channel name, the video category (e.g. SEO Tutorial, Python Course), the target audience, and the section search query. The search query is the most important field — it tells WayinVideo what kind of moments to find. For a tutorial, a good query might be \"step by step tutorial section\" or \"topic introduction and explanation\".\n\n**Step 2 — HTTP: WayinVideo — Submit Find Moments**\nThe video URL and search query are sent to WayinVideo's Find Moments API. The request asks for up to 15 matching moments with export disabled. A project name is auto-generated from the video title. WayinVideo accepts the job and returns a task ID.\n\n**Step 3 — Wait: 90 Seconds**\nThe workflow pauses 90 seconds before the first status check, giving WayinVideo time to scan the full video.\n\n**Step 4 — HTTP: WayinVideo — Get Moments Results**\nA GET request checks the find-moments results endpoint using the task ID from step 2. It returns the current processing status and, once complete, the full clips array with title, description, timestamp, relevance score, and tags for each matched moment.\n\n**Step 5 — IF: Find Moments Complete?**\nThis is the polling gate. If the status equals `SUCCEEDED` (YES path), the moments are ready and the workflow moves forward to sorting and aggregation. If still processing (NO path), the workflow routes to **6. Wait — 30 Seconds Retry** which pauses 30 seconds then loops back to step 4. This repeats until SUCCEEDED.\n\n**Step 6 — Wait: 30 Seconds Retry**\nWhen results are not yet ready, the workflow waits 30 seconds then returns to step 4 for another check. The loop continues automatically.\n\n**Step 7 — Code: Collect + Sort All Moments**\nAll moments from WayinVideo are sorted by start time in ascending order — chronological, not by relevance score — so the timestamps reflect the actual order they appear in the video. Each moment is formatted as `Moment N: [MM:SS] Title — Description` and joined into a single text block for GPT. Total moment count and estimated video duration are also calculated. This step produces one single output for GPT — not one per moment — which is what allows GPT to see all timestamps at once and generate a coherent chapter list.\n\n**Step 8 — AI Agent: Generate Timestamps + Post**\nGPT-4o-mini receives the complete sorted moments list and the full video context. It completes three tasks in one call. Task 1: generate formatted chapter timestamps using the exact MM:SS values from WayinVideo, adding 0:00 Introduction at the top, with clean 3–6 word chapter titles per line. Task 2: write a 3–4 sentence video description block that introduces the video, mentions what viewers will learn, references the chapters below, and includes the video URL. Task 3: write a 100–150 word YouTube Community post with a scroll-stopping hook, 2–3 specific learning points from the video, the full timestamp list embedded in the post body, a CTA to watch and comment, and 3–5 relevant hashtags. The output uses five labeled sections.\n\n**Step 9 — OpenAI: GPT-4o-mini Model**\nThis is the language model powering the three-task generation. It runs with default settings for accurate, structured output.\n\n**Step 10 — Code: Parse Timestamps Output**\nAll five labeled sections are extracted from the AI output using regex: FORMATTED_TIMESTAMPS, VIDEO_DESCRIPTION_BLOCK, COMMUNITY_POST, HASHTAGS, and TOTAL_CHAPTERS. If the timestamps section is empty, the step throws a clear error. All video metadata from step 7 is also packaged for the sheet row.\n\n**Step 11 — Google Sheets: Save Timestamp Library**\nOne row is appended to your Timestamp Library tab with all 13 columns: video URL, video title, channel name, video category, total chapters, total moments found, estimated duration, formatted timestamps, video description block, Community post, hashtags, generation timestamp, and Status set to Ready. All three deliverables — timestamps, description, and Community post — are available in one row ready to copy and paste.\n\n---\n\n## Key Features\n\n✅ **Up to 15 moments per video** — The highest limit used across the WayinVideo workflow series — suited to longer tutorial videos with many distinct sections\n✅ **Chronological sort before GPT** — All moments are sorted by start time before being sent to GPT so the chapter list is always in viewing order — not relevance order\n✅ **Three outputs in one GPT call** — Chapter timestamps, video description block, and Community post are all generated together — saving API cost and ensuring they are all written from the same context\n✅ **Community post includes timestamps embedded** — The Community post does not just mention the video — it includes the full chapter list inside the post body so viewers see exactly what is covered\n✅ **0:00 Introduction always added** — GPT is instructed to start every chapter list with a 0:00 Introduction entry even if no moment was found at the very beginning\n✅ **Total chapter count logged** — The sheet records the exact number of chapters generated so you can compare across videos without opening each timestamp block\n✅ **One row per video — all deliverables in one place** — Every field you need is in a single sheet row so your team can copy timestamps, description, and Community post without switching between files\n\n---\n\n## Customisation Options\n\n**Increase the number of moments returned** — In node **2. WayinVideo — Submit Find Moments**, the limit is already set to the maximum of 15 — if your video has very densely packed sections, try a more specific search query to get the most relevant moments within that limit.\n\n**Add a retry limit to stop infinite polling** — Before node **6. Wait — 30 Seconds Retry**, add a Set step that increments a poll counter, then add a second IF check to stop after 15 polls and send a Gmail error notification instead of looping indefinitely.\n\n**Send the three outputs to Gmail for quick review** — After node **11. Google Sheets — Save Timestamp Library**, add a Gmail step that sends the formatted timestamps, description block, and Community post as one plain-text email so you can review and copy directly from your inbox.\n\n**Add a Slack notification when timestamps are ready** — After node **11. Google Sheets — Save Timestamp Library**, add a Slack step that posts the video title, total chapter count, and a link to the Timestamp Library sheet to a `#youtube-content` channel so your team knows a new set of timestamps is ready.\n\n**Use the description block to update a Google Doc** — After node **11. Google Sheets — Save Timestamp Library**, add a Google Docs append step that writes the video title, formatted timestamps, and description block to a running video notes document — building a permanent formatted archive of all your video descriptions.\n\n---\n\n## Troubleshooting\n\n**Form submission not starting the workflow:**\n- Confirm the workflow is Active — inactive workflows do not receive form submissions\n- Copy the Form URL fresh from node **1. Form — Video URL + Details** after activating — URLs copied before activation will not work\n- Make sure all six fields are filled in — all are marked required\n\n**WayinVideo returning an error on submission:**\n- Confirm `YOUR_WAYINVIDEO_API_KEY` in node **2. WayinVideo — Submit Find Moments** is replaced with your actual API key — not the placeholder\n- Confirm the same replacement was made in node **4. WayinVideo — Get Moments Results** — both steps require the key\n- Check the execution log of node 2 for the raw error — a 401 means wrong key, a 422 means the URL or request format is invalid\n\n**No moments found or workflow stuck in polling loop:**\n- Check that the YouTube video URL is publicly accessible — private, unlisted-with-login, or removed videos will not be processed\n- The section search query may be too vague — try more descriptive phrases like \"tutorial step and code demo\" instead of just \"tutorial\"\n- Open the execution log of node **4. WayinVideo — Get Moments Results** and inspect the raw response — WayinVideo may have returned FAILED with a specific error\n- If the loop runs indefinitely, deactivate the workflow, fix the URL or query, and resubmit\n\n**GPT not generating all five sections:**\n- Confirm the API key is connected in node **9. OpenAI — GPT-4o-mini Model** and your account has available credits\n- Check the execution log of node **8. AI Agent — Generate Timestamps + Post** for the raw GPT output — if the FORMATTED_TIMESTAMPS section is missing, node **10. Code — Parse Timestamps Output** throws an error\n- If the moments list passed to GPT is very long (15 moments with long descriptions), the combined prompt may push against token limits — this is rare but can be resolved by using a slightly shorter search query to get fewer moments\n\n**Google Sheets not saving the row:**\n- Confirm `YOUR_GOOGLE_SHEET_ID` in node **11. Google Sheets — Save Timestamp Library** is replaced with your actual sheet ID from the URL\n- Confirm the tab is named **Timestamp Library** exactly and all 13 column headers in row 1 match exactly\n- Check that the Google Sheets OAuth2 credential is connected and not expired — re-authorize if needed\n\n---\n\n## Support\n\nNeed help setting this up or want a custom version built for your team or agency?\n\n📧 Email: [info@isawow.com](info@isawow.com)\n🌐 Website: [https://isawow.com/](https://isawow.com/)",
+  "workflow": {
+    "meta": {
+      "instanceId": "bc8ca75c203589705ae2e446cad7181d6f2a7cc1766f958ef9f34810e53b8cb2"
+    },
+    "nodes": [
+      {
+        "id": "91f5daad-fcfd-47b8-9503-ac3f07aee1d4",
+        "name": "Overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2080,
+          -256
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 556,
+          "height": 1108,
+          "content": "## YouTube Tutorial to Auto Timestamp Generator + Community Post — WayinVideo Find Moments + GPT-4o-mini + Google Sheets\n\nFor YouTube creators, educators, and content teams who publish long tutorial or how-to videos and want to automatically generate chapter timestamps for their video description plus a Community post to promote it. Submit any YouTube tutorial URL via the form with your section search query. WayinVideo Find Moments API scans the full video and returns up to 15 matching section moments. The code node collects all moments, sorts them chronologically by timestamp, and builds a single formatted string for GPT. GPT-4o-mini completes three tasks in one call: generates clean chapter timestamps (with 0:00 Introduction first), writes a 3–4 sentence video description block, and writes a 100–150 word YouTube Community post with the full timestamp list embedded. Everything is saved as one row in Google Sheets — ready to copy and paste.\n\n## How it works\n- **1. Form — Video URL + Details** collects the video URL, title, channel name, category, target audience, and section search query\n- **2. WayinVideo — Submit Find Moments** submits the URL and query to Find Moments API — limit 15, sorted chronologically\n- **3. Wait — 90 Seconds** gives the API initial processing time\n- **4. WayinVideo — Get Moments Results** polls the find-moments results endpoint\n- **5. IF — Find Moments Complete?** checks for SUCCEEDED — if not, retries via 30-second wait\n- **7. Code — Collect + Sort All Moments** sorts all clips by start time ascending, builds a single formatted moments string, and aggregates into one item for GPT\n- **8. AI Agent — Generate Timestamps + Post** uses GPT-4o-mini to complete three tasks: formatted chapter list, video description block, and Community post\n- **10. Code — Parse Timestamps Output** extracts all 5 labeled sections via regex\n- **11. Google Sheets — Save Timestamp Library** appends one row per video with all timestamps, description, community post, and hashtags\n\n## Set up steps\n1. In **2. WayinVideo — Submit Find Moments** and **4. WayinVideo — Get Moments Results** — replace `YOUR_WAYINVIDEO_API_KEY`\n2. In **9. OpenAI — GPT-4o-mini Model** — connect your OpenAI credential\n3. In **11. Google Sheets — Save Timestamp Library** — connect your Google Sheets OAuth2 credential and replace `YOUR_GOOGLE_SHEET_ID`\n4. Create a Google Sheet tab named Timestamp Library with columns: Video URL, Video Title, Channel Name, Video Category, Total Chapters, Total Moments Found, Video Duration (min), Formatted Timestamps, Video Description Block, Community Post, Hashtags, Generated On, Status"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "94a356a1-0f63-47fe-8731-6caab7facd5d",
+        "name": "Section — Form Input",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1472,
+          -128
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 308,
+          "height": 452,
+          "content": "## Form Input\nUser submits video URL, title, channel name, category, target audience, and section search query. The search query directly drives which moments WayinVideo finds — the form includes example queries for different video types."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "dcc6f665-631a-4480-b751-bf3363442ebd",
+        "name": "Section — Find Moments Submit and Poll",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1136,
+          -32
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 708,
+          "height": 308,
+          "content": "## WayinVideo Find Moments Submit and Poll\nSubmits the video URL and section query to Find Moments API — limit 15, the highest in the series. Waits 90 seconds then polls until SUCCEEDED."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ff9911a0-f008-4149-b8e6-ee61a361b07a",
+        "name": "Section — Status Check and Retry Loop",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -400,
+          -240
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 324,
+          "height": 708,
+          "content": "## Find Moments Status Check and Retry Loop\nIF checks for SUCCEEDED status. TRUE proceeds to moment collection. FALSE waits 30 seconds and polls again. Loop continues until results are ready."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "bee0bb76-ed5c-4980-a906-85169e37686f",
+        "name": "Section — Moment Collection, Sort, and AI Timestamp Writing",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          0,
+          -240
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 516,
+          "height": 708,
+          "content": "## Moment Collection, Sort, and AI Timestamp Writing\nSorts all moments chronologically by start time and aggregates into one item. GPT-4o-mini completes three tasks in one call: chapter timestamps, video description block, and Community post with timestamps embedded."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6227720b-f50f-4510-a281-d149ac586945",
+        "name": "Section — Timestamp Parse and Google Sheets Save",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          576,
+          -144
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 452,
+          "height": 452,
+          "content": "## Timestamp Parse and Google Sheets Save\nRegex extracts all 5 labeled sections. Google Sheets appends one row per video with formatted timestamps, description block, Community post, hashtags, and Ready status."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "7eedc8a0-2107-4b49-abad-372a5da8565a",
+        "name": "Note — Known Risks",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -800,
+          512
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 1272,
+          "height": 176,
+          "content": "## ⚠️ Two Known Risks\n1. Infinite loop — no poll counter. If WayinVideo returns FAILED or the URL is private, the workflow loops forever. Add a pollCount variable and stop after 15 retries.\n2. Query quality — be specific. 'step by step section transition' works better than just 'steps'. You can run multiple queries by duplicating nodes 2–5."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f8656f75-121f-4b0a-baa9-acc9f1586ad0",
+        "name": "1. Form — Video URL + Details",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          -1392,
+          80
+        ],
+        "webhookId": "64f567f3-2e5a-42e1-878e-6923d5ae5ecf",
+        "parameters": {
+          "options": {},
+          "formTitle": "YouTube Timestamp Generator + Community Post",
+          "formFields": {
+            "values": [
+              {
+                "fieldLabel": "YouTube Video URL",
+                "placeholder": "https://www.youtube.com/watch?v=xxxxxxx",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Video Title",
+                "placeholder": "e.g. Complete SEO Tutorial for Beginners 2025 — Step by Step",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Channel Name",
+                "placeholder": "e.g. Incrementors, TechWithTim, Ali Abdaal",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Video Category",
+                "placeholder": "e.g. SEO Tutorial, Python Course, Marketing Guide, Cooking Class",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Target Audience",
+                "placeholder": "e.g. Beginners, digital marketers, developers, small business owners",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Section Search Query",
+                "placeholder": "e.g. step by step tutorial section / topic introduction and explanation / code example and demo",
+                "requiredField": true
+              }
+            ]
+          },
+          "formDescription": "Paste your YouTube tutorial or how-to video URL. AI will find all the key sections, generate formatted chapter timestamps, and write a YouTube Community post ready to publish."
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "43c5b26c-0cce-40e5-a695-e2835f68f03d",
+        "name": "2. WayinVideo — Submit Find Moments",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -1056,
+          80
+        ],
+        "parameters": {
+          "url": "https://wayinvideo-api.wayin.ai/api/v2/clips/find-moments",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n  \"video_url\": \"{{ $json['YouTube Video URL'] }}\",\n  \"query\": \"{{ $json['Section Search Query'] }}\",\n  \"project_name\": \"Timestamps — {{ $json['Video Title'] }}\",\n  \"limit\": 15,\n  \"enable_export\": false,\n  \"target_lang\": \"en\"\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              },
+              {
+                "name": "x-wayinvideo-api-version",
+                "value": "v2"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "27df905a-6627-4154-8504-337f5024c124",
+        "name": "3. Wait — 90 Seconds",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          -816,
+          80
+        ],
+        "webhookId": "wait-timestamp-90s",
+        "parameters": {
+          "amount": 90
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "3349f918-cb9c-4eb3-9f86-a60c8eec7190",
+        "name": "4. WayinVideo — Get Moments Results",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -576,
+          80
+        ],
+        "parameters": {
+          "url": "=https://wayinvideo-api.wayin.ai/api/v2/clips/find-moments/results/{{ $('2. WayinVideo — Submit Find Moments').item.json.data.id }}",
+          "options": {},
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              },
+              {
+                "name": "x-wayinvideo-api-version",
+                "value": "v2"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "7a925bd1-faa1-452e-9c0f-9d6ef2f840de",
+        "name": "5. IF — Find Moments Complete?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -304,
+          80
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 3,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "status-check",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.data.status }}",
+                "rightValue": "SUCCEEDED"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "047d427f-5291-4066-bc71-7c4f3328035b",
+        "name": "6. Wait — 30 Seconds Retry",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          -304,
+          272
+        ],
+        "webhookId": "wait-timestamp-retry-30s",
+        "parameters": {
+          "amount": 30
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "f80f98b5-8ec4-4afa-aa5b-859227d250ce",
+        "name": "7. Code — Collect + Sort All Moments",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          48,
+          64
+        ],
+        "parameters": {
+          "jsCode": "// Extract all moments and build a single structured item for GPT\nconst clips = $('4. WayinVideo — Get Moments Results').item.json.data?.clips || [];\n\nif (clips.length === 0) {\n  throw new Error('No moments found — try a different Section Search Query or verify the video is publicly accessible.');\n}\n\n// Sort clips by start time — chronological order for timestamps\nconst sortedClips = clips.sort((a, b) => (a.begin_ms || 0) - (b.begin_ms || 0));\n\n// Build formatted moments list for GPT\nconst momentsForGPT = sortedClips.map((clip, index) => {\n  const startMs = clip.begin_ms || 0;\n  const minutes = Math.floor(startMs / 60000);\n  const seconds = String(Math.floor((startMs % 60000) / 1000)).padStart(2, '0');\n  const timestamp = `${minutes}:${seconds}`;\n  return `Moment ${index + 1}: [${timestamp}] ${clip.title || 'Section'} — ${clip.desc || ''}`;\n}).join('\\n');\n\n// Get form data\nconst videoTitle = $('1. Form — Video URL + Details').item.json['Video Title'];\nconst channelName = $('1. Form — Video URL + Details').item.json['Channel Name'];\nconst videoCategory = $('1. Form — Video URL + Details').item.json['Video Category'];\nconst targetAudience = $('1. Form — Video URL + Details').item.json['Target Audience'];\nconst videoUrl = $('1. Form — Video URL + Details').item.json['YouTube Video URL'];\nconst totalMoments = sortedClips.length;\n\n// Calculate total video duration estimate\nconst lastClip = sortedClips[sortedClips.length - 1];\nconst totalMs = lastClip?.end_ms || lastClip?.begin_ms || 0;\nconst totalMinutes = Math.round(totalMs / 60000);\n\nreturn [{\n  json: {\n    momentsForGPT,\n    totalMoments,\n    totalMinutes,\n    videoTitle,\n    channelName,\n    videoCategory,\n    targetAudience,\n    videoUrl\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "41722fcf-2256-4714-9d0f-edd0ddb506b7",
+        "name": "8. AI Agent — Generate Timestamps + Post",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          256,
+          64
+        ],
+        "parameters": {
+          "text": "={{ $json.momentsForGPT }}",
+          "options": {
+            "systemMessage": "=You are an expert YouTube content strategist who specializes in creating chapter timestamps and Community posts for tutorial videos.\n\nWayinVideo AI has identified the key moments in a YouTube tutorial video. Your job is to:\n1. Generate a clean formatted YouTube chapter timestamp list\n2. Write a Video Description block with timestamps embedded\n3. Write a YouTube Community post that promotes the video\n\n---\n\n## VIDEO DETAILS\n- Video Title: {{ $json.videoTitle }}\n- Channel: {{ $json.channelName }}\n- Category: {{ $json.videoCategory }}\n- Target Audience: {{ $json.targetAudience }}\n- Video URL: {{ $json.videoUrl }}\n- Total Moments Found: {{ $json.totalMoments }}\n- Estimated Duration: {{ $json.totalMinutes }} minutes\n\n---\n\n## MOMENTS FOUND BY WAYINVIDEO (in chronological order)\n{{ $json.momentsForGPT }}\n\n---\n\n## YOUR TASKS\n\n### Task 1 — YouTube Chapter Timestamps\n- Use the timestamps exactly as provided — do not change the MM:SS values\n- Write clean, descriptive chapter titles — 3-6 words each\n- First timestamp MUST be 0:00 — write 'Introduction' if there is no earlier moment\n- Format: MM:SS Chapter Title (one per line)\n- Sort chronologically\n\n### Task 2 — Video Description Block\n- Write 3-4 sentences introducing the video\n- Include what the viewer will learn\n- Mention the chapter timestamps are below\n- Include the video URL at the end\n\n### Task 3 — YouTube Community Post\n- 100-150 words — engaging and friendly\n- Start with a hook that makes people want to watch\n- Mention 2-3 specific things they will learn from the video\n- Include the full timestamp list inside the post\n- End with a CTA to watch and comment\n- 3-5 relevant hashtags\n\n---\n\n## OUTPUT FORMAT\nReturn in this exact structure:\n\nFORMATTED_TIMESTAMPS:\n0:00 Introduction\n[MM:SS Chapter Title]\n[MM:SS Chapter Title]\n[Continue for all moments]\n\nVIDEO_DESCRIPTION_BLOCK:\n[Write 3-4 sentence description block here]\n\nCOMMUNITY_POST:\n[Write full YouTube Community post here with timestamps embedded and hashtags at end]\n\nHASHTAGS:\n[5-8 relevant hashtags — lowercase — space separated]\n\nTOTAL_CHAPTERS:\n[Number only]\n\n---\n\nNow generate the timestamps, description block, and Community post:"
+          },
+          "promptType": "define"
+        },
+        "typeVersion": 3.1
+      },
+      {
+        "id": "d55838b8-40c9-4a4e-a048-990a8fbb00e3",
+        "name": "9. OpenAI — GPT-4o-mini Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          256,
+          256
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4o-mini"
+          },
+          "options": {},
+          "builtInTools": {}
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "3573296b-b4c0-425e-80b4-92758ceedfb6",
+        "name": "10. Code — Parse Timestamps Output",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          624,
+          64
+        ],
+        "parameters": {
+          "jsCode": "// Parse AI output into structured fields\nconst output = $input.first().json.output || '';\n\n// Extract each section\nconst timestampsMatch = output.match(/FORMATTED_TIMESTAMPS:\\s*([\\s\\S]*?)(?=\\nVIDEO_DESCRIPTION_BLOCK:|$)/);\nconst descBlockMatch = output.match(/VIDEO_DESCRIPTION_BLOCK:\\s*([\\s\\S]*?)(?=\\nCOMMUNITY_POST:|$)/);\nconst communityPostMatch = output.match(/COMMUNITY_POST:\\s*([\\s\\S]*?)(?=\\nHASHTAGS:|$)/);\nconst hashtagsMatch = output.match(/HASHTAGS:\\s*([\\s\\S]*?)(?=\\nTOTAL_CHAPTERS:|$)/);\nconst totalChaptersMatch = output.match(/TOTAL_CHAPTERS:\\s*([\\d]+)/);\n\nconst formattedTimestamps = timestampsMatch ? timestampsMatch[1].trim() : '';\nconst videoDescriptionBlock = descBlockMatch ? descBlockMatch[1].trim() : '';\nconst communityPost = communityPostMatch ? communityPostMatch[1].trim() : '';\nconst hashtags = hashtagsMatch ? hashtagsMatch[1].trim() : '';\nconst totalChapters = totalChaptersMatch ? parseInt(totalChaptersMatch[1]) : 0;\n\nif (!formattedTimestamps) {\n  throw new Error('Could not parse timestamps from AI output. Check the AI prompt format.');\n}\n\n// Get video data from step 7\nconst videoData = $('7. Code — Collect + Sort All Moments').item.json;\n\nreturn [{\n  json: {\n    formattedTimestamps,\n    videoDescriptionBlock,\n    communityPost,\n    hashtags,\n    totalChapters,\n    videoTitle: videoData.videoTitle,\n    channelName: videoData.channelName,\n    videoCategory: videoData.videoCategory,\n    videoUrl: videoData.videoUrl,\n    totalMoments: videoData.totalMoments,\n    totalMinutes: videoData.totalMinutes\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "df3fbbcd-92a4-4faa-b964-ee862cf8d04d",
+        "name": "11. Google Sheets — Save Timestamp Library",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          864,
+          64
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "Status": "Ready",
+              "Hashtags": "={{ $json.hashtags }}",
+              "Video URL": "={{ $json.videoUrl }}",
+              "Video Title": "={{ $json.videoTitle }}",
+              "Channel Name": "={{ $json.channelName }}",
+              "Generated On": "={{ $now.toFormat('dd MMMM yyyy HH:mm') }}",
+              "Community Post": "={{ $json.communityPost }}",
+              "Total Chapters": "={{ $json.totalChapters }}",
+              "Video Category": "={{ $json.videoCategory }}",
+              "Total Moments Found": "={{ $json.totalMoments }}",
+              "Formatted Timestamps": "={{ $json.formattedTimestamps }}",
+              "Video Duration (min)": "={{ $json.totalMinutes }}",
+              "Video Description Block": "={{ $json.videoDescriptionBlock }}"
+            },
+            "schema": [],
+            "mappingMode": "defineBelow",
+            "matchingColumns": []
+          },
+          "options": {},
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "Timestamp Library"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "YOUR_GOOGLE_SHEET_ID"
+          }
+        },
+        "typeVersion": 4.5
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "3. Wait — 90 Seconds": {
+        "main": [
+          [
+            {
+              "node": "4. WayinVideo — Get Moments Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "6. Wait — 30 Seconds Retry": {
+        "main": [
+          [
+            {
+              "node": "4. WayinVideo — Get Moments Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "1. Form — Video URL + Details": {
+        "main": [
+          [
+            {
+              "node": "2. WayinVideo — Submit Find Moments",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "9. OpenAI — GPT-4o-mini Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "8. AI Agent — Generate Timestamps + Post",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "5. IF — Find Moments Complete?": {
+        "main": [
+          [
+            {
+              "node": "7. Code — Collect + Sort All Moments",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "6. Wait — 30 Seconds Retry",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "10. Code — Parse Timestamps Output": {
+        "main": [
+          [
+            {
+              "node": "11. Google Sheets — Save Timestamp Library",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2. WayinVideo — Submit Find Moments": {
+        "main": [
+          [
+            {
+              "node": "3. Wait — 90 Seconds",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "4. WayinVideo — Get Moments Results": {
+        "main": [
+          [
+            {
+              "node": "5. IF — Find Moments Complete?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "7. Code — Collect + Sort All Moments": {
+        "main": [
+          [
+            {
+              "node": "8. AI Agent — Generate Timestamps + Post",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "8. AI Agent — Generate Timestamps + Post": {
+        "main": [
+          [
+            {
+              "node": "10. Code — Parse Timestamps Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 31,
+      "name": "Content Creation"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15507",
+  "fetched_at": "2026-09-12T13:15:27Z"
+}

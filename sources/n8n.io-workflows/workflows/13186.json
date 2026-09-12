@@ -1,0 +1,471 @@
+{
+  "id": 13186,
+  "name": "Detect offboarded client links on PBN sites with Google Sheets and HTTP",
+  "description": "Automatically scan every PBN site in your Google Sheet, check if any removed client domain is still linked in the live HTML, and log all matches back into your tracking sheet — row by row, hands-free.\n\n---\n\n## What this workflow does\n\nManaging a network of PBN sites becomes risky the moment a client project gets offboarded. If the old link still exists on a PBN page, it can trigger a Google penalty, waste crawl budget, or simply point to a dead destination. Manually checking each PBN every time a project is removed is slow and error-prone.\n\nThis workflow solves that completely. It reads your full PBN list from Google Sheets, skips any site you have already checked, then loops through each remaining PBN one at a time. For every site, it fetches the live HTML using an HTTP request, pulls your current list of offboarded project domains from a separate sheet, and runs a domain-matching check directly against that HTML. If a match is found, the workflow writes the detected domain into the \"Offboarded Links\" column automatically. It then pauses briefly and moves to the next PBN — no manual work required at any stage.\n\nPerfect for SEO agencies and link builders who manage multiple PBN networks and need a reliable, automatic way to keep their offboarding records up to date.\n\n---\n\n## Key features\n\n**Automatic HTML scanning:** Fetches the live page of every PBN site in real time using HTTP requests, so you are always checking the current version of the page — not a cached or outdated copy.\n\n**Smart row filtering:** Skips all PBN rows that have already been processed. The workflow only picks up rows where the \"Offboarded Links\" column is still empty, saving time and avoiding duplicate checks.\n\n**Domain matching against offboarded projects:** Pulls the complete list of removed client domains from your \"offboard projects\" sheet and checks each one against the fetched HTML. If any domain appears anywhere in the page source, it is flagged immediately.\n\n**One-by-one loop with pause:** Processes each PBN individually with a short pause between each iteration. This keeps the workflow stable, avoids rate-limit issues, and makes it easy to monitor progress in real time.\n\n**Auto-update in Google Sheets:** Writes the matched domain directly into your PBNs tracking sheet as soon as it is detected. No copy-paste, no manual entry — your records stay current automatically.\n\n---\n\n## How it works\n\n1. **Trigger the workflow manually** — Click the execute button to start the scan whenever you need to run a check across your PBN network.\n\n2. **Read all PBN sites from Google Sheets** — The workflow pulls every row from the \"PBNs\" sheet, which contains your site URLs, row numbers, and the \"Offboarded Links\" column.\n\n3. **Filter out already-processed rows** — A code node scans through all rows and removes any row where \"Offboarded Links\" is already filled in. Only unprocessed PBNs move forward.\n\n4. **Loop through each PBN one by one** — The remaining rows enter a loop. Each PBN is handled individually, one after the other, to keep the process clean and trackable.\n\n5. **Fetch the live HTML of the PBN site** — An HTTP request node sends a GET call to the PBN's URL and retrieves the full page HTML. Retries are enabled in case of temporary failures.\n\n6. **Read the offboarded project domain list** — A separate Google Sheets node pulls all domains from Column A of the \"offboard projects\" sheet. This is your master list of removed client websites.\n\n7. **Match domains against the fetched HTML** — A code node compares every domain from the offboarded list against the HTML content. If any domain is found, it is returned as a match. If none are found, the result is set to zero.\n\n8. **Prepare the data for the sheet update** — A Set node organizes the matched domain, the row number, and the HTML into a clean payload that is ready to write back into Google Sheets.\n\n9. **Write the matched domain into the PBNs sheet** — The workflow updates the correct row in the \"PBNs\" sheet by matching the row number and filling in the \"Offboarded Links\" column with the detected domain.\n\n10. **Pause before the next iteration** — A short wait is added after each update. This gives the system time to settle and prevents any issues before the loop continues to the next PBN.\n\n---\n\n## Setup requirements\n\n**Tools you will need:**\n\n- Active n8n instance (self-hosted or n8n Cloud)\n- Google Sheets with OAuth access for reading and updating PBN data\n- A \"PBNs\" sheet containing your site URLs and tracking columns\n- A separate \"offboard projects\" sheet with removed client domains in Column A\n\n**Estimated setup time:** 10–15 minutes\n\n---\n\n## Configuration steps\n\n**1. Add credentials in n8n:**\n- Google Sheets OAuth API — used for reading the PBNs sheet and the offboard projects sheet, and for writing matched results back.\n\n**2. Set up the PBNs sheet:**\n\nCreate a Google Sheet with the following columns:\n- **Site URL** — The full domain of each PBN site (e.g., example.com)\n- **Offboarded Links** — Leave this blank initially. The workflow will auto-fill this column when a match is found.\n- **row_number** — A unique number for each row. This is used by the workflow to identify and update the correct row. You can add this manually or use a simple formula.\n\n**3. Set up the offboard projects sheet:**\n\nCreate a second sheet (or a new tab) named \"offboard projects\" with the following structure:\n- **Column A** — List every client domain that has been offboarded or removed. Include the full URL format (e.g., https://clientsite.com). The workflow reads this column directly.\n\n**4. Update the Google Sheet URL in the workflow:**\n- Open the \"Read PBN Sites from Sheet\" node and paste your Google Sheet URL.\n- Open the \"Read Offboarded Project Domains\" node and make sure the sheet tab is set to your \"offboard projects\" sheet.\n- Open the \"Write Matched Domain to PBNs Sheet\" node and confirm it is pointing to the correct PBNs sheet and tab.\n\n**5. Run the workflow:**\n- Click the manual trigger to start.\n- Watch the loop process each PBN one by one.\n- Check your PBNs sheet — any matched offboarded domains will appear in the \"Offboarded Links\" column automatically.\n\n---\n\n## Use cases\n\n**SEO agencies:** Quickly audit the entire PBN network after a client project is offboarded. Instead of checking 50+ sites manually, run this workflow once and get a complete report in your Google Sheet within minutes.\n\n**Link builders:** Keep your PBN health records accurate at all times. Every time a project is removed, run this workflow to confirm whether any PBN still carries the old link before it causes issues.\n\n**Freelance SEO consultants:** Offer a professional offboarding audit as part of your service. This workflow handles the technical scanning, and you just need to review the results and take action on any flagged links.\n\n**In-house SEO teams:** Automate a task that used to take hours of manual checking. Run the scan on a regular schedule or whenever a project goes offline, and trust that your tracking sheet stays up to date without any extra effort.\n\n---\n\n## Customization options\n\n**Add more domains to check:** Simply add new rows to your \"offboard projects\" sheet in Column A. The workflow will automatically pick them up the next time it runs — no changes needed inside n8n.\n\n**Run on a schedule instead of manually:** Replace the manual trigger with a Schedule Trigger node. Set it to run daily, weekly, or at any interval that fits your workflow.\n\n**Add error notifications:** Connect a notification node (such as Slack, Email, or Discord) after the loop to alert you when the workflow finishes or when a match is detected. This way you do not need to check the sheet yourself.\n\n**Reset and re-scan:** If you need to re-check all PBN sites from scratch, simply clear the \"Offboarded Links\" column in your PBNs sheet. The filter node will treat all rows as unprocessed and scan them again on the next run.\n\n---\n\n## Troubleshooting\n\n**HTTP request fails or returns no data:** Check that the PBN site URL in your sheet is correct and the site is currently live. The workflow has retry enabled, but if the site is down or blocked, the request will still fail. You can skip those rows manually or add an error-handling branch.\n\n**No matches found even though a link exists:** Make sure the domain in your \"offboard projects\" sheet matches exactly what appears in the PBN's HTML. For example, if the HTML contains \"www.clientsite.com\" but your sheet only has \"clientsite.com,\" the match will still work because the code strips \"www.\" However, double-check for any spelling differences or trailing slashes.\n\n**Offboarded Links column not updating:** Verify that the row_number in your PBNs sheet is correct and unique for each row. The update node uses row_number to find and write to the right row. If row_number is missing or duplicated, the update will fail silently.\n\n**Workflow stops mid-loop:** This can happen if Google Sheets returns a rate-limit error. The pause node helps reduce this, but if it still occurs, increase the wait time in the \"Pause Before Next Iteration\" node or reduce the batch size.\n\n**Filter skips rows that should be processed:** Check if the \"Offboarded Links\" column has any hidden spaces or formatting. Even an empty-looking cell with a space character will be treated as filled. Clear those cells completely and run the workflow again.\n\n---\n\n## Important notes\n\n- This workflow is designed to be run manually or on a schedule. It does not trigger automatically when a new project is offboarded — you need to initiate the scan yourself.\n- The HTTP request fetches the live HTML of each PBN site. Make sure you have permission or ownership of the sites you are scanning to avoid any access issues.\n- The domain matching is based on simple text inclusion in the HTML source. It will detect domains in links, text content, meta tags, or anywhere else they appear on the page. If you need stricter matching (e.g., only in anchor href tags), the code node can be updated accordingly.\n- Keep your \"offboard projects\" sheet updated regularly. The workflow only checks domains that are listed there at the time of the scan.\n\n---\n## Support\nNeed help or custom development?\n\n📧 Email: [info@isawow.com](info@isawow.com)\n🌐 Website: [https://isawow.com/](https://isawow.com/)",
+  "workflow": {
+    "meta": {
+      "instanceId": "bc8ca75c203589705ae2e446cad7181d6f2a7cc1766f958ef9f34810e53b8cb2"
+    },
+    "nodes": [
+      {
+        "id": "5d647c78-50ae-4c73-84d8-2a75c895154b",
+        "name": "Run Workflow Manually",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "c24a19f6-a041-4d24-b169-907f45e762ef",
+        "name": "Read PBN Sites from Sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          208,
+          0
+        ],
+        "parameters": {
+          "options": {},
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": 879625869,
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1N9xfOX8V6JFATJFaoc-_0xUnYWt-gWD9FmvHKQ0hNfc/edit#gid=879625869",
+            "cachedResultName": "PBNs"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "url",
+            "value": "https://docs.google.com/spreadsheets/d/1N9xfOX8V6JFATJFaoc-_0xUnYWt-gWD9FmvHKQ0hNfc/edit?gid=879625869#gid=879625869"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "eueCuvyYj9NenzND",
+            "name": "Prakash @iwantonlinemarketing.com"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "2c18d612-aa4f-4cae-81f6-5b3744eba319",
+        "name": "Filter Unprocessed PBN Rows",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          416,
+          0
+        ],
+        "parameters": {
+          "jsCode": "// Input: All rows from Google Sheet\n// Output: Rows starting from the first row where \"Offboarded Links\" is blank\n\nlet rows = items.map(item => item.json);\n\n// Find the index of the first row where \"Offboarded Links\" is blank or empty\nlet startIndex = rows.findIndex(row => \n    row[\"Offboarded Links\"] === \"\" || row[\"Offboarded Links\"] === null || row[\"Offboarded Links\"] === undefined\n);\n\n// अगर कोई match नहीं मिला तो खाली array return करो\nif (startIndex === -1) {\n    return [];\n}\n\n// उस row से लेकर बाकी सभी rows return करो\nlet filteredRows = rows.slice(startIndex);\n\n// Output को n8n के लिए format करो\nreturn filteredRows.map(row => ({ json: row }));\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "a66eb36b-46ef-4cc0-89be-2e53c32d5d24",
+        "name": "Loop Through Each PBN",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          624,
+          0
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "f48e6d1c-5ff6-45c3-9ca0-780b01ce4640",
+        "name": "Fetch PBN Site HTML",
+        "type": "n8n-nodes-base.httpRequest",
+        "onError": "continueRegularOutput",
+        "position": [
+          864,
+          16
+        ],
+        "parameters": {
+          "url": "=https://{{ $json['Site URL'] }}",
+          "options": {}
+        },
+        "retryOnFail": true,
+        "typeVersion": 4.2,
+        "waitBetweenTries": 3000
+      },
+      {
+        "id": "404d6187-7fd6-4811-8844-fc4e3712b6fe",
+        "name": "Read Offboarded Project Domains",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1072,
+          16
+        ],
+        "parameters": {
+          "options": {
+            "dataLocationOnSheet": {
+              "values": {
+                "range": "A1:A",
+                "rangeDefinition": "specifyRangeA1"
+              }
+            }
+          },
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1N9xfOX8V6JFATJFaoc-_0xUnYWt-gWD9FmvHKQ0hNfc/edit#gid=0",
+            "cachedResultName": "offboard projects"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "url",
+            "value": "https://docs.google.com/spreadsheets/d/1N9xfOX8V6JFATJFaoc-_0xUnYWt-gWD9FmvHKQ0hNfc/edit?gid=879625869#gid=879625869"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "eueCuvyYj9NenzND",
+            "name": "Prakash @iwantonlinemarketing.com"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "05c73580-d4c0-4da1-973b-e5e5e2a10f7b",
+        "name": "Match Domains in HTML",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1280,
+          16
+        ],
+        "parameters": {
+          "jsCode": "// Get input domains\nconst inputItems = $input.all();\nconst domains = inputItems.map(item => {\n  try {\n    const url = new URL(item.json[\"Website URLs\"]);\n    return url.hostname.replace(/^www\\./, \"\"); // Remove www.\n  } catch (e) {\n    return null;\n  }\n}).filter(Boolean);\n\n// Get HTML Data\nconst htmlData = $('Fetch PBN Site HTML').first().json.data;\n\n// Check matches\nlet matched = [];\nfor (const domain of domains) {\n  if (htmlData.includes(domain)) {\n    matched.push(domain);\n  }\n}\n\n// Return result\nif (matched.length > 0) {\n  return matched.map(d => ({ json: { matched_domain: d } }));\n} else {\n  return [{ json: { matched_domain: 0 } }];\n}\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "30df9e6e-4ca4-4f50-8021-6d76ee8ebdab",
+        "name": "Prepare Row Update Payload",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1488,
+          16
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "3efc5b75-e346-45df-8cb9-e9efd6aa8bcd",
+                "name": "url",
+                "type": "string",
+                "value": "={{ $('Loop Through Each PBN').first().json[\"row_number\"] }}\n"
+              },
+              {
+                "id": "fca4ac9b-3ee6-4aba-b0a4-ef0782caa373",
+                "name": "mach",
+                "type": "string",
+                "value": "={{ $json.matched_domain }}"
+              },
+              {
+                "id": "035b2872-896c-4c52-9216-c7f5bc5a4963",
+                "name": "HTML",
+                "type": "string",
+                "value": "={{ $('Fetch PBN Site HTML').first().json[\"data\"] }}\n"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "db8377d6-1fe3-4ec6-916f-1794aef3b426",
+        "name": "Write Matched Domain to PBNs Sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1680,
+          16
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "row_number": "={{ $json.url }}",
+              "Offboarded Links": "={{ $json.mach }}"
+            },
+            "schema": [
+              {
+                "id": "Site URL",
+                "type": "string",
+                "display": true,
+                "removed": true,
+                "required": false,
+                "displayName": "Site URL",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Offboarded Links",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Offboarded Links",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "HTML",
+                "type": "string",
+                "display": true,
+                "removed": true,
+                "required": false,
+                "displayName": "HTML",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "row_number",
+                "type": "number",
+                "display": true,
+                "removed": false,
+                "readOnly": true,
+                "required": false,
+                "displayName": "row_number",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [
+              "row_number"
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "update",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": 879625869,
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1N9xfOX8V6JFATJFaoc-_0xUnYWt-gWD9FmvHKQ0hNfc/edit#gid=879625869",
+            "cachedResultName": "PBNs"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "url",
+            "value": "https://docs.google.com/spreadsheets/d/1N9xfOX8V6JFATJFaoc-_0xUnYWt-gWD9FmvHKQ0hNfc/edit?gid=0#gid=0"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "eueCuvyYj9NenzND",
+            "name": "Prakash @iwantonlinemarketing.com"
+          }
+        },
+        "typeVersion": 4.7,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "17a1feff-ba0f-4323-b817-83b7f34b9ed5",
+        "name": "Pause Before Next Iteration",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          1856,
+          16
+        ],
+        "webhookId": "eabfa1fb-9a49-4486-bf20-ec076a63c80a",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "bdbdc364-db6a-4cfe-aee2-2c8dc244bbbf",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -480,
+          -240
+        ],
+        "parameters": {
+          "width": 432,
+          "height": 656,
+          "content": "## PBN Offboarded Link Checker\n\nThis workflow automatically checks all PBN sites to detect\nif any offboarded client domain is still linked on them.\nIt runs row by row, fetches live HTML of each PBN, and\ncompares it against your offboard project list. If a match\nis found, it writes the matched domain directly into the\n\"Offboarded Links\" column in your PBNs sheet — so you\nalways know which PBN still carries a dead link.\n\n## How it works\n1. Reads all PBN sites from the \"PBNs\" Google Sheet.\n2. Skips rows already processed (where \"Offboarded Links\" is filled).\n3. Loops one by one — fetches live HTML of each PBN site.\n4. Pulls the offboarded project domain list from a separate sheet.\n5. Checks if any offboarded domain exists inside that HTML.\n6. Writes the matched domain into the PBNs sheet & moves to next.\n\n## Setup steps\n1. Connect your Google account in credentials.\n2. Set the correct Google Sheet URL & sheet names.\n3. Make sure \"offboard projects\" sheet has domains in Column A.\n4. Run manually using the trigger node."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "742384c7-ca32-484b-845c-30c6ccfddd79",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          208,
+          -144
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 304,
+          "height": 192,
+          "content": "## Data Fetching\n\nReads all PBN rows from Google Sheets,\nthen filters out already-processed rows\nso only new/unchecked PBNs move forward."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "10e0cfbe-8107-4e4d-9ec4-9c4d65783514",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          624,
+          -144
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 752,
+          "height": 208,
+          "content": "## HTML Fetch & Domain Matching\n\nLoops through each PBN one by one, fetches\nits live HTML, then checks if any offboarded\nclient domain is present inside that HTML."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "eac0c950-5152-44e3-b124-2845a12826d0",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1488,
+          -144
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 464,
+          "height": 208,
+          "content": "## Update & Loop Back\n\nStructures the matched result, writes it\ninto the PBNs sheet, then pauses briefly\nbefore moving to the next PBN in the loop."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Fetch PBN Site HTML": {
+        "main": [
+          [
+            {
+              "node": "Read Offboarded Project Domains",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Through Each PBN": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Fetch PBN Site HTML",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Match Domains in HTML": {
+        "main": [
+          [
+            {
+              "node": "Prepare Row Update Payload",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Run Workflow Manually": {
+        "main": [
+          [
+            {
+              "node": "Read PBN Sites from Sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read PBN Sites from Sheet": {
+        "main": [
+          [
+            {
+              "node": "Filter Unprocessed PBN Rows",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Row Update Payload": {
+        "main": [
+          [
+            {
+              "node": "Write Matched Domain to PBNs Sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter Unprocessed PBN Rows": {
+        "main": [
+          [
+            {
+              "node": "Loop Through Each PBN",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Pause Before Next Iteration": {
+        "main": [
+          [
+            {
+              "node": "Loop Through Each PBN",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read Offboarded Project Domains": {
+        "main": [
+          [
+            {
+              "node": "Match Domains in HTML",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Write Matched Domain to PBNs Sheet": {
+        "main": [
+          [
+            {
+              "node": "Pause Before Next Iteration",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/13186",
+  "fetched_at": "2026-09-12T13:14:27Z"
+}

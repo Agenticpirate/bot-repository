@@ -1,0 +1,255 @@
+{
+  "id": 6335,
+  "name": "Task deadline reminders with Google Sheets, ChatGPT, and Gmail",
+  "description": "## Intro\nThis template is for **project managers**, **team leads**, or **anyone** who wants to automatically remind teammates of tasks due today—no manual copy‑and‑paste required.\n\n## How it works\n1. **Schedule Trigger** runs every morning at 8 AM.  \n2. **Google Sheets** node reads your “Tasks” sheet.  \n3. **If** node filters rows where **Due Date = today**.  \n4. **Summarize (ChatGPT HTTP Request)** generates a friendly reminder per person.  \n5. **Message a model** sends the prompt to your ChatGPT Assistant and returns the AI response.  \n6. **Send a message (Gmail)** emails each assignee their personalized reminder.\n\n## Required Google Sheet Structure\n| Column Name | Type   | Example                   | Notes                   |\n|-------------|--------|---------------------------|-------------------------|\n| Name        | string | Alice Johnson             | Person to remind        |\n| Email       | string | user@example.com          | Recipient email address |\n| Task        | string | Submit quarterly report   | Task description        |\n| Due Date    | date   | 2025‑07‑29                | Format: YYYY‑MM‑DD       |\n\n## Detailed Setup Steps\n1. **Google Sheets**  \n   - Create your sheet with the columns above.  \n   - In n8n → Credentials, add **Google Sheets API** (do not include real sheet IDs in the name).  \n2. **ChatGPT Assistant**  \n   - In the OpenAI Dashboard → Assistants, click **Create Assistant**.  \n   - Choose a model (e.g., `gpt-4`), copy the **Assistant ID**.  \n   - In n8n → Credentials → OpenAI, add your **API Key** and **Assistant ID**.  \n3. **Gmail**  \n   - In n8n → Credentials → Gmail (OAuth2 or SMTP), connect your account without embedding your real address in the credential name.  \n4. **Import & Configure**  \n   - Export this workflow’s JSON (three‑dot menu → Export).  \n   - Paste it under **Template Code** in the Creator form.  \n   - In each node, select your **Google Sheets**, **OpenAI**, and **Gmail** credentials.  \n5. **Sticky Notes**  \n   - A note on the Schedule node: _“Set your desired run time.”_  \n   - A note on the ChatGPT node: _“Customizes reminder text.”_  \n   - A note on the Gmail node: _“Sends reminder email.”_\n\n## Customization Guidance\n- **Change schedule**: edit the Cron expression in **Schedule Trigger**.  \n- **Adjust tone**: modify the system prompt in your ChatGPT Assistant.  \n- **Email format**: update **Subject** and **Body** in the Gmail node.  \n- **Batch processing**: insert a **SplitInBatches** node before Summarize for large sheets.\n\n## Troubleshooting\n- Ensure your Google Sheet is shared with the connected service account.  \n- Verify **Due Date** format (`YYYY‑MM‑DD`).  \n- If ChatGPT fails, check your API key and quota.\n\n## Security & Best Practices\n- **Do not** hard‑code API keys, sheet IDs, or real emails.  \n- Use **n8n Credentials** or environment variables only.  \n- Remove any private information before submitting.\n",
+  "workflow": {
+    "id": "6D4OcntV18Okzk0L",
+    "meta": {
+      "instanceId": "7b35059aff065837b1c7d24142b37474554b08b3370f3096b2e57345690d178e",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Deadline Reminder Bot",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "3e1e6a13-1d58-4ce1-917c-facf8de988ef",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -920,
+          -40
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 1480,
+          "height": 520,
+          "content": "Deadline Reminder Bot\n\nThis workflow will:\n\n📅 Check for tasks due today → 🧠 Summarize using OpenAI → 📧 Send personalized reminder to each person\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "0d4ce22a-af27-493f-a3f3-60cc4159b80c",
+        "name": "Schedule Trigger1",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -860,
+          220
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "triggerAtHour": 9
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "ad804a56-f16b-49f3-8a08-67f77036e98e",
+        "name": "Get row(s) in sheet1",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -660,
+          220
+        ],
+        "parameters": {
+          "options": {},
+          "sheetName": "YOUR_SHEET_NAME",
+          "documentId": "YOUR_SHEET_ID"
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleSheetsOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 4.6
+      },
+      {
+        "id": "f01c9f74-1ea7-4a1e-96bb-6cc47fc767f8",
+        "name": "If1",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -440,
+          220
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "a7+1234567890-adeb-5c1fabfe206b",
+                "operator": {
+                  "name": "filter.operator.equals",
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json['Due Date'] }}",
+                "rightValue": "={{ $now.format('yyyy-MM-dd') }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "09c04680-a24a-47fd-81a4-0294c0fb1393",
+        "name": "Summarize1",
+        "type": "n8n-nodes-base.summarize",
+        "position": [
+          -180,
+          140
+        ],
+        "parameters": {
+          "options": {
+            "outputFormat": "separateItems"
+          },
+          "fieldsToSplitBy": "Assignee",
+          "fieldsToSummarize": {
+            "values": [
+              {
+                "field": "Task"
+              },
+              {
+                "field": "Task",
+                "aggregation": "append"
+              },
+              {
+                "field": "Email",
+                "aggregation": "min"
+              },
+              {
+                "field": "Status",
+                "aggregation": "append"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "dd85219d-245e-4c62-9bb2-336a72e86498",
+        "name": "Message a model1",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "position": [
+          0,
+          140
+        ],
+        "parameters": {
+          "modelId": "chatgpt-4o-latest",
+          "options": {},
+          "messages": {
+            "values": [
+              {
+                "role": "assistant",
+                "content": "=You are a productivity assistant. Write a short task summary email for {{ $json[\"Assignee\"] }}.\nalso write to and put their email {{ $json.min_Email }} into it.\nHere are their tasks due today:{{ $json.appended_Task }}\nStatuses:{{ $json.appended_Status }}\nMake it clear, professional, and motivating.\n"
+              }
+            ]
+          },
+          "jsonOutput": true
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "credential-id",
+            "name": "openAiApi Credential"
+          }
+        },
+        "typeVersion": 1.8
+      },
+      {
+        "id": "b21439e6-67c4-4550-9315-cb0e8757a267",
+        "name": "Send a message1",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          340,
+          140
+        ],
+        "parameters": {
+          "sendTo": "={{ $json.message.content.to }}",
+          "message": "={{ $json.message.content.body }}",
+          "options": {},
+          "subject": "={{ $json.message.content.subject }}"
+        },
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "credential-id",
+            "name": "gmailOAuth2 Credential"
+          }
+        },
+        "typeVersion": 2.1
+      }
+    ],
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "d70e8a4a-3faf-4ac8-8127-09473d053254",
+    "connections": {
+      "If1": [
+        [
+          {
+            "node": "Summarize1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "Summarize1": [
+        [
+          {
+            "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "Message a model1": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "Schedule Trigger1": [
+        [
+          {
+            "node": "Get row(s) in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "Get row(s) in sheet1": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "categories": [
+    {
+      "id": 46,
+      "name": "Project Management"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6335",
+  "fetched_at": "2026-09-12T13:11:17Z"
+}

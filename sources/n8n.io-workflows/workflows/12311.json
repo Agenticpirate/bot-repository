@@ -1,0 +1,726 @@
+{
+  "id": 12311,
+  "name": "Send personalized LinkedIn DMs to profile visitors with ConnectSafely.ai and Google Sheets",
+  "description": "# Send Personalized DMs to LinkedIn Profile Visitors\n\n## Who's it for\n\nThis workflow is built for sales professionals, recruiters, founders, and networkers who want to automatically reach out to people who viewed their LinkedIn profile. Perfect for anyone who knows that profile visitors are warm leads but doesn't have time to manually check who visited, craft personalized messages, and send outreach one by one.\n\nIf you're doing outbound sales, recruiting talent, building partnerships, or simply want to convert curiosity into conversations, this automation turns passive profile views into active outreach opportunities.\n\n## How it works\n\nThe workflow automatically identifies LinkedIn profile visitors and sends them personalized messages based on their connection status.\n\n**The process flow:**\n1. Scheduled trigger runs weekly (or manually) to fetch recent profile visitors\n2. ConnectSafely.ai API retrieves all visitors from the past 7 days\n3. Splits visitors into individual records for processing\n4. Checks Google Sheets to avoid messaging the same person twice\n5. Routes based on connection degree:\n   - **1st-degree connections** → Sends a personalized DM\n   - **2nd/3rd-degree connections** → Sends a connection request with message\n6. Logs all outreach to Google Sheets for tracking\n7. Waits between messages to maintain natural activity patterns\n8. Loop continues until all visitors are processed\n\n---\n\n## Setup steps\n\n### Step 1: Configure ConnectSafely.ai API Credentials\n\n#### Obtain API Key\n\n1. Create an account at [ConnectSafely.ai](https://connectsafely.ai)\n2. Connect your LinkedIn account in the dashboard\n3. Navigate to **Settings** → **API Keys**\n4. Generate a new API key\n\n#### Add Bearer Auth Credential in n8n\n\n1. Go to **Credentials** in n8n\n2. Click **Add Credential** → **HTTP Bearer Auth**\n3. Name it \"ConnectSafely.ai API\"\n4. Paste your API key\n5. Save the credential\n\nThis credential is used by all three HTTP Request nodes: Fetch Profile Visitors, Send DM, and Send Connection Request.\n\n\n### Step 2: Configure Google Sheets Integration\n\n#### 2.1 Create Your Tracking Sheet\n\nCreate a new Google Sheet with the following columns:\n\n| Column Name | Description |\n|-------------|-------------|\n| `Name` | Visitor's full name |\n| `Linkedin URL` | Visitor's profile URL |\n| `Status` | Outreach status (DONE) |\n\n#### 2.2 Connect Google Sheets Account\n\n1. Go to **Credentials** → **Add Credential** → **Google Sheets OAuth2**\n2. Follow the OAuth flow to connect your Google account\n3. Grant access to Google Sheets\n\n#### 2.3 Update All Google Sheets Nodes\n\nThere are three Google Sheets nodes that need configuration:\n\n1. **Check if Already Contacted** - Looks up existing contacts\n2. **Log DM Sent to Sheet** - Records DMs sent\n3. **Log Connection Request to Sheet** - Records connection requests\n\nFor each node:\n1. Open the node\n2. Replace `YOUR_GOOGLE_SHEET_ID` with your actual sheet ID (from the URL)\n3. Select the correct sheet name\n4. Save\n\n\n### Step 3: Customize Your Message Templates\n\nThe workflow includes two Code nodes with message templates that you **must customize**:\n\n#### For Connected Users (DMs)\n\nOpen the **\"Generate DM for Connected User\"** node and update:\n\n```javascript\n// Sender footer - CUSTOMIZE THIS\nconst footer = `\\n\\n— Your Name`;\n\n// Message bodies - CUSTOMIZE THESE\nconst messages = [\n  \"Noticed you recently checked out my profile... I've been working on [YOUR PRODUCT] — [BRIEF DESCRIPTION].\",\n  // Add more variations...\n];\n```\n\n#### For New Connections (Connection Requests)\n\nOpen the **\"Generate Message for New Connection\"** node and update the same sections with your product/service details.\n\n**Tips for good messages:**\n- Keep under 300 characters for connection requests\n- Personalize with their name (already included)\n- Mention something specific about why you're reaching out\n- Include a clear but soft call-to-action\n- Have 3-5 variations to avoid repetitive messaging\n\n\n### Step 4: Adjust the Schedule\n\n1. Open the **Weekly Schedule Trigger** node\n2. Adjust based on your profile traffic:\n   - High traffic: Daily\n   - Medium traffic: Every 3 days\n   - Low traffic: Weekly (default)\n\n\n### Step 5: Test the Workflow\n\n1. Click **Test Workflow** on the Schedule Trigger or add a Manual Trigger\n2. Verify:\n   - Profile visitors are fetched correctly\n   - Deduplication works (no existing contacts get messaged)\n   - Connection degree routing works properly\n   - Messages are personalized with visitor names\n   - Google Sheets logs entries correctly\n\n---\n\n## Customization\n\n### Time Range for Visitors\n\nEdit the JSON body in the **Fetch Profile Visitors** node:\n\n```json\n{\"timeRange\":\"past_7_days\",\"start\":0,\"fetchAll\":true}\n```\n\nOptions:\n- `past_7_days` - Last week's visitors (default)\n- `past_30_days` - Last month's visitors\n- `past_90_days` - Last quarter's visitors\n\n### Message Personalization\n\nBoth Code nodes support multiple message variations. The workflow randomly selects one for each visitor, making your outreach feel more natural.\n\nTo add more variations:\n1. Open the relevant Code node\n2. Add new message strings to the `messages` array\n3. Use placeholders like `[YOUR PRODUCT]` and replace with your actual content\n\n### Wait Time Between Messages\n\nThe **Wait Between Messages** node adds delays between outreach. Adjust the duration to:\n- Increase if you want more conservative pacing\n- Decrease if you have premium LinkedIn and higher limits\n\nRecommended: 1-5 minutes between messages\n\n### Add More Tracking Fields\n\nTo track additional data in Google Sheets:\n1. Add columns to your sheet (e.g., `Message Sent`, `Connection Degree`, `Date`)\n2. Update the Google Sheets nodes to map these new fields\n3. Pull data from the workflow context using expressions\n\n### Filter by Company or Title\n\nWant to only message visitors from specific companies or with certain titles?\n1. Add an **IF** node after **Skip if Already Contacted**\n2. Add conditions based on visitor data fields\n3. Route non-matching visitors directly to the Wait node\n\n---\n\n## Use Cases\n\n- **Sales Prospecting**: Automatically reach out to decision-makers who are researching you before a sales cycle\n- **Recruiting**: Engage passive candidates who are checking out your profile after seeing job posts\n- **Founder Networking**: Connect with investors, partners, and potential hires who show interest\n- **Consulting/Freelance**: Convert profile visitors into discovery calls by reaching out while you're top of mind\n- **Personal Branding**: Build your network by engaging everyone who takes time to view your profile\n\n---\n\n## Troubleshooting\n\n### Common Issues & Solutions\n\n**Issue**: No visitors returned from API\n- **Solution**: Ensure your LinkedIn account is connected in ConnectSafely.ai dashboard. Also verify you've had recent profile views (check LinkedIn's native viewer count).\n\n**Issue**: Duplicate messages being sent\n- **Solution**: Verify the Google Sheets lookup is working correctly. Check that the `Linkedin URL` column matches exactly what the API returns. Make sure all three Google Sheets nodes point to the same sheet.\n\n**Issue**: Messages not sending\n- **Solution**: Check your ConnectSafely.ai API key is valid. Verify the HTTP Request nodes have the Bearer Auth credential attached. Check the API response for error messages.\n\n**Issue**: Wrong message type sent (DM vs Connection Request)\n- **Solution**: The routing is based on `connectionDegree` field. Verify this field is being returned correctly from the API. Check the **Check if 1st Degree Connection** node conditions.\n\n**Issue**: Profile ID extraction failing\n- **Solution**: The **Extract Profile ID from URL** Code node parses the LinkedIn URL. Check that visitors have valid `navigationUrl` values.\n\n**Issue**: Google Sheets not updating\n- **Solution**: Verify your Google Sheets credential has write access. Check that the sheet ID is correct and the sheet name matches.\n\n**Issue**: Rate limit errors\n- **Solution**: Increase the wait time in the **Wait Between Messages** node. Consider reducing the frequency of the schedule trigger.\n\n---\n\n## Rate Limiting Best Practices\n\nLinkedIn monitors automated activity. To stay safe:\n\n- **Start slow**: Begin with 10-15 messages per day\n- **Gradually increase**: Add 5 more per week up to 50/day max\n- **Use random delays**: The workflow includes built-in waits\n- **Pause if warned**: If LinkedIn shows any warnings, stop for 24-48 hours\n- **Keep messages personal**: Avoid spammy, salesy language\n- **Don't run 24/7**: Schedule during business hours\n\n---\n\n## Costs & Considerations\n\n| Service | Cost |\n|---------|------|\n| ConnectSafely.ai | Free trial available, then subscription |\n| Google Sheets | Free |\n| n8n | Free (self-hosted) or cloud pricing |\n\n**No per-message costs** - ConnectSafely.ai subscription includes API access for messaging.\n\n---\n\n## Documentation & Resources\n\n### Official Documentation\n- **ConnectSafely.ai Docs**: [https://connectsafely.ai/docs](https://connectsafely.ai/docs)\n- **ConnectSafely.ai API Reference**: Available in dashboard\n- **Google Sheets API**: [https://developers.google.com/sheets](https://developers.google.com/sheets)\n\n### Support Channels\n- **Email Support**: [support@connectsafely.ai](mailto:support@connectsafely.ai)\n- **Documentation**: [https://connectsafely.ai/docs](https://connectsafely.ai/docs)\n- **Custom Workflows**: [Contact us for custom automation](https://connectsafely.ai/contact)\n\n---\n\n## Connect With Us\n\nStay updated with the latest automation tips and LinkedIn strategies:\n\n- **LinkedIn**: [linkedin.com/company/connectsafelyai](https://www.linkedin.com/company/connectsafelyai)\n- **YouTube**: [youtube.com/@ConnectSafelyAI-v2x](https://www.youtube.com/@ConnectSafelyAI-v2x)\n- **Instagram**: [instagram.com/connectsafely.ai](https://www.instagram.com/connectsafely.ai/)\n- **Facebook**: [facebook.com/connectsafelyai](https://www.facebook.com/people/ConnectSafelyAI/61582550884724/)\n- **X (Twitter)**: [x.com/AiConnectsafely](https://x.com/AiConnectsafely)\n- **Bluesky**: [connectsafelyai.bsky.social](https://bsky.app/profile/connectsafelyai.bsky.social)\n- **Mastodon**: [mastodon.social/@connectsafely](https://mastodon.social/@connectsafely)\n\n---\n\n## Need Custom Workflows?\n\nLooking to build sophisticated LinkedIn automation workflows tailored to your business needs?\n\n**[Contact our team](https://connectsafely.ai/contact)** for custom automation development, strategy consulting, and enterprise solutions.\n\nWe specialize in:\n- Multi-channel engagement workflows\n- AI-powered personalization at scale\n- Lead scoring and qualification automation\n- CRM integration and data synchronization\n- Custom reporting and analytics pipelines",
+  "workflow": {
+    "nodes": [
+      {
+        "id": "f64b448a-f0eb-4dd8-a05f-20711f8f1c26",
+        "name": "Workflow Overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2304,
+          -240
+        ],
+        "parameters": {
+          "width": 588,
+          "height": 852,
+          "content": "## Send Personalized DMs to LinkedIn Profile Visitors\n\nThis workflow automatically identifies people who visited your LinkedIn profile and sends them personalized direct messages or connection requests based on their connection status.\n\n### Who is this for?\nSales professionals, recruiters, founders, and networkers who want to convert profile visitors into meaningful connections without manual outreach.\n\n### How it works\n1. **Fetch Visitors** – Retrieves your LinkedIn profile visitors from the past 7 days via ConnectSafely.ai API\n2. **Deduplicate** – Checks Google Sheets to avoid messaging the same person twice\n3. **Route by Connection** – Sends DMs to 1st-degree connections or connection requests to others\n4. **Track Progress** – Logs all outreach to Google Sheets for tracking\n\n### Setup steps\n1. Get your ConnectSafely.ai API key from [connectsafely.ai](https://connectsafely.ai)\n2. Configure the HTTP Bearer Auth credential with your API key\n3. Connect your Google Sheets account and create a sheet with columns: `Name`, `Linkedin URL`, `Status`\n4. Update the Google Sheets node with your sheet ID\n5. Customize the message templates in the Code nodes\n\n### Customization\n| What | Where |\n|------|-------|\n| Message templates | \"Generate DM for Connected User\" and \"Generate Message for New Connection\" Code nodes |\n| Fetch frequency | Schedule Trigger node |\n| Time range for visitors | \"Fetch Profile Visitors\" HTTP Request body |\n\n**Note:** This template requires a ConnectSafely.ai account and API access."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a0c192b8-e394-4ba1-ab5a-af47abdf6937",
+        "name": "Section 1 - Fetch Visitors",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1686,
+          84
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 460,
+          "height": 284,
+          "content": "## 1. Fetch & Split Visitors\nRetrieves profile visitors and prepares them for individual processing."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3a053157-fec1-465e-9154-8189edf61c96",
+        "name": "Section 2 - Deduplicate",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1040,
+          48
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 520,
+          "height": 316,
+          "content": "## 2. Deduplicate\nChecks if visitor was already contacted to avoid duplicate outreach."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ae2c1f44-4f82-42fc-bfc5-4243d477f9c8",
+        "name": "Section 3 - Send Messages",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -304,
+          -176
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 844,
+          "height": 532,
+          "content": "## 3. Route & Send Messages\nSends DMs to connected users or connection requests to new prospects."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "d859a78a-66dd-47b4-ba6a-2471c96aee86",
+        "name": "Section 4 - Track Progress",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          576,
+          -176
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 480,
+          "height": 532,
+          "content": "## 4. Track & Loop\nLogs outreach to Google Sheets and processes next visitor."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "10ccda8b-2c59-48ea-a2ba-a50725c4f198",
+        "name": "Extract Profile ID from URL",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -272,
+          64
+        ],
+        "parameters": {
+          "jsCode": "const url = $('Loop Over Items').first().json.navigationUrl\n\nlet profile_id = null;\n\nif (url) {\n  // Remove query params and trailing slash\n  const cleanUrl = url.split('?')[0].replace(/\\/$/, '');\n\n  // Extract profile ID after /in/\n  const match = cleanUrl.match(/linkedin\\.com\\/in\\/([^/]+)/);\n\n  if (match) {\n    profile_id = match[1];\n  }\n}\n\nreturn {\n  profile_id,\n};\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "0d693106-d391-4c15-8eee-c878b5c24e3c",
+        "name": "Fetch Profile Visitors",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -1392,
+          208
+        ],
+        "parameters": {
+          "url": "https://api.connectsafely.ai/linkedin/profile/visitors",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "{\"timeRange\":\"past_7_days\",\"start\":0,\"fetchAll\":true}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpBearerAuth",
+          "headerParameters": {
+            "parameters": [
+              {}
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "7000a0b8-3431-4fca-b696-2c4fee4d0aeb",
+        "name": "Weekly Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -1616,
+          208
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "weeks"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "6a27975a-28b9-4e9d-8cb3-f9c1731b735e",
+        "name": "Send Connection Request",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          400,
+          160
+        ],
+        "parameters": {
+          "url": "https://api.connectsafely.ai/linkedin/connect",
+          "method": "POST",
+          "options": {},
+          "sendBody": true,
+          "authentication": "genericCredentialType",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "profileId",
+                "value": "={{ $('Extract Profile ID from URL').item.json.profile_id }}"
+              }
+            ]
+          },
+          "genericAuthType": "httpBearerAuth"
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "22cb5dc4-555d-4cba-8599-d4d128e20180",
+        "name": "Check if 1st Degree Connection",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -48,
+          64
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "0cca670d-4ced-4027-98f4-9337048d8a1d",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $('Loop Over Items').item.json.connectionDegree }}",
+                "rightValue": "1st"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "2fedafe7-567e-4cdc-83db-7da8ce3a9fa6",
+        "name": "Send DM to Connected User",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          400,
+          -32
+        ],
+        "parameters": {
+          "url": "https://api.connectsafely.ai/linkedin/message",
+          "method": "POST",
+          "options": {},
+          "sendBody": true,
+          "authentication": "genericCredentialType",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "recipientProfileId",
+                "value": "={{ $('Extract Profile ID from URL').item.json.profile_id }}"
+              },
+              {
+                "name": "message",
+                "value": "={{ $json.message }}"
+              },
+              {
+                "name": "messageType",
+                "value": "inmail"
+              }
+            ]
+          },
+          "genericAuthType": "httpBearerAuth"
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "af60a93f-7b21-4187-a243-93c648b0f348",
+        "name": "Generate Message for New Connection",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          176,
+          160
+        ],
+        "parameters": {
+          "jsCode": "// Get recipient name\nconst rawName = $('Loop Over Items').first().json.name || 'there';\nconst name = rawName.trim();\n\n// Sender footer - CUSTOMIZE THIS\nconst footer = `\\n\\n— Your Name`;\n\n// Message bodies for NON-connected users (connection requests)\n// CUSTOMIZE THESE MESSAGES for your use case\nconst messages = [\n  \"Noticed you checked out my profile, so I thought I'd reach out and connect. I'm working on [YOUR PRODUCT] — [BRIEF DESCRIPTION]. Happy to connect and share ideas.\",\n\n  \"Saw that you viewed my profile — always great to connect with like-minded professionals. I'm building [YOUR PRODUCT] to help with [VALUE PROP]. Would love to stay in touch.\",\n\n  \"Thanks for stopping by my profile! I'm currently working on [YOUR PRODUCT], focused on [BENEFIT]. Let's connect and exchange insights.\",\n\n  \"Noticed your visit on my profile and thought I'd say hello. I'm building [YOUR PRODUCT] to help [TARGET AUDIENCE]. Happy to connect!\",\n\n  \"Hey there! I saw you viewed my profile and wanted to connect. I'm working on [YOUR PRODUCT] — [BRIEF VALUE]. Looking forward to connecting.\"\n];\n\n// Pick random body\nconst body = messages[Math.floor(Math.random() * messages.length)];\n\n// FINAL MESSAGE\nconst finalMessage = `Hey ${name},\\n\\n${body}${footer}`;\n\nreturn {\n  message: finalMessage,\n};\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "a80ac098-2ff0-456b-8675-151fc9c0c170",
+        "name": "Generate DM for Connected User",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          176,
+          -32
+        ],
+        "parameters": {
+          "jsCode": "// Get recipient name\nconst rawName = $('Loop Over Items').first().json.name || 'there';\nconst name = rawName.trim();\n\n// Sender footer - CUSTOMIZE THIS\nconst footer = `\\n\\n— Your Name`;\n\n// Message bodies for CONNECTED users (direct messages)\n// CUSTOMIZE THESE MESSAGES for your use case\nconst messages = [\n  \"Noticed you recently checked out my profile, so I thought I'd reach out. I've been working on [YOUR PRODUCT] — [BRIEF DESCRIPTION]. Happy to share if it's relevant.\",\n\n  \"Saw your visit on my profile and wanted to say hello. I'm currently building [YOUR PRODUCT] to help professionals [VALUE PROP].\",\n\n  \"I noticed you viewed my profile, so I thought I'd connect the dots. I've been working on [YOUR PRODUCT], focused on [BENEFIT].\",\n\n  \"Thanks for stopping by my profile! I'm building [YOUR PRODUCT] to help [TARGET AUDIENCE]. Happy to chat if useful.\",\n\n  \"Noticed your profile visit and thought I'd reach out. I'm working on [YOUR PRODUCT] — [BRIEF VALUE PROPOSITION].\"\n];\n\n// Pick random body\nconst body = messages[Math.floor(Math.random() * messages.length)];\n\n// FINAL MESSAGE\nconst finalMessage = `Hey ${name},\\n\\n${body}${footer}`;\n\nreturn {\n  message: finalMessage,\n};\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "f472a968-d6c3-4a94-a323-3bd80c31eaad",
+        "name": "Split Visitors Array",
+        "type": "n8n-nodes-base.splitOut",
+        "position": [
+          -1168,
+          208
+        ],
+        "parameters": {
+          "options": {},
+          "fieldToSplitOut": "visitors"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "0fec9210-7b84-4618-990c-a73462a32be5",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          -944,
+          208
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "f32e7660-6f6f-4566-ae5d-9da2353f5fe0",
+        "name": "Continue to Next Visitor",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          848,
+          64
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "2a92195e-9b9f-4613-8111-8b3c046f18a8",
+        "name": "Wait Between Messages",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          1072,
+          304
+        ],
+        "webhookId": "f49c1dde-db9a-485f-9585-ece11eddd1de",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "04b34961-4e22-4d7a-85b4-d8f4e2cb78e5",
+        "name": "Log DM Sent to Sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          624,
+          -32
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "Name": "={{ $('Loop Over Items').item.json.name }}",
+              "Status": "DONE",
+              "Linkedin URL": "={{ $('Loop Over Items').item.json.navigationUrl }}"
+            },
+            "schema": [
+              {
+                "id": "Name",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "Name",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Linkedin URL",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Linkedin URL",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Status",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Status",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [
+              "Linkedin URL"
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "appendOrUpdate",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "YOUR_GOOGLE_SHEET_ID"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "80964e3b-aac9-4950-8cf5-99378edba2e2",
+        "name": "Check if Already Contacted",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -720,
+          136
+        ],
+        "parameters": {
+          "options": {},
+          "filtersUI": {
+            "values": [
+              {
+                "lookupValue": "={{ $json.navigationUrl }}",
+                "lookupColumn": "Linkedin URL"
+              }
+            ]
+          },
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "YOUR_GOOGLE_SHEET_ID"
+          }
+        },
+        "typeVersion": 4.7,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "61c6dbdc-97f1-4bae-8cae-baf823f63803",
+        "name": "Skip if Already Contacted",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -496,
+          136
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "149e3e45-fe35-4ef5-bbdd-da8107b82802",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "false",
+                  "singleValue": true
+                },
+                "leftValue": "={{ $json.isEmpty() }}",
+                "rightValue": ""
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "23d345d5-df7c-41f2-a181-7b731b631a50",
+        "name": "Log Connection Request to Sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          624,
+          160
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "Name": "={{ $('Loop Over Items').item.json.name }}",
+              "Status": "DONE",
+              "Linkedin URL": "={{ $('Loop Over Items').item.json.navigationUrl }}"
+            },
+            "schema": [
+              {
+                "id": "Name",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "Name",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Linkedin URL",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Linkedin URL",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Status",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Status",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [
+              "Linkedin URL"
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "appendOrUpdate",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "YOUR_GOOGLE_SHEET_ID"
+          }
+        },
+        "typeVersion": 4.7
+      }
+    ],
+    "connections": {
+      "Loop Over Items": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Check if Already Contacted",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log DM Sent to Sheet": {
+        "main": [
+          [
+            {
+              "node": "Continue to Next Visitor",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split Visitors Array": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait Between Messages": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Profile Visitors": {
+        "main": [
+          [
+            {
+              "node": "Split Visitors Array",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Connection Request": {
+        "main": [
+          [
+            {
+              "node": "Log Connection Request to Sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Weekly Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Fetch Profile Visitors",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Continue to Next Visitor": {
+        "main": [
+          [
+            {
+              "node": "Wait Between Messages",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send DM to Connected User": {
+        "main": [
+          [
+            {
+              "node": "Log DM Sent to Sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Skip if Already Contacted": {
+        "main": [
+          [
+            {
+              "node": "Extract Profile ID from URL",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Wait Between Messages",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check if Already Contacted": {
+        "main": [
+          [
+            {
+              "node": "Skip if Already Contacted",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Profile ID from URL": {
+        "main": [
+          [
+            {
+              "node": "Check if 1st Degree Connection",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check if 1st Degree Connection": {
+        "main": [
+          [
+            {
+              "node": "Generate DM for Connected User",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Generate Message for New Connection",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate DM for Connected User": {
+        "main": [
+          [
+            {
+              "node": "Send DM to Connected User",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log Connection Request to Sheet": {
+        "main": [
+          [
+            {
+              "node": "Continue to Next Visitor",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Message for New Connection": {
+        "main": [
+          [
+            {
+              "node": "Send Connection Request",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 38,
+      "name": "Lead Nurturing"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/12311",
+  "fetched_at": "2026-09-12T13:14:07Z"
+}

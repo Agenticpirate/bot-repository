@@ -1,0 +1,365 @@
+{
+  "id": 8589,
+  "name": "Automate job search with AI cover letters using Google Jobs, RemoteOK & GPT-3.5",
+  "description": "# Automated Job Search with AI-Generated Cover Letters\n\n## 🎯 What This Template Does\n\nThis workflow transforms your job search from a time-consuming daily chore into a fully automated system. Every 24 hours, it searches Google Jobs and RemoteOK for positions matching your criteria, generates unique AI-powered cover letters for each role, and delivers a polished HTML email digest straight to your inbox.\n\n## ⚡ Key Features\n\n- **Multi-Platform Search**: Simultaneously queries Google Jobs (via SerpAPI) and RemoteOK\n- **Smart Filtering**: Automatically removes duplicates and low-quality postings\n- **AI-Powered Cover Letters**: Uses OpenAI GPT-3.5 to write personalized 60-word cover letters for each position\n- **Beautiful Email Digests**: HTML-formatted emails with job details, descriptions, and apply buttons\n- **Zero Manual Work**: Runs automatically every 24 hours\n- **Cost-Effective**: ~$0 for first 3 months using free API tiers, then ~$3/month\n\n\n\n## ⏱️ Time Saved\n\n| Method | Time Required |\n|--------|---------------|\n| **Manual Job Search** | 2-3 hours daily |\n| **With This Workflow** | 0 minutes (fully automated) |\n| **Annual Time Savings** | ~800 hours per year |\n\n## 📋 Prerequisites\n\n### 1. SerpAPI Account\n- **Cost**: FREE tier (100 searches/month)\n- **Sign up**: https://serpapi.com/\n- **What you need**: API key from dashboard\n\n### 2. OpenAI Account\n- **Cost**: FREE ($5 trial credits)\n- **Sign up**: https://platform.openai.com/\n- **What you need**: API key (requires phone verification)\n\n### 3. Email Service\n- **Cost**: FREE (use existing email)\n- **Options**: Gmail, Outlook, or any SMTP provider\n- **Gmail users**: Use App Password (requires 2FA enabled)\n\n## 🚀 Quick Start Guide\n\n### Step 1: Get API Keys (10 minutes)\n\n**SerpAPI Setup**\n1. Go to https://serpapi.com/ and sign up\n2. Verify your email\n3. Log in → Dashboard\n4. Copy your API key\n\n**OpenAI Setup**\n1. Go to https://platform.openai.com/\n2. Create account and verify phone number\n3. Profile icon → View API keys\n4. Create new secret key\n5. Copy immediately (shown only once)\n\n**Gmail Setup** (if using Gmail)\n1. Google Account → Security\n2. Enable 2-Step Verification\n3. Search for \"App Passwords\"\n4. Generate app password for Mail\n5. Copy the 16-character password\n\n### Step 2: Add Credentials to n8n (5 minutes)\n\n**Add SerpAPI**\n1. n8n Credentials → Add Credential\n2. Select \"HTTP Query Auth\"\n3. Name: `api_key`\n4. Value: [paste your SerpAPI key]\n5. Save\n\n**Add OpenAI**\n1. Add Credential → OpenAI\n2. Paste your API key\n3. Save\n\n**Add SMTP**\n1. Add Credential → SMTP\n2. Configure:\n   - Host: `smtp.gmail.com`\n   - Port: `587`\n   - Security: `STARTTLS`\n   - Username: your-email@gmail.com\n   - Password: [app password]\n3. Save\n\n### Step 3: Configure Your Search (2 minutes)\n\nClick the **\"Settings\"** node and update:\n\n**query** - Your target job title\n- ✅ Good: `senior react developer`\n- ✅ Good: `product manager saas`\n- ✅ Good: `data scientist machine learning`\n- ❌ Bad: `developer` (too broad)\n\n**location** - Where you want to work\n- For remote: `Remote`\n- For city: `San Francisco, CA`\n- For city: `New York, NY`\n- For state: `Texas`\n- 💡 Tip: Start with `Remote` for most options\n\n**email** - Your email address\n- Use the SAME email from SMTP setup\n- Example: `yourname@gmail.com`\n\n### Step 4: Connect Credentials\n\n1. Click **\"Search Google Jobs\"** node → Select SerpAPI credential\n2. Click **\"Generate Letter\"** node → Select OpenAI credential\n3. Click **\"Send Email\"** node → Select SMTP credential\n4. Click **\"No Results Email\"** node → Select SMTP credential\n\n### Step 5: Test & Activate\n\n1. Click **\"Execute Workflow\"** button (top right)\n2. Watch nodes light up green ✅\n3. Wait 30-60 seconds\n4. Check your email inbox\n5. If successful → Toggle **\"Active\"** switch\n6. Done! You'll receive daily job digests\n\n## 📧 What You'll Receive\n\nEach day, you'll get an email containing:\n\n- **Up to 4 highly relevant job listings**\n- Company name and location for each\n- Job description snippets\n- **AI-generated personalized cover letter** for each position\n- Direct **\"Apply Now\"** button\n- Source attribution (Google Jobs vs RemoteOK)\n",
+  "workflow": {
+    "name": "Auto-search jobs with AI cover letters",
+    "tags": [
+      "jobs",
+      "ai",
+      "automation",
+      "career"
+    ],
+    "nodes": [
+      {
+        "name": "Sticky Note - Overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          240,
+          100
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note - Setup",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          680,
+          100
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Schedule",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          260,
+          400
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "name": "Settings",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          460,
+          400
+        ],
+        "parameters": {},
+        "typeVersion": 3.3
+      },
+      {
+        "name": "Search Google Jobs",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          680,
+          340
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "name": "Search RemoteOK",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          680,
+          460
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "name": "Merge",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          900,
+          400
+        ],
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "name": "Process Jobs",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1100,
+          400
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "name": "Check Results",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1300,
+          400
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "name": "No Results Email",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          1500,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "name": "Split Jobs",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          1500,
+          500
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "name": "Extract Job",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1700,
+          500
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "name": "Generate Letter",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1900,
+          500
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "name": "Combine Letter",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2100,
+          500
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "name": "Aggregate",
+        "type": "n8n-nodes-base.aggregate",
+        "position": [
+          2300,
+          500
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Format Email",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2500,
+          500
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "name": "Send Email",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          2700,
+          500
+        ],
+        "parameters": {},
+        "typeVersion": 2.1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "connections": {
+      "Merge": {
+        "main": [
+          [
+            {
+              "node": "Process Jobs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule": {
+        "main": [
+          [
+            {
+              "node": "Settings",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Settings": {
+        "main": [
+          [
+            {
+              "node": "Search Google Jobs",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Search RemoteOK",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Aggregate": {
+        "main": [
+          [
+            {
+              "node": "Format Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split Jobs": {
+        "main": [
+          [
+            {
+              "node": "Extract Job",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Job": {
+        "main": [
+          [
+            {
+              "node": "Generate Letter",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Email": {
+        "main": [
+          [
+            {
+              "node": "Send Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Process Jobs": {
+        "main": [
+          [
+            {
+              "node": "Check Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Results": {
+        "main": [
+          [
+            {
+              "node": "No Results Email",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Split Jobs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Combine Letter": {
+        "main": [
+          [
+            {
+              "node": "Aggregate",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Letter": {
+        "main": [
+          [
+            {
+              "node": "Combine Letter",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Search RemoteOK": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Search Google Jobs": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "triggerCount": 1
+  },
+  "categories": [
+    {
+      "id": 17,
+      "name": "HR"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8589",
+  "fetched_at": "2026-09-12T13:12:32Z"
+}

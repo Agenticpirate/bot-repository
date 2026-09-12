@@ -1,0 +1,198 @@
+{
+  "id": 6934,
+  "name": "Daily meeting summaries with Google Calendar & Gemini for Slack-Discord-WhatsApp",
+  "description": "This workflow automatically summarizes your team's daily meetings from multiple Google Calendars daily at 9AM and sends the digest to your preferred communication channels. It uses AI to identify and format meeting details, making it easy to see your schedule at a glance.\n\n---\n\n### **Good to Know**\n* **Multi-Calendar Support**: This workflow is designed to pull events from any number of Google Calendars you've connected, providing a single, consolidated summary.\n* **AI-Powered Summaries**: The AI Agent, powered by Google Gemini, is instructed to format the output with key details like title, time, duration, and a link to join the meeting. This saves you from sifting through calendar invites.\n\n### **How It Works**\n1.  A **Schedule Trigger** starts the workflow at a set time each day e.g at 9 AM (or any other time you choose).\n2.  An **AI Agent** with access to the Google Calendar tool is prompted to fetch today's events from all connected calendars.\n3.  The **Google Calendar** nodes retrieve all meetings for the current day.\n4.  The AI Agent processes this information and generates a clean, structured summary.\n5.  Finally, the formatted summary is sent to your team's chosen communication platforms: **Slack**, **Discord**, and **WhatsApp**.\n\n---\n\n### **How to Use**\n1.  **Set the Schedule**: Adjust the **Schedule Trigger** to run at a time that works best for your team—for example, every morning before the workday begins.\n2.  **Connect Your Accounts**: Add your **Google Calendar** credentials to connect all the calendars you want to monitor.\n3.  **Choose Your Channels**: Connect the appropriate **Slack**, **Discord**, and/or **WhatsApp** nodes and configure them to send the message to your desired channels or groups.\n\n---\n\n### **Requirements**\n* **Google Gemini account**: A Google Gemini account is needed for the AI Agent and Chat Model to function.\n* **Google Calendar account(s)**: You'll need to connect the Google Calendar accounts you wish to pull data from.\n* **Communication platform account(s)**: Credentials for the communication apps you want to use (Slack, Discord, WhatsApp).\n\n---\n\n### **Customizing This Workflow**\n* **Modify the Trigger**: You can change the **Schedule Trigger** to a different interval or even trigger the workflow manually with a webhook.\n* **Adjust the AI Prompt**: Fine-tune the AI Agent's prompt to change the summary format, include more details, or even ask it to highlight the most important meetings of the day.\n* **Add More Platforms**: Easily add more communication nodes to send the daily summary to other platforms like Microsoft Teams, email, or even a custom CRM.",
+  "workflow": {
+    "nodes": [
+      {
+        "id": "c8b0129b-4640-4b46-9626-b42fdd676840",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -560,
+          -160
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f625cfdf-8135-4cc9-9a8a-d30976a8a5ff",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "7ecd8a91-3da1-494a-bcb0-8b02343f8489",
+        "name": "AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          208,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "a0bc0097-efdd-4a45-9129-55f620d7f7f3",
+        "name": "Google Gemini Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "position": [
+          96,
+          224
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "d8e03223-2917-4470-919a-771f141a077a",
+        "name": "Google Calendar 2",
+        "type": "n8n-nodes-base.googleCalendarTool",
+        "position": [
+          512,
+          224
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "824ed333-9716-4485-800e-ff5e9a01277b",
+        "name": "Google Calendar 1",
+        "type": "n8n-nodes-base.googleCalendarTool",
+        "position": [
+          304,
+          224
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "12afd813-c97a-4b09-af1d-3d9aa0614253",
+        "name": "Send to Discord",
+        "type": "n8n-nodes-base.discord",
+        "position": [
+          832,
+          0
+        ],
+        "webhookId": "43f7291e-f498-47dd-8d5d-ad7e8985f6cc",
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "4b0933c1-451f-4745-b623-14503749d215",
+        "name": "Send to WhatsApp",
+        "type": "n8n-nodes-base.whatsApp",
+        "position": [
+          832,
+          192
+        ],
+        "webhookId": "98fd8d5f-09b6-4f94-97b3-9f36ebcda4ce",
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "37a811a6-b5d1-4ef5-ac28-20d6e152f54c",
+        "name": "Send to Slack",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          832,
+          -192
+        ],
+        "webhookId": "f3e29a3d-e761-4842-a6e3-e5a4ac264302",
+        "parameters": {},
+        "typeVersion": 2.3
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Send to Slack",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Send to Discord",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Send to WhatsApp",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send to Slack": {
+        "main": [
+          []
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Calendar 1": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Calendar 2": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Gemini Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 43,
+      "name": "Personal Productivity"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6934",
+  "fetched_at": "2026-09-12T13:11:37Z"
+}

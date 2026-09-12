@@ -1,0 +1,295 @@
+{
+  "id": 15206,
+  "name": "Send Instagram auto DMs to post commenters using Meta Graph API",
+  "description": "Automate the most popular growth hack on Instagram: **\"Comment 'DM' to get the link!\"**\n\nThis workflow listens to your Instagram posts in real-time. When a follower comments a specific trigger word (like \"DM\", \"Link\", or \"Guide\"), n8n automatically sends them a direct message containing your lead magnet, product link, or document. \n\nStop replying to hundreds of comments manually. Build your email list, drive traffic to your website, and scale your engagement on autopilot! 🚀\n\n## 🎯 Use Cases\n* **Content Creators:** Send exclusive PDF guides or templates to followers who engage with your reels/posts.\n* **E-commerce Brands:** Send discount codes or hidden product links directly to interested buyers.\n* **Course Creators & Coaches:** Deliver webinar registration links instantly when someone comments on your promotional post.\n\n## ✨ Workflow Features\n* **Smart Filtering:** Ignores your own replies so it doesn't trigger an infinite loop.\n* **Post-Specific:** Only triggers for the exact Post ID you define (won't misfire on your older posts).\n* **Case-Insensitive:** Catches both \"DM\" and \"dm\" seamlessly.\n* **Instant Delivery:** Uses the official Meta Graph API to deliver messages the second the comment is posted.\n\n## 🛠️ Prerequisites\nTo use this workflow, you will need:\n1. An **Instagram Professional/Business Account** linked to a Facebook Page.\n2. A **Meta Developer App** with the `instagram_manage_comments` and `instagram_manage_messages` permissions.\n3. Your Meta App configured to send Webhooks to this n8n instance.\n\n## 🎥 Setup Instructions & Video Guide\nIf you're new to setting up Meta Webhooks and generating Graph API Access Tokens, don't worry! I have recorded a complete walkthrough:\n\n👉 **[Watch the Step-by-Step Video Setup Guide Here](https://www.youtube.com/watch?v=6U_YLEWX-Po)**\n\n**Quick Start Steps:**\n1. **Webhook Configuration:** Copy your n8n Webhook URL and paste it into your Meta Developer App (Webhooks -&gt; Instagram -&gt; `comments`).\n2. **Set Target Post:** Open the `Match Post ID` node. Replace `Your-Instagram-Post-ID` with the ID of your reel/post. Replace `Your-Instagram-Account-ID` with your own IG ID.\n3. **Set Trigger Word:** Open the `Match Comment Text` node and type the exact keyword you want your audience to comment (e.g., \"DM\").\n4. **Draft Your Message:** Open the `Data` node and replace `Your-Message-Here` with your customized message and link!\n5. **Add Credentials:** Add your Facebook Graph API Access Token in the `Send DM` HTTP node. \n6. **Activate:** Toggle the workflow to **Active** and watch the DMs roll in!\n\n---\n\n## 📞 Support & Custom Workflows\nRunning into issues setting up the Meta App, or need a custom AI workflow built for your business? I am an **n8n Verified Creator** and I'm here to help!\n\n* 📧 **Email:** [salmanmehboob1947@gmail.com](mailto:salmanmehboob1947@gmail.com)\n* 💼 **LinkedIn:**[Let's connect!](https://www.linkedin.com/in/salman-mehboob-pro/)",
+  "workflow": {
+    "meta": {
+      "instanceId": "4f3d674a636d1510e4120a3e346e6ed10c98f6398c5a8f2f5294ee80b39a7bc0"
+    },
+    "nodes": [
+      {
+        "id": "a9845bc8-c7fc-4e17-91c2-ca008222a59f",
+        "name": "Trigger on Instagram Comment",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -1312,
+          480
+        ],
+        "webhookId": "ecc03c31-5ab4-4261-84fb-c774e06fd579",
+        "parameters": {
+          "path": "ecc03c31-5ab4-4261-84fb-c774e06fd579",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "26c4519f-c884-4d38-aa24-860610c3a47b",
+        "name": "Match Comment Text",
+        "type": "n8n-nodes-base.filter",
+        "position": [
+          -848,
+          464
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 3,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "or",
+            "conditions": [
+              {
+                "id": "3fc908dc-bef7-4a0e-875d-90e7a48f3fc8",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.body.entry[0].changes[0].value.text }}",
+                "rightValue": "DM"
+              },
+              {
+                "id": "811261e0-c0df-4503-97a8-41ce4ca7ceaa",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.body.entry[0].changes[0].value.text }}",
+                "rightValue": "dm"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "ac153128-12c5-4dd6-a2e6-5f37e801dff4",
+        "name": "Data",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -640,
+          464
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "a9c31aa4-afde-4532-be16-4650d907e0da",
+                "name": "comment_id",
+                "type": "string",
+                "value": "={{ $json.body.entry[0].changes[0].value.id }}"
+              },
+              {
+                "id": "2cf8ff04-4305-46be-b745-82f59d7570c9",
+                "name": "my_ig_id",
+                "type": "string",
+                "value": "={{ $json.body.entry[0].id }}"
+              },
+              {
+                "id": "48481d57-2485-4c87-aa1b-7d5780fb8d3d",
+                "name": "message",
+                "type": "string",
+                "value": "Your-Message-Here"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "fdd71ec5-f058-4c03-82cd-a39f686f1873",
+        "name": "Send DM",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -400,
+          464
+        ],
+        "parameters": {
+          "url": "=https://graph.facebook.com/v25.0/{{ $json.my_ig_id }}/messages",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n  \"recipient\": {\n    \"comment_id\": \"{{ $json.comment_id }}\"\n  },\n  \"message\": {\n    \"text\": \"{{ $json.message }}\"\n  }\n}",
+          "sendBody": true,
+          "specifyBody": "json",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpQueryAuth"
+        },
+        "credentials": {
+          "httpBasicAuth": {
+            "id": "n7xcoYM4p4kL8BMo",
+            "name": "Unnamed credential"
+          },
+          "httpQueryAuth": {
+            "id": "M3XA2TSYgympu8ca",
+            "name": "Test"
+          }
+        },
+        "typeVersion": 4.3
+      },
+      {
+        "id": "a65b590e-2259-4aaa-b4b1-3035eef22786",
+        "name": "Match Post ID",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -1104,
+          480
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 3,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "5bad8129-a374-4957-9762-5413b48850c3",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.body.entry[0].id }}",
+                "rightValue": "Your-Instagram-Post-ID"
+              },
+              {
+                "id": "327ce172-bd11-4a03-9c5a-60bd5c569eac",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEquals"
+                },
+                "leftValue": "={{ $json.body.entry[0].changes[0].value.from.id }}",
+                "rightValue": "Your-Instagram-Account-ID"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "21bc1730-3c77-469f-b7e8-916f45e696a2",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1904,
+          288
+        ],
+        "parameters": {
+          "width": 512,
+          "height": 512,
+          "content": "## 🚀 Instagram Auto-DM Lead Magnet\n\n### How it works\n\n1. Listens for live comment payloads via the Meta/Instagram Webhook.\n2. Verifies the comment is on a specific promotional post (and ignores your own replies).\n3. Checks if the commenter typed the exact trigger keyword.\n4. Automatically sends a direct message to the user with the requested document or link.\n\n### ⚠️ CRITICAL SETUP STEPS ⚠️\n\n- [ ] **Webhook:** Connect your Meta Developer App and subscribe to Instagram `comments`.\n- [ ] **Target Post:** Open the `Match Post ID` node. Paste your **Instagram Post ID** and your **Instagram Account ID** to prevent self-looping.\n- [ ] **Trigger Word:** Open the `Match Comment Text` node. Set your exact trigger words (e.g., \"DM\", \"Send it\").\n- [ ] **The Message:** Open the `Data` node. Replace \"Your-Message-Here\" with your custom message and link!\n- [ ] **Auth:** Add your Graph API credentials in the `Send DM` node."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "731cf544-0075-4914-bbe4-b9bb1911c438",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1376,
+          320
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 208,
+          "height": 304,
+          "content": "## 1. 📥 Receive Comment\n\nListens for comment payloads pushed from the Meta Webhook."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "cdc60ccf-3140-45e5-af3d-5b15474d53df",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1152,
+          304
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 448,
+          "height": 352,
+          "content": "## 2. 🎯 Filter & Validate\n\n⚠️ **ACTION REQUIRED:**\n1. Open **Match Post ID** to add your Post ID & Account ID.\n2. Open **Match Comment Text** to define your trigger keyword."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "01163d2a-6321-4a2d-a893-82bce72cdd75",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -672,
+          304
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 432,
+          "height": 352,
+          "content": "## 3. 💬 Prepare & Send DM\n\n⚠️ **ACTION REQUIRED:**\nOpen the **Data** node to type the custom message and link you want to send to your followers! (The API handles the rest)."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Data": {
+        "main": [
+          [
+            {
+              "node": "Send DM",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Match Post ID": {
+        "main": [
+          [
+            {
+              "node": "Match Comment Text",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Match Comment Text": {
+        "main": [
+          [
+            {
+              "node": "Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Trigger on Instagram Comment": {
+        "main": [
+          [
+            {
+              "node": "Match Post ID",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 33,
+      "name": "Social Media"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15206",
+  "fetched_at": "2026-09-12T13:15:19Z"
+}

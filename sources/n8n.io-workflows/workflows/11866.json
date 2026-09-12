@@ -1,0 +1,810 @@
+{
+  "id": 11866,
+  "name": "Job post to sales lead pipeline with Scrape.do, Apollo.io & OpenAI",
+  "description": "# Lead Sourcing by Job Posts For Outreach With Scrape.do API & Open AI & Google Sheets \n\n## Overview\n\nThis n8n workflow automates the complete lead generation process by scraping job postings from Indeed, enriching company data via Apollo.io, identifying decision-makers, and generating personalized LinkedIn outreach messages using OpenAI. It integrates with Scrape.do for reliable web scraping, Apollo.io for B2B data enrichment, OpenAI for AI-powered personalization, and Google Sheets for centralized data storage.\n\n**Perfect for:** Sales teams, recruiters, business development professionals, and marketing agencies looking to automate their outbound prospecting pipeline.\n\n---\n\n## Workflow Components\n\n### 1. ⏰ Schedule Trigger\n\n| Property | Value |\n|----------|-------|\n| Type | Schedule Trigger |\n| Purpose | Automatically initiates workflow on a recurring schedule |\n| Frequency | Weekly (Every Monday) |\n| Time | 00:00 UTC |\n\n**Function:** Ensures consistent, hands-off lead generation by running the pipeline automatically without manual intervention.\n\n---\n\n### 2. 🔍 Scrape.do Indeed API\n\n| Property | Value |\n|----------|-------|\n| Type | HTTP Request (GET) |\n| Purpose | Scrapes job listings from Indeed via Scrape.do proxy API |\n| Endpoint | `https://api.scrape.do` |\n| Output Format | Markdown |\n\n**Request Parameters:**\n\n| Parameter | Value | Description |\n|-----------|-------|-------------|\n| token | API Token | Scrape.do authentication |\n| url | Indeed Search URL | Target job search page |\n| super | true | Uses residential proxies |\n| geoCode | us | US-based content |\n| render | true | JavaScript rendering enabled |\n| device | mobile | Mobile viewport for cleaner HTML |\n| output | markdown | Lightweight text output |\n\n**Function:** Fetches Indeed job listings with anti-bot bypass, returning clean markdown for easy parsing.\n\n---\n\n### 3. 📋 Parse Indeed Jobs\n\n| Property | Value |\n|----------|-------|\n| Type | Code Node (JavaScript) |\n| Purpose | Extracts structured job data from markdown |\n| Mode | Run once for all items |\n\n**Extracted Fields:**\n\n| Field | Description | Example |\n|-------|-------------|---------|\n| jobTitle | Position title | \"Senior Data Engineer\" |\n| jobUrl | Indeed job link | \"https://indeed.com/viewjob?jk=abc123\" |\n| jobId | Indeed job identifier | \"abc123\" |\n| companyName | Hiring company | \"Acme Corporation\" |\n| location | City, State | \"San Francisco, CA\" |\n| salary | Pay range | \"$120,000 - $150,000\" |\n| jobType | Employment type | \"Full-time\" |\n| source | Data source | \"Indeed\" |\n| dateFound | Scrape date | \"2025-01-15\" |\n\n**Function:** Parses markdown using regex patterns, filters invalid entries, and deduplicates by company name.\n\n---\n\n### 4. 📊 Add New Company (Google Sheets)\n\n| Property | Value |\n|----------|-------|\n| Type | Google Sheets Node |\n| Purpose | Stores parsed job postings for tracking |\n| Operation | Append rows |\n| Target Sheet | \"Add New Company\" |\n\n**Function:** Creates a historical record of all discovered job postings and companies for pipeline tracking.\n\n---\n\n### 5. 🏢 Apollo Organization Search\n\n| Property | Value |\n|----------|-------|\n| Type | HTTP Request (POST) |\n| Purpose | Enriches company data via Apollo.io API |\n| Endpoint | `https://api.apollo.io/v1/organizations/search` |\n| Authentication | HTTP Header Auth (x-api-key) |\n\n**Request Body:**\n```json\n{\n  \"q_organization_name\": \"Company Name\",\n  \"page\": 1,\n  \"per_page\": 1\n}\n```\n\n**Response Fields:**\n\n| Field | Description |\n|-------|-------------|\n| id | Apollo organization ID |\n| name | Official company name |\n| website_url | Company website |\n| linkedin_url | LinkedIn company page |\n| industry | Business sector |\n| estimated_num_employees | Company size |\n| founded_year | Year established |\n| city, state, country | Location details |\n| short_description | Company overview |\n\n**Function:** Retrieves comprehensive company intelligence including LinkedIn profiles, industry classification, and employee count.\n\n---\n\n### 6. 📤 Extract Apollo Org Data\n\n| Property | Value |\n|----------|-------|\n| Type | Code Node (JavaScript) |\n| Purpose | Parses Apollo response and merges with original data |\n| Mode | Run once for each item |\n\n**Function:** Extracts relevant fields from Apollo API response and combines with job posting data for downstream processing.\n\n---\n\n### 7. 👥 Apollo People Search\n\n| Property | Value |\n|----------|-------|\n| Type | HTTP Request (POST) |\n| Purpose | Finds decision-makers at target companies |\n| Endpoint | `https://api.apollo.io/v1/mixed_people/search` |\n| Authentication | HTTP Header Auth (x-api-key) |\n\n**Request Body:**\n```json\n{\n  \"organization_ids\": [\"apollo_org_id\"],\n  \"person_titles\": [\n    \"CTO\",\n    \"Chief Technology Officer\",\n    \"VP Engineering\",\n    \"Head of Engineering\",\n    \"Engineering Manager\",\n    \"Technical Director\",\n    \"CEO\",\n    \"Founder\"\n  ],\n  \"page\": 1,\n  \"per_page\": 3\n}\n```\n\n**Response Fields:**\n\n| Field | Description |\n|-------|-------------|\n| first_name | Contact first name |\n| last_name | Contact last name |\n| title | Job title |\n| email | Email address |\n| linkedin_url | LinkedIn profile URL |\n| phone_number | Direct phone |\n\n**Function:** Identifies key stakeholders and decision-makers based on configurable title filters.\n\n---\n\n### 8. 📝 Format Leads\n\n| Property | Value |\n|----------|-------|\n| Type | Code Node (JavaScript) |\n| Purpose | Structures lead data for outreach |\n| Mode | Run once for all items |\n\n**Function:** Combines person data with company context, creating comprehensive lead profiles ready for personalization.\n\n---\n\n### 9. 🤖 Generate Personalized Message (OpenAI)\n\n| Property | Value |\n|----------|-------|\n| Type | OpenAI Node |\n| Purpose | Creates custom LinkedIn connection messages |\n| Model | gpt-4o-mini |\n| Max Tokens | 150 |\n| Temperature | 0.7 |\n\n**System Prompt:**\n```\nYou are a professional outreach specialist. Write personalized LinkedIn connection request messages. Keep messages under 300 characters. Be friendly, professional, and mention a specific reason for connecting based on their role and company.\n```\n\n**User Prompt Variables:**\n\n| Variable | Source |\n|----------|--------|\n| Name | `$json.fullName` |\n| Title | `$json.title` |\n| Company | `$json.companyName` |\n| Industry | `$json.industry` |\n| Job Context | `$json.jobTitle` |\n\n**Function:** Generates unique, contextual outreach messages that reference specific hiring activity and company details.\n\n---\n\n### 10. 🔗 Merge Lead + Message\n\n| Property | Value |\n|----------|-------|\n| Type | Code Node (JavaScript) |\n| Purpose | Combines lead data with generated message |\n| Mode | Run once for each item |\n\n**Function:** Merges OpenAI response with lead profile, creating the final enriched record.\n\n---\n\n### 11. 💾 Save Leads to Sheet\n\n| Property | Value |\n|----------|-------|\n| Type | Google Sheets Node |\n| Purpose | Stores final lead data with personalized messages |\n| Operation | Append rows |\n| Target Sheet | \"Leads\" |\n\n**Data Mapping:**\n\n| Column | Data |\n|--------|------|\n| First Name | Lead's first name |\n| Last Name | Lead's last name |\n| Title | Job title |\n| Company | Company name |\n| LinkedIn URL | Profile link |\n| Country | Location |\n| Industry | Business sector |\n| Date Added | Timestamp |\n| Source | \"Indeed + Apollo\" |\n| Personalized Message | AI-generated outreach text |\n\n**Function:** Creates actionable lead database ready for outreach campaigns.\n\n---\n\n## Workflow Flow\n\n```\n⏰ Schedule Trigger\n       │\n       ▼\n🔍 Scrape.do Indeed API ──► Fetches job listings with JS rendering\n       │\n       ▼\n📋 Parse Indeed Jobs ──► Extracts company names, job details\n       │\n       ▼\n📊 Add New Company ──► Saves to Google Sheets (Companies)\n       │\n       ▼\n🏢 Apollo Org Search ──► Enriches company data\n       │\n       ▼\n📤 Extract Apollo Org Data ──► Parses API response\n       │\n       ▼\n👥 Apollo People Search ──► Finds decision-makers\n       │\n       ▼\n📝 Format Leads ──► Structures lead profiles\n       │\n       ▼\n🤖 Generate Personalized Message ──► AI creates custom outreach\n       │\n       ▼\n🔗 Merge Lead + Message ──► Combines all data\n       │\n       ▼\n💾 Save Leads to Sheet ──► Final storage (Leads)\n```\n\n---\n\n## Configuration Requirements\n\n### API Keys & Credentials\n\n| Credential | Purpose | Where to Get |\n|------------|---------|--------------|\n| Scrape.do API Token | Web scraping with anti-bot bypass | [scrape.do/dashboard](https://scrape.do) |\n| Apollo.io API Key | B2B data enrichment | [apollo.io/settings/integrations](https://apollo.io) |\n| OpenAI API Key | AI message generation | [platform.openai.com](https://platform.openai.com) |\n| Google Sheets OAuth2 | Data storage | n8n Credentials Setup |\n\n### n8n Credential Setup\n\n| Credential Type | Configuration |\n|-----------------|---------------|\n| HTTP Header Auth (Apollo) | Header: `x-api-key`, Value: Your Apollo API key |\n| OpenAI API | API Key: Your OpenAI API key |\n| Google Sheets OAuth2 | Complete OAuth flow with Google |\n\n---\n\n## Key Features\n\n### 🔍 Intelligent Job Scraping\n\n- **Anti-Bot Bypass:** Residential proxy rotation via Scrape.do\n- **JavaScript Rendering:** Full headless browser for dynamic content\n- **Mobile Optimization:** Cleaner HTML with mobile viewport\n- **Markdown Output:** Lightweight, easy-to-parse format\n\n### 🏢 B2B Data Enrichment\n\n- **Company Intelligence:** Industry, size, location, LinkedIn\n- **Decision-Maker Discovery:** Title-based filtering\n- **Contact Information:** Email, phone, LinkedIn profiles\n- **Real-Time Data:** Fresh information from Apollo.io\n\n### 🤖 AI-Powered Personalization\n\n- **Contextual Messages:** References specific hiring activity\n- **Character Limit:** Optimized for LinkedIn (300 chars)\n- **Variable Temperature:** Balanced creativity and consistency\n- **Role-Specific:** Tailored to recipient's title and company\n\n### 📊 Automated Data Management\n\n- **Dual Sheet Storage:** Companies + Leads separation\n- **Timestamp Tracking:** Historical records\n- **Deduplication:** Prevents duplicate entries\n- **Ready for Export:** CSV-compatible format\n\n---\n\n## Use Cases\n\n### 🎯 Sales Prospecting\n\n- Identify companies actively hiring in your target market\n- Find decision-makers at companies investing in growth\n- Generate personalized cold outreach at scale\n- Track pipeline from discovery to contact\n\n### 👥 Recruiting & Talent Acquisition\n\n- Monitor competitor hiring patterns\n- Identify companies building specific teams\n- Connect with hiring managers directly\n- Build talent pipeline relationships\n\n### 📈 Market Intelligence\n\n- Track industry hiring trends\n- Monitor competitor expansion signals\n- Identify emerging market opportunities\n- Benchmark salary ranges by role\n\n### 🤝 Partnership Development\n\n- Find companies investing in complementary areas\n- Identify potential integration partners\n- Connect with technical leadership\n- Build strategic relationship pipeline\n\n---\n\n## Technical Notes\n\n| Specification | Value |\n|---------------|-------|\n| Processing Time | 2-5 minutes per run (depending on job count) |\n| Jobs per Run | ~25 unique companies |\n| API Calls per Run | 1 Scrape.do + ~25 Apollo Org + ~25 Apollo People + ~75 OpenAI |\n| Data Accuracy | 90%+ for company matching |\n| Success Rate | 99%+ with proper error handling |\n\n### Rate Limits to Consider\n\n| Service | Free Tier Limit | Recommendation |\n|---------|-----------------|----------------|\n| Scrape.do | 1,000 credits/month | ~40 runs/month |\n| Apollo.io | 100 requests/day | Add Wait nodes if needed |\n| OpenAI | Based on usage | Monitor costs (~$0.01-0.05/run) |\n| Google Sheets | 300 requests/minute | No issues expected |\n\n---\n\n## Setup Instructions\n\n### Step 1: Import Workflow\n\n1. Copy the JSON workflow configuration\n2. In n8n: **Workflows → Import from JSON**\n3. Paste configuration and save\n\n### Step 2: Configure Scrape.do\n\n1. Sign up at [scrape.do](https://scrape.do)\n2. Navigate to Dashboard → API Token\n3. Copy your token\n4. Token is embedded in URL query parameter (already configured)\n\n**To customize search:**\n```\nChange the `url` parameter in \"Scrape.do Indeed API\" node:\n- q=data+engineer (search term)\n- l=Remote (location)\n- fromage=7 (last 7 days)\n```\n\n### Step 3: Configure Apollo.io\n\n1. Sign up at [apollo.io](https://apollo.io)\n2. Go to **Settings → Integrations → API Keys**\n3. Create new API key\n4. In n8n: **Credentials → Add Credential → Header Auth**\n   - Name: `x-api-key`\n   - Value: Your Apollo API key\n5. Select this credential in both Apollo HTTP nodes\n\n### Step 4: Configure OpenAI\n\n1. Go to [platform.openai.com](https://platform.openai.com)\n2. Create new API key\n3. In n8n: **Credentials → Add Credential → OpenAI**\n4. Paste API key\n5. Select credential in \"Generate Personalized Message\" node\n\n### Step 5: Configure Google Sheets\n\n1. Create new Google Spreadsheet\n2. Create two sheets:\n   - **Sheet 1:** \"Add New Company\"\n     - Columns: `companyName | jobTitle | jobUrl | location | salary | source | postedDate`\n   - **Sheet 2:** \"Leads\"\n     - Columns: `First Name | Last Name | Title | Company | LinkedIn URL | Country | Industry | Date Added | Source | Personalized Message`\n3. Copy Sheet ID from URL\n4. In n8n: **Credentials → Add Credential → Google Sheets OAuth2**\n5. Update both Google Sheets nodes with your Sheet ID\n\n### Step 6: Test and Activate\n\n1. **Manual Test:** Click \"Execute Workflow\" button\n2. **Verify Each Node:** Check outputs step by step\n3. **Review Data:** Confirm data appears in Google Sheets\n4. **Activate:** Toggle workflow to \"Active\"\n\n---\n\n## Error Handling\n\n### Common Issues\n\n| Issue | Cause | Solution |\n|-------|-------|----------|\n| \"Invalid character: [\" | Empty/malformed company name | Check Parse Indeed Jobs output |\n| \"Node does not have credentials\" | Credential not linked | Open node → Select credential |\n| Empty Parse Results | Indeed HTML structure changed | Check Scrape.do raw output |\n| Apollo Rate Limit (429) | Too many requests | Add 5-10s Wait node between calls |\n| OpenAI Timeout | Too many tokens | Reduce batch size or max_tokens |\n| \"Your request is invalid\" | Malformed JSON body | Verify expression syntax in HTTP nodes |\n\n### Troubleshooting Steps\n\n1. **Verify Credentials:** Test each credential individually\n2. **Check Node Outputs:** Use \"Execute Node\" for debugging\n3. **Monitor API Usage:** Check Apollo and OpenAI dashboards\n4. **Review Logs:** Check n8n execution history for details\n5. **Test with Sample:** Use known company name to verify Apollo\n\n### Recommended Error Handling Additions\n\nFor production use, consider adding:\n\n```\n- IF node after Apollo Org Search to handle empty results\n- Error Workflow trigger for notifications\n- Wait nodes between API calls for rate limiting\n- Retry logic for transient failures\n```\n\n---\n\n## Performance Specifications\n\n| Metric | Value |\n|--------|-------|\n| Execution Time | 2-5 minutes per scheduled run |\n| Jobs Discovered | ~25 per Indeed page |\n| Leads Generated | 1-3 per company (based on title matches) |\n| Message Quality | Professional, contextual, &lt;300 chars |\n| Data Freshness | Real-time from Indeed + Apollo |\n| Storage Format | Google Sheets (unlimited rows) |\n\n---\n\n## API Reference\n\n### Scrape.do API\n\n| Endpoint | Method | Purpose |\n|----------|--------|---------|\n| `https://api.scrape.do` | GET | Direct URL scraping |\n\n**Documentation:** [scrape.do/documentation](https://scrape.do/documentation)\n\n### Apollo.io API\n\n| Endpoint | Method | Purpose |\n|----------|--------|---------|\n| `/v1/organizations/search` | POST | Company lookup |\n| `/v1/mixed_people/search` | POST | People search |\n\n**Documentation:** [apolloio.github.io/apollo-api-docs](https://apolloio.github.io/apollo-api-docs)\n\n### OpenAI API\n\n| Endpoint | Method | Purpose |\n|----------|--------|---------|\n| `/v1/chat/completions` | POST | Message generation |\n\n**Documentation:** [platform.openai.com",
+  "workflow": {
+    "meta": {
+      "instanceId": "90ecc3dbcf45ac6dce9fa5851adaed89ca323b632668284d7aad583fcec5797c"
+    },
+    "nodes": [
+      {
+        "id": "723a8fe4-824f-4a45-932b-3b31e246d34b",
+        "name": "🎯 Input Options",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -112,
+          496
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 392,
+          "height": 464,
+          "content": "## How it works\nThis workflow automates the lead sourcing process by scraping job listings from Indeed using Scrape.do. It enriches company data and finds decision-makers (e.g., CTOs, Founders) via Apollo.io. Finally, it uses OpenAI to generate personalized LinkedIn connection requests and saves all qualified leads to Google Sheets.\n\n## Setup steps\n1. **Credentials:** Configure your credentials for Scrape.do, Apollo.io, OpenAI, and Google Sheets.\n2. **Google Sheets:** Create a new sheet with two tabs named `Companies` and `Leads`.\n3. **Configuration:** Update the \"Set Search Parameters\" node with your target Job Title, Location, and search freshness (days).\n4. **Run:** Click \"Execute Workflow\" or use the Form URL to start the pipeline."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5c1491b4-1896-4c1d-9afd-dda5caf9d4fe",
+        "name": "🔍 Scrape.do Details",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          528,
+          432
+        ],
+        "parameters": {
+          "color": 2,
+          "width": 1096,
+          "height": 576,
+          "content": "## 1. Job Scraping\nAccepts search criteria via Form or Manual trigger, fetches job postings from Indeed via Scrape.do, and parses the markdown output."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "d6064e7b-e510-4cad-83c9-77d90f9e151f",
+        "name": "🏢 Apollo Org Search",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1776,
+          432
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 1176,
+          "height": 576,
+          "content": "## 2. Data Enrichment\nLogs companies to Sheets to avoid duplicates, then uses Apollo.io to fetch detailed organization data and find key decision-makers."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ddbf64fe-aff4-47a2-8771-f1eb2055f899",
+        "name": "👥 Apollo People",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          3008,
+          432
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 1128,
+          "height": 576,
+          "content": "## 3. Personalization & Output\nFormats the lead data, uses OpenAI to write a custom LinkedIn connection message based on the job context, and saves the final lead list to Google Sheets."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ae5cd22b-868d-4ac1-9044-0eaff387b494",
+        "name": "🔧 Troubleshooting",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          4192,
+          736
+        ],
+        "parameters": {
+          "width": 424,
+          "height": 256,
+          "content": "# 🔧 Troubleshooting\n\n- **Apollo error:** companyName may be empty\n- **No credentials:** Select credential in node\n- **Empty results:** Check Scrape.do output\n- **Rate limit:** Add Wait node\n\n✅ Test each node individually"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "28901e2c-cd7e-4adc-a7e0-9301c95fe370",
+        "name": "Form Trigger (Optional)",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          560,
+          832
+        ],
+        "webhookId": "lead-pipeline-form",
+        "parameters": {
+          "options": {},
+          "formTitle": "Indeed Job Search Configuration",
+          "formFields": {
+            "values": [
+              {
+                "fieldLabel": "Job Title / Keywords",
+                "placeholder": "web scraping, data engineer, python developer",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Location",
+                "placeholder": "United States, Remote, New York"
+              },
+              {
+                "fieldType": "number",
+                "fieldLabel": "Days Posted (1-30)",
+                "placeholder": "14"
+              }
+            ]
+          },
+          "formDescription": "Enter your search criteria to find job postings and generate leads."
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "87345ccf-303c-46fb-a1b4-b71861163ab7",
+        "name": "Set Search Parameters",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          864,
+          784
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "job-title",
+                "name": "jobTitle",
+                "type": "string",
+                "value": "={{ $json['Job Title / Keywords'] || 'web scraping' }}"
+              },
+              {
+                "id": "location",
+                "name": "location",
+                "type": "string",
+                "value": "={{ $json['Location'] || 'United States' }}"
+              },
+              {
+                "id": "days-posted",
+                "name": "daysPosted",
+                "type": "number",
+                "value": "={{ $json['Days Posted (1-30)'] || 14 }}"
+              },
+              {
+                "id": "indeed-url",
+                "name": "indeedUrl",
+                "type": "string",
+                "value": "=https://www.indeed.com/jobs?q={{ encodeURIComponent($json['Job Title / Keywords'] || 'web scraping') }}&l={{ encodeURIComponent($json['Location'] || 'United States') }}&fromage={{ $json['Days Posted (1-30)'] || 14 }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "091e1c17-98ab-406c-af3d-a887b77c92f2",
+        "name": "Scrape.do Indeed API",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1152,
+          784
+        ],
+        "parameters": {
+          "url": "https://api.scrape.do",
+          "options": {
+            "timeout": 60000,
+            "response": {
+              "response": {
+                "responseFormat": "text"
+              }
+            }
+          },
+          "sendQuery": true,
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpQueryAuth",
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "url",
+                "value": "={{ $json.indeedUrl }}"
+              },
+              {
+                "name": "super",
+                "value": "true"
+              },
+              {
+                "name": "geoCode",
+                "value": "us"
+              },
+              {
+                "name": "render",
+                "value": "true"
+              },
+              {
+                "name": "blockResources",
+                "value": "true"
+              },
+              {
+                "name": "device",
+                "value": "mobile"
+              },
+              {
+                "name": "output",
+                "value": "markdown"
+              }
+            ]
+          }
+        },
+        "credentials": {
+          "httpQueryAuth": {
+            "id": "credential-id",
+            "name": "httpQueryAuth Credential"
+          }
+        },
+        "typeVersion": 4.3
+      },
+      {
+        "id": "5261333a-c6fd-4c99-8f7d-a58ec8b75b8e",
+        "name": "Parse Indeed Jobs",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1504,
+          784
+        ],
+        "parameters": {
+          "jsCode": "const input = $input.first().json;\nconst markdown = input.data || input.body || (typeof input === 'string' ? input : JSON.stringify(input));\nconst today = new Date().toISOString().split('T')[0];\n\nconst jobs = [];\nconst lines = String(markdown).split('\\n');\n\nconst stopMarkers = ['People also searched', 'About these companies', 'Related to this search', 'Companies and locations', 'Jobs and locations', 'Salaries-', 'Resume Resources', 'Employer Resources'];\n\nlet currentJob = null;\nlet lineAfterTitle = 0;\n\nfor (let i = 0; i < lines.length; i++) {\n  const line = lines[i].trim();\n  \n  if (stopMarkers.some(marker => line.includes(marker))) {\n    break;\n  }\n  \n  const jobMatch = line.match(/^-?\\s*##\\s*\\[(.+?)\\]\\((https?:\\/\\/[^)]*viewjob\\?jk=([a-zA-Z0-9]+)[^)]*)\\)/);\n  \n  if (jobMatch) {\n    if (currentJob && currentJob.companyName) {\n      jobs.push({...currentJob});\n    }\n    \n    currentJob = {\n      jobTitle: jobMatch[1].trim(),\n      jobUrl: jobMatch[2].trim(),\n      jobId: jobMatch[3],\n      companyName: '',\n      location: '',\n      salary: '',\n      jobType: '',\n      source: 'Indeed',\n      dateFound: today\n    };\n    lineAfterTitle = 0;\n    continue;\n  }\n  \n  if (currentJob) {\n    if (!line || line === '-' || line.startsWith('![') || line.startsWith('- Title:')) continue;\n    if (line.includes('Company logo') || line.includes('cloudfront.net')) continue;\n    if (line === 'New' || line.includes('Often responds') || line === 'Easily apply' || line.includes('Transit information')) continue;\n    \n    lineAfterTitle++;\n    \n    if (line.startsWith('$') || line.match(/^\\$[\\d,]+/)) {\n      currentJob.salary = line;\n      continue;\n    }\n    \n    if (line.includes('Pay information not provided')) {\n      currentJob.salary = 'Not provided';\n      continue;\n    }\n    \n    if (line.match(/^(Full-time|Part-time|Contract|Temporary|Internship)$/i)) {\n      currentJob.jobType = line;\n      continue;\n    }\n    \n    if (line.match(/^(401\\(k\\)|Health insurance|Paid time off|Vision|Dental|Tuition|Employee discount|Paid parental)/i)) continue;\n    if (line.match(/hours per week|Monday to Friday|Day shift|Weekends/i)) continue;\n    \n    const locationMatch = line.match(/^(Remote in )?([A-Z][a-zA-Z\\s]+),\\s*([A-Z]{2})(\\s+\\d{5})?$/);\n    if (locationMatch) {\n      currentJob.location = line;\n      continue;\n    }\n    \n    if (line === 'Remote') {\n      currentJob.location = 'Remote';\n      continue;\n    }\n    \n    if (!currentJob.companyName && lineAfterTitle <= 5) {\n      if (!line.startsWith('[') && !line.startsWith('http') && line.length > 1 && line.length < 100) {\n        if (!line.includes('...') && !line.match(/experience|looking for|develop|collaborate|work with/i)) {\n          currentJob.companyName = line;\n          continue;\n        }\n      }\n    }\n  }\n}\n\nif (currentJob && currentJob.companyName) {\n  jobs.push(currentJob);\n}\n\nconst validJobs = jobs.filter(job => {\n  if (!job.companyName || job.companyName.length < 2) return false;\n  if (job.companyName.includes('chevron') || job.companyName.includes('Title:')) return false;\n  return true;\n});\n\nconst seen = new Set();\nconst uniqueJobs = validJobs.filter(job => {\n  const key = job.companyName.toLowerCase().trim();\n  if (seen.has(key)) return false;\n  seen.add(key);\n  return true;\n});\n\nif (uniqueJobs.length === 0) {\n  return [];\n}\n\nreturn uniqueJobs.map(job => ({ json: job }));"
+        },
+        "typeVersion": 2,
+        "alwaysOutputData": false
+      },
+      {
+        "id": "9c7f51f0-55f2-41b2-9e24-1422422f2ca2",
+        "name": "Add New Company",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1824,
+          784
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "jobUrl": "={{ $json.jobUrl }}",
+              "salary": "={{ $json.salary }}",
+              "source": "={{ $json.source }}",
+              "jobTitle": "={{ $json.jobTitle }}",
+              "location": "={{ $json.location }}",
+              "dateFound": "={{ $json.dateFound }}",
+              "companyName": "={{ $json.companyName }}"
+            },
+            "schema": [
+              {
+                "id": "jobTitle",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "jobTitle",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "jobUrl",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "jobUrl",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "companyName",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "companyName",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "location",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "location",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "salary",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "salary",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "postedAt",
+                "type": "string",
+                "display": true,
+                "removed": true,
+                "required": false,
+                "displayName": "postedAt",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "source",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "source",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "dateFound",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "dateFound",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GCrag7CXehEs_BNKMv0Y4ihTeq7J2oMd-TYSLkXxL_U/edit#gid=0",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1GCrag7CXehEs_BNKMv0Y4ihTeq7J2oMd-TYSLkXxL_U",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GCrag7CXehEs_BNKMv0Y4ihTeq7J2oMd-TYSLkXxL_U/edit?usp=drivesdk",
+            "cachedResultName": "New Company"
+          }
+        },
+        "typeVersion": 4.7,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "27a365b9-0ef9-475e-9c10-eb9edebe19b3",
+        "name": "Apollo Organization Search",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          2160,
+          784
+        ],
+        "parameters": {
+          "url": "https://api.apollo.io/v1/organizations/search",
+          "method": "POST",
+          "options": {
+            "timeout": 30000,
+            "response": {
+              "response": {
+                "fullResponse": true
+              }
+            }
+          },
+          "jsonBody": "={\n  \"q_organization_name\": \"{{ $json.companyName }}\",\n  \"page\": 1,\n  \"per_page\": 1\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "credential-id",
+            "name": "httpHeaderAuth Credential"
+          }
+        },
+        "typeVersion": 4.3
+      },
+      {
+        "id": "e8e1e95a-d11d-4591-933d-8c16467225c4",
+        "name": "Extract Apollo Org Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2528,
+          784
+        ],
+        "parameters": {
+          "jsCode": "const items = $input.all();\n\nconst results = items.map((item, index) => {\n  const response = item.json;\n  const body = response.body || response;\n  const organizations = body.organizations || [];\n  const org = organizations[0] || {};\n\n  let originalData = {};\n  try {\n    originalData = $('Add New Company').item(index).json;\n  } catch (e) {\n    originalData = {};\n  }\n\n  return {\n    json: {\n      companyName: originalData.companyName || '',\n      jobTitle: originalData.jobTitle || '',\n      jobUrl: originalData.jobUrl || '',\n      location: originalData.location || '',\n      dateFound: originalData.dateFound || '',\n      linkedinUrl: org.linkedin_url || null,\n      organizationId: org.id || null,\n      apolloOrganizationName: org.name || null,\n      websiteUrl: org.website_url || org.primary_domain || null,\n      industry: org.industry || null,\n      employeeCount: org.estimated_num_employees || null,\n      foundedYear: org.founded_year || null,\n      city: org.city || null,\n      state: org.state || null,\n      country: org.country || null,\n      description: org.short_description || null,\n      apolloEnriched: !!org.id,\n      enrichmentTimestamp: new Date().toISOString()\n    }\n  };\n});\n\nreturn results;"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "2a98ba5c-f9a5-41a2-bc04-d42e6035dd35",
+        "name": "Apollo People Search",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          2832,
+          784
+        ],
+        "parameters": {
+          "url": "https://api.apollo.io/v1/mixed_people/search",
+          "method": "POST",
+          "options": {
+            "timeout": 30000,
+            "response": {
+              "response": {
+                "fullResponse": true
+              }
+            }
+          },
+          "jsonBody": "={\n  \"organization_ids\": [\"{{ $json.organizationId }}\"],\n  \"person_titles\": [\"CTO\", \"Chief Technology Officer\", \"VP Engineering\", \"Head of Engineering\", \"Engineering Manager\", \"Technical Director\", \"CEO\", \"Founder\"],\n  \"page\": 1,\n  \"per_page\": 3\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.3
+      },
+      {
+        "id": "74407d73-6082-4708-9e66-3f7b41219e1f",
+        "name": "Format Leads",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          3072,
+          784
+        ],
+        "parameters": {
+          "jsCode": "const items = $input.all();\nconst allLeads = [];\n\nitems.forEach((item, index) => {\n  const response = item.json;\n  const body = response.body || response;\n  const people = body.people || [];\n\n  if (people.length === 0) return;\n\n  let companyData = {};\n  try {\n    companyData = $('Extract Apollo Org Data').item(index).json;\n  } catch (e) {\n    companyData = {};\n  }\n\n  people.forEach(person => {\n    allLeads.push({\n      json: {\n        firstName: person.first_name || '',\n        lastName: person.last_name || '',\n        fullName: person.name || (person.first_name + ' ' + person.last_name).trim(),\n        title: person.title || person.headline || '',\n        email: person.email || '',\n        phone: person.phone_number || '',\n        linkedinUrl: person.linkedin_url || '',\n        companyName: companyData.companyName || companyData.apolloOrganizationName || '',\n        companyWebsite: companyData.websiteUrl || '',\n        companyLinkedIn: companyData.linkedinUrl || '',\n        country: companyData.country || person.country || '',\n        city: person.city || companyData.city || '',\n        industry: companyData.industry || '',\n        jobTitle: companyData.jobTitle || '',\n        jobUrl: companyData.jobUrl || '',\n        status: 'New',\n        dateAdded: new Date().toISOString().split('T')[0],\n        source: 'Indeed + Apollo',\n        apolloPersonId: person.id || ''\n      }\n    });\n  });\n});\n\nif (allLeads.length === 0) return [];\nreturn allLeads;"
+        },
+        "typeVersion": 2,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "4b069297-0707-436d-9fbb-725e2b8e8c49",
+        "name": "Generate Personalized Message",
+        "type": "n8n-nodes-base.openAi",
+        "position": [
+          3408,
+          784
+        ],
+        "parameters": {
+          "prompt": {
+            "messages": [
+              {
+                "role": "system",
+                "content": "You are a professional outreach specialist. Write personalized LinkedIn connection request messages. Keep messages under 300 characters. Be friendly, professional, and mention a specific reason for connecting based on their role and company. Do not use generic templates. Write in English."
+              },
+              {
+                "content": "=Write a personalized LinkedIn connection request message for:\n\nName: {{ $json.fullName }}\nTitle: {{ $json.title }}\nCompany: {{ $json.companyName }}\nIndustry: {{ $json.industry }}\nJob Posting Context: They are hiring for {{ $json.jobTitle }}\n\nMention that I noticed they are expanding their data/scraping team and I would love to connect to share insights about web scraping solutions."
+              }
+            ]
+          },
+          "options": {
+            "maxTokens": 150,
+            "temperature": 0.7
+          },
+          "resource": "chat",
+          "requestOptions": {}
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "credential-id",
+            "name": "openAiApi Credential"
+          }
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "01e00970-f643-4ffb-b9d4-18bd4b83a961",
+        "name": "Merge Lead + Message",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          3712,
+          784
+        ],
+        "parameters": {
+          "jsCode": "const items = $input.all();\n\nreturn items.map((item, index) => {\n  const openAiResponse = item.json;\n  \n  let personalizedMessage = '';\n  if (openAiResponse.message && openAiResponse.message.content) {\n    personalizedMessage = openAiResponse.message.content;\n  } else if (openAiResponse.choices && openAiResponse.choices[0] && openAiResponse.choices[0].message) {\n    personalizedMessage = openAiResponse.choices[0].message.content;\n  } else if (typeof openAiResponse === 'string') {\n    personalizedMessage = openAiResponse;\n  }\n  \n  let leadData = {};\n  try {\n    leadData = $('Format Leads').item(index).json;\n  } catch (e) {\n    leadData = {};\n  }\n  \n  return {\n    json: {\n      firstName: leadData.firstName || '',\n      lastName: leadData.lastName || '',\n      fullName: leadData.fullName || '',\n      title: leadData.title || '',\n      email: leadData.email || '',\n      linkedinUrl: leadData.linkedinUrl || '',\n      companyName: leadData.companyName || '',\n      country: leadData.country || '',\n      city: leadData.city || '',\n      industry: leadData.industry || '',\n      dateAdded: leadData.dateAdded || '',\n      source: leadData.source || '',\n      personalizedMessage: personalizedMessage.trim(),\n      messageGeneratedAt: new Date().toISOString()\n    }\n  };\n});"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "0428310e-637c-430d-bb0d-f33e0293b0c7",
+        "name": "Save Leads to Sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          3936,
+          784
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "Title": "={{ $json.title }}",
+              "Source": "={{ $json.source }}",
+              "Company": "={{ $json.companyName }}",
+              "Country": "={{ $json.country }}",
+              "Industry": "={{ $json.industry }}",
+              "Last Name": "={{ $json.lastName }}",
+              "Date Added": "={{ $json.dateAdded }}",
+              "First Name": "={{ $json.firstName }}",
+              "LinkedIn URL": "={{ $json.linkedinUrl }}",
+              "Personalized Message": "={{ $json.personalizedMessage }}"
+            },
+            "schema": [
+              {
+                "id": "First Name",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "First Name",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Last Name",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Last Name",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Title",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Title",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Company",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Company",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "LinkedIn URL",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "LinkedIn URL",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Country",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Country",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Industry",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Industry",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Date Added",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Date Added",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Source",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Source",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Personalized Message",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Personalized Message",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": 1070709009,
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1I42mxlJ_vJhigbnOK4OiSu09waldc-ggo78TJum-tlo/edit#gid=1070709009",
+            "cachedResultName": "Leads"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1I42mxlJ_vJhigbnOK4OiSu09waldc-ggo78TJum-tlo",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1I42mxlJ_vJhigbnOK4OiSu09waldc-ggo78TJum-tlo/edit?usp=drivesdk",
+            "cachedResultName": "read existing"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "ed5a727c-d38e-4f58-bfeb-dcbe6134cdda",
+        "name": "Manual Trigger",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          560,
+          624
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Format Leads": {
+        "main": [
+          [
+            {
+              "node": "Generate Personalized Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Manual Trigger": {
+        "main": [
+          [
+            {
+              "node": "Set Search Parameters",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Add New Company": {
+        "main": [
+          [
+            {
+              "node": "Apollo Organization Search",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse Indeed Jobs": {
+        "main": [
+          [
+            {
+              "node": "Add New Company",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Apollo People Search": {
+        "main": [
+          [
+            {
+              "node": "Format Leads",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge Lead + Message": {
+        "main": [
+          [
+            {
+              "node": "Save Leads to Sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Scrape.do Indeed API": {
+        "main": [
+          [
+            {
+              "node": "Parse Indeed Jobs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Search Parameters": {
+        "main": [
+          [
+            {
+              "node": "Scrape.do Indeed API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Apollo Org Data": {
+        "main": [
+          [
+            {
+              "node": "Apollo People Search",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Form Trigger (Optional)": {
+        "main": [
+          [
+            {
+              "node": "Set Search Parameters",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Apollo Organization Search": {
+        "main": [
+          [
+            {
+              "node": "Extract Apollo Org Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Personalized Message": {
+        "main": [
+          [
+            {
+              "node": "Merge Lead + Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 37,
+      "name": "Lead Generation"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/11866",
+  "fetched_at": "2026-09-12T13:13:56Z"
+}

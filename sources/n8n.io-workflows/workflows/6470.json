@@ -1,0 +1,179 @@
+{
+  "id": 6470,
+  "name": "Create a smart chatbot using OpenAI GPT and Airtable knowledge base",
+  "description": "This workflow creates an intelligent chatbot that uses your Airtable database as a knowledge base. The AI agent can automatically query your Airtable records to provide accurate, contextual responses based on your stored data.\n\n![AI Chatbot with Airtable Integration.jpg](fileId:1865)\n\n## Who's it for\n\nThis template is perfect for:\n* Support teams who want to automate responses using their knowledge base\n* Content creators managing media libraries in Airtable  \n* Businesses looking to deploy AI chatbots with custom data sources\n* Anyone who wants to make their Airtable data conversationally accessible\n\n## How it works\n\nThe workflow combines OpenAI's language model with Airtable's database capabilities to create a smart chatbot. When users ask questions, the AI agent automatically determines which Airtable records are relevant and uses that data to generate helpful responses. The system maintains conversation history for natural, contextual interactions.\n\n## How to set up\n\n1. **Add your credentials:**\n   - Configure your **Airtable Personal Access Token** in the Airtable Database node\n   - Set up your **OpenAI API** credentials in the OpenAI Chat Model node\n\n2. **Configure your Airtable connection:**\n   - Click the **Airtable Database** node\n   - Select your Base and Table containing your knowledge base data\n   - The AI will automatically determine relevant records - no need to specify Record IDs\n\n3. **Customize the AI model:**\n   - Open the **OpenAI Chat Model** node\n   - Choose your preferred model (GPT-4, GPT-3.5-turbo, etc.)\n   - Adjust token limits if needed\n\n4. **Test the chatbot:**\n   - Click the **Chat** button to start a conversation\n   - Ask questions related to your Airtable data\n\n5. **Optional - Make it public:**\n   - Enable public access in the Chat Trigger node\n   - Embed the provided code into your website\n\n## Requirements\n\n- n8n instance (cloud or self-hosted)\n- Airtable account with data you want to query\n- OpenAI API key with available credits\n- Airtable Personal Access Token\n\n## How to customize the workflow\n\n**Change the AI Provider:**\nYou can replace the OpenAI Chat Model with other providers like Anthropic Claude, Google Gemini, or local models by swapping the language model node.\n\n**Adjust Context Window:**\nModify the \"Remember Chat History\" node to increase or decrease how many previous messages the AI remembers (default is 10 interactions).\n\n**Update System Instructions:**\nEdit the Smart AI Agent's system message to change how the assistant behaves or add specific instructions for your use case.\n\n**Connect Multiple Tables:**\nAdd additional Airtable Database nodes to give the AI access to multiple tables or bases.\n\n**Add More Tools:**\nExtend the AI agent with additional tools like web search, email sending, or integration with other services.\n\n## Workflow Structure\n\n```\nChat Trigger → Smart AI Agent ← OpenAI Chat Model\n                     ↓\n              Airtable Database\n                     ↑\n           Remember Chat History\n```\n\nThe Smart AI Agent orchestrates the conversation, deciding when to query Airtable and how to use the retrieved data in responses. The memory buffer ensures natural conversation flow by maintaining context across interactions.",
+  "workflow": {
+    "meta": {
+      "instanceId": "cba9e349b601c19a1409b9fd06680aff0a77829be13c8aad9a858d4cea7ff290"
+    },
+    "nodes": [
+      {
+        "id": "dcca2d23-15fa-417b-a126-b7e654c73cf6",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -224,
+          560
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "515f872d-8e26-481b-8eeb-e8f7fb9914a6",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          64,
+          560
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8e4bff7d-a759-4600-a4f8-45f998354eb2",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          416,
+          560
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ecea4d58-50c7-4778-8f5c-d05de0f07554",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -96,
+          -80
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9061e1c2-7c9b-482b-a7c9-04e32333fb98",
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          -144,
+          400
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "c5ecac3c-3841-4879-873e-18cc64fe2c66",
+        "name": "Airtable Database",
+        "type": "n8n-nodes-base.airtableTool",
+        "position": [
+          496,
+          400
+        ],
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "5e4f7b05-437e-444a-854c-bd1ebe431e6c",
+        "name": "Start Chat Conversation",
+        "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+        "position": [
+          -192,
+          176
+        ],
+        "webhookId": "cf1de04f-3e38-426c-89f0-3bdb110a5dcf",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "238d4ef4-0c07-4858-ba5a-00ab9f184bb1",
+        "name": "Smart AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          64,
+          176
+        ],
+        "parameters": {},
+        "typeVersion": 1.7
+      },
+      {
+        "id": "5be2fd82-7256-4f70-a15e-00ca35037555",
+        "name": "Remember Chat History",
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "position": [
+          176,
+          400
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Airtable Database": {
+        "ai_tool": [
+          [
+            {
+              "node": "Smart AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Smart AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Remember Chat History": {
+        "ai_memory": [
+          [
+            {
+              "node": "Smart AI Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Start Chat Conversation": {
+        "main": [
+          [
+            {
+              "node": "Smart AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 40,
+      "name": "Support Chatbot"
+    },
+    {
+      "id": 48,
+      "name": "AI RAG"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6470",
+  "fetched_at": "2026-09-12T13:11:21Z"
+}

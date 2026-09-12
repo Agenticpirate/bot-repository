@@ -1,0 +1,614 @@
+{
+  "id": 10615,
+  "name": "Real-time stock insights using xAI",
+  "description": "## Who is this for?\nThis n8n workflow is designed for **investors, financial analysts, automated trading system developers, and finance enthusiasts** who require daily, comprehensive, data-driven insights into specific stock symbols. It's perfect for users who need to automate the complex process of **combining technical indicators, news sentiment, professional analyst ratings, and social media buzz** into a single, actionable recommendation. This system provides a 24/7 automated \"analyst\" for portfolio monitoring.\n\n## What this Workflow Does\nThis n8n workflow executes a daily, multi-faceted analysis of a target stock. It starts by gathering all relevant data (price history, news, ratings, social posts) and processes it through specialized **Code nodes** to calculate **technical indicators (SMA, RSI)**, determine **price predictions (Linear Regression)**, and perform **sentiment analysis** on news and social media. Finally, it uses a weighted model to synthesize all data into a **single, comprehensive Buy/Sell/Hold recommendation** and delivers a detailed report via **Telegram**.\n\n## Key Features\n* **Daily Scheduling**: Automatically triggers analysis every day at a specified time (e.g., 9:00 AM).\n* **Multi-Factor Analysis**: Combines **four key domains** for a holistic view: Technical, Prediction, News Sentiment, Analyst Ratings, and Social Sentiment.\n* **Technical Indicator Calculation**: Calculates **SMA (20, 50, 200)**, **RSI (14-day)**, and identifies Support/Resistance levels.\n* **Price Prediction**: Uses **Simple Linear Regression** to forecast a 7-day price trend and generate an initial recommendation.\n* **Sentiment Analysis**: Custom Code nodes perform **keyword-based sentiment analysis** on news articles and social media posts.\n* **Composite Recommendation**: A weighted model combines all analysis scores (35% Technical, 25% News, 25% Analyst, 15% Social) to generate a **final recommendation, confidence score, and summary**.\n* **Automated Alerting**: Delivers a fully formatted, easily readable **Markdown report** via **Telegram**.\n\n## Requirements\n* **API Configuration Node**: A preliminary node (implied by the expression references) containing:\n    * Target **`stockSymbols`** (e.g., `TSLA`, `AAPL`).\n    * **`telegramChatId`** for receiving the report.\n    * **API Keys** for data sources (e.g., a Financial Data API for price/news/ratings, a Social Media API).\n* **Telegram Credentials**: For the Telegram node to send the final message.\n* **Financial Data Source Workflow**: Requires preceding nodes (not fully visible) to fetch:\n    * Historical price data (required for SMA/RSI/Regression).\n    * Recent news headlines and summaries.\n    * Recent analyst ratings.\n    * Social media data (e.g., from Twitter/StockTwits).\n* **n8n Instance**: Self-hosted or cloud-based n8n installation.\n\n---\n\n## How to Use\n### Step-by-Step Setup\n#### 1. Configure Scheduling\n* Open the **\"Daily Stock Check\"** node.\n* Set the **interval rule** to the precise hour you want the report to run (e.g., 9:00 AM).\n\n#### 2. Configure Stock Symbol and Telegram\n* In the (implied) **\"API Configuration\"** node, set the **`stockSymbols`** you wish to track.\n* Set the target **`telegramChatId`** where the report will be delivered.\n* Ensure your Telegram credentials are set up in n8n.\n\n#### 3. Verify Data Fetching Nodes\n* Ensure the nodes feeding data into **\"Analyze Stock Trends,\" \"Analyze News Sentiment,\" \"Process Analyst Ratings,\"** and **\"Analyze Social Sentiment\"** are correctly configured to fetch the required historical price, news, ratings, and social data.\n\n#### 4. Adjust Analysis Weights (Advanced)\n* If you wish to change the importance of different factors, edit the **`WEIGHTS`** object inside the **\"Generate Comprehensive Recommendation\"** Code node.\n    * *Default Weights:* Technical (0.35), News (0.25), Analyst (0.25), Social (0.15).\n\n#### 5. Test the Workflow\n* Manually execute the workflow to ensure all Code nodes process the incoming data correctly and the **\"Send Telegram Alert\"** successfully delivers the final, formatted message.\n\n---\n\n## Workflow Components\nThe workflow is structured into three main phases: **Data Processing, Recommendation Synthesis, and Reporting.**\n\n### 1. Data Processing and Indicator Calculation\n| Node Name | Type | Key Functionality |\n| :--- | :--- | :--- |\n| **Daily Stock Check** | Schedule Trigger | Initiates the entire workflow daily at the set time. |\n| **Analyze Stock Trends** | Code | Calculates **Technical Indicators**: SMA (20, 50, 200), RSI (14-day), Volume Trend, and Support/Resistance levels. |\n| **Predict Future Trends** | Code | Performs **Simple Linear Regression** on historical prices to determine slope and predict the price 7 days ahead. |\n| **Analyze News Sentiment** | Code | Performs **keyword-based sentiment analysis** on news headlines and summaries to categorize overall sentiment (positive/negative/neutral) and assign a score. |\n| **Process Analyst Ratings** | Code | Aggregates analyst recommendations (Buy/Hold/Sell) to calculate **consensus rating** and **average price target**. |\n| **Analyze Social Sentiment** | Code | Performs **keyword-based sentiment analysis** on social media data to determine community mood and trending hashtags. |\n\n### 2. Recommendation Synthesis\n| Node Name | Type | Description |\n| :--- | :--- | :--- |\n| **Combine All Analysis** | Merge | Consolidates the outputs from the four analysis branches (**Technical, News, Analyst, Social**) into a single data item. |\n| **Generate Comprehensive Recommendation** | Code | **The core logic.** Calculates a weighted composite score (from -100 to 100) based on all four inputs, generating the final **STRONG BUY/BUY/HOLD/SELL/STRONG SELL** recommendation and a numerical confidence score. |\n\n### 3. Reporting and Alerting\n| Node Name | Type | Description |\n| :--- | :--- | :--- |\n| **Format Telegram Message** | Set | Constructs the final detailed report message using **Markdown** formatting, pulling data from all preceding analysis nodes into a clear, structured report. |\n| **Send Telegram Alert** | Telegram | Sends the fully formatted analysis report to the pre-configured Telegram chat ID. |\n\n\n## 🙋 For Help & Community\n- 👾 Discord: [n8n channel](https://discord.gg/9SDFKGnh2Y)\n- 🌐 Website: [devcodejourney.com](https://devcodejourney.com)\n- 🔗 LinkedIn: [Connect with Shakil](https://www.linkedin.com/in/shakilpg/)\n- 📱 WhatsApp Channel: [Join Now](https://whatsapp.com/channel/0029Vb5l6JuDTkK5BRORNn0B)\n- 💬 Direct Chat: [Message Now](https://wa.me/8801316320957)\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "cb9a1e5321767b6316634728341237e564b2587ab15b74ca0a89eb02a53484d6"
+    },
+    "nodes": [
+      {
+        "id": "5a3a9145-41ab-40ae-985a-4b9d8277137a",
+        "name": "Daily Stock Check",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -992,
+          624
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "5b303b6e-0040-4737-89ae-ad584f0aead2",
+        "name": "Analyze Stock Trends",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -176,
+          352
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "0f0fb4d2-35be-4e34-b39d-262b7d72b4b3",
+        "name": "Predict Future Trends",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          0,
+          352
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "ab270d2d-a1ce-4134-9a47-d733731ceaf2",
+        "name": "Format Telegram Message",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1264,
+          624
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "893aaf34-ff74-4c53-b268-de8b602405e7",
+        "name": "Send Telegram Alert",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          1408,
+          624
+        ],
+        "webhookId": "40c4dd86-57a3-48ae-9ab0-422bb2342fd8",
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "0f61054a-ea49-4cc9-af94-0446b68c2030",
+        "name": "Analyze News Sentiment",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -176,
+          528
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "ef961832-7731-44e2-a09c-9ce0656e5391",
+        "name": "Process Analyst Ratings",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -176,
+          720
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "bee1068d-1e88-4f82-9bc0-750e5bd87595",
+        "name": "Analyze Social Sentiment",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -176,
+          912
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "c46e491d-12c2-4101-b791-2ae63c443c35",
+        "name": "Combine All Analysis",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          48,
+          592
+        ],
+        "parameters": {},
+        "typeVersion": 3.2
+      },
+      {
+        "id": "ad7089ea-4441-4ca1-a6b0-05198b3fd002",
+        "name": "Generate Comprehensive Recommendation",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          208,
+          624
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "0b01e016-e9d3-4bd6-b71e-5baf59bdc37a",
+        "name": "OpenAI GPT Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          752,
+          1216
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "f9457956-1183-4171-aa9b-18f7be670ff0",
+        "name": "Anthropic Claude Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "position": [
+          592,
+          1216
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "dead5da8-af41-4507-b359-620842284b56",
+        "name": "Prepare AI Validation Input",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          384,
+          832
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "993867f2-e9cf-4d25-91f1-4c99018f82d0",
+        "name": "Combine AI Validations",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          944,
+          816
+        ],
+        "parameters": {},
+        "typeVersion": 3.2
+      },
+      {
+        "id": "ba0f623d-130b-4064-b27f-da2fe6353fa7",
+        "name": "Evaluate AI Consensus",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1104,
+          832
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "374ee768-8818-40b5-9443-ccdaeaef02fd",
+        "name": "AI Validator 1 - OpenAI",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "position": [
+          592,
+          688
+        ],
+        "parameters": {},
+        "typeVersion": 1.7
+      },
+      {
+        "id": "5bef2edd-40cc-4447-8e84-f56cf31abd0b",
+        "name": "AI Validator 2 - Anthropic",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "position": [
+          592,
+          832
+        ],
+        "parameters": {},
+        "typeVersion": 1.7
+      },
+      {
+        "id": "9b81ab2c-fef2-45c4-bd6d-e6fccce2213e",
+        "name": "AI Validator 3 - Gemini",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "position": [
+          512,
+          992
+        ],
+        "parameters": {},
+        "typeVersion": 1.7
+      },
+      {
+        "id": "f00cc0d4-cf33-4319-bc42-723f023b11c1",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          896,
+          96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "56afcf23-5612-458d-8280-66613a259209",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1312,
+          128
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b0b48b64-9434-4065-85f1-90e525ab3d9f",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -416,
+          -32
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b5b285a6-18e8-4f66-ab3b-76bccf9e6e91",
+        "name": "API Configuration",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -768,
+          624
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "f441cb0e-3a3c-48a0-adc6-833a583d2c3f",
+        "name": "Stock Data Fatch",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -352,
+          352
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "b0ed17f4-2149-4966-bdbe-4c93c591ae73",
+        "name": "News Sentiment Fatch",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -368,
+          528
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "c1fba3ff-d606-4305-a70c-6cb0b772dce7",
+        "name": "Analyst Ratings Fetch",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -368,
+          720
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "961fd0af-7f2a-4604-a863-da7c04e4ea20",
+        "name": "Social Media Sentiment Fetch",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -368,
+          912
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "9e2ed2db-b644-4446-b926-04e240b46611",
+        "name": "xAI Grok Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatXAiGrok",
+        "position": [
+          432,
+          1216
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "OpenAI GPT Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Validator 1 - OpenAI",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Stock Data Fatch": {
+        "main": [
+          [
+            {
+              "node": "Analyze Stock Trends",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "API Configuration": {
+        "main": [
+          [
+            {
+              "node": "Stock Data Fatch",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "News Sentiment Fatch",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Analyst Ratings Fetch",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Social Media Sentiment Fetch",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Daily Stock Check": {
+        "main": [
+          [
+            {
+              "node": "API Configuration",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "xAI Grok Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Validator 3 - Gemini",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Analyze Stock Trends": {
+        "main": [
+          [
+            {
+              "node": "Predict Future Trends",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Combine All Analysis": {
+        "main": [
+          [
+            {
+              "node": "Generate Comprehensive Recommendation",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "News Sentiment Fatch": {
+        "main": [
+          [
+            {
+              "node": "Analyze News Sentiment",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Analyst Ratings Fetch": {
+        "main": [
+          [
+            {
+              "node": "Process Analyst Ratings",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Evaluate AI Consensus": {
+        "main": [
+          [
+            {
+              "node": "Format Telegram Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Predict Future Trends": {
+        "main": [
+          [
+            {
+              "node": "Combine All Analysis",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Analyze News Sentiment": {
+        "main": [
+          [
+            {
+              "node": "Combine All Analysis",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Anthropic Claude Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Validator 2 - Anthropic",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Combine AI Validations": {
+        "main": [
+          [
+            {
+              "node": "Evaluate AI Consensus",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Validator 1 - OpenAI": {
+        "main": [
+          [
+            {
+              "node": "Combine AI Validations",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Validator 3 - Gemini": {
+        "main": [
+          [
+            {
+              "node": "Combine AI Validations",
+              "type": "main",
+              "index": 2
+            }
+          ]
+        ]
+      },
+      "Format Telegram Message": {
+        "main": [
+          [
+            {
+              "node": "Send Telegram Alert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Process Analyst Ratings": {
+        "main": [
+          [
+            {
+              "node": "Combine All Analysis",
+              "type": "main",
+              "index": 2
+            }
+          ]
+        ]
+      },
+      "Analyze Social Sentiment": {
+        "main": [
+          [
+            {
+              "node": "Combine All Analysis",
+              "type": "main",
+              "index": 3
+            }
+          ]
+        ]
+      },
+      "AI Validator 2 - Anthropic": {
+        "main": [
+          [
+            {
+              "node": "Combine AI Validations",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Prepare AI Validation Input": {
+        "main": [
+          [
+            {
+              "node": "AI Validator 1 - OpenAI",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "AI Validator 2 - Anthropic",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "AI Validator 3 - Gemini",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Social Media Sentiment Fetch": {
+        "main": [
+          [
+            {
+              "node": "Analyze Social Sentiment",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Comprehensive Recommendation": {
+        "main": [
+          [
+            {
+              "node": "Format Telegram Message",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Prepare AI Validation Input",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 44,
+      "name": "Crypto Trading"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/10615",
+  "fetched_at": "2026-09-12T13:13:28Z"
+}

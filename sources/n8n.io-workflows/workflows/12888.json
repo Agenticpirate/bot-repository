@@ -1,0 +1,365 @@
+{
+  "id": 12888,
+  "name": "Collect LinkedIn details and generate CV feedback with Gemini and Google Workspace",
+  "description": "This workflow helps HR teams, career coaches, and training programs collect candidate data and automatically generate CV improvement recommendations and a cover letter draft. Candidates submit their LinkedIn profile URL, contact details, and an optional CV PDF using an n8n Form. The workflow logs submissions, processes the uploaded CV, and generates structured outputs in Google Docs using Gemini, then sends the candidate an email with the results.\n\n## How it works\n\n**Collect candidate data**\nAn n8n Form captures LinkedIn URL, name, email, phone number, and optional CV upload.\n\n**Store submission**\nThe workflow appends the submission to Google Sheets for tracking and follow-up.\n\n**Extract CV text**\nIf a CV PDF is uploaded, it’s processed to extract readable text.\n\n**Generate recommendations**\nGemini creates structured CV/LinkedIn improvement notes and formats them into a Google Doc.\n\n**Draft cover letter + notify**\nA second AI step drafts a cover letter and the workflow sends the candidate an email with the generated document link.\n\n**Setup steps**\n1. Customize the n8n Form fields (and required/optional fields)\n2. Connect Google Sheets for logging submissions\n3. Connect Google Drive + Google Docs for file storage and document output\n4. Add Gemini API credentials for generation\n5. Connect Gmail to send the results email",
+  "workflow": {
+    "id": "VxO5b3QxnoyD0sge",
+    "meta": {
+      "instanceId": "2f448d5ae509c077be4185fbcd008842311b307a13a649738449003f0b95f4c6",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Collect LinkedIn details and generate CV feedback with n8n Forms and Gemini",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "70647895-4167-456b-80c2-67657fb92def",
+        "name": "On form submission",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          0,
+          0
+        ],
+        "webhookId": "00a2cade-5a72-4804-a2c1-7fa9355814da",
+        "parameters": {},
+        "typeVersion": 2.3
+      },
+      {
+        "id": "635544f3-30f8-4118-8bef-912be196e799",
+        "name": "Append row in sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          400,
+          32
+        ],
+        "parameters": {},
+        "typeVersion": 4.7
+      },
+      {
+        "id": "c4f4ce78-4e1f-47a2-8af9-d350643df360",
+        "name": "Extract from File",
+        "type": "n8n-nodes-base.extractFromFile",
+        "position": [
+          240,
+          32
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "efa8c2b3-e45e-4917-9a3f-1733e75b49f3",
+        "name": "Google Gemini Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "position": [
+          656,
+          208
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "9e40e3f4-41e8-4eaa-ab1e-b8b1bd905c1d",
+        "name": "Google_Docs",
+        "type": "n8n-nodes-base.googleDocsTool",
+        "position": [
+          800,
+          208
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "a4b1e42b-30f2-46b9-88a9-82491c54936a",
+        "name": "Google_Docs_Update",
+        "type": "n8n-nodes-base.googleDocsTool",
+        "position": [
+          912,
+          176
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "cd50ff38-9306-4acb-af33-3f6e8c4e9c09",
+        "name": "Google Gemini Chat Model1",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "position": [
+          1072,
+          208
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "dc0d11e6-e63d-458d-8772-c47acb395b9c",
+        "name": "Google_Docs_Title",
+        "type": "n8n-nodes-base.googleDocsTool",
+        "position": [
+          1216,
+          224
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "42fb2663-37a2-4d3e-8046-39b9631365c9",
+        "name": "Google_Docs_Body",
+        "type": "n8n-nodes-base.googleDocsTool",
+        "position": [
+          1328,
+          176
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "2223d94f-ddfd-4003-9829-578c9344f0c1",
+        "name": "Upload file",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          240,
+          208
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "51f74265-4ee2-467e-ba0a-5967bdd2c1d5",
+        "name": "Send a message",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          400,
+          208
+        ],
+        "webhookId": "35083329-aafa-4707-9f51-87698ca70cda",
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "f089a442-86ce-4792-94aa-2090b6aabd74",
+        "name": "LinkedIn Analyst",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          672,
+          32
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "b5964d28-f59b-444b-b96b-fc7b0a1bf824",
+        "name": "Recruiter / HR",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          1072,
+          32
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "0811e554-b8b7-45f8-adf1-bc031b6d4f90",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -448,
+          -80
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a1aea0ff-5da1-4a1e-a3eb-ae488167576b",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -64,
+          -80
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a0f10a8b-8084-40ff-b6f3-cb973103b494",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          192,
+          -80
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "09938ab6-a351-497c-adaf-9e76acb6ec68",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          608,
+          -80
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "binaryMode": "separate",
+      "executionOrder": "v1"
+    },
+    "versionId": "fade9eae-30e9-4210-bff2-3963d46d4e7e",
+    "connections": {
+      "Google_Docs": {
+        "ai_tool": [
+          [
+            {
+              "node": "LinkedIn Analyst",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Upload file": {
+        "main": [
+          [
+            {
+              "node": "Send a message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Recruiter / HR": {
+        "main": [
+          []
+        ]
+      },
+      "Google_Docs_Body": {
+        "ai_tool": [
+          [
+            {
+              "node": "Recruiter / HR",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "LinkedIn Analyst": {
+        "main": [
+          [
+            {
+              "node": "Recruiter / HR",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract from File": {
+        "main": [
+          [
+            {
+              "node": "Append row in sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google_Docs_Title": {
+        "ai_tool": [
+          [
+            {
+              "node": "Recruiter / HR",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google_Docs_Update": {
+        "ai_tool": [
+          [
+            {
+              "node": "LinkedIn Analyst",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "On form submission": {
+        "main": [
+          [
+            {
+              "node": "Extract from File",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Upload file",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Append row in sheet": {
+        "main": [
+          [
+            {
+              "node": "LinkedIn Analyst",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Gemini Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "LinkedIn Analyst",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Gemini Chat Model1": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Recruiter / HR",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 17,
+      "name": "HR"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/12888",
+  "fetched_at": "2026-09-12T13:14:21Z"
+}

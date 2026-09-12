@@ -1,0 +1,361 @@
+{
+  "id": 7853,
+  "name": "Manage schedule & contacts with Telegram Bot using GPT-4o-mini & Google Services",
+  "description": "# AI Personal Assistant Telegram Bot Template\n\n## Description\nTransform your Telegram into a powerful AI-powered personal assistant that manages your calendar, sends daily schedules, searches the web, and accesses your contacts - all through simple text messages.\n\n## What This Template Does\nThis workflow creates an intelligent Telegram bot that serves as your personal assistant, capable of:\n\n- **Daily Schedule Management**: Automatically checks your Google Calendar and emails you a formatted daily schedule summary\n- **Intelligent Conversations**: Uses OpenAI GPT-4o-mini with conversation memory for natural interactions\n- **Web Research**: Searches Wikipedia and the web using SerpAPI for any questions you have\n- **Contact Management**: Accesses your Google Sheets contact database to find email addresses and information\n- **Email Automation**: Sends emails on your behalf using Gmail integration\n- **Calendar Integration**: Reads and manages your Google Calendar events\n\n## Target Users\n- **Busy Professionals** who need quick access to their schedule and want to automate daily planning\n- **Small Business Owners** who want an AI assistant for managing contacts and communications\n- **Personal Productivity Enthusiasts** who want to streamline their daily workflow\n- **Anyone** who prefers text-based interaction over switching between multiple apps\n\n## Key Features\n✅ **Multi-Tool AI Agent**: Combines Wikipedia, web search, calendar, email, and contacts in one interface\n✅ **Conversation Memory**: Remembers context across multiple interactions\n✅ **Automatic Daily Scheduling**: Proactive daily schedule emails\n✅ **Contact Intelligence**: Automatically finds contact information before sending emails\n✅ **Telegram Integration**: Works through the familiar Telegram interface\n\n## Use Cases\n- \"What's on my schedule today?\" → Receives formatted email with daily agenda\n- \"Send an email to John about the meeting\" → Finds John's email and sends message\n- \"What's the weather in Paris?\" → Gets current weather information via web search\n- \"Tell me about quantum computing\" → Provides Wikipedia information\n- \"Schedule a meeting with Sarah tomorrow at 2 PM\" → Creates calendar event\n\n## Prerequisites\nBefore setting up this template, you'll need accounts and API access for:\n- **Telegram Bot** (free via @BotFather)\n- **OpenAI API** (paid service)\n- **Google Calendar API** (free)\n- **Gmail API** (free)\n- **Google Sheets API** (free)\n- **SerpAPI** (freemium web search)\n\n## Setup Instructions\n\n### 1. Create Telegram Bot\n1. Message @BotFather on Telegram\n2. Use `/newbot` command and follow instructions\n3. Save your bot token for later\n\n### 2. Set Up Google APIs\n1. Go to Google Cloud Console\n2. Create a new project or select existing\n3. Enable Google Calendar, Gmail, and Sheets APIs\n4. Create OAuth2 credentials\n5. Download credentials JSON file\n\n### 3. Get API Keys\n1. **OpenAI**: Visit platform.openai.com, create API key\n2. **SerpAPI**: Sign up at serpapi.com, get API key\n\n### 4. Configure Credentials in n8n\n1. Add Telegram Bot credentials using your bot token\n2. Set up Google OAuth2 for Calendar, Gmail, and Sheets\n3. Add OpenAI API credentials\n4. Add SerpAPI credentials\n\n### 5. Customize the Workflow\n1. **Update Calendar ID**: Replace `a________@gmail.com` with your calendar\n2. **Set Google Sheets ID**: Replace the sheet ID with your contacts spreadsheet\n3. **Modify System Message**: Update the AI agent's instructions to match your preferences\n4. **Adjust Memory Settings**: Configure conversation memory window as needed\n\n### 6. Test the Setup\n1. Activate the workflow\n2. Message your Telegram bot\n3. Verify all integrations are working\n\n## Customization Options\n- **Change AI Model**: Switch between OpenAI models (GPT-3.5, GPT-4, etc.)\n- **Adjust Memory**: Modify conversation memory window length\n- **Add More Tools**: Integrate additional services like Notion, Slack, or weather APIs\n- **Modify Schedule**: Change when daily schedule emails are sent\n- **Customize Responses**: Update the system message to change assistant personality\n\n## Important Notes\n- **Privacy**: This bot has access to your calendar, contacts, and email - ensure proper security\n- **API Costs**: OpenAI and SerpAPI usage will incur costs based on usage\n- **Rate Limits**: Be aware of API rate limits for each service\n- **Security**: Use environment variables for sensitive credentials\n\n## Troubleshooting\n- **Bot not responding**: Check Telegram credentials and webhook configuration\n- **Calendar access issues**: Verify Google Calendar API permissions\n- **Email not sending**: Confirm Gmail API scopes include send permissions\n- **Memory not working**: Check that session keys are properly configured\n\n## Support\nFor issues with this template, check:\n1. n8n Community Forum\n2. Individual API service documentation\n3. Google Cloud Console for API errors\n4. OpenAI usage dashboard for model issues",
+  "workflow": {
+    "meta": {
+      "templateId": "AI_Personal_Assistant_Telegram_Bot"
+    },
+    "name": "AI Personal Assistant Telegram Bot",
+    "tags": [
+      "AI",
+      "Personal Assistant",
+      "Telegram",
+      "Calendar",
+      "Email",
+      "Productivity"
+    ],
+    "nodes": [
+      {
+        "id": "e4981de7-db9b-455a-9c42-f3b435955c92",
+        "name": "Telegram Trigger",
+        "type": "n8n-nodes-base.telegramTrigger",
+        "notes": "Receives messages from your Telegram bot. Replace credentials with your bot token from @BotFather",
+        "position": [
+          -16,
+          -16
+        ],
+        "parameters": {
+          "updates": [
+            "message"
+          ],
+          "additionalFields": {}
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "fa1352d4-0a3b-4871-9c5c-380d2f1fd1d5",
+        "name": "AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "notes": "Main AI agent using OpenAI. Customize the system message for your needs.",
+        "position": [
+          224,
+          0
+        ],
+        "parameters": {
+          "text": "={{ $json.message.text }}",
+          "options": {
+            "systemMessage": "You are a helpful personal assistant. When sending emails, always find the recipient's email using the 'Get Contacts' tool first.\n\nCurrent date and time: {{$now}}\n\nDaily Schedule Instructions:\n- Check Google Calendar for today's events (12:00 AM to 11:59 PM)\n- Format events with: title, start/end time, location, description\n- If no events: 'You have a free day! No events on your calendar for today.'\n- Email the summary with subject: 'Your Schedule for Today - [Date]'\n- Sign emails with 'Best Regards,'\n\nReplace 'USER_NAME' with your preferred name in the constraints below:\n\n<constraint>\nAddress the user as USER_NAME in all interactions.\n</constraint>"
+          },
+          "promptType": "define"
+        },
+        "typeVersion": 1.7
+      },
+      {
+        "id": "152c29ec-c6be-4fd8-a01a-578ef0aa8d10",
+        "name": "Telegram Response",
+        "type": "n8n-nodes-base.telegram",
+        "notes": "Sends AI agent responses back to Telegram chat",
+        "position": [
+          592,
+          0
+        ],
+        "parameters": {
+          "text": "={{ $json.output }}",
+          "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+          "additionalFields": {
+            "appendAttribution": false
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "9e6fa398-829a-47fd-95c2-81284e507c51",
+        "name": "Wikipedia Tool",
+        "type": "@n8n/n8n-nodes-langchain.toolWikipedia",
+        "notes": "Provides Wikipedia search capabilities to the AI agent",
+        "position": [
+          -208,
+          288
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "66b8fea2-0ec0-423a-ab61-dd8fd8a7e034",
+        "name": "Web Search (SerpAPI)",
+        "type": "@n8n/n8n-nodes-langchain.toolSerpApi",
+        "notes": "Enables web search functionality. Requires SerpAPI account and API key.",
+        "position": [
+          224,
+          288
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b5ee31ee-8c99-4362-aa1f-3bc2bf1fc9a4",
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "notes": "AI language model. Change to gpt-4 or other models as needed. Requires OpenAI API key.",
+        "position": [
+          -304,
+          288
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4o-mini",
+            "cachedResultName": "gpt-4o-mini"
+          },
+          "options": {}
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "f05203af-2ed7-46a7-8fd8-d3210e4e5a3c",
+        "name": "Conversation Memory",
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "notes": "Maintains conversation context. Adjust contextWindowLength as needed (default: 10 messages)",
+        "position": [
+          -80,
+          288
+        ],
+        "parameters": {
+          "sessionKey": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+          "sessionIdType": "customKey",
+          "contextWindowLength": 10
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "7ac0be2e-ad24-4990-bf5f-6a70d7f53698",
+        "name": "Google Calendar",
+        "type": "n8n-nodes-base.googleCalendarTool",
+        "notes": "Manages calendar events. Replace YOUR_EMAIL@gmail.com with your calendar ID. Requires Google Calendar OAuth2 setup.",
+        "position": [
+          128,
+          288
+        ],
+        "parameters": {
+          "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', ``, 'string') }}",
+          "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+          "calendar": {
+            "__rl": true,
+            "mode": "id",
+            "value": "user@example.com"
+          },
+          "additionalFields": {
+            "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', ``, 'string') }}",
+            "description": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Description', ``, 'string') }}"
+          }
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "0e349248-4509-41ab-a545-e2c9f0149ed6",
+        "name": "Gmail Tool",
+        "type": "n8n-nodes-base.gmailTool",
+        "notes": "Sends emails via Gmail. Requires Gmail OAuth2 setup with send permissions.",
+        "position": [
+          32,
+          288
+        ],
+        "parameters": {
+          "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To', ``, 'string') }}",
+          "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+          "options": {
+            "senderName": "{{ $('Telegram Trigger').item.json.message.from.first_name }}",
+            "appendAttribution": false
+          },
+          "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+          "emailType": "text"
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "14516c92-5f0c-4b5f-b055-b113edb3a36a",
+        "name": "Get Contacts",
+        "type": "n8n-nodes-base.googleSheetsTool",
+        "notes": "Accesses contact database in Google Sheets. Replace YOUR_GOOGLE_SHEET_ID with your sheet ID. Requires Google Sheets OAuth2 setup.",
+        "position": [
+          544,
+          240
+        ],
+        "parameters": {
+          "options": {},
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "YOUR_GOOGLE_SHEET_ID",
+            "cachedResultName": "Contacts Sheet"
+          },
+          "descriptionType": "manual",
+          "toolDescription": "Use this to get contact information. Read, update and write data to Google Sheets"
+        },
+        "typeVersion": 4.5
+      },
+      {
+        "id": "a4d12e77-9beb-4411-897c-77c33784022e",
+        "name": "Get Calendar Events",
+        "type": "n8n-nodes-base.googleCalendarTool",
+        "notes": "Retrieves calendar events for daily schedule emails. Replace YOUR_EMAIL@gmail.com with your calendar ID.",
+        "position": [
+          672,
+          224
+        ],
+        "parameters": {
+          "options": {},
+          "calendar": {
+            "__rl": true,
+            "mode": "list",
+            "value": "user@example.com",
+            "cachedResultName": "user@example.com"
+          },
+          "operation": "getAll"
+        },
+        "typeVersion": 1.3
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "timezone": "America/Chicago",
+      "callerPolicy": "workflowsFromSameOwner",
+      "executionOrder": "v1"
+    },
+    "connections": {
+      "AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Telegram Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Gmail Tool": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Contacts": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wikipedia Tool": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Calendar": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Telegram Trigger": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Conversation Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Calendar Events": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Web Search (SerpAPI)": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7853",
+  "fetched_at": "2026-09-12T13:12:08Z"
+}

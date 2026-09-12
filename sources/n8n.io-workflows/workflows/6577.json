@@ -1,0 +1,212 @@
+{
+  "id": 6577,
+  "name": "Automate outbound voice calls with Vapi from form submissions",
+  "description": "This n8n automation connects your n8n form submissions to **[Vapi AI](https://vapi.ai/?aff=onenode)**, enabling you to **immediately call new respondents** with a personalized voice AI assistant, as soon as the form is submitted.\n\n## 🧾 Requirements\n\n### n8n Form\n- An **n8n form** node published and accessible to users.\n- The form must include a **phone number field**:\n  - Accept full international phone number with `+` and country code.  \n    Example: `+11234567890`\n- (Optional) Add more form fields as needed for your use case.\n\n### Vapi\n- A [**Vapi**](https://vapi.ai/?aff=onenode) account with credit.\n- A connected **phone number** for outbound calls.\n- An **assistant** created and ready to make calls.\n- Your **Vapi API key**.\n\n### 🔗 Useful Link\n- [Vapi calll endpoint](https://docs.vapi.ai/api-reference/calls/create)\n\n---\n\n## 🔄 Workflow Breakdown\n\n### 1. **Trigger: Form Submission (n8n Form)**\n- Starts when a submission is received from your form.\n\n### 2. **Wait 2 Minutes**\n- Inserts a 2-minute pause before the next steps.\n\n### 3. **Set Vapi Fields (Manual Step)**\n\n#### Step-by-Step: Configuring Vapi Parameters in the ‘Set fields’ Node\n\n1. **Open the ‘Set’ node** where you map Vapi parameters.\n2. **Add fields** (if not present):\n    - `phone_number_id`: The sender phone number ID from your Vapi dashboard.\n    - `assistant_id`: The ID of the Vapi AI assistant you want to use.\n    - `api_key`: Paste your Vapi API key here (keep secure).\n3. **(Optional) Add more fields** for personalization, such as:\n    - `first_name`, `product`, `reason`, etc., if captured in your form.\n\n### 4. **Start Outbound Vapi Call**\n- Sends a **POST** request to `https://api.vapi.ai/call`.\n- Payload includes:\n    - Phone number from form\n    - Chosen assistant ID\n    - Vapi number ID\n    - Any additional info you choose to pass for customizing the call\n\n---\n\n## 🎨 Customization\n\n### How to Adapt for Different Use Cases\n\n- **Collect More Info:**  \n  Add fields to your n8n form for details such as name, product type, issue/context, preferred language, etc.  \n- **Use Extra Data in Calls:**  \n  In the HTTP request node, pass these fields in the API request body to Vapi. Tailor your assistant’s script to reference these for a personalized experience.\n- **Conditional Calls:**  \n  Add n8n logic nodes to filter/categorize submissions (e.g., only call if a checkbox is ticked or if value matches certain criteria).\n- **Dynamic Assistant Selection:**  \n  Select assistant or Vapi number based on user responses (e.g., route to different assistants by region or requested service).\n\n---\n\n## 📇 Using Additional Form Fields in Vapi Calls\n\n- Any field collected on your n8n form can be included in the call payload,  simply add it in the HTTP request payload.\n- Vapi can use these variables for dynamically constructing prompts, personalizing the call flow, or branching logic in the interaction.\n- Example: If your form collects `first_name` and `appointment_time`, both can be sent to Vapi and referenced in the call script or as variables in your assistant’s logic.\n\n---\n\n## 🙋‍♂️ Need Help?\n\nFeel free to contact us at [**1 Node**](https://1node.ai)  \nExplore more [**free resources**](https://1node.ai/resources) created for automating n8n and Vapi.\n",
+  "workflow": {
+    "id": "Zgf81bcaaB04rjcd",
+    "meta": {
+      "instanceId": "9219ebc7795bea866f70aa3d977d54417fdf06c41944be95e20cfb60f992db19",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Start an outbound Vapi phone call from a new n8n form submission",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "cb6ee340-933a-4699-bc0a-be7605309df7",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          158,
+          -284
+        ],
+        "parameters": {
+          "width": 260,
+          "height": 524,
+          "content": "## Set Vapi fields\nYou must set the following fields that you can obtain inside your Vapi account \n- phone number id which will make the call\n- assistant id which will be enabled in the call\n- your Vapi api key\n\n## Set country code\n- insert the phone number country code. Include the + symbol and no spaces."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b5557910-7469-4937-9229-1d599ad5bf2d",
+        "name": "Start outbound Vapi call",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          464,
+          80
+        ],
+        "parameters": {
+          "url": "https://api.vapi.ai/call",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n    \"assistantId\": \"{{ $json.vapiAssistantId }}\",\n    \"phoneNumberId\": \"{{ $json.vapiPhoneNumberId }}\",\n    \"customer\": {\n        \"number\": \"{{ $('On form submission').item.json.Phone }}\"\n    }\n}\n",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{ $json.vapiApi }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "e4039ec8-1e6e-4d59-ab3c-14727562cdae",
+        "name": "Set fields",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          240,
+          80
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "f38947e1-c75a-44cc-88f9-c44fc80bada8",
+                "name": "vapiPhoneNumberId",
+                "type": "string",
+                "value": "insert-id"
+              },
+              {
+                "id": "463ed66e-e072-48dc-a75d-a3815fd07de0",
+                "name": "vapiAssistantId",
+                "type": "string",
+                "value": "insert-id"
+              },
+              {
+                "id": "93f058cd-e015-4b83-a16f-efceddafb128",
+                "name": "vapiApi",
+                "type": "string",
+                "value": "insert-api"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "fe87d956-e2f6-4fbd-ac30-e09b3c48bb15",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -624,
+          -160
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 320,
+          "height": 472,
+          "content": "## Requirements \n### n8n form\n- A text field that takes a full international phone number including the + symbol and country code. Example for US: +11234567890.\n- Add more fields according to your use case\n\n### Vapi\n- A [Vapi](https://vapi.ai/?aff=onenode) account with credit\n- A connected phone number which will make the calls\n- An assistant created and ready to make calls\n- Vapi api key \n\n### Useful links\n- [Vapi docs](https://docs.vapi.ai/api-reference/calls/create)"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5855a19a-0c94-4ca7-ac4c-330fd7b8a194",
+        "name": "On form submission",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          -208,
+          80
+        ],
+        "webhookId": "cf168bd9-dd77-4192-aa0e-0c5c5cb3341b",
+        "parameters": {
+          "options": {
+            "appendAttribution": false
+          },
+          "formTitle": "Lead form",
+          "formFields": {
+            "values": [
+              {
+                "fieldLabel": "Name",
+                "requiredField": true
+              },
+              {
+                "fieldType": "email",
+                "fieldLabel": "Email",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Phone",
+                "placeholder": "Insert + symbol and country code without spaces",
+                "requiredField": true
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "3075f3b5-12d0-465a-b1ff-0b13d928f684",
+        "name": "Wait 2min",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          16,
+          80
+        ],
+        "webhookId": "dd4440b8-37f2-4f20-84ad-46a9e107fb82",
+        "parameters": {
+          "unit": "minutes",
+          "amount": 2
+        },
+        "typeVersion": 1.1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "28254a07-4ced-4c28-b49f-9eec8cb01a3c",
+    "connections": {
+      "Wait 2min": {
+        "main": [
+          [
+            {
+              "node": "Set fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set fields": {
+        "main": [
+          [
+            {
+              "node": "Start outbound Vapi call",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "On form submission": {
+        "main": [
+          [
+            {
+              "node": "Wait 2min",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 38,
+      "name": "Lead Nurturing"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6577",
+  "fetched_at": "2026-09-12T13:11:26Z"
+}

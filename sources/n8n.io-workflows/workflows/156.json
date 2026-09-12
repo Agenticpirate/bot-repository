@@ -1,0 +1,78 @@
+{
+  "id": 156,
+  "name": "Get execute command data and transfer to JSON",
+  "description": "Shows how it is possible to use the data of a command line tool which returns JSON.\n\nExample shows how:\n1. to bring data in flow\n2. to use data directly in a node\n\nNote that the 'execute command' node is not available on n8n Cloud.",
+  "workflow": {
+    "nodes": [
+      {
+        "name": "Execute Command",
+        "type": "n8n-nodes-base.executeCommand",
+        "position": [
+          600,
+          350
+        ],
+        "parameters": {
+          "command": "echo \"{ \\\"value1\\\": true, \\\"value2\\\": 1 }\""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "IF",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          800,
+          450
+        ],
+        "parameters": {
+          "conditions": {
+            "boolean": [
+              {
+                "value1": "={{JSON.parse($node[\"Execute Command\"].data[\"stdout\"]).value1}}",
+                "value2": true
+              }
+            ]
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "To Flow Data",
+        "type": "n8n-nodes-base.functionItem",
+        "position": [
+          800,
+          250
+        ],
+        "parameters": {
+          "functionCode": "item = JSON.parse(item.stdout);\nreturn item;"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "connections": {
+      "Execute Command": {
+        "main": [
+          [
+            {
+              "node": "To Flow Data",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "IF",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 5,
+      "name": "Engineering"
+    }
+  ],
+  "url": "https://n8n.io/workflows/156",
+  "fetched_at": "2026-09-12T13:08:39Z"
+}

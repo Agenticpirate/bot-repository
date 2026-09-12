@@ -1,0 +1,670 @@
+{
+  "id": 18143,
+  "name": "Balance VIP outreach with Salesforce, Slack and Groq",
+  "description": "## Quick overview\nThis workflow runs daily at 8AM to audit a Salesforce account, uses Groq LLM agents to decide between a VIP “rescue” outreach or a cool-down approach, posts guidance to Slack, and logs the final outcome back to the Salesforce account.\n\n## How it works\n1. Runs every day at 8AM and fetches a specific Account record from Salesforce.\n2. Routes the account based on Salesforce fields, treating Platinum-tier accounts as “Neglected VIP” and accounts with “Alert” in the Description as “Over-Saturated.”\n3. For neglected VIPs, uses Groq to generate a rescue strategy, creates a high-priority Salesforce Task for the account, and sends the strategy to Slack.\n4. Waits 24 hours, re-fetches the created Salesforce Task, and checks whether its Status is set to Completed.\n5. Posts a Slack message confirming completion or escalating if the task is still not completed, then updates the Salesforce Account Description with a timestamped audit result.\n6. For over-saturated accounts, uses Groq to generate a low-touch cool-down plan, posts the recommendation to Slack without creating a task, and logs “cool-down mode” to the Salesforce Account Description.\n\n## Setup\n1. Add Salesforce credentials with permission to read Accounts, create/get Tasks, and update Account fields.\n2. Add Slack credentials and set the target user/channel details in each Slack message node.\n3. Add Groq credentials and confirm the selected models are available in your Groq account.\n4. Replace the hardcoded Salesforce Account ID with the account you want to audit (or modify the workflow to iterate over multiple accounts).\n5. Ensure your Salesforce Account includes the Customer_Tier__c field and that Description contains the signals you want to route on (for example, the word “Alert”).\n\n## Additional info\n## How To Customize Nodes\n\n* **Switching AI Models**: You can easily swap the **Groq Chat Model** nodes for **OpenAI** or **Gemini** Chat Model nodes. The prompt logic will remain compatible.\n* **Adjusting the Audit Window**: Change the **Wait: 24h Completion Window** to a shorter duration (e.g., 1 minute) during testing to see the full loop execute immediately.\n* **Slack Routing**: Update the \"User\" field in Slack nodes to a specific `#channel` name to broadcast alerts to an entire team.\n\n\n## Add‑ons\n\n* **Email Integration**: Add a Gmail or Outlook node to automatically draft the AI-suggested email as a \"Draft\" for the CSM to review.\n* **CRM Expansion**: Adapt this logic for HubSpot or Pipedrive by simply swapping the Salesforce nodes for your preferred CRM nodes.\n* **Sentiment Analysis**: Insert a sentiment analysis node before the triage logic to gauge the \"mood\" of recent support tickets and adjust the AI strategy accordingly.\n\n\n## Use Case Examples\n\n1. **VIP Churn Prevention**: Automatically flagging Platinum partners who haven't had a \"Health Check\" in 30 days.\n2. **Sales Rep Coaching**: Providing junior reps with AI-generated \"no-ask\" value-add ideas for busy clients.\n3. **Management Oversight**: Ensuring that high-priority tasks for top-tier accounts are actually being completed within 24 hours.\n4. **Automated Account Audits**: Running a weekly batch audit of all \"Platinum\" accounts to log their current status back into the CRM.\n5. **Communication Load Balancing**: Preventing \"over-mailing\" a client who is already dealing with a technical alert or open support ticket.\n\n\n## Troubleshooting Guide\n\n| Issue | Possible Cause | Solution |\n| :--- | :--- | :--- |\n| **Salesforce 404 Error** | The Account ID in the first SF node is invalid or deleted. | Verify the 18-character Salesforce ID in the \"Fetch Account Data\" node. |\n| **AI Strategy is Blank** | The API key is expired or the model name is incorrect. | Check your credentials and ensure the model (e.g., GPT-4o, Llama-3) is active. |\n| **Slack Messages Not Arriving** | The Slack User ID is incorrect or the Bot is not in the channel. | Ensure the Slack Bot has been invited to the target channel or the User ID is accurate. |\n| **Audit Loop Skipping** | The Salesforce Task ID wasn't passed correctly. | Check the \"SF: Create Rescue Task\" output to ensure a valid Task ID was generated. |\n\n\n## Need Help?\n\nSetting up complex CRM logic and AI agents can be a challenge! If you need assistance customizing this \"Load Balancer\" logic, adding advanced features or building a bespoke workflow from scratch, we are here to help.\n\n**[Contact WeblineIndia](https://www.weblineindia.com/contact-us.html)** to [hire n8n workflow developers](https://www.weblineglobal.com/hire/n8n-developers/) and take your business processes to the next level.",
+  "workflow": {
+    "id": "WQxpsg3S8aM6kyNE",
+    "meta": {
+      "instanceId": "c9f53da925694f7dd09a16fd0be9e20b1711716ea176a2af665d6daf28dfd8b9"
+    },
+    "name": "Customer Communication Load Balancer",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "a4d007a7-e05c-4a89-8f7b-d486ff39e626",
+        "name": "Groq Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+        "position": [
+          -1136,
+          576
+        ],
+        "parameters": {
+          "model": "openai/gpt-oss-120b",
+          "options": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "0dfa958b-545c-4e0e-9c86-12b93499c708",
+        "name": "SF: Fetch Account Data",
+        "type": "n8n-nodes-base.salesforce",
+        "position": [
+          -1968,
+          464
+        ],
+        "parameters": {
+          "resource": "account",
+          "accountId": "001g500000HS0WyAAL",
+          "operation": "get"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "0fc6b1bb-53b4-4be0-891b-7868b50def53",
+        "name": "Logic: Tier & Health Router",
+        "type": "n8n-nodes-base.switch",
+        "position": [
+          -1424,
+          464
+        ],
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "outputKey": "Neglected VIP",
+                "conditions": {
+                  "options": {
+                    "version": 3,
+                    "leftValue": "",
+                    "caseSensitive": true,
+                    "typeValidation": "strict"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "c4950460-484f-4ada-bcaf-bfbd93e4ecf9",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "leftValue": "={{ $json.Customer_Tier__c }}",
+                      "rightValue": "Platinum"
+                    }
+                  ]
+                },
+                "renameOutput": true
+              },
+              {
+                "outputKey": "Over-Saturated",
+                "conditions": {
+                  "options": {
+                    "version": 3,
+                    "leftValue": "",
+                    "caseSensitive": true,
+                    "typeValidation": "strict"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "5a2ba329-3fa6-4d8c-a72b-8ddc09e2eda8",
+                      "operator": {
+                        "type": "string",
+                        "operation": "contains"
+                      },
+                      "leftValue": "={{ $json.Description }}",
+                      "rightValue": "Alert"
+                    }
+                  ]
+                },
+                "renameOutput": true
+              }
+            ]
+          },
+          "options": {}
+        },
+        "retryOnFail": false,
+        "typeVersion": 3.4
+      },
+      {
+        "id": "1f7b76ff-20bc-49b4-9fc8-9e940002e086",
+        "name": "Groq Chat Model1",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+        "position": [
+          384,
+          880
+        ],
+        "parameters": {
+          "model": "openai/gpt-oss-safeguard-20b",
+          "options": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "0b64b9c7-2153-4280-887a-73d4a4ffffd5",
+        "name": "AI: Generate VIP Strategy",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          -1200,
+          304
+        ],
+        "parameters": {
+          "text": "=The client {{ $('SF: Fetch Account Data').item.json.Name }} is a Platinum partner. Their last status update was: {{ $json.Description }}",
+          "options": {},
+          "promptType": "define"
+        },
+        "typeVersion": 3.1
+      },
+      {
+        "id": "3ed083d7-964c-4e49-a62e-7721eb8f00d5",
+        "name": "AI: Generate Cool-down Plan",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          304,
+          656
+        ],
+        "parameters": {
+          "text": "=This Platinum client {{ $node[\"SF: Fetch Account Data\"].json[\"Name\"] }} has already been contacted recently (Alert status). Instead of a new task, suggest a subtle way to monitor their health or a small 'no-ask' value-add we can send in 7 days to stay top-of-mind without being intrusive.",
+          "options": {},
+          "promptType": "define"
+        },
+        "typeVersion": 3.1
+      },
+      {
+        "id": "563b89b0-06af-43b0-8b49-93d525831758",
+        "name": "SF: Create Rescue Task",
+        "type": "n8n-nodes-base.salesforce",
+        "position": [
+          -848,
+          304
+        ],
+        "parameters": {
+          "status": "Not Started",
+          "resource": "task",
+          "additionalFields": {
+            "whatId": "={{ $('SF: Fetch Account Data').item.json.Id }}",
+            "subject": "=VIP Rescue: {{ $('SF: Fetch Account Data').item.json.Name }}",
+            "priority": "High",
+            "description": "={{ $json.output }}"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "dd60fcaf-2ae2-4245-88d5-da3b7621e384",
+        "name": "Slack: Strategy Alert",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          -560,
+          304
+        ],
+        "webhookId": "4beceea3-1a93-424a-ae56-ab520f971d4f",
+        "parameters": {
+          "text": "=Account: Action: {{ $('SF: Fetch Account Data').item.json.Name }} {{ $('AI: Generate VIP Strategy').item.json.output }} A High-Priority task has been created in Salesforce.",
+          "user": {
+            "__rl": true,
+            "mode": "id",
+            "value": "U0AP17N3QRY"
+          },
+          "select": "user",
+          "otherOptions": {
+            "ephemeral": false
+          }
+        },
+        "typeVersion": 2.4
+      },
+      {
+        "id": "e56aa2dc-7d40-4b7b-999a-306881220589",
+        "name": "Wait: 24h Completion Window",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          -336,
+          304
+        ],
+        "webhookId": "65a77360-47cb-484d-a32c-f5b29c8ed4da",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "fd2f9967-82a1-48a4-ab08-d77c62047a00",
+        "name": "SF: Audit Task Status",
+        "type": "n8n-nodes-base.salesforce",
+        "position": [
+          -112,
+          304
+        ],
+        "parameters": {
+          "taskId": "={{ $('SF: Create Rescue Task').item.json.id }}",
+          "resource": "task",
+          "operation": "get"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "62c012d2-fefb-4cb6-8bad-87489e520faa",
+        "name": "Check: Is Task Finished?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          368,
+          304
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 3,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "554e9824-e672-4e5f-9e1a-57cabf1369f7",
+                "operator": {
+                  "name": "filter.operator.equals",
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.Status }}",
+                "rightValue": "Completed"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "1b56c9c1-b184-4f13-93b5-0ecb7b0ba220",
+        "name": "Slack: Success Confirmation",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          656,
+          208
+        ],
+        "webhookId": "de0a9aa2-d17b-4bb9-ba1d-e6a7677c2bcb",
+        "parameters": {
+          "text": "=URGENT ESCALATION: VIP Neglect Continued  Client: {{ $('SF: Fetch Account Data').item.json.Name }} Status: Still \"Not Started\" after 24 hours. AI Strategy was: {{ $('AI: Generate VIP Strategy').item.json.output }} Action required immediately to prevent churn.",
+          "user": {
+            "__rl": true,
+            "mode": "id",
+            "value": "U0AP17N3QRY"
+          },
+          "select": "user",
+          "otherOptions": {
+            "ephemeral": false
+          }
+        },
+        "typeVersion": 2.4
+      },
+      {
+        "id": "bb7bf0a6-e877-4c9f-997d-f978e2837422",
+        "name": "Slack: Management Escalation",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          656,
+          400
+        ],
+        "webhookId": "8f3dc55f-dd58-4a78-ada0-b7ea48629912",
+        "parameters": {
+          "text": "=The follow-up for {{ $('SF: Fetch Account Data').item.json.Name }} has been completed and verified. Great job.",
+          "user": {
+            "__rl": true,
+            "mode": "id",
+            "value": "U0AP17N3QRY"
+          },
+          "select": "user",
+          "otherOptions": {
+            "ephemeral": false
+          }
+        },
+        "typeVersion": 2.4
+      },
+      {
+        "id": "438cd65f-8da6-47c3-ae4e-765112ccc13f",
+        "name": "Slack: Saturated Client Update",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          656,
+          656
+        ],
+        "webhookId": "5c06ce73-1edb-41d7-85c4-3b1e16c4344d",
+        "parameters": {
+          "text": "=Cool-down Strategy for {{ $node[\"SF: Fetch Account Data\"].json[\"Name\"] }}  AI Advice: {{ $json.output }} No task created to prevent over-communication.",
+          "user": {
+            "__rl": true,
+            "mode": "id",
+            "value": "U0AP17N3QRY"
+          },
+          "select": "user",
+          "otherOptions": {
+            "ephemeral": false
+          }
+        },
+        "typeVersion": 2.4
+      },
+      {
+        "id": "13fb71aa-b27e-415d-9429-6fa8768810d7",
+        "name": "SF: Log Final Audit Result",
+        "type": "n8n-nodes-base.salesforce",
+        "position": [
+          928,
+          400
+        ],
+        "parameters": {
+          "resource": "account",
+          "accountId": "={{ $('SF: Fetch Account Data').item.json.Id }}",
+          "operation": "update",
+          "updateFields": {
+            "description": "=Audit completed on {{ $now.format('dd/MM/yyyy HH:mm') }}. Result: {{ $(\"Check: Is Task Finished?\").isExecuted ? ($json.Status === \"Completed\" ? \"SUCCESS - Relationship Balanced\" : \"FAILED - Manager Escalated\") : \"SATURATED - Cool-down Mode\" }}"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4ae32fb5-78e1-4bf9-824b-b38c7463f685",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2240,
+          96
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 656,
+          "height": 608,
+          "content": "## Data Ingestion & Triage\n\nThis phase initiates the audit. It pulls specific client details from Salesforce—such as Name and Tier—and uses a Switch node to route the workflow. It separates Platinum clients who haven't been contacted from those who already have \"Alert\" statuses in their description."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ce5cfdd1-8047-408d-acc6-25e0145a2c3b",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1504,
+          96
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 816,
+          "height": 608,
+          "content": "## AI Strategy & Task Creation\n\nHere, the workflow uses Groq LLMs to \"think.\" For neglected clients, it creates a \"Rescue Task\" in Salesforce and alerts the team via Slack. For over-saturated clients, it skips task creation and instead provides a \"Cool-down\" strategy via Slack to prevent intrusive communication."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4cbeb19c-0a5e-41cf-a918-aa6047eca8e6",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -608,
+          96
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 688,
+          "height": 608,
+          "content": "## The 24h Accountability Loop\n\nThis is the verification stage. The workflow pauses for 24 hours to give the team time to act. Once the wait is over, it re-queries Salesforce to check the status of the specific \"Rescue Task\" to see if it has been moved to \"Completed.\""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8167eb8f-68eb-4432-ae92-e8fa2d95b0fc",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          208,
+          32
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 960,
+          "height": 992,
+          "content": "## Reporting & Final Logging\n\nThe final phase handles the outcome. If the task was completed, it sends a success message; if not, it triggers an urgent management escalation on Slack. Finally, it updates the Salesforce Account description with a timestamped audit result to keep a permanent record."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1290bedc-e8ec-4791-a31f-fd07c21a077c",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -3152,
+          -112
+        ],
+        "parameters": {
+          "width": 816,
+          "height": 816,
+          "content": "## Customer Communication Load Balancer\n\n## How it works\nThis workflow acts as an automated triage for your high-value clients. It pulls account data from Salesforce and uses logic to determine if a Platinum partner is being \"Neglected\" (no recent activity) or is \"Over-Saturated\" (too many recent alerts). Depending on the state, Groq-powered AI agents generate either a high-priority rescue strategy or a low-touch \"cool-down\" plan. For neglected VIPs, the system creates a Salesforce task and triggers a 24-hour audit loop to ensure the team follows through.\n\n## Setup steps\n\n1. Connect Salesforce, Slack, and Groq API credentials.\n2. In SF: Fetch Account Data, replace the Account ID with the client you want to audit.\n3. Update all Slack nodes with your Slack User ID to receive alerts.\n4. Make sure Salesforce has:\n    Customer_Tier__c\n    Description\n5. Change the 24h Wait node if you want faster testing.\n6. Run once, test both branches, then activate workflow."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "41a80459-c6e1-42fa-a4c0-d96afe7912ec",
+        "name": "Edit Fields",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -1760,
+          464
+        ],
+        "parameters": {
+          "options": {},
+          "includeOtherFields": true
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "046c354f-6b02-4c66-8b03-94a86746aec8",
+        "name": "Daily 8AM Sync",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -2160,
+          464
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "triggerAtHour": 8
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.3
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "binaryMode": "separate",
+      "availableInMCP": false,
+      "executionOrder": "v1"
+    },
+    "versionId": "2fe8f98e-6145-49af-9d0b-600a25b3bd68",
+    "nodeGroups": [],
+    "connections": {
+      "Edit Fields": {
+        "main": [
+          [
+            {
+              "node": "Logic: Tier & Health Router",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Daily 8AM Sync": {
+        "main": [
+          [
+            {
+              "node": "SF: Fetch Account Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Groq Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI: Generate VIP Strategy",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Groq Chat Model1": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI: Generate Cool-down Plan",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "SF: Audit Task Status": {
+        "main": [
+          [
+            {
+              "node": "Check: Is Task Finished?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Slack: Strategy Alert": {
+        "main": [
+          [
+            {
+              "node": "Wait: 24h Completion Window",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "SF: Create Rescue Task": {
+        "main": [
+          [
+            {
+              "node": "Slack: Strategy Alert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "SF: Fetch Account Data": {
+        "main": [
+          [
+            {
+              "node": "Edit Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check: Is Task Finished?": {
+        "main": [
+          [
+            {
+              "node": "Slack: Success Confirmation",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Slack: Management Escalation",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI: Generate VIP Strategy": {
+        "main": [
+          [
+            {
+              "node": "SF: Create Rescue Task",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI: Generate Cool-down Plan": {
+        "main": [
+          [
+            {
+              "node": "Slack: Saturated Client Update",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Logic: Tier & Health Router": {
+        "main": [
+          [
+            {
+              "node": "AI: Generate VIP Strategy",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "AI: Generate Cool-down Plan",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Slack: Success Confirmation": {
+        "main": [
+          [
+            {
+              "node": "SF: Log Final Audit Result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait: 24h Completion Window": {
+        "main": [
+          [
+            {
+              "node": "SF: Audit Task Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Slack: Management Escalation": {
+        "main": [
+          [
+            {
+              "node": "SF: Log Final Audit Result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Slack: Saturated Client Update": {
+        "main": [
+          [
+            {
+              "node": "SF: Log Final Audit Result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 39,
+      "name": "CRM"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/18143",
+  "fetched_at": "2026-09-12T13:16:50Z"
+}

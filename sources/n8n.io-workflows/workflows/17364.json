@@ -1,0 +1,1197 @@
+{
+  "id": 17364,
+  "name": "Generate network audit reports, GitHub issues, and Slack alerts with Claude",
+  "description": "## Quick overview\nReads Network report queries and agent prompts from GitHub, uses AI Agents with a read-only Cisco pyATS MCP tool to generate infrastructure audit reports, automatically opens GitHub issues for detected problems, and sends Slack notifications with report and issue links. Demo: http://cs.co/9006BEWHQy Repo: http://cs.co/9007BEmQdZ\n\n## How it works\n1. Runs on a schedule or when executed manually.\n2. Pulls a list of report query `.txt` files from a GitHub repository and iterates through them one by one.\n3. For each query, fetches the query file and the reporting agent prompt from GitHub\n4. Uses a Reporting AI Agent with a read-only Cisco pyATS MCP tool to query network devices and generate a structured report.\n5. Saves the generated report as a Markdown file in GitHub and extracts the report URL and tag.\n6. Uses a ticketing AI Agent to decide whether the report requires a ticket, then creates a GitHub issue when the decision indicates an issue.\n7. Sends a Slack message card with the report link and, when applicable, the GitHub issue link, then continues to the next query file.\n\n## Setup\n1. Add GitHub credentials and set the repository owner/name plus the file paths for the report queries folder, the reporting prompt file, the ticketing prompt file, and the reports output folder.\n2. Add your LLM API credential of choice for both AI Agents.\n3. Configure the read-only Cisco pyATS MCP endpoint URL and ensure the required pyATS tools are enabled and can reach your network devices.\n4. Add Slack credentials and replace the target channel ID in both Slack message steps.\n5. Populate your GitHub repo with report query `.txt` files formatted as key/value lines (including a `file_prefix`) and adjust the schedule interval to your desired cadence. Check the green post-it in the workflow for examples.\n\n## Requirements\n- Check the public repository for more information: http://cs.co/9007BEmQdZ",
+  "workflow": {
+    "id": "QwHaWsCg6IRMENiw",
+    "meta": {
+      "instanceId": "50fb4d2f3360a0e82364e133321a88b55bc7b875b40069cddb631dad426c79a6",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "AI Reports, GitHub Issues, and Slack Notifications for your Network",
+    "tags": [
+      {
+        "id": "RI2oyLHd5oNJTXhq",
+        "name": "netops",
+        "createdAt": "2026-05-25T15:48:31.564Z",
+        "updatedAt": "2026-05-25T15:48:31.564Z"
+      },
+      {
+        "id": "aA1WrsV70P2sqfzP",
+        "name": "reporting",
+        "createdAt": "2026-05-25T18:32:01.778Z",
+        "updatedAt": "2026-05-25T18:32:01.778Z"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "b4a69e66-80c4-474b-b26f-4c31ad32b2e7",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          16,
+          -240
+        ],
+        "parameters": {
+          "width": 480,
+          "height": 1168,
+          "content": "## AI Reports, GitHub Issues, and Slack Notifications for your Network\n\n### How it works\n\n1. The workflow is triggered on a schedule or manually, then fetches a list of network report query files from a GitHub repository.\n2. It loops over each query file, fetching both the query content and the AI agent prompt.\n3. A Reports AI Agent (with a Cisco pyATS MCP in read-only mode) executes each network query and generates a structured report.\n4. The report is saved as a file in GitHub, and a Ticketing AI Agent is separately invoked with its own prompt to assess whether a network issue warrants a ticket.\n5. The Tickets AI Agent returns a decision; if an issue is detected, a GitHub issue is automatically created.\n6. A Slack card is sent to the team with the report link and, where applicable, a link to the newly created GitHub issue, then the loop continues to the next query file.\n\n### Setup steps\n\nDetailed steps available [in this public repo](http://cs.co/9007BEmQdZ).\n\n- - [ ] Configure GitHub credentials in n8n and set the correct repository/org for query files, prompt files, report storage, and issue creation.\n- - [ ] Set up your credentials for the LLMs used by the Reports AI Agent and Tickets AI Agent.\n- - [ ] Configure the Cisco pyATS MCP connection (read-only mode) so the Reports AI Agent can query network devices.\n- - [ ] Set up Slack credentials and configure the target Slack channel for report and issue notification cards.\n- - [ ] Adjust the Schedule Trigger to the desired reporting cadence (e.g., daily, weekly).\n- - [ ] Populate the GitHub repository with the report query files and agent prompt files that the workflow reads.\n\n### Customization\n\nThe query files stored in GitHub can be edited to target different network devices or audit checks without changing the workflow itself. The AI agent prompts can be tuned to adjust report verbosity or ticket creation thresholds. The Slack message card format can be customised in the Send Card nodes."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3113273a-4d83-490a-8974-41cbe5c798f2",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          560,
+          80
+        ],
+        "parameters": {
+          "color": 7,
+          "height": 576,
+          "content": "## Workflow triggers\n\nTwo entry points that start the workflow: a manual trigger for on-demand execution and a schedule trigger for automated recurring runs. Both feed into the file listing step."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "087b513d-65b2-4b43-8065-0608beef3dae",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          832,
+          288
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 400,
+          "height": 368,
+          "content": "## List and prepare query files\n\nFetches the list of report query files from GitHub, then runs a code node to prepare and normalise the file list for iteration. Reports must be _.txt_ files. Check this [report example](https://github.com/ponchotitlan/pyATS-loves-agenticops/blob/main/n8n/Reporting%20and%20Auditing%20for%20my%20network/reports/iosxe_cisco_hardening.txt)."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "aa8415cd-bde2-4822-90f1-395ab8fbcf0a",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1264,
+          -240
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 592,
+          "height": 864,
+          "content": "## Loop and fetch query content\n\nIterates over each query file using a batch loop. For each iteration, fetches the query file content, the report agent prompt from GitHub, and generates a unique session ID used for AI memory isolation. Check this [reporting agent prompt example](https://github.com/ponchotitlan/pyATS-loves-agenticops/blob/main/n8n/Reporting%20and%20Auditing%20for%20my%20network/agents/network_report_agent.txt)."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5439198a-fad7-4d4d-94b9-1fb823a0395c",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1904,
+          -240
+        ],
+        "parameters": {
+          "color": 7,
+          "height": 608,
+          "content": "## Decode report inputs\n\nDecodes the base64-encoded report query file and report agent prompt retrieved from GitHub into readable content."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ce447ffc-7c29-4b3b-ade8-869003c7c8c1",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2176,
+          64
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 416,
+          "height": 400,
+          "content": "## Merge and consolidate report query\n\nMerges the decoded query file, decoded agent prompt, and session ID into a single data structure, then consolidates it into a unified payload ready for the Reports AI Agent."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e7d1420e-1b4e-498b-8ccf-eaf42eb994be",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2608,
+          64
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 496,
+          "height": 576,
+          "content": "## Reports AI Agent\n\nAI Agent that uses Cisco pyATS MCP (read-only) to query network devices and generate a structured audit report. Uses a memory buffer to maintain context across turns."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ce0b8133-4301-4758-8f8d-9c1831a743b7",
+        "name": "Sticky Note7",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          3152,
+          -64
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 416,
+          "height": 608,
+          "content": "## Save report and fetch ticketing prompt\n\nSaves the generated report as a file in GitHub, extracts the report URL and tag, and fetches and decodes the ticketing agent prompt to prepare inputs for the Tickets AI Agent. Check this [ticketing agent prompt example](https://github.com/ponchotitlan/pyATS-loves-agenticops/blob/main/n8n/Reporting%20and%20Auditing%20for%20my%20network/agents/network_ticketing_agent.txt)."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ab9c42bd-908a-4ef1-9f8b-2f4e1bd4f18a",
+        "name": "Sticky Note8",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          3632,
+          96
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 480,
+          "height": 368,
+          "content": "## Merge and consolidate ticketing query\n\nMerges the decoded ticketing prompt, report URL/tag, and the Reports AI Agent output into one payload, then consolidates it for the Tickets AI Agent."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2fe3adde-7903-4d47-a797-1bf0db5e0c16",
+        "name": "Sticky Note9",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          4144,
+          96
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 528,
+          "height": 528,
+          "content": "## Tickets AI Agent and JSON parse\n\nRuns the Tickets AI Agent to assess the report and decide whether a network issue requires a ticket, then converts the agent's output to structured JSON."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3afb3100-6979-45e8-80fe-4121f3048763",
+        "name": "Sticky Note10",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          4720,
+          112
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 416,
+          "height": 336,
+          "content": "## Issue decision and creation\n\nChecks whether the ticketing agent flagged an issue; if yes, automatically creates a GitHub issue with the relevant details."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "dc56b5ea-2cf2-4310-a6b0-1a261d56f041",
+        "name": "Sticky Note11",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          5184,
+          112
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 256,
+          "height": 752,
+          "content": "## Slack notification cards\n\nSends Slack notification cards to a predefined chat: one card including both the report link and the newly created GitHub issue link, and another card with only the report link when no issue was raised. Both loop back to process the next query file."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6e6e2247-3e85-446a-b51c-2d7362b4ad4f",
+        "name": "When clicking ‘Execute workflow’",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          608,
+          496
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "0119421d-2adf-4159-a0dc-098e1da0c5ce",
+        "name": "Create a report file",
+        "type": "n8n-nodes-base.github",
+        "position": [
+          3200,
+          384
+        ],
+        "webhookId": "e166c285-6ad1-4efd-a30c-0ea0eba19ff5",
+        "parameters": {
+          "owner": {
+            "__rl": true,
+            "mode": "name",
+            "value": "your_repo_owner_username"
+          },
+          "filePath": "=path_to_your_repo_reports_files/{{ $('Consolidate report query').item.json.file_prefix }}_{{ $now}}.md",
+          "resource": "file",
+          "repository": {
+            "__rl": true,
+            "mode": "name",
+            "value": "your_repo_name"
+          },
+          "fileContent": "={{ $json.output }}",
+          "commitMessage": "={{ $('Consolidate report query').item.json.file_prefix }} report gen"
+        },
+        "credentials": {
+          "githubApi": {
+            "id": "kpixrBYVwR8zj5Tb",
+            "name": "GitHub account"
+          }
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "39b95c87-2ba5-4c24-922a-0f00c2ae7fd3",
+        "name": "Create an issue",
+        "type": "n8n-nodes-base.github",
+        "position": [
+          4992,
+          272
+        ],
+        "webhookId": "0b777a2d-254b-4cf3-b721-9b1d79a1ab5e",
+        "parameters": {
+          "body": "={{ $('Convert to JSON').item.json.description }}\n\n📚 Reference report: {{ $('Consolidate ticketing query').item.json.report_url }}",
+          "owner": {
+            "__rl": true,
+            "mode": "name",
+            "value": "your_repo_owner_username"
+          },
+          "title": "=[{{ $('Consolidate ticketing query').item.json.report_tag }}] [{{ $('Convert to JSON').item.json.priority }}] {{ $('Convert to JSON').item.json.title }}",
+          "labels": [
+            {
+              "label": "={{ $json.priority }}"
+            }
+          ],
+          "assignees": [],
+          "repository": {
+            "__rl": true,
+            "mode": "name",
+            "value": "your_repo_name"
+          }
+        },
+        "credentials": {
+          "githubApi": {
+            "id": "kpixrBYVwR8zj5Tb",
+            "name": "GitHub account"
+          }
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "034f1afd-7645-4d44-b840-d103c3500e65",
+        "name": "List report query files",
+        "type": "n8n-nodes-base.github",
+        "position": [
+          880,
+          496
+        ],
+        "webhookId": "8b525fa1-eeb6-4e2a-a76f-e44ce5a1f6e0",
+        "parameters": {
+          "owner": {
+            "__rl": true,
+            "mode": "name",
+            "value": "your_repo_owner_username"
+          },
+          "filePath": "path_to_your_reports",
+          "resource": "file",
+          "operation": "get",
+          "repository": {
+            "__rl": true,
+            "mode": "name",
+            "value": "your_repo_name"
+          },
+          "asBinaryProperty": false,
+          "additionalParameters": {}
+        },
+        "credentials": {
+          "githubApi": {
+            "id": "kpixrBYVwR8zj5Tb",
+            "name": "GitHub account"
+          }
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "0b53c351-19aa-43be-9b9e-fe7f74599dae",
+        "name": "Prepare report query files",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1088,
+          496
+        ],
+        "parameters": {
+          "jsCode": "const entries = $input.all().flatMap(item => {\n  const data = item.json;\n\n  if (Array.isArray(data)) return data;\n  if (Array.isArray(data.items)) return data.items;\n  if (Array.isArray(data.data)) return data.data;\n\n  return [data];\n});\n\nconst reportQueryFiles = entries\n  .filter(entry =>\n    entry &&\n    entry.type === 'file' &&\n    typeof entry.path === 'string' &&\n    entry.path.includes('reports/') &&\n    entry.path.endsWith('.txt')\n  );\n\nreturn reportQueryFiles.map(file => ({\n  json: {\n    report_query_path: file.path\n  }\n}));"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "b7391be0-4a09-4a4f-8ce4-a44fd7fcd510",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          1360,
+          208
+        ],
+        "parameters": {
+          "options": {},
+          "batchSize": 1
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8c3832c1-813b-4194-a52a-0a78ac391429",
+        "name": "Get the report agent prompt",
+        "type": "n8n-nodes-base.github",
+        "position": [
+          1600,
+          -32
+        ],
+        "webhookId": "1775c2e6-93b0-4333-b8bd-cb5a9958fa9e",
+        "parameters": {
+          "owner": {
+            "__rl": true,
+            "mode": "name",
+            "value": "your_repo_owner_username"
+          },
+          "filePath": "path_to_your_reporting_agent_prompt",
+          "resource": "file",
+          "operation": "get",
+          "repository": {
+            "__rl": true,
+            "mode": "name",
+            "value": "your_repo_name"
+          },
+          "asBinaryProperty": false,
+          "additionalParameters": {}
+        },
+        "credentials": {
+          "githubApi": {
+            "id": "kpixrBYVwR8zj5Tb",
+            "name": "GitHub account"
+          }
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "041a3847-a309-45d5-bfac-ace44f8a3093",
+        "name": "Get the ticketing agent prompt",
+        "type": "n8n-nodes-base.github",
+        "position": [
+          3200,
+          176
+        ],
+        "webhookId": "1775c2e6-93b0-4333-b8bd-cb5a9958fa9e",
+        "parameters": {
+          "owner": {
+            "__rl": true,
+            "mode": "name",
+            "value": "your_repo_owner_username"
+          },
+          "filePath": "path_to_your_ticketing_agent_prompt",
+          "resource": "file",
+          "operation": "get",
+          "repository": {
+            "__rl": true,
+            "mode": "name",
+            "value": "your_repo_name"
+          },
+          "asBinaryProperty": false,
+          "additionalParameters": {}
+        },
+        "credentials": {
+          "githubApi": {
+            "id": "kpixrBYVwR8zj5Tb",
+            "name": "GitHub account"
+          }
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "69a450c9-fec5-48b5-bc02-f7df7a306e5b",
+        "name": "Decode report agent prompt",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1968,
+          -32
+        ],
+        "parameters": {
+          "jsCode": "// Get the base64 content\nconst base64Content = $input.first().json.content;\n\n// Decode from base64\nconst decodedContent = Buffer.from(base64Content, 'base64').toString('utf-8');\n\n// Return the decoded content\nreturn {\n  json: {\n    netauto_agent_prompt: decodedContent\n  }\n};"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "35afcc49-db2e-4f97-a373-de824a7f4140",
+        "name": "Decode ticketing agent prompt",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          3424,
+          176
+        ],
+        "parameters": {
+          "jsCode": "// Get the base64 content\nconst base64Content = $input.first().json.content;\n\n// Decode from base64\nconst decodedContent = Buffer.from(base64Content, 'base64').toString('utf-8');\n\n// Return the decoded content\nreturn {\n  json: {\n    ticketing_agent_prompt: decodedContent\n  }\n};"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "c64b9190-7d7d-42de-b452-f6e2526f8bd4",
+        "name": "Tickets AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          4224,
+          288
+        ],
+        "parameters": {
+          "text": "={{ $json.ticketing_agent_prompt }}\n\nReport: {{ $json.output }}",
+          "options": {},
+          "promptType": "define"
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "6fbcd23b-1951-4b8c-bc93-a120a10278db",
+        "name": "Convert to JSON",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          4528,
+          288
+        ],
+        "parameters": {
+          "jsCode": "const items = $input.all();\n\nconst output = items.map(item => {\n  let outputText = item.json.output;\n  \n  // Remove markdown code block markers (```json and ```)\n  outputText = outputText.replace(/```json\\n?/g, '').replace(/```/g, '').trim();\n  \n  // Parse the JSON string into an object\n  const parsedJson = JSON.parse(outputText);\n  \n  return { json: parsedJson };\n});\n\nreturn output;"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "276f1fb6-d295-4300-9ed1-f6ee76ebc514",
+        "name": "Is there an issue?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          4768,
+          288
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "44b388a2-943d-4801-b559-c51f2b077113",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                },
+                "leftValue": "={{ $json.create_issue }}",
+                "rightValue": ""
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "bc825797-5553-4be5-9515-97e55f72d3c0",
+        "name": "Get report URL and tag",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          3424,
+          384
+        ],
+        "parameters": {
+          "jsCode": "// Return the files data\nconst items = $input.all();\n\nconst output = items.map(item => {\n  return {\n    json: {\n      report_url: item.json.content.html_url,\n      report_tag: item.json.commit.message\n    }\n  };\n});\n\nreturn output;"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "b3d59536-f366-4eea-a8f3-f1e6c957d956",
+        "name": "Get the report query file",
+        "type": "n8n-nodes-base.github",
+        "position": [
+          1600,
+          208
+        ],
+        "webhookId": "1775c2e6-93b0-4333-b8bd-cb5a9958fa9e",
+        "parameters": {
+          "owner": {
+            "__rl": true,
+            "mode": "name",
+            "value": "your_repo_owner_username"
+          },
+          "filePath": "={{ $json.report_query_path }}",
+          "resource": "file",
+          "operation": "get",
+          "repository": {
+            "__rl": true,
+            "mode": "name",
+            "value": "your_repo_name"
+          },
+          "asBinaryProperty": false,
+          "additionalParameters": {}
+        },
+        "credentials": {
+          "githubApi": {
+            "id": "kpixrBYVwR8zj5Tb",
+            "name": "GitHub account"
+          }
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "ec8f4b5a-199f-41cf-ba9a-d6709decea7f",
+        "name": "Simple Memory",
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "position": [
+          2800,
+          480
+        ],
+        "parameters": {
+          "sessionKey": "={{ $('Consolidate report query').item.json.executionId }}",
+          "sessionIdType": "customKey"
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "71f90687-63ce-430f-b704-9b2514850c79",
+        "name": "Reports AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          2704,
+          288
+        ],
+        "parameters": {
+          "text": "={{ $json.netauto_agent_prompt }}\n\n- Query: {{ $json.query }}\n- Notes: {{ $json.notes }}\n",
+          "options": {
+            "maxIterations": 100
+          },
+          "promptType": "define"
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "2337d015-e313-426c-9d59-cfb04c38a141",
+        "name": "Decode report query file",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1968,
+          208
+        ],
+        "parameters": {
+          "jsCode": "// Get the base64 content\nconst source = $input.first().json;\nconst base64Content = source.content;\n\n// Decode from base64\nconst text = Buffer.from(base64Content, 'base64').toString('utf-8');\n\n// Ensure it's a string\nconst raw = typeof text === 'string' ? text : JSON.stringify(text);\n\n// Split into lines\nconst lines = raw.split('\\n');\n\n// Object to store parsed fields\nconst result = {\n  report_query_path: source.path\n};\n\nfor (const line of lines) {\n  // Match pattern: - Key: Value\n  const match = line.match(/-\\s*(.+?):\\s*(.+)/);\n  if (match) {\n    const key = match[1]\n      .trim()\n      .toLowerCase()\n      .replace(/\\s+/g, '_'); // e.g. \"File Prefix\" -> \"file_prefix\"\n\n    const value = match[2].trim();\n    result[key] = value;\n  }\n}\n\n// Return as JSON\nreturn [\n  {\n    json: result\n  }\n];\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "85d4aa44-00c3-4793-83bf-8023c30b86e8",
+        "name": "Merge report query data",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          2240,
+          272
+        ],
+        "parameters": {
+          "numberInputs": 3
+        },
+        "typeVersion": 3.2
+      },
+      {
+        "id": "353acc76-c26a-46ac-8dac-bb54eb0cdebb",
+        "name": "Consolidate report query",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2448,
+          288
+        ],
+        "parameters": {
+          "jsCode": "// Get all incoming items\nconst items = $input.all();\n\n// Merge all json objects into one\nconst merged = {};\n\nfor (const item of items) {\n  Object.assign(merged, item.json);\n}\n\n// Return as a single item\nreturn [\n  {\n    json: merged\n  }\n];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "ee8e5176-b499-4e6d-9225-5d06e0a8cb13",
+        "name": "Merge ticketing query data",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          3728,
+          272
+        ],
+        "parameters": {
+          "numberInputs": 3
+        },
+        "typeVersion": 3.2
+      },
+      {
+        "id": "a0ceac79-7f3e-4490-aec6-f136040ddbb8",
+        "name": "Consolidate ticketing query",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          3920,
+          288
+        ],
+        "parameters": {
+          "jsCode": "// Get all incoming items\nconst items = $input.all();\n\n// Merge all json objects into one\nconst merged = {};\n\nfor (const item of items) {\n  Object.assign(merged, item.json);\n}\n\n// Return as a single item\nreturn [\n  {\n    json: merged\n  }\n];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "595aefa8-a0f5-4771-976a-8e90365e7f20",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          608,
+          352
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {}
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "875a2917-30c5-4700-928f-8fc1a3e61603",
+        "name": "Random execution ID for memory",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1600,
+          432
+        ],
+        "parameters": {
+          "jsCode": "//Random string for session IDs in memory\nreturn [{\n  json: {\n    executionId: Math.random().toString(36).substring(2, 9)\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "3221c4ed-cece-4317-bfd5-8f2936eafd5c",
+        "name": "Send Card with Report and Issue",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          5232,
+          464
+        ],
+        "parameters": {
+          "text": "=📝 Automated Report Generation",
+          "channel": "your_slack_channel_id",
+          "blocksJson": "={{ JSON.stringify([\n  {\n    \"type\": \"header\",\n    \"text\": {\n      \"type\": \"plain_text\",\n      \"text\": \"📝 Automated Report Generation\",\n      \"emoji\": true\n    }\n  },\n  {\n    \"type\": \"section\",\n    \"text\": {\n      \"type\": \"mrkdwn\",\n      \"text\": \"✨ A new report regarding your network is available!\"\n    }\n  },\n  {\n    \"type\": \"section\",\n    \"fields\": [\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*🏷️ Report tag*\\n\" + ( $('Consolidate report query').item.json.file_prefix|| \"N/A\")\n      },\n      {\n      \"type\": \"mrkdwn\",\n      \"text\": \"<\" + $('Consolidate ticketing query').item.json.report_url + \"|📝 Open report>\"\n    }\n    ]\n  },\n  {\n    \"type\": \"section\",\n    \"fields\": [\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": \"⚠️ This report raised compliance issues!\"\n      },\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": \"<\" + $json.html_url + \"|🔥 Open issue>\"\n      }\n    ]\n  }\n]) }}",
+          "attachments": [],
+          "otherOptions": {},
+          "jsonParameters": true,
+          "attachmentsJson": "[]"
+        },
+        "credentials": {
+          "slackApi": {
+            "id": "zTAkKfcIyZa9aUQ0",
+            "name": "Slack account"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "26eee5a0-86ee-4378-8eac-d608306d94c9",
+        "name": "Send Card with Report",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          5232,
+          704
+        ],
+        "parameters": {
+          "text": "=📝 Automated Report Generation",
+          "channel": "your_slack_channel_id",
+          "blocksJson": "={{ JSON.stringify([\n  {\n    \"type\": \"header\",\n    \"text\": {\n      \"type\": \"plain_text\",\n      \"text\": \"📝 Automated Report Generation\",\n      \"emoji\": true\n    }\n  },\n  {\n    \"type\": \"section\",\n    \"text\": {\n      \"type\": \"mrkdwn\",\n      \"text\": \"✨ A new report regarding your network is available!\"\n    }\n  },\n  {\n    \"type\": \"section\",\n    \"fields\": [\n      {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*🏷️ Report tag*\\n\" + ( $('Consolidate report query').item.json.file_prefix|| \"N/A\")\n      },\n      {\n      \"type\": \"mrkdwn\",\n      \"text\": \"<\" + $('Consolidate ticketing query').item.json.report_url + \"|📝 Open report>\"\n    }\n    ]\n  }\n]) }}",
+          "attachments": [],
+          "otherOptions": {},
+          "jsonParameters": true,
+          "attachmentsJson": "[]"
+        },
+        "credentials": {
+          "slackApi": {
+            "id": "zTAkKfcIyZa9aUQ0",
+            "name": "Slack account"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "04a957b8-c192-4445-be15-8326acd9699b",
+        "name": "Read-only pyATS MCP Client",
+        "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+        "position": [
+          2944,
+          480
+        ],
+        "parameters": {
+          "include": "selected",
+          "options": {},
+          "endpointUrl": "https://your-mcp-endpoint.example/mcp",
+          "includeTools": [
+            "pyats_list_devices",
+            "pyats_run_show_command",
+            "pyats_show_running_config",
+            "pyats_show_logging",
+            "pyats_ping_from_network_device",
+            "pyats_run_linux_command",
+            "pyats_run_dynamic_test"
+          ]
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "c3253d0c-007e-46dd-aefc-6669dd9864ff",
+        "name": "Your LLM of choice",
+        "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "position": [
+          2656,
+          480
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "claude-sonnet-4-6",
+            "cachedResultName": "Claude Sonnet 4.6"
+          },
+          "options": {}
+        },
+        "credentials": {
+          "anthropicApi": {
+            "id": "rfGYsOsA1LgA8sLx",
+            "name": "Anthropic account"
+          }
+        },
+        "typeVersion": 1.5
+      },
+      {
+        "id": "c6c1c1d4-1750-46d1-a605-384a22b7d3f0",
+        "name": "Your LLM of choice too",
+        "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "position": [
+          4192,
+          464
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "claude-sonnet-4-20250514",
+            "cachedResultName": "Claude 4 Sonnet"
+          },
+          "options": {}
+        },
+        "credentials": {
+          "anthropicApi": {
+            "id": "rfGYsOsA1LgA8sLx",
+            "name": "Anthropic account"
+          }
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "9cdacdf2-41a4-497d-b0e2-55fde30fcc83",
+        "name": "Sticky Note12",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          16,
+          944
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 480,
+          "height": 304,
+          "content": "## Files examples\n\n- 📁 [Network Audit reports](https://github.com/ponchotitlan/pyATS-loves-agenticops/tree/main/n8n/Reporting%20and%20Auditing%20for%20my%20network/reports)\n- 🤖 [Reporting Agent prompt](https://github.com/ponchotitlan/pyATS-loves-agenticops/blob/main/n8n/Reporting%20and%20Auditing%20for%20my%20network/agents/network_report_agent.txt)\n- 🎫 [Ticketing Agent prompt](https://github.com/ponchotitlan/pyATS-loves-agenticops/blob/main/n8n/Reporting%20and%20Auditing%20for%20my%20network/agents/network_ticketing_agent.txt)\n\n## Execution results examples\n\n- 📄 [Generated audit report](https://github.com/ponchotitlan/pyATS-loves-agenticops/blob/main/n8n/Reporting%20and%20Auditing%20for%20my%20network/reports/files/hardening_status_2026-05-26T21:52:04.649%2B01:00.md)\n- 🐙 [Generated GitHub issue](https://github.com/ponchotitlan/pyATS-loves-agenticops/issues/30)"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "binaryMode": "separate",
+      "executionOrder": "v1"
+    },
+    "versionId": "ff9da14b-70f3-4570-bd7a-762e154586c1",
+    "nodeGroups": [],
+    "connections": {
+      "Simple Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "Reports AI Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Convert to JSON": {
+        "main": [
+          [
+            {
+              "node": "Is there an issue?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create an issue": {
+        "main": [
+          [
+            {
+              "node": "Send Card with Report and Issue",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [
+            {
+              "node": "Get the report query file",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Random execution ID for memory",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Get the report agent prompt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Reports AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Create a report file",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Merge ticketing query data",
+              "type": "main",
+              "index": 1
+            },
+            {
+              "node": "Get the ticketing agent prompt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "List report query files",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tickets AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Convert to JSON",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is there an issue?": {
+        "main": [
+          [
+            {
+              "node": "Create an issue",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Send Card with Report",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Your LLM of choice": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Reports AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create a report file": {
+        "main": [
+          [
+            {
+              "node": "Get report URL and tag",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Card with Report": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get report URL and tag": {
+        "main": [
+          [
+            {
+              "node": "Merge ticketing query data",
+              "type": "main",
+              "index": 2
+            }
+          ]
+        ]
+      },
+      "Your LLM of choice too": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Tickets AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "List report query files": {
+        "main": [
+          [
+            {
+              "node": "Prepare report query files",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge report query data": {
+        "main": [
+          [
+            {
+              "node": "Consolidate report query",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Consolidate report query": {
+        "main": [
+          [
+            {
+              "node": "Reports AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Decode report query file": {
+        "main": [
+          [
+            {
+              "node": "Merge report query data",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Get the report query file": {
+        "main": [
+          [
+            {
+              "node": "Decode report query file",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Decode report agent prompt": {
+        "main": [
+          [
+            {
+              "node": "Merge report query data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge ticketing query data": {
+        "main": [
+          [
+            {
+              "node": "Consolidate ticketing query",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare report query files": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read-only pyATS MCP Client": {
+        "ai_tool": [
+          [
+            {
+              "node": "Reports AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Consolidate ticketing query": {
+        "main": [
+          [
+            {
+              "node": "Tickets AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get the report agent prompt": {
+        "main": [
+          [
+            {
+              "node": "Decode report agent prompt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Decode ticketing agent prompt": {
+        "main": [
+          [
+            {
+              "node": "Merge ticketing query data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get the ticketing agent prompt": {
+        "main": [
+          [
+            {
+              "node": "Decode ticketing agent prompt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Random execution ID for memory": {
+        "main": [
+          [
+            {
+              "node": "Merge report query data",
+              "type": "main",
+              "index": 2
+            }
+          ]
+        ]
+      },
+      "Send Card with Report and Issue": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When clicking ‘Execute workflow’": {
+        "main": [
+          [
+            {
+              "node": "List report query files",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 16,
+      "name": "DevOps"
+    },
+    {
+      "id": 48,
+      "name": "AI RAG"
+    }
+  ],
+  "url": "https://n8n.io/workflows/17364",
+  "fetched_at": "2026-09-12T13:16:26Z"
+}

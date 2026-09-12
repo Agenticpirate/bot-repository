@@ -1,0 +1,237 @@
+{
+  "id": 6297,
+  "name": "Generate professional proposals with GPT-4o and PDFMonkey",
+  "description": "## How It Works ⚙️\n\nThis workflow is designed to streamline your proposal generation, turning raw client data into a professional document automatically. Here's a step-by-step breakdown of its operation:\n\n1.  **Trigger (Form):** 🚀 The workflow starts when new client data is received via the n8n form. This form serves as the primary input for client details.\n2.  **Prepare AI Prompt & Client Info (Function):** 🧹 This node takes the incoming client data from the form and intelligently formats it into a precise prompt for the AI. It also extracts key client details like email and name for later use.\n3.  **Generate Proposal Content (AI):** 🧠 The prepared prompt is fed to OpenAI's GPT-4o. The AI then drafts a detailed proposal outline, including problem summary, solutions, scope, and milestones, all structured in a perfect JSON format.\n4.  **Generate Proposal PDF (PDFmonkey):** 📄 The AI-generated JSON content is then sent to PDFmonkey. This service takes the structured data and populates it into your pre-designed PDF proposal template, creating a beautiful and professional document.\n5.  **Wait (for PDFmonkey Webhook):** ⏳ Crucially, this node pauses the workflow, waiting for PDFmonkey to send a callback webhook indicating that the PDF document has been successfully generated and is ready for download. This ensures reliability.\n6.  **Download Generated PDF (HTTP Request):** 💾 Once notified by PDFmonkey, this node sends an HTTP request to download the final PDF document from PDFmonkey's servers.\n7.  **Prepare Email Data (Function):** 📧 This node consolidates all the necessary information—client email, name, company, the downloaded PDF's binary data, and the proposal title—preparing it for the final email sending step.\n8.  **Send Proposal Email to Client (Gmail):** ✅ The workflow's grand finale! This node compiles a personalized email to the client, attaching the newly generated PDF proposal. It ensures your professional proposal reaches the client's inbox swiftly and automatically.\n\n## How to Set Up 🛠️\n\nFollow these steps carefully to get your \"Automated AI Proposal Generator\" workflow up and running:\n\n1.  **Import Workflow JSON:**\n    * Open your n8n instance.\n    * Click on 'Workflows' in the left sidebar.\n    * Click the '+' button or 'New' to create a new workflow.\n    * Click the '...' (More Options) icon in the top right.\n    * Select 'Import from JSON' and paste the provided workflow JSON code.\n\n2.  **Configure Credentials:**\n    * **OpenAI Node (\"2. Generate Proposal Content (AI)\"):**\n        * Click on this node.\n        * Under 'Credentials', select your existing OpenAI API Key credential or click 'Create New' to set one up.\n    * **PDFmonkey HTTP Request Node (\"3. Generate Proposal PDF (PDFmonkey)\" & \"5. Download Generated PDF\"):**\n        * **Important:** In both of these nodes, under 'Header Parameters', the 'Authorization' value is currently a placeholder string `Bearer YOUR_PDFMONKEY_API_KEY_HERE`. **You MUST replace this with an n8n credential.**\n        * **Recommendation:** Create a 'Generic Credential' in n8n (e.g., named 'PDFmonkey API Key') and store your PDFmonkey API Key there. Then, update the 'Authorization' header's value to `= {{ $connections['PDFmonkey API Key'].apiKey }}`.\n        * **Important:** Replace `5A836F8C-33AE-405C-A545-B86992D17FCC` with your actual PDFmonkey Document Template ID. This template must be designed in PDFmonkey to accept the JSON output from OpenAI.\n    * **Gmail Node (\"7. Send Proposal Email to Client\"):**\n        * Click on this node.\n        * Under 'Authentication', select your existing Gmail OAuth2 credential or create a new one.\n\n3.  **Set Up PDFmonkey Webhook (for '4. Wait' node):**\n    * The '4. Wait (for PDFmonkey Webhook)' node is crucial for ensuring the PDF is ready before downloading. This node uses a Webhook ID: `3df60168-7ab4-4772-bd33-376063b3f986`.\n    * **Go to your PDFmonkey account settings and configure a Webhook:**\n        * Set the 'Event' to `document.succeeded`.\n        * Set the 'Target URL' to your n8n webhook URL for this specific workflow. You can find this URL by activating the workflow and inspecting the URL of the 'Form Trigger' or by adding a temporary 'Webhook' node.\n\n4.  **Configure Trigger Node (this is now the '0. Form Trigger'):**\n    * When you import this JSON, the '0. Form Trigger (Client Data Input)' node will be ready.\n    * **To use it:** Simply activate the workflow. n8n will provide a URL for this form. You can share this URL with your clients or team to collect the data directly.\n    * The form fields are already defined based on the previous input structure.\n\n5.  **Customize Email Details:**\n    * **Gmail Node (\"7. Send Proposal Email to Client\"):**\n        * **Replace `your-agency-email@example.com`** with the actual email address you want the proposals to be sent from.\\n        * (Optional) Modify the email subject and body text to match your agency's branding and tone.\n\n6.  **Review and Activate:**\n    * Thoroughly review all node configurations to ensure all placeholders (`&lt;YOUR_...HERE&gt;`) are replaced and settings are correct.\n    * Click the 'Save' button in the top right corner.\n    * Finally, toggle the 'Inactive' switch to 'Active' to enable your workflow. 🟢 Your automated AI proposal generator is now live and ready to empower your sales efforts!",
+  "workflow": {
+    "id": "euNcUWf1whsZrDX1",
+    "meta": {
+      "instanceId": "a287613f1596da776459594685fbf4e2b4a12124f80ab8c8772f5e37bff103ae",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Automated AI Proposal Generator Using PDFMonkey",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "b52bc6b1-1954-43b8-b168-bc3905af2512",
+        "name": "0. Form Trigger (Client Data Input)",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          640,
+          260
+        ],
+        "webhookId": "aa8a0706-7577-4bc9-80b8-b53c2a96f86b",
+        "parameters": {},
+        "description": "Triggers the workflow when a new form submission is received. Use this form to input client details.",
+        "typeVersion": 1
+      },
+      {
+        "id": "2b5fbdd1-83d7-4186-87f2-cceb4e4848d7",
+        "name": "1. Prepare AI Prompt & Client Info1",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          860,
+          260
+        ],
+        "parameters": {},
+        "description": "Formats client input data into a structured prompt for the AI and extracts key client details for later use.",
+        "typeVersion": 1
+      },
+      {
+        "id": "79a411b6-ba29-4f6b-b3ab-af1418ef62b2",
+        "name": "2. Generate Proposal Content (AI)1",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "position": [
+          1080,
+          260
+        ],
+        "parameters": {},
+        "description": "Uses OpenAI (GPT-4o) to generate detailed proposal content in a JSON format based on the prepared prompt.",
+        "typeVersion": 1.6
+      },
+      {
+        "id": "daefa688-f8b2-4aae-ab62-17e0e4fd39a4",
+        "name": "3. Generate Proposal PDF (PDFmonkey)1",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1456,
+          260
+        ],
+        "parameters": {},
+        "description": "Sends the AI-generated content to PDFmonkey to create a professional PDF proposal using a predefined template.",
+        "typeVersion": 4.2
+      },
+      {
+        "id": "ae6fe8f0-46cf-455f-b503-3a0200244b13",
+        "name": "5. Download Generated PDF1",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1896,
+          260
+        ],
+        "parameters": {},
+        "description": "Fetches the newly generated PDF document from PDFmonkey's API.",
+        "typeVersion": 4.2
+      },
+      {
+        "id": "49947f2c-3b14-453d-b33f-f70b262ff94b",
+        "name": "6. Prepare Email Data1",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          2116,
+          260
+        ],
+        "parameters": {},
+        "description": "Prepares all necessary data for sending the email, including client details and the downloaded PDF binary data.",
+        "typeVersion": 1
+      },
+      {
+        "id": "15be0928-b52c-4d07-b33f-156c619a836f",
+        "name": "4. Wait (for PDFmonkey Webhook)1",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          1676,
+          260
+        ],
+        "webhookId": "3df60168-7ab4-4772-bd33-376063b3f986",
+        "parameters": {},
+        "description": "Pauses the workflow, waiting for a webhook callback from PDFmonkey indicating the PDF generation is complete. This is crucial for reliability.",
+        "typeVersion": 1.1
+      },
+      {
+        "id": "42f78e62-2dba-4c2b-8af9-47de67fcfec9",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          580,
+          200
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b44f9758-d36f-4fb7-8ce1-07d10094a3b6",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          580,
+          520
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "345f66f7-84cf-4b96-b70a-d7c6e6d882fc",
+        "name": "7. Send Proposal Email to Client1",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          2340,
+          260
+        ],
+        "parameters": {},
+        "description": "Sends the final proposal PDF as an email attachment to the client.",
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "a5d113a8-9bda-4721-a4f2-eeecb78edf72",
+    "connections": {
+      "6. Prepare Email Data1": {
+        "main": [
+          [
+            {
+              "node": "7. Send Proposal Email to Client1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "5. Download Generated PDF1": {
+        "main": [
+          [
+            {
+              "node": "6. Prepare Email Data1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "4. Wait (for PDFmonkey Webhook)1": {
+        "main": [
+          [
+            {
+              "node": "5. Download Generated PDF1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2. Generate Proposal Content (AI)1": {
+        "main": [
+          [
+            {
+              "node": "3. Generate Proposal PDF (PDFmonkey)1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "0. Form Trigger (Client Data Input)": {
+        "main": [
+          [
+            {
+              "node": "1. Prepare AI Prompt & Client Info1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "1. Prepare AI Prompt & Client Info1": {
+        "main": [
+          [
+            {
+              "node": "2. Generate Proposal Content (AI)1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "3. Generate Proposal PDF (PDFmonkey)1": {
+        "main": [
+          [
+            {
+              "node": "4. Wait (for PDFmonkey Webhook)1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 35,
+      "name": "Document Extraction"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6297",
+  "fetched_at": "2026-09-12T13:11:16Z"
+}

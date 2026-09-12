@@ -1,0 +1,691 @@
+{
+  "id": 8425,
+  "name": "Manage recipes with AI-powered Telegram bot and Google Sheets database",
+  "description": "## Transform Your Telegram into a Smart Recipe Assistant!\n\nTired of scrolling through messy notes and bookmarks to find your favorite recipes? Wish you had a personal chef's assistant to help you in the kitchen?\n\nIntroducing the **Culinary Companion for Telegram**, an n8n workflow that turns your Telegram app into a powerful, AI-driven recipe management tool, using Google Sheets as your database.\n\n---\n\n## 🚀 Key Features\n*   **Telegram Bot Interface:** Interact with your recipe book using simple text commands.\n*   **Google Sheets Database:** Your single source of truth for recipes, easily viewable and editable outside of Telegram.\n*   **AI-Powered Recipe Assistant:** Utilizes Google Gemini or OpenAI to understand natural language for creating, modifying, and searching for recipes.\n*   **Full Recipe Management (CRUD):**\n    *   **Create:** Add new recipes conversationally.\n    *   **Read:** Fetch your full recipe list or view a single, detailed recipe card.\n    *   **Update:** Modify existing recipes with AI assistance.\n*   **Command-Driven & AI-Driven:** Use simple commands for direct actions (`/list`, `/select`) or have a conversation with the AI for more complex tasks (`/search`, `/create`, `/modify`).\n*   **Formatted for Mobile:** All responses are sent in clean, readable Markdown, perfect for viewing on the go.\n\n---\n\n## ⚙️ How It Works\n\nThe workflow is triggered by messages sent to your Telegram bot. A central **Command Router** (`Switch` node) determines the user's intent and directs the flow to the appropriate tool.\n\n### 1. Command Routing\n*   A **Telegram Trigger** node listens for any new message.\n*   The **Command Router** (`Switch` node) immediately inspects the message text for keywords like `/list`, `/select`, `/create`, etc.\n*   Based on the command, the workflow branches into either a simple data fetch or a more complex AI-powered action.\n\n### 2. Simple Recipe Lookups (`/list` & `/select`)\n*   **`/list`:**\n    1.  The **Read Recipe Names** (`Google Sheets` node) fetches all values from column A of your sheet.\n    2.  A **Format List Message** (`Code` node) transforms the raw data into a clean, numbered list.\n    3.  The formatted list is sent to you via the **Telegram Send Recipe List** node.\n*   **`/select [recipe name]`:**\n    1.  The **Extract Select Param** (`Code` node) isolates the recipe name from your command.\n    2.  The **Lookup Recipe Row** (`Google Sheets` node) searches for that specific recipe in your sheet and returns its full row of data.\n    3.  A **Format Full Recipe** (`Code` node) assembles the data into a beautifully formatted recipe card, complete with emojis and sections for ingredients, instructions, and notes.\n    4.  The final recipe card is sent via the **Telegram Send Full Recipe** node.\n\n### 3. AI-Powered Recipe Management (`/search`, `/create`, `/modify`)\nFor more complex tasks, the workflow leverages a powerful AI agent.\n\n*   The user's command (e.g., `/search chicken and rice` or `/create a pasta dish`) is passed to the **Recipe AI Agent**.\n*   This agent is powered by either **Google Gemini** or an **OpenAI Model**.\n*   It is given a specific **system prompt** to act as a helpful, food-focused assistant with access to a set of tools.\n*   **Tools Available to the AI:**\n    *   **Read Recipes Sheet:** Allows the AI to read the entire Google Sheet to answer broad questions or find recipes based on ingredients.\n    *   **Update Recipes Sheet:** Gives the AI the power to add new rows (new recipes) or modify existing ones based on your conversation.\n    *   **Think:** A tool that allows the agent to process complex requests step-by-step before acting.\n*   **Conversation Memory:** The agent remembers the last few messages, allowing you to have a natural, back-and-forth conversation (e.g., \"Create a new recipe\" -&gt; \"What should it be called?\" -&gt; \"Spicy Tacos\").\n*   The AI's final, formatted response is sent back to you via the **Telegram Send AI Response** node.\n\n---\n\n## 🛠️ Setup Steps & Credentials\n\n1.  **Telegram Bot:**\n    *   Create a bot with `@BotFather` on Telegram to get your API token.\n    *   Add this token as a credential for the **Telegram Trigger** and all **Telegram** sender nodes.\n\n2.  **Google Sheets:**\n    *   Create a new Google Sheet.\n    *   Set up the first row with headers: `Recipe Name`, `Cooking Time`, `Ingredients`, `Instructions`, `Notes`.\n    *   Copy the **Sheet ID** from the URL (it's the long string of characters in the middle).\n    *   Paste the Sheet ID into the relevant fields in the **Read Recipe Names**, **Lookup Recipe Row**, and the **Google Sheets Tools** (`Read Recipes Sheet`, `Update Recipes Sheet`).\n    *   Create Google OAuth2 credentials and connect them to all `Google Sheets` and `Google Sheets Tool` nodes.\n\n3.  **AI Provider (Choose One):**\n    *   **For Google Gemini:** Get an API key from Google AI Studio, create a `Google Gemini(PaLM) Api` credential, and connect it to the **Google Gemini Chat Model** node.\n    *   **For OpenAI:** Get an API key from OpenAI, create an `OpenAI` credential, and connect it to the **OpenAI Chat Model** node.\n    *   *Note:* You only need to enable one of the two AI models.\n\n---\n\n## 💡 Customization & Learning\n\n*   **Expand Your Database:** Add more columns to your Google Sheet like `Cuisine`, `Difficulty`, or `Rating`, and modify the **Format Full Recipe** node to display them.\n*   **Enhance the AI:** Edit the system prompt in the **Recipe AI Agent** to change its personality or give it more specific instructions.\n*   **Add New Tools:** Create new tools for the AI agent, such as a function to fetch nutritional information from an external API based on ingredients.\n*   **Different Triggers:** Instead of a Telegram bot, you could trigger the `/create` function from a simple web form.\n",
+  "workflow": {
+    "name": "🍳 Culinary Companion — 30-Step Workflow (Telegram + Google Sheets + LLM)",
+    "nodes": [
+      {
+        "name": "Telegram Trigger",
+        "type": "n8n-nodes-base.telegramTrigger",
+        "position": [
+          -1920,
+          128
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Read Recipe Names",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          496,
+          432
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Format List Message",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          1088,
+          432
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Telegram Send Recipe List",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          1744,
+          432
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Extract Select Param",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          -736,
+          816
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Lookup Recipe Row",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          496,
+          1120
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Format Full Recipe",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          1104,
+          1120
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Telegram Send Full Recipe",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          1744,
+          1120
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Telegram Send AI Response",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          1760,
+          1600
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Command Router",
+        "type": "n8n-nodes-base.switch",
+        "position": [
+          -1440,
+          64
+        ],
+        "parameters": {},
+        "typeVersion": 3.2
+      },
+      {
+        "name": "Recipe AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          848,
+          1600
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "name": "Google Gemini Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "position": [
+          400,
+          2288
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Conversation Memory",
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "position": [
+          688,
+          2288
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "name": "Think",
+        "type": "@n8n/n8n-nodes-langchain.toolThink",
+        "position": [
+          1040,
+          2288
+        ],
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "name": "Read Recipes Sheet",
+        "type": "n8n-nodes-base.googleSheetsTool",
+        "position": [
+          1440,
+          2272
+        ],
+        "parameters": {},
+        "typeVersion": 4.7
+      },
+      {
+        "name": "Update Recipes Sheet",
+        "type": "n8n-nodes-base.googleSheetsTool",
+        "position": [
+          1792,
+          2272
+        ],
+        "parameters": {},
+        "typeVersion": 4.7
+      },
+      {
+        "name": "Telegram Send Menu",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          1760,
+          -64
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Extract Search Term",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          -768,
+          1296
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Prepare Recipe Creation",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          -768,
+          1824
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Prepare Recipe Modification",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          -768,
+          2304
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1696,
+          -240
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1680,
+          256
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1696,
+          912
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1712,
+          1440
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          432,
+          256
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1040,
+          912
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note7",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          432,
+          912
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note8",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -816,
+          608
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note9",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          816,
+          1424
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note10",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -832,
+          1168
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note11",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -832,
+          2096
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note12",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -848,
+          1632
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note13",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1712,
+          2112
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note14",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1360,
+          2112
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note15",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          176,
+          2112
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          224,
+          2288
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "name": "Sticky Note16",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1504,
+          -224
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note17",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1984,
+          0
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note18",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          624,
+          2112
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note19",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          976,
+          2112
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1040,
+          256
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Think": {
+        "ai_tool": [
+          [
+            {
+              "node": "Recipe AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Command Router": {
+        "main": [
+          [
+            {
+              "node": "Telegram Send Menu",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Read Recipe Names",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Extract Select Param",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Prepare Recipe Modification",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Prepare Recipe Creation",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Extract Search Term",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Recipe AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Telegram Send AI Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Telegram Trigger": {
+        "main": [
+          [
+            {
+              "node": "Command Router",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Lookup Recipe Row": {
+        "main": [
+          [
+            {
+              "node": "Format Full Recipe",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Recipe AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read Recipe Names": {
+        "main": [
+          [
+            {
+              "node": "Format List Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Full Recipe": {
+        "main": [
+          [
+            {
+              "node": "Telegram Send Full Recipe",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read Recipes Sheet": {
+        "ai_tool": [
+          [
+            {
+              "node": "Recipe AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Conversation Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "Recipe AI Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Search Term": {
+        "main": [
+          [
+            {
+              "node": "Recipe AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format List Message": {
+        "main": [
+          [
+            {
+              "node": "Telegram Send Recipe List",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Select Param": {
+        "main": [
+          [
+            {
+              "node": "Lookup Recipe Row",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update Recipes Sheet": {
+        "ai_tool": [
+          [
+            {
+              "node": "Recipe AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Recipe Creation": {
+        "main": [
+          [
+            {
+              "node": "Recipe AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Gemini Chat Model": {
+        "ai_languageModel": [
+          []
+        ]
+      },
+      "Prepare Recipe Modification": {
+        "main": [
+          [
+            {
+              "node": "Recipe AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 43,
+      "name": "Personal Productivity"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8425",
+  "fetched_at": "2026-09-12T13:12:27Z"
+}

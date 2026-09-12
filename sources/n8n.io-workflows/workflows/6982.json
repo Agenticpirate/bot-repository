@@ -1,0 +1,297 @@
+{
+  "id": 6982,
+  "name": "Send automated discount vouchers to high-value Magento 2 customers with Gmail",
+  "description": "### This workflow analyses completed orders from the past 3 months to identify high-value customers, generates unique voucher codes for each, and sends them a professionally designed promotional email.\n\n![Automated Workflow for Customer Rewards.png](fileId:1939)\n\nThis n8n template helps Magento 2 merchants automatically send customised, beautifully branded coupon emails to high-value customers. \n\nThe workflow connects to Magento 2’s REST API to retrieve your store logo and secure base URL. It either generates a coupon code and then crafts a visually appealing HTML email with dynamic customer details and branding.\n\nYou can integrate this flow as part of loyalty campaigns or customer milestone automations. All styling is mobile-responsive and minimal to reduce the chance of spam filtering while still delivering a modern user experience.\n\n#### 🔍 What It Does:\n1. Authenticates and connects to your Magento 2 store.\n2. Fetches store logo and base media URL using API calls.\n3. Processes High valued customers.\n4. Generates coupons for each customers\n3. Dynamically injects customer name and unique coupon code.\n4. Sends a fully branded and styled HTML email.\n\n⚙️ Technical Highlights:\n1. Uses rest/all/V1/store/storeConfigs to retrieve logo and configuration data.\n2. HTML email styled with CSS media queries for prefers-color-scheme.\n3. Gradient background with fallbacks and proper semantic structure.\n4. Works with Gmail, Apple Mail, Outlook (Mac), and others.\n5. Uses n8n expressions to handle personalization logic without external scripts.\n\n#### ✅ Ideal For:\n- Magento 2 store owners.\n- Digital marketers targeting loyal or VIP customers.\n- CRM/email marketing automation professionals.\n- Agencies building Magento-based growth funnels.\n\n#### 📈 Why This Matters in the Current Market:\n- Modern customers expect personalized, premium communication — and inbox competition is tougher than ever. \n- This workflow enables eCommerce merchants to deliver clean, brand-consistent emails using automation — all without plugins or frontend code changes. \n\n####  🔧 Modules Used:\n- HTTP Request – Fetch Magento logo and config via REST API.\n- Set – Store customer name and coupon values.\n- Email or SMTP – Sends the composed HTML email.\n- DateTime – To handle expiration display (optional).\n- HTML Template – Responsive MJML-like styling with fallback-safe design.\n\n####  💼 Use Cases:\n- Loyalty program campaigns\n- Seasonal or holiday discount blasts\n- Surprise reward drops for top spenders\n- Post-purchase thank-you automation\n- Reactivation flows for high-valuee users\n\n#### 🔒 Credentials Required:\n- Magento 2 Admin API Token\n- (Optional) SMTP credentials or Email node configuration\n\n#### 📂 Category\nE-commerce → Magento 2 (Adobe Commerce)\n\n💬 Need Help?\n💡 Having trouble setting it up or want to customize this workflow further?\nFeel free to reach out — I’m happy to help with setup, customization, or Magento 2 API integration issues.\n\nContact: Author\n\n#### 👤 Author\nKanaka Kishore Kandregula\nCertified Magento 2 Developer\nhttps://gravatar.com/kmyprojects\nhttps://www.linkedin.com/in/kanakakishore",
+  "workflow": {
+    "meta": {
+      "instanceId": "c3b23fffea49117e798bf0289bfe84ed0e7c634b0def397db74b35f7d28d1f5f",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "a0292746-e1af-48ef-8c3e-2b315d9bc3c2",
+        "name": "Cron",
+        "type": "n8n-nodes-base.cron",
+        "position": [
+          -2180,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "d21a21ce-4e3d-429c-8eb2-767bf798a35d",
+        "name": "Get Completed Orders",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -1300,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "f295afc4-fb07-43ab-ad05-514dac34b1e8",
+        "name": "Create New Sales Rule",
+        "type": "n8n-nodes-base.httpRequest",
+        "onError": "continueRegularOutput",
+        "position": [
+          -640,
+          -220
+        ],
+        "parameters": {},
+        "typeVersion": 4.2,
+        "alwaysOutputData": false
+      },
+      {
+        "id": "a67ca1ec-85b3-42cd-b66f-26cf92f2d700",
+        "name": "Generate Coupon for Each Customer",
+        "type": "n8n-nodes-base.httpRequest",
+        "onError": "continueRegularOutput",
+        "position": [
+          -420,
+          -220
+        ],
+        "parameters": {},
+        "typeVersion": 4.2,
+        "alwaysOutputData": false
+      },
+      {
+        "id": "dc219703-3d7d-4746-81dd-d5b06baf2dff",
+        "name": "Get Customer Order Value",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1080,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 2,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "2bf70bfd-f199-40ee-8b54-a89d51a89575",
+        "name": "Get 3 Month Dates",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1520,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "def79c1c-5539-4b53-9c87-05c70f040d30",
+        "name": "If",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -860,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "9f4571bc-0481-4c0a-b5b5-9944198a6ade",
+        "name": "Get Media Path",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -1960,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "7c293a01-e30e-4787-bab9-ad8c0a63cbfd",
+        "name": "SetOrGet Logo",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1740,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "81cf4124-2c8b-4ac9-86b0-e5447ced2889",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2230,
+          -300
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5573f544-0270-4150-9fdb-52baafa802c9",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1350,
+          -300
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "32229245-ce6c-4aab-81fe-5441e0eb2879",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -690,
+          -300
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1d1e29f7-14cd-4361-8506-d6715e9f01b4",
+        "name": "Send Voucher",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          -200,
+          -220
+        ],
+        "webhookId": "c2c62b05-62e3-40aa-9053-563f905ea464",
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "5da9da7f-07de-4419-b830-4b338ffadd28",
+        "name": "Send Report",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          -640,
+          -20
+        ],
+        "webhookId": "66721662-d11e-4469-a473-364c96f35d9a",
+        "parameters": {},
+        "typeVersion": 2.1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "If": {
+        "main": [
+          [
+            {
+              "node": "Create New Sales Rule",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Send Report",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Cron": {
+        "main": [
+          [
+            {
+              "node": "Get Media Path",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "SetOrGet Logo": {
+        "main": [
+          [
+            {
+              "node": "Get 3 Month Dates",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Media Path": {
+        "main": [
+          [
+            {
+              "node": "SetOrGet Logo",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get 3 Month Dates": {
+        "main": [
+          [
+            {
+              "node": "Get Completed Orders",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Completed Orders": {
+        "main": [
+          [
+            {
+              "node": "Get Customer Order Value",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create New Sales Rule": {
+        "main": [
+          [
+            {
+              "node": "Generate Coupon for Each Customer",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Customer Order Value": {
+        "main": [
+          [
+            {
+              "node": "If",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Coupon for Each Customer": {
+        "main": [
+          [
+            {
+              "node": "Send Voucher",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 33,
+      "name": "Social Media"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6982",
+  "fetched_at": "2026-09-12T13:11:39Z"
+}

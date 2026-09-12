@@ -1,0 +1,289 @@
+{
+  "id": 6060,
+  "name": "Automate Chinese to English translation in Google Slides with Openrouter AI",
+  "description": "\n---\n\n## Overview of the n8n Workflow\n\nThis n8n workflow automates the translation of text in Google Slides presentations from one language to another using AI. It retrieves a specified presentation from Google Drive, extracts text from the slides, translates it in batches, and updates the presentation with the translated text. The workflow includes sticky notes with setup instructions and guidance on editable fields, formatted in Markdown for clarity.\n\n---\n\n## Step-by-Step Execution of the Workflow\n\nHere’s how the workflow operates, node by node, based on the JSON and image descriptions:\n\n1. **Manual Trigger**  \n   - **Node**: \"When clicking ‘Execute workflow’\"  \n   - **Function**: Initiates the workflow when the user manually clicks \"Execute workflow\" in n8n.  \n\n\n2. **Search for Google Slides Presentation**  \n   - **Node**: \"Google Drive\"  \n   - **Function**: Searches Google Drive for a presentation file.  \n\n\n3. **Retrieve Presentation Data**  \n   - **Node**: \"Google Slides2\"  \n   - **Function**: Fetches the full presentation data from Google Slides.  \n \n\n4. **Extract Text from Slides**  \n   - **Node**: \"Code\"  \n   - **Function**: Extracts text from the presentation using JavaScript.  \n  \n\n5. **Split Text Array**  \n   - **Node**: \"Split Out\"  \n   - **Function**: Breaks the `extracted` array into individual items.  \n   \n\n6. **Process Text in Batches**  \n   - **Node**: \"Loop Over Items\"  \n   - **Function**: Loops over the text items in batches for efficient processing.  \n   \n7. **Translate Text with AI**  \n   - **Node**: \"AI Agent\"  \n   - **Function**: Translates text from Chinese to English using an AI model.  \n  \n8. **Provide AI Model**  \n   - **Node**: \"OpenRouter Chat Model\"  \n   - **Function**: Supplies the AI language model for the \"AI Agent\".  \n  \n\n9. **Replace Text in Slides**  \n   - **Node**: \"Replace text\"  \n   - **Function**: Updates the Google Slides presentation with translated text.  \n  \n10. **Delay Between Batches**  \n    - **Node**: \"Wait\"  \n    - **Function**: Adds a delay to prevent overwhelming the system.  \n    \n\n---\n\n## Sticky Notes: Setup and Customization Guidance\n\nThe workflow includes three sticky notes with Markdown formatting, providing essential instructions:\n\n\n---\n\n## How to Set Up the Workflow\n\nTo use this workflow in n8n:\n\n1. **Import the JSON**: Copy the provided JSON into n8n to load the workflow.  \n2. **Configure Credentials**:  \n   - **Google Drive**: Set up OAuth2 credentials (\"Google Drive Auth\") with access to the folder containing your presentation.  \n   - **Google Slides**: Set up OAuth2 credentials (\"Google Slides Auth\") with edit permissions for the presentation.  \n   - **OpenRouter**: Create an account at [openrouter.ai](https://openrouter.ai/) and add the API credentials to the \"OpenRouter Chat Model\" node.  \n3. **Customize the Google Drive Query**: Update the \"Google Drive\" node’s `queryString` to match your presentation’s name or ID (default is \"slides\").  \n4. **Test the Workflow**: Click \"Execute workflow\" to run it manually and verify each step.\n\n---\n\n## Potential Customizations\n\nYou can adapt the workflow for different needs:\n\n- **Change Language Pair**:  \n  Modify the \"AI Agent\" node’s system message, e.g., replace \"convert all of them into English\" with \"convert all of them into French\" to translate Chinese to French.  \n- **Use a Different AI Model**:  \n  Replace the \"OpenRouter Chat Model\" node with another AI provider (e.g., OpenAI) by updating the node type and credentials.  \n- **Expand Text Extraction**:  \n  Edit the \"Code\" node’s JavaScript to extract text from tables or other elements, not just shapes.  \n- **Adjust Batch Processing**:  \n  Change the \"Loop Over Items\" node’s `batchSize` (e.g., to 10) or the \"Wait\" node’s `amount` (e.g., to 1 second) for performance tuning.  \n- **Process Multiple Presentations**:  \n  Remove the `limit: 1` in the \"Google Drive\" node and add a loop to handle multiple files.\n\n---\n\n## Considerations and Improvements\n\n- **Error Handling**: The workflow lacks explicit error handling. Add \"If\" nodes or error outputs to manage failures (e.g., if no presentation is found).  \n- **Text Coverage**: The \"Code\" node may miss text in non-shape elements (e.g., tables). Test with your presentation to confirm coverage.  \n- **Performance**: For large presentations, the 2-second wait per batch of 5 may slow things down. Adjust based on your needs and API limits.  \n- **Permissions**: Ensure your Google credentials have edit access to the presentation, or replacements will fail.\n\n---\n\n## Conclusion\n\nThis n8n workflow efficiently automates the translation in Google Slides, leveraging Google Drive, Google Slides, and AI via OpenRouter. It’s well-documented with sticky notes and easy to set up with proper credentials. While robust for its purpose, it could benefit from error handling and broader text extraction. You can customize it for different languages, models, or file types by tweaking the relevant nodes as outlined.\n\nIf you have a specific question or need help with a modification, let me know! [OptiLever](www.linkedin.com/in/sebastian-lew-9ab9b9242)",
+  "workflow": {
+    "meta": {
+      "instanceId": "205780d3749915e5b72849aad8492ed96140f3a3cf0d7f077a27e6df51ded409",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "ef5c4414-8a7d-40fb-9c5b-40b634dc0051",
+        "name": "When clicking ‘Execute workflow’",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          48,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "c8e3363c-0ebe-47ce-a6d4-4479d6d8d5fe",
+        "name": "Google Slides2",
+        "type": "n8n-nodes-base.googleSlides",
+        "position": [
+          512,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "b678b5f2-44d1-42f1-aba0-20874d5f4c7e",
+        "name": "Google Drive",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          288,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "b5e03624-4612-4b57-aa46-0b256e2ae6d4",
+        "name": "AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          1392,
+          32
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "f10545ae-a90e-4785-a23f-329cf9852244",
+        "name": "Replace text",
+        "type": "n8n-nodes-base.googleSlidesTool",
+        "position": [
+          1568,
+          224
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "53a76aec-2fe4-4053-aa51-8df5ec7b7893",
+        "name": "Code",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          720,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "65df03c7-e1ab-4fe7-9f1b-5b10d20ad38a",
+        "name": "Split Out",
+        "type": "n8n-nodes-base.splitOut",
+        "position": [
+          944,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "cf86901f-a85e-4ded-a037-168907aae855",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          1152,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "20b3d2c0-c03d-4a36-b4b7-fa0e4f3761f1",
+        "name": "Wait",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          1808,
+          208
+        ],
+        "webhookId": "f5bd7595-80b0-453e-85d2-6560dfcb404e",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "b7f6b0ef-e98e-42c1-9fcb-2c15e880917c",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -640,
+          -304
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c827f4d4-9508-4b74-8457-9caa51c6f266",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          224,
+          -304
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "68382c2b-c1c5-4721-a464-cb22916f4ef7",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1328,
+          -304
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e3f23049-2455-489e-a6fb-1da305a3b08e",
+        "name": "OpenRouter Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+        "position": [
+          1392,
+          224
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Code": {
+        "main": [
+          [
+            {
+              "node": "Split Out",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split Out": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Drive": {
+        "main": [
+          [
+            {
+              "node": "Google Slides2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Replace text": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Slides2": {
+        "main": [
+          [
+            {
+              "node": "Code",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [],
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenRouter Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When clicking ‘Execute workflow’": {
+        "main": [
+          [
+            {
+              "node": "Google Drive",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 35,
+      "name": "Document Extraction"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6060",
+  "fetched_at": "2026-09-12T13:11:07Z"
+}

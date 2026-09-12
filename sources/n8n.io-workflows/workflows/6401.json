@@ -1,0 +1,450 @@
+{
+  "id": 6401,
+  "name": "Document-based AI chatbot with RAG, OpenAI and Cohere reranker",
+  "description": "*This workflow contains community nodes that are only compatible with the self-hosted version of n8n.*\n\n# Build intelligent AI chatbot with RAG and Cohere Reranker\n\n## Who is it for?\n\nThis template is perfect for developers, businesses, and automation enthusiasts who want to create intelligent chatbots that can answer questions based on their own documents. Whether you're building customer support systems, internal knowledge bases, or educational assistants, this workflow provides a solid foundation for document-based AI conversations.\n\n## How it works\n\nThis workflow creates an intelligent AI assistant that combines RAG (Retrieval-Augmented Generation) with Cohere's reranking technology for more accurate responses:\n\n1. **Chat Interface**: Users interact with the AI through a chat interface\n2. **Document Processing**: PDFs from Google Drive are automatically extracted and converted into searchable vectors\n3. **Smart Search**: When users ask questions, the system searches through vectorized documents using semantic search\n4. **Reranking**: Cohere's reranker ensures the most relevant information is prioritized\n5. **AI Response**: OpenAI generates contextual answers based on the retrieved information\n6. **Memory**: Conversation history is maintained for context-aware interactions\n\n## Setup steps\n\n### Prerequisites\n- n8n instance (self-hosted or cloud)\n- OpenAI API key\n- Supabase account with vector extension enabled\n- Google Drive access\n- Cohere API key\n\n### 1. Configure Supabase Vector Store\n\nFirst, create a table in Supabase with vector support:\n\n```sql\nCREATE TABLE cafeina (\n  id SERIAL PRIMARY KEY,\n  content TEXT,\n  metadata JSONB,\n  embedding VECTOR(1536)\n);\n\n-- Create a function for similarity search\nCREATE OR REPLACE FUNCTION match_cafeina(\n  query_embedding VECTOR(1536),\n  match_count INT DEFAULT 10\n)\nRETURNS TABLE(\n  id INT,\n  content TEXT,\n  metadata JSONB,\n  similarity FLOAT\n)\nLANGUAGE plpgsql\nAS $$\nBEGIN\n  RETURN QUERY\n  SELECT\n    cafeina.id,\n    cafeina.content,\n    cafeina.metadata,\n    1 - (cafeina.embedding &lt;=&gt; query_embedding) AS similarity\n  FROM cafeina\n  ORDER BY cafeina.embedding &lt;=&gt; query_embedding\n  LIMIT match_count;\nEND;\n$$;\n```\n\n### 2. Set up credentials\n\nAdd the following credentials in n8n:\n\n- **OpenAI**: Add your OpenAI API key\n- **Supabase**: Add your Supabase URL and service role key\n- **Google Drive**: Connect your Google account\n- **Cohere**: Add your Cohere API key\n\n### 3. Configure the workflow\n\n1. In the \"Download file\" node, replace `URL DO ARQUIVO` with your Google Drive file URL\n2. Adjust the table name in both Supabase Vector Store nodes if needed\n3. Customize the agent's tool description in the \"searchCafeina\" node\n\n### 4. Load your documents\n\n1. Execute the bottom workflow (starting with \"When clicking 'Execute workflow'\")\n2. This will download your PDF, extract text, and store it in Supabase\n3. You can repeat this process for multiple documents\n\n### 5. Start chatting\n\nOnce documents are loaded, activate the main workflow and start chatting with your AI assistant through the chat interface.\n\n## How to customize\n\n- **Different document types**: Replace the Google Drive node with other sources (Dropbox, S3, local files)\n- **Multiple knowledge bases**: Create separate vector stores for different topics\n- **Custom prompts**: Modify the agent's system message for specific use cases\n- **Language models**: Switch between different OpenAI models or use other LLM providers\n- **Reranking settings**: Adjust the top-k parameter for more or fewer search results\n- **Memory window**: Configure the conversation memory buffer size\n\n## Tips for best results\n\n- Use high-quality, well-structured documents for better search accuracy\n- Keep document chunks reasonably sized for optimal retrieval\n- Regularly update your vector store with new information\n- Monitor token usage to optimize costs\n- Test different reranking thresholds for your use case\n\n## Common use cases\n\n- **Customer Support**: Create bots that answer questions from product documentation\n- **HR Assistant**: Build assistants that help employees find information in company policies\n- **Educational Tutor**: Develop tutors that answer questions from course materials\n- **Research Assistant**: Create tools that help researchers find relevant information in papers\n- **Legal Helper**: Build assistants that search through legal documents and contracts",
+  "workflow": {
+    "meta": {
+      "instanceId": "6052a1b29f061469e8139dae44556603650099c3365d7598798f132ae827fa1c"
+    },
+    "nodes": [
+      {
+        "id": "a8afd8c2-2bfd-49f3-9687-0d68c83db4ad",
+        "name": "Chat Interface",
+        "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+        "position": [
+          80,
+          100
+        ],
+        "webhookId": "de210796-2512-4c20-97eb-87b7f05298cb",
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "00c21cda-1193-4cf5-9681-bf21ac2b269c",
+        "name": "RAG Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          300,
+          100
+        ],
+        "parameters": {
+          "options": {
+            "systemMessage": "You are an intelligent assistant with access to a knowledge base. Always search for relevant information before answering questions. Be helpful, accurate, and cite your sources when providing information from the knowledge base."
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "c74d3fac-14ef-4809-b290-d0344db04c79",
+        "name": "AI Model (OpenAI)",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          180,
+          320
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4-mini"
+          },
+          "options": {}
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "e8a473c1-4934-491b-8283-80d48982d604",
+        "name": "Search Embeddings",
+        "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+        "position": [
+          540,
+          460
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "6fc17058-70f2-4bbe-a8b5-e35116f14853",
+        "name": "Conversation Memory",
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "position": [
+          340,
+          320
+        ],
+        "parameters": {
+          "contextWindowLength": 10
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "ba366390-61e3-4a25-8008-fb172145486a",
+        "name": "Load Documents Trigger",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          100,
+          760
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "f97d305b-3a96-445c-ace2-535c60055a4f",
+        "name": "Download PDF from Drive",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          320,
+          760
+        ],
+        "parameters": {
+          "fileId": {
+            "__rl": true,
+            "mode": "url",
+            "value": "{{GOOGLE_DRIVE_FILE_URL}}"
+          },
+          "options": {},
+          "operation": "download"
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "9eec6cb6-f445-4add-8de9-1464b61dfa7a",
+        "name": "Document Embeddings",
+        "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+        "position": [
+          700,
+          960
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "e64b2357-0238-45ca-87bd-10f8deddd6e4",
+        "name": "Process Document Text",
+        "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+        "position": [
+          840,
+          960
+        ],
+        "parameters": {
+          "options": {
+            "metadata": {
+              "metadataValues": [
+                {
+                  "name": "source",
+                  "value": "={{ $node['Download PDF from Drive'].json.name }}"
+                },
+                {
+                  "name": "type",
+                  "value": "pdf"
+                }
+              ]
+            }
+          },
+          "jsonData": "={{ $json.text }}",
+          "jsonMode": "expressionData"
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "8b0645f9-dbcb-4613-9126-9efa824615bc",
+        "name": "Knowledge Base Search",
+        "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+        "position": [
+          540,
+          320
+        ],
+        "parameters": {
+          "mode": "retrieve-as-tool",
+          "topK": 10,
+          "options": {
+            "queryName": "{{MATCH_FUNCTION_NAME}}"
+          },
+          "tableName": {
+            "__rl": true,
+            "mode": "id",
+            "value": "{{VECTOR_TABLE_NAME}}"
+          },
+          "useReranker": true,
+          "toolDescription": "Use this tool to search for information in the knowledge base. Always use this before answering questions to ensure accurate, up-to-date responses."
+        },
+        "credentials": {
+          "supabaseApi": {
+            "id": "credential-id",
+            "name": "supabaseApi Credential"
+          }
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "4cb8869a-de07-44f5-8f79-9b3c1207d21c",
+        "name": "Store in Vector Database",
+        "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+        "position": [
+          700,
+          760
+        ],
+        "parameters": {
+          "mode": "insert",
+          "options": {
+            "queryName": "{{MATCH_FUNCTION_NAME}}"
+          },
+          "tableName": {
+            "__rl": true,
+            "mode": "id",
+            "value": "{{VECTOR_TABLE_NAME}}"
+          }
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "c8d8674d-ebe7-42fa-918e-ea9c5dc56b98",
+        "name": "Extract PDF Content",
+        "type": "n8n-nodes-base.extractFromFile",
+        "position": [
+          500,
+          760
+        ],
+        "parameters": {
+          "options": {
+            "maxPages": 500
+          },
+          "operation": "pdf"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c5af8b70-bbda-4138-9598-dfd6c44a0eb5",
+        "name": "Cohere Reranker",
+        "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+        "position": [
+          700,
+          460
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "c3af22b6-830c-43a6-9a8f-0f38f3dec647",
+        "name": "Note: Chat Trigger",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          20,
+          -40
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 200,
+          "height": 120,
+          "content": "### 1️⃣ Chat Trigger\nReceives messages from users through the chat interface"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c3655d77-d3ee-4c21-8166-da08b15175d3",
+        "name": "Note: RAG Agent",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          300,
+          -40
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 200,
+          "height": 120,
+          "content": "### 2️⃣ RAG Agent\nOrchestrates the conversation using tools and memory"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ba9f02ea-6def-433a-9ccc-6f0ec1a1792b",
+        "name": "Note: Knowledge Search",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          560,
+          180
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 200,
+          "height": 100,
+          "content": "### 3️⃣ Knowledge Search\nSearches the vector database for relevant information"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ba558d29-fa87-4a2d-a63f-64a768bb2efb",
+        "name": "Note: Reranker",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          820,
+          440
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 200,
+          "height": 100,
+          "content": "### 4️⃣ Reranker\nImproves search quality by reordering results"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "0ff39f38-d67e-4517-8f5b-834c032383dd",
+        "name": "Note: Configuration",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          880,
+          0
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 260,
+          "height": 180,
+          "content": "### Configuration Variables\n\nReplace these in the workflow:\n- **GOOGLE_DRIVE_FILE_URL**\n- **VECTOR_TABLE_NAME**\n- **MATCH_FUNCTION_NAME**"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Chat Interface": {
+        "main": [
+          [
+            {
+              "node": "RAG Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Cohere Reranker": {
+        "ai_reranker": [
+          [
+            {
+              "node": "Knowledge Base Search",
+              "type": "ai_reranker",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Model (OpenAI)": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "RAG Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Search Embeddings": {
+        "ai_embedding": [
+          [
+            {
+              "node": "Knowledge Base Search",
+              "type": "ai_embedding",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Conversation Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "RAG Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Document Embeddings": {
+        "ai_embedding": [
+          [
+            {
+              "node": "Store in Vector Database",
+              "type": "ai_embedding",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract PDF Content": {
+        "main": [
+          [
+            {
+              "node": "Store in Vector Database",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Knowledge Base Search": {
+        "ai_tool": [
+          [
+            {
+              "node": "RAG Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Process Document Text": {
+        "ai_document": [
+          [
+            {
+              "node": "Store in Vector Database",
+              "type": "ai_document",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Load Documents Trigger": {
+        "main": [
+          [
+            {
+              "node": "Download PDF from Drive",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Download PDF from Drive": {
+        "main": [
+          [
+            {
+              "node": "Extract PDF Content",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 42,
+      "name": "Internal Wiki"
+    },
+    {
+      "id": 48,
+      "name": "AI RAG"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6401",
+  "fetched_at": "2026-09-12T13:11:19Z"
+}

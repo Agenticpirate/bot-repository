@@ -1,0 +1,117 @@
+{
+  "id": 7604,
+  "name": "Automatic FTP file backup to Google Drive with scheduled sync",
+  "description": "## What this workflow does\nThis workflow automatically **downloads files from an FTP folder** and **uploads them to Google Drive**.  \nIt’s useful for backup, reporting, or syncing data between systems.\n\n## How it works\n1. **Cron Trigger** runs on a schedule (default: every hour).  \n2. **FTP List node** checks the specified folder on your FTP server.  \n3. **FTP Download node** fetches each file found.  \n4. **Google Drive Upload node** saves the file into your chosen Google Drive folder.\n\n## Pre-conditions / Requirements\n- An active FTP server with accessible login credentials.  \n- A Google account with access to the Drive folder you want to sync into.  \n- Make sure the target Google Drive folder exists, and copy its Folder ID.  \n- Ensure files in your FTP folder have unique names if you want to avoid overwriting in Google Drive.\n\n\n## Setup\n- **FTP:** Add your FTP credentials and replace `{{FTP_FOLDER}}` with the path of the folder you want to sync.  \n- **Google Drive:** Connect your Google Drive account and replace `{{GDRIVE_FOLDER_ID}}` with the folder ID where files should be stored.  \n- Adjust the Cron schedule (e.g. daily, weekly) depending on how often you need the sync.\n\n## Customization Options\n- **File filtering:** Add an *IF node* after the FTP List node to only download files matching certain extensions (e.g., `.csv`, `.pdf`).  \n- **File renaming:** Use a *Set node* to rename files before uploading to Google Drive (helpful for timestamping or avoiding duplicates).  \n- **Archiving:** Add a second Google Drive or FTP Upload node to store processed files in an archive folder.  \n- **Error handling:** Connect an *Error Trigger* to notify you via Slack or email if a file transfer fails.\n\n## Benefits & Use Cases — FTP to Google Drive File Sync\n\n## Benefits\n- **Hands-free backups:** Automatically transfers files from FTP to Google Drive.  \n- **Data security:** Ensures files are stored in cloud storage with built-in redundancy.  \n- **Reliability:** Reduces risk of missed uploads or manual errors.  \n- **Scalable:** Works with any FTP folder and Google Drive directory.\n\n\n## Use Cases\n- Regularly back up reports or exports from legacy systems (ERP, CRM, POS).  \n- Sync daily logs or CSVs into Google Drive for analytics and team access.  \n- Automate delivery of partner or client files without manual uploads.  \n- Centralize files from multiple FTP sources into one Drive folder.\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "f01290caa6c024522b0ed5bb2d09cea02bb113d8970b898b340ca3d74255326e"
+    },
+    "nodes": [
+      {
+        "id": "c973768c-211d-4222-bb78-184616c0506e",
+        "name": "Start: Every Hour",
+        "type": "n8n-nodes-base.cron",
+        "position": [
+          -96,
+          -32
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "5aba0708-72a9-4abe-b76d-15f656fda507",
+        "name": "FTP: List Files",
+        "type": "n8n-nodes-base.ftp",
+        "position": [
+          176,
+          -32
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "a448e878-9029-451e-b340-73a3a04d00f1",
+        "name": "FTP: Download File",
+        "type": "n8n-nodes-base.ftp",
+        "position": [
+          416,
+          -32
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "6dab0201-c99f-4f73-bcf1-f6b659e162b4",
+        "name": "Google Drive: Upload",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          656,
+          -32
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "93ec351a-3bd8-4199-83ba-556c73213cf7",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -656,
+          -336
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "FTP: List Files": {
+        "main": [
+          [
+            {
+              "node": "FTP: Download File",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Start: Every Hour": {
+        "main": [
+          [
+            {
+              "node": "FTP: List Files",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "FTP: Download File": {
+        "main": [
+          [
+            {
+              "node": "Google Drive: Upload",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 36,
+      "name": "File Management"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7604",
+  "fetched_at": "2026-09-12T13:12:00Z"
+}

@@ -1,0 +1,296 @@
+{
+  "id": 15349,
+  "name": "Send Webflow form leads to Google Sheets with email and WhatsApp alerts",
+  "description": "## Who it's for\nThis **n8n workflow** is designed for **business owners**, **sales teams**, and **customer support managers** who want to automate their lead capture and immediate acknowledgment process. The workflow creates an end-to-end multi-channel communication system that captures form submissions directly from Webflow, cleans and structures the data, saves it securely to a Google Sheet, and instantly sends personalized \"Thank You\" messages via both Email and WhatsApp.\n\n## Features\n* Captures Webflow form submissions in real time\n* Cleans and structures data into JSON using custom JavaScript\n* Automatically saves leads to Google Sheets (Name, Email, Phone, Message, Date)\n* Sends instant email confirmation to users\n* Verifies WhatsApp numbers via Rapiwa API\n* Sends WhatsApp messages only to valid numbers\n* Handles multiple submissions with delay to avoid API limits\n* Uses conditional routing for error-free automation flow\n\n## Requirements\n- **Webflow OAuth2 API**: To authenticate the trigger node and receive real-time form submission webhooks from your specific site.\n- **Google Sheets OAuth2 API**: For appending new lead data to your designated spreadsheet (\"Sales - Save to Google Sheets\").\n- **Gmail OAuth2 API**: To send the automated confirmation emails to your leads from your connected Gmail account.\n- **Rapiwa API Credentials**: For verifying the validity of WhatsApp numbers and sending out the WhatsApp text messages.\n\n#### Configure Credentials\n- **Webflow API**: Ensure you select the correct Site ID in the trigger node settings to listen to the right website's forms.\n- **Google Sheets**: Configure with edit access to the target spreadsheet and ensure the sheet name (\"Webflow\") exactly matches your tab.\n- **Gmail API**: Connect the Google account you wish to use as the sender for the confirmation emails.\n- **Rapiwa API**: Add your Rapiwa API key to enable WhatsApp number verification and messaging capabilities.\n- **Customize Messages**: Update the default text in the \"Send a message\" (Email) and \"Rapiwa\" (WhatsApp) nodes, making sure to replace `__add_your_brand_name__` with your actual brand name.\n\n## Important Notes\n* Ensure consistent field names between Code node and Google Sheets (e.g., `email`, `name` must match exactly with sheet headers like `Email`, `Name`) to avoid empty values\n* WhatsApp logic: `$json.exists === false` means the number **is valid and exists on WhatsApp**, so the True branch sends the message—don’t invert this\n* Loop Over Items has two outputs: top output goes back into the 5s wait loop, bottom output continues main processing flow\n* WhatsApp message uses cleaned sheet data (`$('Store Data in Sheet').item.json.Name`) to ensure accurate formatting\n* Replace `__add_your_brand_name__` in all templates to avoid unprofessional messaging\n\n## Support & Help\n- **WhatsApp**: [Chat on WhatsApp](https://wa.me/8801322827799)\n- **Discord**: [SpaGreen Community](https://discord.gg/SsCChWEP)\n- **Facebook Group**: [SpaGreen Support](https://www.facebook.com/groups/spagreenbd)\n- **Website**: [spagreen.net](https://spagreen.net)\n- **Developer Portfolio**: [Codecanyon SpaGreen](https://codecanyon.net/user/spapgreen)",
+  "workflow": {
+    "id": "F6J827jHTwVcR7jX",
+    "meta": {
+      "instanceId": "cb9a1e5321767b6316634728341237e564b2587ab15b74ca0a89eb02a53484d6",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Automatically Get Alerts from Webflow Form Submissions",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "10f21ae8-f10e-4cf1-b040-5bde247ad590",
+        "name": "Webflow Trigger",
+        "type": "n8n-nodes-base.webflowTrigger",
+        "position": [
+          0,
+          0
+        ],
+        "webhookId": "e63ba7b5-06cd-4602-872d-be07b79c4cf9",
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "376f5212-465a-4133-9519-aa81a70193d7",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "onError": "continueRegularOutput",
+        "position": [
+          448,
+          0
+        ],
+        "parameters": {},
+        "notesInFlow": false,
+        "typeVersion": 3
+      },
+      {
+        "id": "c6937d65-c0db-4ef6-8f05-8d82b6fffaa4",
+        "name": "Wait 5s",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          1664,
+          32
+        ],
+        "webhookId": "a8a457d5-f88d-451c-ac51-1af17c8435b0",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "7b93c704-a8f8-454e-8d18-bcc35cfafdf2",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -480,
+          -96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6c39d668-a6a7-4bc5-8994-1a3ac07655dd",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -32,
+          -48
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "389e04d9-4f6a-43fc-8c54-9907d5c8fd69",
+        "name": "Code (Clean response data)",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          224,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "ad0f290c-118d-4bb0-a6d1-d9e6b40fee26",
+        "name": "Google Sheet (Store/Save Data in Sheet)",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          688,
+          16
+        ],
+        "parameters": {},
+        "typeVersion": 4.6
+      },
+      {
+        "id": "edb40a6d-0f22-4429-b9c1-5cceb272fa9e",
+        "name": "Send a confirmation email message",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          880,
+          16
+        ],
+        "webhookId": "b6a48510-8f60-441e-b2e9-2d934ba56be3",
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "39baa491-d1ee-43c1-98fa-2a4fa97f143d",
+        "name": "Rapiwa (Verify WhatsApp Number)",
+        "type": "n8n-nodes-rapiwa.rapiwa",
+        "position": [
+          1072,
+          16
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "bdf13068-c37d-4808-8583-334b2ae390b5",
+        "name": "If (Check WhatsApp Number Exists or Not)",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1264,
+          16
+        ],
+        "parameters": {},
+        "typeVersion": 2.3
+      },
+      {
+        "id": "0043b2e3-4b94-40a3-a071-8ce549f54bcc",
+        "name": "Rapiwa (Send WhatsApp Confirmation Message)",
+        "type": "n8n-nodes-rapiwa.rapiwa",
+        "position": [
+          1456,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "88044ba6-7924-40ac-b466-91127a1326f6",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          416,
+          -48
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "7050dd54-be45-460d-bb50-e1646313d161",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1024,
+          -64
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "availableInMCP": false,
+      "executionOrder": "v1"
+    },
+    "versionId": "f6e21d7c-bf16-4850-b671-043177f778b1",
+    "connections": {
+      "Wait 5s": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Google Sheet (Store/Save Data in Sheet)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Code (Clean response data)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code (Clean response data)": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Rapiwa (Verify WhatsApp Number)": {
+        "main": [
+          [
+            {
+              "node": "If (Check WhatsApp Number Exists or Not)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send a confirmation email message": {
+        "main": [
+          [
+            {
+              "node": "Rapiwa (Verify WhatsApp Number)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Sheet (Store/Save Data in Sheet)": {
+        "main": [
+          [
+            {
+              "node": "Send a confirmation email message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If (Check WhatsApp Number Exists or Not)": {
+        "main": [
+          [
+            {
+              "node": "Rapiwa (Send WhatsApp Confirmation Message)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Wait 5s",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Rapiwa (Send WhatsApp Confirmation Message)": {
+        "main": [
+          [
+            {
+              "node": "Wait 5s",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 37,
+      "name": "Lead Generation"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15349",
+  "fetched_at": "2026-09-12T13:15:23Z"
+}

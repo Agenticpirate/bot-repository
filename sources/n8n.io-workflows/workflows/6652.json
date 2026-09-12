@@ -1,0 +1,238 @@
+{
+  "id": 6652,
+  "name": "Plan travel itineraries with Gemini AI, live Amadeus flights, and Airbnb stays",
+  "description": "*This workflow contains community nodes that are only compatible with the self-hosted version of n8n.*\n\n### Here is the Full Node-by-Node Breakdown of the workflow Workflow\n\n**Execution Video:** [https://youtu.be/qkZ6UaO7aCE](https://youtu.be/qkZ6UaO7aCE)\n\n---\n\n#### 1. **Webhook** (`Webhook`)\n\n* **Purpose**: Accepts incoming user queries via HTTP GET with the text parameter.\n* **Example input**: `4 people from Germany to Bangkok @14th August 2025`\n\n---\n\n#### 2. **AI Agent** (`AI Agent`)\n\n* **Type**: LangChain Agent\n* **Model**: Google Gemini 2.5 Flash via Vertex AI\n* **Prompt logic**:\n\n  * Extracts structured travel info (origin city, destination, date, number of people)\n  * Determines 3-letter IATA codes\n  * Uses MCP’s Airbnb Tool to scrape listings starting from that date\n* **Returns**:\n\n  * A markdown + bullet-format response with:\n\n    * Structured trip info\n    * List of Airbnb listings with titles, price, rating, and link\n\n---\n\n#### 3. **MCP Client List Tool** (`MCP Client List Tool`)\n\n* **Purpose**: Fetches a list of tools registered with MCP (Multi Channel Parser) client for the AI agent to select from\n* **Used by**: AI Agent as part of `listTools()` phase\n\n---\n\n#### 4. **MCP Execute Tool** (`MCP Execute Tool`)\n\n* **Purpose**: Executes the selected MCP tool (Airbnb scraper)\n* **Tool input**: Dynamic — passed by AI Agent using `$fromAI('Tool_Parameters')`\n\n---\n\n#### 5. **Google Vertex Chat Model** (`Google Vertex Chat Model`)\n\n* **Purpose**: Acts as the LLM behind the AI Agent\n* **Model**: Gemini 2.5 Flash from Vertex AI\n* **Used for**: Language understanding, extraction, decision-making\n\n---\n\n#### 6. **Grabbing Clean Data** (`Code Node`)\n\n* **Purpose**: Parses AI output to extract:\n\n  * Structured trip data\n  * Airbnb listings (with title, rating, price, link)\n* **Handles**:\n\n  * Bullet (•) and asterisk (\\*) formats\n  * New and old markdown styles\n  * Fallbacks for backward compatibility\n* **Output**: Clean JSON:\n\n  ```json\n  {\n    \"tripInformation\": {...},\n    \"listings\": [...],\n    \"totalListings\": X,\n    ...\n  }\n  ```\n\n---\n\n#### 7. **Flight Search with fare** (`HTTP Request`)\n\n* **API**: Amadeus Flight Offers API\n* **Purpose**: Searches live flight offers using:\n\n  * originIataCode\n  * destinationIataCode\n  * travelDate\n  * numberOfPeople\n* **Auth**: OAuth2\n\n---\n\n#### 8. **Flight Data + Airbnb Listings** (`Code Node`)\n\n* **Purpose**:\n\n  * Parses Amadeus flight offers\n  * Formats date, time, and durations\n  * Merges flight results with earlier Airbnb + trip info JSON\n  * Sorts by cheapest total price\n* **Output**:\n\n  ```json\n  {\n    \"tripInformation\": {...},\n    \"listings\": [...],\n    \"allFlightOffers\": [...]\n  }\n  ```\n\n---\n\n#### 9. **Edit Fields** (`Set Node`)\n\n* **Purpose**:\n\n  * Assigns final response fields into clean keys:\n\n    * `traveldetails`\n    * `listings`\n    * `flights`\n\n---\n\n#### 10. **Respond to Webhook**\n\n* **Purpose**: Sends back the final structured JSON response to the caller.\n* **Output**: Combined travel itinerary with flights + Airbnb\n\n---\n\n### Summary\n\nThis end-to-end workflow is a **fully autonomous travel query-to-itinerary engine**. From a plain text like “4 people from Vijayawada to Bangkok @14th August 2025,” it:\n\n* Parses and understands the query using an AI agent\n* Fetches Airbnb stays by scraping live listings\n* Searches real-time flights via Amadeus\n* Merges and formats everything into structured, digestible JSON\n\nNo manual parsing, no frontend — just AI + APIs + automation.\n\n\n\nNOTE: I JUST USED A COMMUNITY NODE \"n8n-nodes-mcp\" + UNOFFICIAL AIRBNB MCP",
+  "workflow": {
+    "meta": {
+      "instanceId": "b6731f6e46273cffeac6b5188a5b3bcb0840c00108e73b48ae2b799ac6e8e081",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "bfc008db-0ce3-408e-81e0-7ae4a59827ae",
+        "name": "MCP Client List Tool",
+        "type": "n8n-nodes-mcp.mcpClientTool",
+        "position": [
+          2240,
+          208
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "4c023674-f122-461f-8b2a-7a4cf8bcf0f8",
+        "name": "MCP Execute Tool",
+        "type": "n8n-nodes-mcp.mcpClientTool",
+        "position": [
+          2432,
+          208
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "261e170e-3cc4-46af-99c1-7258689c37ba",
+        "name": "Google Vertex Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleVertex",
+        "position": [
+          2048,
+          208
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "0b8d99c9-2e6c-45c9-a357-4e367fb9f74e",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          1888,
+          -32
+        ],
+        "webhookId": "87b12eb4-a4fb-418d-816e-a72730c35480",
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "ff786384-4d96-4dac-bf7a-2a0874c61254",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          3472,
+          -32
+        ],
+        "parameters": {},
+        "typeVersion": 1.4
+      },
+      {
+        "id": "0ff2d625-a11d-4f46-8a43-319d80737eee",
+        "name": "Edit Fields",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          3248,
+          -32
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "76879d17-f704-44a4-a201-3779581ea062",
+        "name": "Flight Search with fare",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          2800,
+          -32
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "0ad516da-6610-40d4-b0d6-e41b15b7fa2b",
+        "name": "Grabbing Clean Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2576,
+          -32
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "f88182f5-aa5a-42b1-acf0-7196aa614278",
+        "name": "Flight Data + Airbnb Listings",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          3024,
+          -32
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "c4d03699-1ae0-4b90-be6b-16e6fd245cbf",
+        "name": "AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          2144,
+          -32
+        ],
+        "parameters": {},
+        "typeVersion": 1.8
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Grabbing Clean Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Edit Fields": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MCP Execute Tool": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Grabbing Clean Data": {
+        "main": [
+          [
+            {
+              "node": "Flight Search with fare",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MCP Client List Tool": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Flight Search with fare": {
+        "main": [
+          [
+            {
+              "node": "Flight Data + Airbnb Listings",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Vertex Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Flight Data + Airbnb Listings": {
+        "main": [
+          [
+            {
+              "node": "Edit Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 43,
+      "name": "Personal Productivity"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6652",
+  "fetched_at": "2026-09-12T13:11:29Z"
+}

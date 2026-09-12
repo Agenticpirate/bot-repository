@@ -1,0 +1,284 @@
+{
+  "id": 10430,
+  "name": "Automate employee birthdays & work anniversaries with Google Gemini and Slack",
+  "description": "# Replace BillyBot: Free Slack Employee Birthday & Anniversary Automation\n\n## Who's it for\n\nHR teams, team leaders, and operations managers looking to automate employee celebrations without expensive third-party tools like BillyBot. Perfect for startups to enterprise teams wanting to save $600-2,400+ annually while maintaining personalized, engaging employee recognition.\n\n## What it does\n\nThis workflow automatically monitors your employee database daily and posts AI-generated, unique celebration messages to Slack for birthdays and work anniversaries. Unlike generic bots, it creates personalized messages that never repeat, rotating through 12 different styles and tones to keep celebrations fresh and authentic.\n\n## How it works\n\n1. **Daily Check**: Runs every morning at 9 AM to scan your employee Google Sheet\n2. **Smart Filtering**: Matches today's date against employee birthdays and joining dates\n3. **Data Aggregation**: Collects all celebrating employees into a single payload\n4. **AI Generation**: Google Gemini creates unique, heartfelt messages with proper Slack formatting\n5. **Auto-Post**: Sends personalized celebrations directly to your chosen Slack channel\n\nThe AI ensures no two messages feel templated, calculating years of service for anniversaries and adapting tone based on tenure length.\n\n## Requirements\n\n- **Google Sheets** with employee data (columns: NO, Name, Email, Date of Birth, Joining Date in YYYY-MM-DD format)\n- **Slack workspace** with bot permissions to post messages\n- **Google Gemini API key** (free tier included)\n- **n8n Cloud** ($20/month) or self-hosted n8n (free)\n\n## Cost comparison: Save $600-2,400+ per year\n\n**BillyBot pricing**: $1 per employee/month\n- 50 employees = $600/year\n- 100 employees = $1,200/year  \n- 200 employees = $2,400/year\n\n**This solution**: $0-20/month (unlimited employees)\n- Google Gemini API: FREE\n- Google Sheets API: FREE\n- Slack API: FREE\n- n8n: $20/month (Cloud) or $0 (self-hosted)\n\n**Your savings**: 95-100% cost reduction regardless of team size.\n\n## Setup instructions\n\n1. **Create Google Sheet**: Add columns: NO, Name, Email, Date of Birth, Joining Date (ensure dates are YYYY-MM-DD format)\n2. **Connect Google Sheets**: Authenticate your Google account in the \"Get row(s) in sheet\" node\n3. **Set up Slack**: Create a Slack bot with `chat:write` permission and add to your celebration channel\n4. **Configure Gemini**: Add your Google Gemini API key to the \"Google Gemini Chat Model\" node\n5. **Adjust Schedule**: Change trigger time in \"Schedule Trigger\" node (default: 9 AM daily)\n6. **Select Channel**: Update Slack channel in \"Send a message\" node to your desired celebration channel\n7. **Test**: Run workflow manually to verify messages post correctly\n\n## Customization options\n\n- **Change celebration time**: Modify the Schedule Trigger to any hour (e.g., 8 AM for morning celebrations)\n- **Adjust message tone**: Edit the AI Agent system prompt to match your company culture (formal, casual, playful)\n- **Multi-channel posting**: Duplicate the Slack node to post to multiple channels (e.g., company-wide + team-specific)\n- **Add upcoming reminders**: Modify the IF node to check for celebrations within 7 days\n- **Include photos**: Extend the workflow to pull employee photos from your HR system\n- **Custom emoji styles**: Update the AI prompt to use your organization's custom Slack emojis\n\n## Key features\n\n- 12 rotating message styles prevent repetition\n- Automatic tenure calculation for work anniversaries\n- Culturally inclusive and professional tone\n- Mobile-optimized message length (1-3 lines)\n- Slack markdown formatting for visual appeal\n- Scales infinitely without additional cost\n\n---\n\n**Note**: Ensure your Google Sheet date formats are consistent (YYYY-MM-DD) for accurate date matching. The workflow processes dates in MM-DD format to match across years automatically.  ",
+  "workflow": {
+    "meta": {
+      "instanceId": "INSTANCE_ID_PLACEHOLDER",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "node-id-1",
+        "name": "Google Gemini Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "position": [
+          1424,
+          592
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "credentials": {
+          "googlePalmApi": {
+            "id": "credential-id",
+            "name": "googlePalmApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "node-id-2",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -48,
+          272
+        ],
+        "parameters": {
+          "width": 304,
+          "height": 480,
+          "content": "## 🎉 Replace BillyBot: Free Slack Employee Birthday & Anniversary Automation\n\n- Runs daily at 9 AM. Fetches employee data from Google Sheets, filters today's birthdays/anniversaries, generates personalized AI messages, and posts to Slack.\n- Sheet format: NO | Name | Email | Date of Birth (YYYY-MM-DD) | Joining Date (YYYY-MM-DD)\n- AI features: 12 rotating message styles, auto-calculates tenure, Slack markdown formatting\n- Cost: $0-20/month vs BillyBot's $1/employee/month ($600-2,400/year for 50-200 employees)"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "node-id-3",
+        "name": "Daily 9AM Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          368,
+          416
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "triggerAtHour": 9
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "node-id-4",
+        "name": "Fetch Employee Data",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          592,
+          416
+        ],
+        "parameters": {
+          "options": {},
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "SHEET_ID_PLACEHOLDER",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_DOCUMENT_ID/edit#gid=SHEET_ID_PLACEHOLDER",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "GOOGLE_SHEET_DOCUMENT_ID",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEET_DOCUMENT_ID/edit",
+            "cachedResultName": "employee-data-sheet"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleSheetsOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "node-id-5",
+        "name": "Check Birthday or Work Anniversary",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          864,
+          416
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "loose"
+            },
+            "combinator": "or",
+            "conditions": [
+              {
+                "id": "condition-id-1",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $now.toFormat('MM-dd') }}",
+                "rightValue": "={{ DateTime.fromISO($json['Date of Birth']).toFormat('MM-dd') }}"
+              },
+              {
+                "id": "condition-id-2",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $now.toFormat('MM-dd') }}",
+                "rightValue": "={{ DateTime.fromISO($json['Joining Date']).toFormat('MM-dd') }}"
+              }
+            ]
+          },
+          "looseTypeValidation": true
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "node-id-6",
+        "name": "Combine Today's Celebrations",
+        "type": "n8n-nodes-base.aggregate",
+        "position": [
+          1184,
+          400
+        ],
+        "parameters": {
+          "options": {},
+          "aggregate": "aggregateAllItemData"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "node-id-7",
+        "name": "Generate Personalized Slack Message",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          1424,
+          400
+        ],
+        "parameters": {
+          "text": "=todays date :- {{ $now }}\n\nemp data :- {{ $json.data.toJsonString() }}",
+          "options": {
+            "systemMessage": "=🎉 Slack Celebration Message Generator\nGenerate unique, heartfelt birthday and work anniversary messages for Slack that feel genuinely human-written, never templated.\n🎯 Core Rules\nUniqueness: Never repeat opening phrases, sentence structures, or tones across messages. Each celebration must feel completely different.\nAuthenticity: Write like a caring colleague, not a robot. Messages should be personal, warm, and memorable.\nVariation: Rotate through different styles, emojis, and approaches systematically.\n🎨 Message Styles (Rotate These)\nBirthdays:\n\nJoyful - Pure celebration and excitement\nReflective - New beginnings and fresh chapters\nGrateful - Appreciation for their presence\nPlayful - Lighthearted with gentle humor\nAchievement - Celebrate growth and contributions\nWarm - Team family togetherness\n\nWork Anniversaries:\n\nMilestone - Highlight achievements and impact\nJourney - Their evolution and growth story\nTeam Impact - How they enrich the culture\nFuture-Forward - Excitement for what's ahead\nExcellence - Innovation and expertise\nLegacy - Foundational role (5+ years)\n\n📝 Format Requirements\nStructure:\n*[Unique Opening + Name + Hook]* [Emoji Combo]\n[Specific wishes/appreciation - keep brief]\n_— from the team 💙_\nMarkdown:\n\n*bold* for names and key phrases\n_italic_ for signature only\nProper line breaks for readability\n\nEmojis (rotate):\n\nBirthday: 🎂✨, 🎉🎂, 🎂🌟, 🎈🎉, 🎂🎊, 🌟🎁, 🎉✨, 🎂💫\nAnniversary: 🎊🚀, 🏆🎉, 🎊💪, ⭐🎊, 🚀✨, 🎉🏅, 🎊⚡, 💎🎊\n\n🎲 Variation Rules\n\nOpening: Never repeat within 30 days\nTone: Never use same emotional tone consecutively\nLength: 1-3 lines per person, mobile-friendly\nAnniversary Years: Adapt message to tenure length\n\n💡 Writing Tips\n\nUse first names only\nVary sentence length and rhythm\nKeep culturally inclusive and professional\nMake it screenshot-worthy\nEach person gets distinctly different treatment\n\nOutput: Generate ready-to-post Slack messages that colleagues will genuinely react to and appreciate."
+          },
+          "promptType": "define"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "node-id-8",
+        "name": "Post Celebration to Slack Channel",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          1808,
+          400
+        ],
+        "webhookId": "WEBHOOK_ID_PLACEHOLDER",
+        "parameters": {
+          "text": "={{ $json.output }}",
+          "select": "channel",
+          "channelId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "SLACK_CHANNEL_ID",
+            "cachedResultName": "your-channel-name"
+          },
+          "otherOptions": {
+            "includeLinkToWorkflow": false
+          }
+        },
+        "credentials": {
+          "slackApi": {
+            "id": "credential-id",
+            "name": "slackApi Credential"
+          }
+        },
+        "typeVersion": 2.3
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Daily 9AM Trigger": {
+        "main": [
+          [
+            {
+              "node": "Fetch Employee Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Employee Data": {
+        "main": [
+          [
+            {
+              "node": "Check Birthday or Work Anniversary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Gemini Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Generate Personalized Slack Message",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Combine Today's Celebrations": {
+        "main": [
+          [
+            {
+              "node": "Generate Personalized Slack Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Birthday or Work Anniversary": {
+        "main": [
+          [
+            {
+              "node": "Combine Today's Celebrations",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Personalized Slack Message": {
+        "main": [
+          [
+            {
+              "node": "Post Celebration to Slack Channel",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 17,
+      "name": "HR"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/10430",
+  "fetched_at": "2026-09-12T13:13:24Z"
+}

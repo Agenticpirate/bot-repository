@@ -1,0 +1,227 @@
+{
+  "id": 6978,
+  "name": "Automate Wazuh alert triage and reporting with GPT-4o-mini and Telegram",
+  "description": "### 🚨Are alert storms overwhelming your Security Operations workflows?\n\nThis n8n workflow supercharges your SOC by fully automating triage, analysis, and notification for Wazuh alerts—blending event-driven automation, OpenAI-powered contextual analysis, and real-time collaboration for incident response.\n\n### 🔑 Key Features:\n\n### ✅ Automated Triage:\nInstantly filters Wazuh alerts by severity to focus analyst effort on the signals that matter.\n\n### 🤖 AI-Driven Investigation Reports:\nUses OpenAI's **GPT-4o-mini** to auto-generate **context-rich incident reports**, including:\n- MITRE Tactic & Technique mapping  \n- Impacted scope (IP addresses, hostnames)  \n- External artifact reputation checks  \n- Actionable security recommendations  \n- Fully customizable prompt format aligned with your SOC playbooks\n\n### 📡 Multi-Channel Notification\nDelivers clean, actionable reports directly to your **SOC team via Telegram**. Easily extendable to Slack, Outlook, Gmail, Discord, or any other preferred channel.\n\n### 🔇 Noise Reduction\nEliminates alert fatigue using **smart filters** and **custom AI prompts** that suppress false positives and highlight real threats.\n\n### 🔧 Fully Customizable\nTweak severity thresholds, update prompt logic, or integrate additional data sources and channels — all with minimal effort\n\n---\n\n## ⚙️ How It Works\n\n1. **Webhook**  \n   Listens for incoming Wazuh alerts in real time.\n\n2. **If Condition**  \n   Filters based on severity (`1 low`, `2 medium`, etc.) or other logic you define.\n\n3. **AI Investigation (LangChain + OpenAI)**  \n   Summarizes full alert logs and context using custom prompts to generate:\n   - Incident Overview  \n   - Key Indicators  \n   - Log Analysis  \n   - Threat Classification  \n   - Risk Assessment  \n   - Security Recommendations\n\n4. **Notification Delivery**  \n   The report is parsed, cleaned, and sent to your SOC team in real-time, enabling rapid response — even during high-alert volumes.\n\n5. **No-Op Path**  \n   Efficiently discards irrelevant alerts without breaking the flow.\n\n---\n\n## 🧠 Why n8n + AI?\n\nTraditional alert triage is **manual**, **slow**, and **error-prone** — leading to analyst burnout and missed critical threats.\n\nThis workflow shows how combining **workflow automation** with a **tailored AI model** enables your SOC to shift from **reactive** to **proactive**. Analysts can now:\n- Focus on **critical investigations**\n- Respond to alerts **faster**\n- Eliminate **copy-paste fatigue**\n- Get instant **contextual summaries**\n\n&gt; ⚠️ **Note:** We learned that generic AI isn’t enough. Context-rich prompts and alignment with your actual SOC processes are key to meaningful, scalable automation.\n\n---\n\n## 🚀 Ready to build a smarter, less stressful SOC?\n\nClone this workflow, adapt it to your processes, and never miss a critical alert again.\n\n📬 Contributions welcome!  \nFeel free to raise PRs, suggest new enhancements, or fork for your own use cases.\n\n---\n\n**Created by [Mariskarthick M](https://www.linkedin.com/in/mariskarthickm/)**  \nSenior Security Analyst | Detection Engineer | Threat Hunter | Open-Source Enthusiast",
+  "workflow": {
+    "id": "",
+    "meta": {
+      "instanceId": "",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Wazuh_Alert_Investigation copy",
+    "tags": [
+      {
+        "id": "",
+        "name": "Github",
+        "createdAt": "2025-07-08T08:24:29.609Z",
+        "updatedAt": "2025-07-08T08:24:29.609Z"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "",
+        "name": "If",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          240,
+          -20
+        ],
+        "parameters": {
+          "options": {
+            "ignoreCase": true
+          },
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": false,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "",
+                "operator": {
+                  "name": "filter.operator.equals",
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.body.severity }}",
+                "rightValue": "1 low"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "",
+        "name": "Wazuh Alert",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -20,
+          -20
+        ],
+        "webhookId": "",
+        "parameters": {
+          "path": "",
+          "options": {
+            "rawBody": true
+          },
+          "httpMethod": "POST"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "",
+        "name": "No Operations",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          260,
+          200
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "",
+        "name": "Investigation Summarization",
+        "type": "@n8n/n8n-nodes-langchain.chainSummarization",
+        "position": [
+          540,
+          -40
+        ],
+        "parameters": {
+          "options": {
+            "summarizationMethodAndPrompts": {
+              "values": {
+                "prompt": "You are the experinced SOC AI Analyst designed by Mariskarthick M, Analyse the following and provide the detailed investigation with the below mentioned format.\n\n\"{text}\"\n\nconicise summary",
+                "combineMapPrompt": "You are the experinced SOC AI Analyst designed by Mariskarthick M, Analyse the following and provide the detailed investigation with the below mentioned format.\n\n#Analyse:\n{{ $json.body.all_fields.full_log }}\n\n#Format:\nAlert Name: \nAlert Description: (describe about that alert)\nMitre Tactic & Technique\nImpacted Scope: Source IP, Destiantion IP, Host Machine\n\nExternal Artificats Reputation check:\n\nAnalysis:\n\nSecurity Recommendations.\n\nPlease make the investigation report in organized way and each fields line by line.\n {{ $json.body }}"
+              }
+            }
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "",
+        "name": "SOC Team",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          920,
+          -20
+        ],
+        "webhookId": "",
+        "parameters": {
+          "text": "={{ \n  $json.output.text\n    .replaceAll('\\\\', '')                       // Remove escape slashes\n    .replaceAll('*', '')                        // Remove Markdown stars\n    .replaceAll('#', '')                        // Remove Markdown headers\n    .replaceAll('_', '')                        // Remove underscores\n    .replaceAll('[', '')                        // Remove leftover brackets\n    .replaceAll(']', '')                        // Remove closing brackets\n    .replaceAll('(', '(')                       // Retain parentheses\n    .replaceAll(')', ')')\n    .replaceAll('`', '')                        // Remove backticks\n    .replaceAll('  ', ' ')                      // Extra space trim\n    .replaceAll('\\n\\n', '\\n')                   // Collapse double newlines\n    .replaceAll('\\n ', '\\n')                    // Remove leading spaces on lines\n    .replaceAll(' - ', ' — ')                   // Optional: replace dash with em dash for clarity\n    .trim()\n}}\n",
+          "chatId": "",
+          "additionalFields": {
+            "appendAttribution": true
+          }
+        },
+        "credentials": {
+          "telegramApi": {
+            "id": "credential-id",
+            "name": "telegramApi Credential"
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "717713de-4a80-4b51-910c-3b6a588e2f56",
+        "name": "Customized AI Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          560,
+          200
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4o-mini"
+          },
+          "options": {}
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "credential-id",
+            "name": "openAiApi Credential"
+          }
+        },
+        "typeVersion": 1.2
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "2f2786be-474f-4ab6-a41e-391e7427d022",
+    "connections": {
+      "If": {
+        "main": [
+          [
+            {
+              "node": "Investigation Summarization",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "No Operations",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wazuh Alert": {
+        "main": [
+          [
+            {
+              "node": "If",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Customized AI Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Investigation Summarization",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Investigation Summarization": {
+        "main": [
+          [
+            {
+              "node": "SOC Team",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 29,
+      "name": "SecOps"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6978",
+  "fetched_at": "2026-09-12T13:11:39Z"
+}

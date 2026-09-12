@@ -1,0 +1,294 @@
+{
+  "id": 7693,
+  "name": "Bulk lead email validation with Google Sheets & Anymail Finder",
+  "description": "This workflow automates the **process of validating email addresses** stored in a **Google Sheets file** by using the Anymail Finder API.\n\n---\n\n###  Key Advantages\n\n* ✅ **Automated Lead Validation**\n  No need for manual copy-paste or bulk uploads emails are verified directly inside your existing Google Sheets.\n\n* 🔎 **Improved Data Quality**\n  Ensures your CRM or outreach campaigns only target **valid and deliverable email addresses**, reducing bounce rates.\n\n* 🔄 **Real-Time Updates**\n  Results are automatically updated in the spreadsheet, making it easy for your team to see which leads are safe to contact.\n\n* 📈 **Improves lead quality** for outreach, reduces bounce rates\n---\n\nOf course. Here is a description of the provided n8n workflow.\n\n### **Workflow Description: Verify Leads Email Address with Anymail Finder**\n\nThis workflow automates the process of checking the validity of email addresses from a Google Sheets list using the Anymail Finder API and writing the results back to the sheet.\n\n---\n\n### **How It Works**\n\nThe workflow operates in a loop to process a list of leads from a Google Sheet one by one.\n\n1.  **Manual Trigger:** The workflow is started manually by a user within n8n.\n2.  **Get Leads:** The \"Get Leads\" node reads data from a specified Google Sheet. It is configured with a filter to only fetch rows where the \"VERIFY\" column is empty, ensuring it only processes new leads that haven't been checked yet.\n3.  **Loop Over Items:** The \"Split In Batches\" node is used to iterate over each row (lead) retrieved from the Google Sheet. This sends each lead individually to the next node for processing.\n4.  **Check Email Status:** For each lead, the \"HTTP Request\" node sends a `POST` request to the Anymail Finder API (`/v5.1/verify-email`). The email address from the current sheet row (`$json[\"EMAIL \"]`) is sent in the request body.\n5.  **Update Email Status:** The response from Anymail Finder (which contains the verification status) is received. The \"Update email status\" node then takes this result and writes it back to the \"VERIFY\" column of the original Google Sheet. It uses the `row_number` to identify the correct row to update, ensuring data is placed accurately.\n\n---\n\n### **Set Up Steps**\n\nTo use this workflow, you need to configure the following credentials and nodes:\n\n1.  **Google Sheets Credentials:**\n    *   Create a credential named \"Google Sheets account\" of type `OAuth2`.\n    *   Follow n8n's guide to authenticate with Google Sheets. This will give the workflow permission to read from and write to your spreadsheet.\n\n2.  **Anymail Finder Credentials:**\n    *   Create a credential named \"Anymail Finder\" of type `HTTP Header Auth`.\n    *   In the \"Name\" field, enter `Authorization` (or the header name required by Anymail Finder's API documentation).\n    *   In the \"Value\" field, enter your Anymail Finder API key (in the format `YOUR_API_KEY`).\n\n3.  **Configure Google Sheet:**\n    *   Ensure your Google Sheet has at least the following columns: `COMPANY NAME`, `EMAIL ` (note the space), and `VERIFY`.\n    *   The \"VERIFY\" column must be empty for rows you want to verify. The \"Get Leads\" node is filtered to only process rows where this column is blank.\n\n4.  **Activate and Execute:**\n    *   Once the credentials are set and the sheet ID is configured, activate the workflow.\n    *   Click on the \"Manual Trigger\" node and execute the workflow. It will begin processing all leads with an empty \"VERIFY\" field.\n\n---\n\n### **Need help customizing?**  \n[Contact me](mailto:info@n3w.it) for consulting and support or add me on [Linkedin](https://www.linkedin.com/in/davideboizza/). ",
+  "workflow": {
+    "id": "bvYcq5zrLPePpJPm",
+    "meta": {
+      "instanceId": "a4bfc93e975ca233ac45ed7c9227d84cf5a2329310525917adaf3312e10d5462",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Verify leads email address with Anymail Finder",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "b440f1f9-ec22-4958-bf05-e1d65f277951",
+        "name": "Manual Trigger",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          -704,
+          -448
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "5094115d-4649-4d28-847d-541e3b4b1494",
+        "name": "Get Leads",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -496,
+          -448
+        ],
+        "parameters": {
+          "options": {},
+          "filtersUI": {
+            "values": [
+              {
+                "lookupColumn": "VERIFY"
+              }
+            ]
+          },
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/108sjf89zpKRyZbGq9MjcNFQOezP4hi97SJ_uAkXc8WI/edit#gid=0",
+            "cachedResultName": "Foglio1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "108sjf89zpKRyZbGq9MjcNFQOezP4hi97SJ_uAkXc8WI",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/108sjf89zpKRyZbGq9MjcNFQOezP4hi97SJ_uAkXc8WI/edit?usp=drivesdk",
+            "cachedResultName": "Verify leads email"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleSheetsOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "3cde3dfb-91dc-4863-ad0f-aedd7078cd18",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          -288,
+          -448
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "311399e5-d190-4e72-9968-c9c2ec88fbe1",
+        "name": "Update email status",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          320,
+          -448
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "VERIFY": "={{ $json.email_status }}",
+              "row_number": "={{ $('Loop Over Items').item.json.row_number }}"
+            },
+            "schema": [
+              {
+                "id": "COMPANY NAME",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "COMPANY NAME",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "EMAIL ",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "EMAIL ",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "VERIFY",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "VERIFY",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "row_number",
+                "type": "number",
+                "display": true,
+                "removed": false,
+                "readOnly": true,
+                "required": false,
+                "displayName": "row_number",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [
+              "row_number"
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "update",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/108sjf89zpKRyZbGq9MjcNFQOezP4hi97SJ_uAkXc8WI/edit#gid=0",
+            "cachedResultName": "Foglio1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "108sjf89zpKRyZbGq9MjcNFQOezP4hi97SJ_uAkXc8WI",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/108sjf89zpKRyZbGq9MjcNFQOezP4hi97SJ_uAkXc8WI/edit?usp=drivesdk",
+            "cachedResultName": "Verify leads email"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleSheetsOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "6c24bae6-fb01-4071-ba23-b5613a9a6c7b",
+        "name": "Check email status",
+        "type": "n8n-nodes-base.httpRequest",
+        "notes": "This node sends the request to Anymailfinder.\nMake sure you've connected your API key in the credentials (HTTP Header Auth).",
+        "onError": "continueErrorOutput",
+        "position": [
+          -16,
+          -432
+        ],
+        "parameters": {
+          "url": "https://api.anymailfinder.com/v5.1/verify-email",
+          "method": "POST",
+          "options": {
+            "timeout": 180000
+          },
+          "sendBody": true,
+          "authentication": "genericCredentialType",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "email",
+                "value": "={{ $json[\"EMAIL \"] }}"
+              }
+            ]
+          },
+          "genericAuthType": "httpHeaderAuth"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "credential-id",
+            "name": "httpHeaderAuth Credential"
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "7d2a131c-527e-44ac-b4b9-089dcc3245b0",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -704,
+          -768
+        ],
+        "parameters": {
+          "width": 608,
+          "height": 256,
+          "content": "## Verify leads email address with Anymail Finder\nThis workflow automates the **process of validating email addresses** stored in a **Google Sheets file** by using the Anymail Finder API.\n\n- Clone this [sheet](https://docs.google.com/spreadsheets/d/108sjf89zpKRyZbGq9MjcNFQOezP4hi97SJ_uAkXc8WI/edit?usp=sharing)\n- Get your (Anymail Finder)[https://anymailfinder.com] API Key (FREE Trial)\n- In \"Check email status\" node Create a credential named “Anymail Finder” of type HTTP Header Auth. In the “Name” field, enter \"Authorization\" and in the “Value” field, enter your Anymail Finder API key (in the format YOUR_API_KEY)"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "b53ba6c5-ac90-42d7-90a9-13b405c13206",
+    "connections": {
+      "Get Leads": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Manual Trigger": {
+        "main": [
+          [
+            {
+              "node": "Get Leads",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Check email status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check email status": {
+        "main": [
+          [
+            {
+              "node": "Update email status",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      },
+      "Update email status": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 37,
+      "name": "Lead Generation"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7693",
+  "fetched_at": "2026-09-12T13:12:03Z"
+}

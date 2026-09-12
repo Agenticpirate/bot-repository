@@ -1,0 +1,218 @@
+{
+  "id": 8867,
+  "name": "Analyze images with OpenAI Vision while preserving binary data for reuse",
+  "description": "\nUse this template to **upload an image**, run a first-pass **OpenAI Vision analysis**, then **re-attach the original file (binary/base64)** to the next step using a **Merge** node. The pattern ensures your downstream AI Agent (or any node) can access **both** the original file (`data`) **and** the first analysis result (`content`) at the same time.\n\n---\n\n### ✅ What this template does\n- **Collects an image file** via **Form Trigger** (binary field labeled `data`)\n- **Analyzes the image** with **OpenAI Vision** (GPT-4o) using **base64** input\n- **Merges** the original upload and the analysis result (**combine by position**) so the next node has **both**\n- **Re-analyzes/uses** the image alongside the first analysis in an **AI Agent** step\n\n---\n\n### 🧩 How it works (Node-by-node)\n1. **Form Trigger**  \n   - Presents a simple upload form and emits a binary/base64 field named **`data`**.\n2. **Analyze image (OpenAI Vision)**  \n   - Reads the same **`data`** field as **base64** and runs image analysis with **GPT-4o**.  \n   - The node outputs a text **`content`** (first-pass analysis).\n3. **Merge (combine by position)**  \n   - Combines the two branches so the next node receives **both** the **original upload** (`data`) and the **analysis** (`content`) on the **same item**.\n4. **AI Agent**  \n   - Receives `data` + `content` together.  \n   - Prompt includes the original image (**`=data`**) and the first analysis (**`{{$json.content}}`**) to compare or refine results.\n5. **OpenAI Chat Model**  \n   - Provides the language model for the Agent (wired as **ai_languageModel**).\n\n---\n\n### 🛠️ Setup Instructions (from the JSON)\n&gt; Keep it simple: mirror these settings and you’re good to go.\n\n**1) Form Trigger (n8n-nodes-base.formTrigger)**  \n- **Path:** `d6f874ec-6cb3-46c7-8507-bd647c2484f0` *(you can change this)*  \n- **Form Title:** `Image Document Upload`  \n- **Form Description:** `Upload a image document for AI analysis`  \n- **Form Fields:**  \n  - **Label:** `data`  \n  - **Type:** `file`  \n- **Output:** emits a binary/base64 field named **`data`**.\n\n**2) Analyze image (@n8n/n8n-nodes-langchain.openAi)**  \n- **Resource:** `image`  \n- **Operation:** `analyze`  \n- **Model:** `gpt-4o`  \n- **Text:** `=data` *(use the uploaded file field)*  \n- **Input Type:** `base64`  \n- **Credentials:** OpenAI (use your stored **OpenAI API** credential)\n\n**3) Merge (n8n-nodes-base.merge)**  \n- **Mode:** `combine`  \n- **Combine By:** `combineByPosition`  \n  - Connect **Form Trigger → Merge (input 2)**  \n  - Connect **Analyze image → Merge (input 1)**  \n  - This ensures the original file (`data`) and the analysis (`content`) line up on the same item.\n\n**4) AI Agent (@n8n/n8n-nodes-langchain.agent)**  \n- **Prompt Type:** `define`  \n- **Text:**  \n- **System Message:** `analyze the image again and see if you get the same result.`  \n- **Receives:** merged item containing `data` + `content`.\n\n**5) OpenAI Chat Model (@n8n/n8n-nodes-langchain.lmChatOpenAi)**  \n- **Model:** `gpt-4.1-mini`  \n- **Wiring:** connect as **ai_languageModel** to the **AI Agent**  \n- **Credentials:** same OpenAI credential as above\n\n&gt; **Security Note:** Store API keys in **Credentials** (do **not** hardcode keys in nodes).\n\n---\n\n### 🧠 Why “Combine by Position” fixes the binary issue\n- Some downstream nodes **lose access** to the original binary once a branch processes it.  \n- By **merging the original branch** (with `data`) and the **analysis branch** (with `content`) **by position**, you restore a **single item** with **both fields**—so the next step can **use the image again** while referencing earlier analysis.\n\n---\n\n### 🧪 Test Tips\n- Upload a JPG/PNG and **execute** the workflow from the Form Trigger preview.  \n- Confirm **Merge** output contains **both** `data` (binary/base64) **and** `content` (text).  \n- In the **AI Agent**, log or return both fields to verify availability.\n\n---\n\n### 🔧 Customize\n- Swap GPT-4o for another **Vision-capable** model if needed.  \n- Extend the AI Agent to **extract structured fields** (e.g., objects detected, text, brand cues).  \n- Add a **Router** after Merge to branch into storage (S3, GDrive) or notifications (Slack, Email).\n\n---\n\n### 📝 Requirements\n- n8n (cloud or self-hosted) with web UI access  \n- **OpenAI** credential configured (Vision support)\n\n---\n\n### 🩹 Troubleshooting\n- **Binary missing downstream?** Ensure **Merge** receives **both** branches and is set to `combineByPosition`.  \n- **Wrong field name?** The **Form Trigger** upload field must be labeled **`data`** to match node expressions.  \n- **Model errors?** Verify your **OpenAI** credential and that the chosen model supports **image analysis**.\n\n---\n\n### 💬 Sticky Note (included in the workflow)\n&gt; “Use Binary Field after next step” — This workflow demonstrates how to preserve and reuse an uploaded file (binary/base64) after a downstream step by using a **Merge** node (`combineByPosition`). A user uploads an image via **Form Trigger** → the image is analyzed with **OpenAI Vision** → results are merged back with the original upload so the next **AI Agent** step can access **both** the original file (`data`) and the first analysis (`content`) at the same time.\n\n---\n\n### 📬 Contact  \nNeed help customizing this (e.g., filtering by campaign, sending reports by email, or formatting your PDF)?  \n\n- 📧 **rbreen@ynteractive.com**  \n- 🔗 **https://www.linkedin.com/in/robert-breen-29429625/**  \n- 🌐 **https://ynteractive.com**\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "ad0113c344ee237399e44e9f11798b05baeb83a6196d514a9ae9d2ad71c3b5c9",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "d49cdb6a-5084-4c00-a40f-062c157a9b3d",
+        "name": "Form Trigger1",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          -928,
+          10784
+        ],
+        "webhookId": "d6f874ec-6cb3-46c7-8507-bd647c2484f0",
+        "parameters": {
+          "path": "d6f874ec-6cb3-46c7-8507-bd647c2484f0",
+          "options": {},
+          "formTitle": "Image Document Upload",
+          "formFields": {
+            "values": [
+              {
+                "fieldType": "file",
+                "fieldLabel": "data"
+              }
+            ]
+          },
+          "formDescription": "Upload a image document for AI analysis"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "a363370d-851d-4452-ac9a-b0f5d6a7107e",
+        "name": "Analyze image",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "position": [
+          -368,
+          10576
+        ],
+        "parameters": {
+          "text": "=data",
+          "modelId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4o",
+            "cachedResultName": "GPT-4O"
+          },
+          "options": {},
+          "resource": "image",
+          "inputType": "base64",
+          "operation": "analyze"
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "credential-id",
+            "name": "openAiApi Credential"
+          }
+        },
+        "typeVersion": 1.8
+      },
+      {
+        "id": "a0270371-928d-4084-8c07-6ff8936837c0",
+        "name": "Merge1",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          -160,
+          10960
+        ],
+        "parameters": {
+          "mode": "combine",
+          "options": {},
+          "combineBy": "combineByPosition"
+        },
+        "typeVersion": 3.2
+      },
+      {
+        "id": "76a6e130-ea39-4b6e-8bbd-200c0a57ed99",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1280,
+          10336
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 2144,
+          "height": 1056,
+          "content": "### 🖼️ Use Binary Field after next step\n\nThis workflow demonstrates how to **preserve and reuse an uploaded file (binary/base64)** after a downstream step by using a **Merge** node (`combineByPosition`). A user uploads an image via **Form Trigger** → the image is analyzed with **OpenAI Vision** → results are **merged back** with the original upload so the next **AI Agent** step can access **both** the original file (`data`) and the first analysis (`content`) at the same time.\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "79d53391-5e87-472a-bd08-e5cd7d43a39a",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1728,
+          10336
+        ],
+        "parameters": {
+          "width": 400,
+          "height": 1056,
+          "content": "\n\n## 📬 Contact  \nNeed help customizing this (e.g., filtering by campaign, sending reports by email, or formatting your PDF)?  \n\n- 📧 **rbreen@ynteractive.com**  \n- 🔗 **https://www.linkedin.com/in/robert-breen-29429625/**  \n- 🌐 **https://ynteractive.com**\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f77d1571-f807-48f9-a523-582ffb48f2e5",
+        "name": "AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          240,
+          10880
+        ],
+        "parameters": {
+          "text": "=data\n {{ $json.content }}",
+          "options": {
+            "systemMessage": "analyze the image again and see if you get the same result. "
+          },
+          "promptType": "define"
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "5bbd5de7-cdaf-4a65-92ad-f29830a710b1",
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          208,
+          11088
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4.1-mini"
+          },
+          "options": {}
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "credential-id",
+            "name": "openAiApi Credential"
+          }
+        },
+        "typeVersion": 1.2
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Merge1": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Analyze image": {
+        "main": [
+          [
+            {
+              "node": "Merge1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Form Trigger1": {
+        "main": [
+          [
+            {
+              "node": "Analyze image",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Merge1",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 5,
+      "name": "Engineering"
+    },
+    {
+      "id": 48,
+      "name": "AI RAG"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8867",
+  "fetched_at": "2026-09-12T13:12:40Z"
+}

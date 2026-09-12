@@ -1,0 +1,191 @@
+{
+  "id": 6817,
+  "name": "Generate and send contract documents with Typeform, Google Docs and Gmail",
+  "description": "This workflow is designed for teams or freelancers who want to auto-generate and send contracts based on information gathered from a Typeform (e.g., client name, project scope, deadlines). Perfect for HR onboarding, client agreements, or legal operations.\n\n## Prerequisites\n- To use this workflow, you’ll need:\n- A Typeform account and a published form\n- Access to Google Docs (or use a local document template)\n- Gmail or SMTP email integration in n8n\n- n8n Desktop or a hosted n8n instance\n\n## How It Works\n- **Trigger:** Listens for new Typeform submissions.\n- **Extract Data:** Parses the answers from the form.\n- **Generate Contract:** Fills a contract template using form inputs.\n- **Create PDF:** Exports the filled contract as a PDF.\n- **Send Email:** Sends the PDF to the client’s email address provided in the form.\n\n## Nodes Used\n- **Typeform Trigger** – Triggers on form submission.\n- **Set Node** – Maps form answers into variables.\n- **Google Docs (or HTTP Request)** – Uses a template to generate the contract.\n- **Google Drive / PDF Converter** – Converts to PDF (if needed).\n- **Email (Gmail/SMTP)** – Sends the completed contract to the recipient.\n\n\n## Tips\n- Replace the Google Docs template ID with your own.\n- Ensure the variable placeholders (like {{client_name}}) match your document.\n- Use the Cron node instead of Typeform Trigger if you want to poll periodically.\n",
+  "workflow": {
+    "nodes": [
+      {
+        "name": "Typeform Trigger",
+        "type": "n8n-nodes-base.typeformTrigger",
+        "position": [
+          100,
+          300
+        ],
+        "parameters": {
+          "formId": "your-form-id"
+        },
+        "credentials": {
+          "typeformApi": {
+            "id": "credential-id",
+            "name": "typeformApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Set Variables",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          300,
+          300
+        ],
+        "parameters": {
+          "values": {
+            "string": [
+              {
+                "name": "client_name",
+                "value": "={{$json[\"answers\"][0].text}}"
+              },
+              {
+                "name": "project_scope",
+                "value": "={{$json[\"answers\"][1].text}}"
+              },
+              {
+                "name": "deadline",
+                "value": "={{$json[\"answers\"][2].text}}"
+              },
+              {
+                "name": "email",
+                "value": "={{$json[\"answers\"][3].email}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Fill Contract Template",
+        "type": "n8n-nodes-base.googleDocs",
+        "position": [
+          500,
+          300
+        ],
+        "parameters": {
+          "mode": "template",
+          "fields": [
+            {
+              "name": "{{client_name}}",
+              "value": "={{$json[\"client_name\"]}}"
+            },
+            {
+              "name": "{{project_scope}}",
+              "value": "={{$json[\"project_scope\"]}}"
+            },
+            {
+              "name": "{{deadline}}",
+              "value": "={{$json[\"deadline\"]}}"
+            }
+          ],
+          "documentId": "your-template-id"
+        },
+        "credentials": {
+          "googleApi": {
+            "id": "credential-id",
+            "name": "googleApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Export as PDF",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          700,
+          300
+        ],
+        "parameters": {
+          "fileId": "={{$node[\"Fill Contract Template\"].json[\"documentId\"]}}",
+          "mimeType": "application/pdf",
+          "operation": "export"
+        },
+        "credentials": {
+          "googleApi": {
+            "id": "credential-id",
+            "name": "googleApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Send via Email",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          900,
+          300
+        ],
+        "parameters": {
+          "text": "Hi {{$json[\"client_name\"]}},\n\nPlease find attached your contract.\n\nRegards,\nYour Company",
+          "subject": "Your Contract",
+          "toEmail": "={{$json[\"email\"]}}",
+          "fromEmail": "user@example.com",
+          "attachments": [
+            {
+              "binaryPropertyName": "data"
+            }
+          ]
+        },
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "credential-id",
+            "name": "gmailOAuth2 Credential"
+          }
+        },
+        "typeVersion": 1
+      }
+    ],
+    "connections": {
+      "Export as PDF": {
+        "main": [
+          [
+            {
+              "node": "Send via Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Variables": {
+        "main": [
+          [
+            {
+              "node": "Fill Contract Template",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Typeform Trigger": {
+        "main": [
+          [
+            {
+              "node": "Set Variables",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fill Contract Template": {
+        "main": [
+          [
+            {
+              "node": "Export as PDF",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 35,
+      "name": "Document Extraction"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6817",
+  "fetched_at": "2026-09-12T13:11:34Z"
+}

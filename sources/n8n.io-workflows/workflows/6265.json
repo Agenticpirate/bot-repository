@@ -1,0 +1,278 @@
+{
+  "id": 6265,
+  "name": "Automated gold price threshold alerts via LINE with web scraping",
+  "description": "## Gold Price Alert\nThis workflow template, \"Gold Price Alert,\" is designed to monitor gold prices at regular intervals and send real-time notifications via LINE when the price exceeds a specified threshold. By leveraging the power of web scraping and automated alerts, this template ensures you stay informed about significant changes in gold prices without manual intervention.\n\nWhether you're an investor, trader, or simply someone interested in tracking gold prices, this workflow provides a reliable and customizable solution for staying updated.\n\n## Who Is This Template For?\n- Investors & Traders: Who want to monitor gold prices and receive alerts when the price reaches a specific threshold.\n- Financial Analysts: Looking for automated tools to track commodity prices.\nBusinesses: Operating in industries where gold prices impact operations or profitability.\n- Automation Enthusiasts: Seeking to build workflows that combine web scraping, data processing, and messaging platforms.\n\n## What Problem Does This Workflow Solve?\nTracking gold prices manually can be time-consuming and prone to oversight, especially if you’re monitoring multiple sources or need alerts for specific thresholds. \n\n## This workflow solves that problem by:\n\n- Automatically checking gold prices every 6 hours using a schedule trigger.\n- Extracting the latest price from a trusted source (e.g., Gold Traders Association ).\n- Sending instant notifications via LINE when the price exceeds a predefined threshold (e.g., 52,300 THB).\n- Reducing the need for constant manual checks while ensuring timely updates.\n\n## What This Workflow Does\n1) Scheduled Trigger:\nThe workflow is triggered every 6 hours to check the current gold price.\n2) Fetch Webpage Content:\nIt retrieves the HTML content of the webpage displaying the latest gold prices.\n3) Extract Price Data:\nUsing CSS selectors, the workflow extracts the relevant price data (e.g., buying price) from the HTML content.\n4) Filter Prices:\nThe extracted price is converted into a numeric format and compared against a predefined threshold (e.g., 52,300 THB). Alerts are only sent if the price exceeds this value.\n5) Send Notification via LINE:\nIf the condition is met, the workflow sends a notification to your LINE account with the current gold price.\n\n## Setup Guide\nPre-Requisites\n- Access to the LINE Developers Console to configure your API Access Token\n- Basic knowledge of HTML and CSS selectors for extracting data from webpages.\n- Familiarity with n8n workflows and JSON formatting.\n\nStep-by-Step Setup\n1) Configure the Schedule Trigger:\nSet the interval to 6 hours or adjust it based on your preference.\n2) Set Up Webpage Fetching:\nUpdate the URL in the HTTP Request node to point to the webpage containing the gold price data.\n3) Extract Price Data:\nUse the HTML Extractor node to specify the CSS selector for the price element (e.g., #DetailPlace_uc_goldprices1_lblBLBuy).\n4) Set Price Threshold:\nModify the threshold value in the If node to match your desired alert level (e.g., 52,300 THB).\n5) Configure LINE Push API:\nReplace the placeholder to field in the Send Line Message node with your LINE user ID to ensure notifications are sent to the correct account.\n\nTest the Workflow:\n- Run the workflow manually to verify that it fetches the price, evaluates the condition, and sends notifications correctly.\n\n## How to Customize This Workflow to Your Needs\n- Change the Interval: Adjust the schedule trigger to check prices more or less frequently (e.g., hourly or daily).\n- Monitor Multiple Prices: Extend the workflow to extract and compare additional price points (e.g., selling price, international rates).\n- Integrate Other Platforms: Replace the LINE notification with integrations for Telegram, email, or SMS.\n- Expand Use Cases: Adapt the workflow to track other commodities or financial indicators by modifying the webpage URL and CSS selectors.\n\n## Why Use This Template?\n- Real-Time Alerts: Stay informed about significant changes in gold prices without manual intervention.\n- Customizable Thresholds: Set your own price thresholds to receive alerts tailored to your needs.\n- Easy Integration: Seamlessly integrates with LINE for quick setup and minimal maintenance.\n- Scalable: Easily extend the workflow to monitor multiple data points or integrate with other platforms.",
+  "workflow": {
+    "id": "CQ33IAKSfdDbLzmK",
+    "meta": {
+      "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+    },
+    "name": "Gold Price Alert",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "771277db-5553-4d8f-8519-a27e25107178",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -480,
+          20
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "hours",
+                "hoursInterval": 6
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "cf148eee-50dc-41a7-9555-a906676bbc81",
+        "name": "If",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          360,
+          20
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "6decc8be-9041-4975-b700-16f8360578b5",
+                "operator": {
+                  "type": "number",
+                  "operation": "gt"
+                },
+                "leftValue": "={{ parseFloat($json['#DetailPlace_uc_goldprices1_lblBLBuy'].replace(/[^\\d.]/g, '')) }}",
+                "rightValue": 52300
+              },
+              {
+                "id": "553a009d-a08a-4746-b546-d1a43352b07f",
+                "operator": {
+                  "name": "filter.operator.equals",
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "",
+                "rightValue": ""
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "f98523e4-4dbc-486c-9a7e-babb024aa907",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -560,
+          -80
+        ],
+        "parameters": {
+          "width": 260,
+          "height": 260,
+          "content": "Schedule to check every 6 hours to see the current gold price"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "62bd43cd-755c-44b7-b30d-27416d61f9a5",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -280,
+          -80
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 260,
+          "height": 260,
+          "content": "To get normal webpage, we can use HTTP request without any authoriation and the output will be HTML code"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e6d39001-667e-4632-9b46-2890e2c9aa60",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          0,
+          -80
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 260,
+          "height": 260,
+          "content": "We would specify what we want from the HTML code earlier eg. Price -- You can find the element by right click > inspect "
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ec2e7f8b-1867-436a-8537-af9c69d9c726",
+        "name": "Get Webpage",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -200,
+          20
+        ],
+        "parameters": {
+          "url": "https://www.goldtraders.or.th/",
+          "options": {}
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "35f7cac8-ce35-4ba8-893d-aa69e0ea5141",
+        "name": "Extract Price",
+        "type": "n8n-nodes-base.html",
+        "position": [
+          80,
+          20
+        ],
+        "parameters": {
+          "options": {},
+          "operation": "extractHtmlContent",
+          "extractionValues": {
+            "values": [
+              {
+                "key": "#DetailPlace_uc_goldprices1_lblBLBuy",
+                "cssSelector": "#DetailPlace_uc_goldprices1_lblBLBuy"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "a8f8d4ed-124d-4921-a03a-25459a015100",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          280,
+          -140
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 260,
+          "height": 320,
+          "content": "We do not want all the alerts. Thus, we only filter to alert once the price is more than the given number.\n\nIn order to compare, we also need to convert the text to number as well."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1a3cce75-f2d0-4934-b0c9-7c7f8b4e5681",
+        "name": "Send Line Message",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          660,
+          -120
+        ],
+        "parameters": {
+          "url": "https://api.line.me/v2/bot/message/push",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n    \"to\": \"Ue9cc622e33e5333e3784298412ec9aed\",\n    \"messages\":[\n        {\n            \"type\":\"text\",\n            \"text\":\"ราคาทองวันนี้  {{ $json['#DetailPlace_uc_goldprices1_lblBLBuy'] }}\"\n        }\n    ]\n}",
+          "sendBody": true,
+          "specifyBody": "json",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "credential-id",
+            "name": "httpHeaderAuth Credential"
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "b979a549-4717-49f1-8678-e3b699682dc9",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          580,
+          -220
+        ],
+        "parameters": {
+          "width": 260,
+          "height": 260,
+          "content": "When the condition is met, it'll send the message via line. This can be other platform such as telegram or email"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "ac7f75f8-6820-4ec3-9934-0fbcc45cfad3",
+    "connections": {
+      "If": {
+        "main": [
+          [
+            {
+              "node": "Send Line Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Webpage": {
+        "main": [
+          [
+            {
+              "node": "Extract Price",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Price": {
+        "main": [
+          [
+            {
+              "node": "If",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Get Webpage",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 44,
+      "name": "Crypto Trading"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6265",
+  "fetched_at": "2026-09-12T13:11:15Z"
+}

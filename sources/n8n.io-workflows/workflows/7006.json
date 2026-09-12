@@ -1,0 +1,232 @@
+{
+  "id": 7006,
+  "name": "Track food calories via Telegram with GPT-4 Vision and Google Sheets",
+  "description": "\n\nThis workflow enables users to submit food images to a Telegram bot, which uses OpenAI’s GPT-4 Vision to identify the item and estimate its caloric value. The results are stored in Google Sheets and sent back to the user.\n\n### What it does:\n1. Triggers on a photo sent via Telegram.\n2. Acknowledges the user with a sticky note message.\n3. Downloads the image file securely using Telegram's API.\n4. Sends the image to GPT-4 Vision with a prompt: *“Describe this food and estimate its calories.”*\n5. Logs the GPT response to a Google Sheet (with timestamp).\n6. Replies to the user with the result (e.g., food name and estimated calories).\n\n### Use cases:\n- Personal food tracking\n- Nutrition logging via chat\n- Meal journaling for fitness or health\n\n### Requirements:\n- Telegram Bot Token (via credentials)\n- OpenAI GPT-4 Vision access\n- Google Sheets credential with access to the target sheet\n\n### Notes:\n- You can extend this template to calculate daily totals, categorize meals (breakfast/lunch/dinner), or even integrate with calorie goals.\n- The sticky note node confirms receipt to enhance UX.\n- Ideal for wellness apps, chat-based food journals, or AI-powered health bots.\n",
+  "workflow": {
+    "name": "Telegram Food Calorie Tracker",
+    "nodes": [
+      {
+        "name": "Telegram Trigger",
+        "type": "n8n-nodes-base.telegramTrigger",
+        "position": [
+          200,
+          300
+        ],
+        "parameters": {
+          "updates": [
+            "message"
+          ]
+        },
+        "credentials": {
+          "telegramApi": {
+            "id": "credential-id",
+            "name": "telegramApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note: Acknowledge",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          400,
+          300
+        ],
+        "parameters": {
+          "text": "🧠 Thanks! I’m analyzing your food image now...",
+          "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "telegramApi": {
+            "id": "credential-id",
+            "name": "telegramApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Download Telegram Image",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          600,
+          300
+        ],
+        "parameters": {
+          "fileId": "={{$json[\"message\"][\"photo\"][ $json[\"message\"][\"photo\"].length - 1 ][\"file_id\"]}}",
+          "resource": "file",
+          "operation": "download"
+        },
+        "credentials": {
+          "telegramApi": {
+            "id": "credential-id",
+            "name": "telegramApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Prepare Binary Image",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          800,
+          300
+        ],
+        "parameters": {
+          "functionCode": "return [{ binary: { image: items[0].binary.data } }];"
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "GPT-4 Vision Analyze",
+        "type": "n8n-nodes-base.openai",
+        "position": [
+          1000,
+          300
+        ],
+        "parameters": {
+          "model": "gpt-4-vision-preview",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "text": "Describe this food and estimate its calories.",
+                  "type": "text"
+                },
+                {
+                  "type": "image_url",
+                  "image_url": "={{$binary.image.data}}"
+                }
+              ]
+            }
+          ]
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "credential-id",
+            "name": "openAiApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Log to Google Sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1200,
+          300
+        ],
+        "parameters": {
+          "range": "Sheet1!A:C",
+          "values": "={{ [[new Date().toISOString(), $json[\"text\"]]] }}",
+          "options": {},
+          "sheetId": "{{GOOGLE_SHEET_ID}}",
+          "authentication": "oAuth2"
+        },
+        "credentials": {
+          "googleApi": {
+            "id": "credential-id",
+            "name": "googleApi Credential"
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "name": "Send GPT Result",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          1400,
+          300
+        ],
+        "parameters": {
+          "text": "={{$json[\"text\"]}}",
+          "chatId": "={{$json[\"message\"][\"chat\"][\"id\"]}}",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "telegramApi": {
+            "id": "credential-id",
+            "name": "telegramApi Credential"
+          }
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "connections": {
+      "Telegram Trigger": {
+        "main": [
+          [
+            {
+              "node": "Sticky Note: Acknowledge",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GPT-4 Vision Analyze": {
+        "main": [
+          [
+            {
+              "node": "Log to Google Sheet",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Send GPT Result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Binary Image": {
+        "main": [
+          [
+            {
+              "node": "GPT-4 Vision Analyze",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Download Telegram Image": {
+        "main": [
+          [
+            {
+              "node": "Prepare Binary Image",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Sticky Note: Acknowledge": {
+        "main": [
+          [
+            {
+              "node": "Download Telegram Image",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 43,
+      "name": "Personal Productivity"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7006",
+  "fetched_at": "2026-09-12T13:11:40Z"
+}

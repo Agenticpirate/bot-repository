@@ -1,0 +1,436 @@
+{
+  "id": 8593,
+  "name": "Automate meeting scheduling through Telegram with Google Calendar & Notion CRM",
+  "description": "# 💼 Graceful Scheduler Bot — Client & Affiliate Booking Automation\n\nThe **Graceful Scheduler Bot** transforms scheduling into an elegant, automated process.  \nClients and affiliates simply send a `/book` message in Telegram, and the workflow manages everything:  \nconflict checks, calendar booking, confirmations, CRM logging, and reminders. ✨\n\n---\n\n## 🌸 Features\n- 📲 **Telegram Intake**: Accepts `/book` command with meeting type, date, time, and email.  \n- 📅 **Google Calendar Integration**: Checks if the requested time is free and creates a 30-minute event.  \n- 💌 **Confirmations**: Sends instant confirmation by **Email** and **Telegram**.  \n- 🗂️ **Notion CRM Log**: Records details (Name, Email, Meeting Type, Date, Status).  \n- ⏰ **Reminders**: Sends polite reminders 24h before the meeting via **Email** and **Telegram**.  \n\n---\n\n## ⚙️ Setup Instructions\n1. **Telegram Bot**:  \n   - Create a bot with BotFather  \n   - Add your token into n8n credentials  \n2. **Google Calendar**:  \n   - Connect your account in n8n credentials  \n   - Use `primary` or specify your calendar ID  \n3. **Email Send Node**:  \n   - Configure SMTP or Gmail OAuth  \n4. **Notion Database**:  \n   - Create a database with properties:  \n     - `Name` (title)  \n     - `Email` (email)  \n     - `Meeting Type` (select)  \n     - `Date` (date)  \n     - `Status` (select)  \n   - Replace `YOUR_NOTION_DATABASE_ID` in the workflow  \n5. **Customize Messages**:  \n   - Update confirmation + reminder copy to match your tone  \n6. **Test Example**:  \n    /book client 2025-09-20 14:00 hello@example.com Jane Doe\n\n---\n\n## 🧩 Node List\n- **Telegram Trigger** → listens for `/book` messages  \n- **Function (Parse Command)** → extracts meeting type, date/time, email, name  \n- **IF Valid?** → routes to help or booking flow  \n- **Google Calendar (Get Events)** → checks for conflicts  \n- **IF Time Free?** → prevents double booking  \n- **Google Calendar (Create Event)** → books slot + invites guest  \n- **Email Send (Confirmation)** → elegant confirmation email  \n- **Telegram (Confirmation)** → graceful in-chat confirmation  \n- **Notion (Create Page)** → logs details into CRM  \n- **Wait** → pauses until 24h before meeting  \n- **Email Send (Reminder)** → gentle email reminder  \n- **Telegram (Reminder)** → in-chat reminder  \n\n---\n\n## 🧪 Testing Tips\n- Start with a test booking command using today’s date/time.  \n- Check Google Calendar → event should appear with guest invite.  \n- Confirm both **email** and **Telegram** confirmations are sent.  \n- Verify a new page is created in your Notion database.  \n- Let the Wait node trigger → reminders should arrive 24h before.  \n\n---\n\n## 🏷️ Tags\n`Automation`, `Scheduling`, `Calendars`, `CRM`, `Telegram`, `Notion`\n\n---\n\n✨ With the **Graceful Scheduler Bot**, scheduling feels less like admin work and more like having your own **digital assistant** — polished, timely, and beautifully automated.\n",
+  "workflow": {
+    "meta": {
+      "templateCreatedBy": {
+        "id": "template-creator",
+        "name": "n8n Template Creator"
+      },
+      "templateCredentials": [
+        "notionApi",
+        "smtp",
+        "telegramApi"
+      ]
+    },
+    "name": "Automate client nurture emails and testimonial collection from Notion",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "sticky-overview",
+        "name": "Setup Guide",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -700,
+          20
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "sticky-config",
+        "name": "Configuration Instructions",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -700,
+          540
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "manual-trigger",
+        "name": "Manual Trigger",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          -300,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "schedule-trigger",
+        "name": "Schedule Daily",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -300,
+          420
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "settings",
+        "name": "Settings",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -60,
+          360
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "get-date",
+        "name": "Get Today Date",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          160,
+          360
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "query-notion",
+        "name": "Query Notion",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          380,
+          360
+        ],
+        "parameters": {},
+        "typeVersion": 4.1
+      },
+      {
+        "id": "calculate",
+        "name": "Calculate Days",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          600,
+          360
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "if-day7",
+        "name": "IF Day 7",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          820,
+          260
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "if-day30",
+        "name": "IF Day 30",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          820,
+          360
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "if-day60",
+        "name": "IF Day 60",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          820,
+          460
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "email-day7",
+        "name": "Email Day 7",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          1040,
+          260
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "email-day30",
+        "name": "Email Day 30",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          1040,
+          360
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "email-day60",
+        "name": "Email Day 60",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          1040,
+          460
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "telegram-notify",
+        "name": "Telegram Notify",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          1260,
+          360
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "webhook",
+        "name": "Testimonial Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -300,
+          640
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "parse-testimonial",
+        "name": "Parse Testimonial",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -60,
+          640
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "telegram-testimonial",
+        "name": "Notify Testimonial",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          160,
+          640
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "respond",
+        "name": "Respond",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          380,
+          640
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "connections": {
+      "Respond": {
+        "main": []
+      },
+      "IF Day 7": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Email Day 7",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Settings": {
+        "main": [
+          [
+            {
+              "node": "Get Today Date",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF Day 30": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Email Day 30",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF Day 60": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Email Day 60",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Email Day 7": {
+        "main": [
+          [
+            {
+              "node": "Telegram Notify",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Email Day 30": {
+        "main": [
+          [
+            {
+              "node": "Telegram Notify",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Email Day 60": {
+        "main": [
+          [
+            {
+              "node": "Telegram Notify",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Query Notion": {
+        "main": [
+          [
+            {
+              "node": "Calculate Days",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Calculate Days": {
+        "main": [
+          [
+            {
+              "node": "IF Day 7",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "IF Day 30",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "IF Day 60",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Today Date": {
+        "main": [
+          [
+            {
+              "node": "Query Notion",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Manual Trigger": {
+        "main": [
+          [
+            {
+              "node": "Settings",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Daily": {
+        "main": [
+          [
+            {
+              "node": "Settings",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse Testimonial": {
+        "main": [
+          [
+            {
+              "node": "Notify Testimonial",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Notify Testimonial": {
+        "main": [
+          [
+            {
+              "node": "Respond",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Testimonial Webhook": {
+        "main": [
+          [
+            {
+              "node": "Parse Testimonial",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "triggerCount": 2
+  },
+  "categories": [
+    {
+      "id": 40,
+      "name": "Support Chatbot"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8593",
+  "fetched_at": "2026-09-12T13:12:32Z"
+}

@@ -1,0 +1,424 @@
+{
+  "id": 8251,
+  "name": "WhatsApp AI agent that understand text, image , audio ",
+  "description": "Overview 📌\n\nThis template is a multimodal WhatsApp assistant that understands text, images, and audio, aggregates media inputs, and returns intelligent replies using Google Gemini. It can fetch knowledge from Google Docs, log conversations into Google Sheets, and respond via WhatsApp — all orchestrated inside n8n.\n\nFeatures ✨\n\nMultimodal input handling: Receives images and audio from WhatsApp, analyzes them, and sends contextual responses. 🖼️🎧\n\nAudio transcription: Converts voice messages to text for analysis. 🔊➡️📝\n\nImage analysis: Extracts objects/labels/text from images to inform responses. 🖼️🔍\n\nKnowledge fetch: Pulls relevant documents from Google Docs for richer answers. 📄📚\n\nConversation logging: Appends each interaction to Google Sheets for auditing or analytics. 📈\n\nModular design: Clear subflows for media reception, transcription, image analysis, aggregation, and the AI Agent. ⚙️\n\nReady for customization: Swap models, change providers, or extend with a vector store. 🔁\n\nRequirements ✅\n\nn8n instance (self-hosted or n8n.cloud) with public webhook access\n\nGoogle Cloud project with these APIs enabled: Vertex AI (Gemini), Cloud Vision API, Cloud Speech-to-Text, Drive & Docs & Sheets 🧠\n\nGoogle Service Account JSON key (with permissions for above services) 🔐\n\nWhatsApp Business API provider credentials (Twilio, 360dialog, or similar) 📞\n\n(Optional) Pinecone or another vector store if you want embeddings / retrieval augmentation 🗂️\n\nSetup Instructions 🔧\n\nImport the workflow\n\nDownload the .json from your package and in n8n Editor → Import → From File → select JSON. Save.\n\nCreate credentials\n\nGoogle Service Account: Create service account in GCP, grant Vertex AI, Vision, Speech, Drive, Docs, Sheets roles, download JSON → create n8n Google Service Account credential and upload JSON.\n\nWhatsApp: Add your WhatsApp API credentials (API key/token, phone ID, webhook secret).\n\n(Optional) Vector store: Add Pinecone credentials if using embeddings.\n\nConfigure media receiver nodes\n\nWhatsApp Trigger: Ensure webhook URL is set on your WhatsApp provider to forward incoming messages/media to n8n. 🌐\n\nAudio Receiver nodes: point to incoming audio payload path or download URL. 🎧\n\nImage Receiver nodes: point to image URL or attachment field. 🖼️\n\nTranscription & Image Analysis\n\nTranscribe Audio: Select Google Speech-to-Text via your Google Service Account credential. Confirm language and sampling settings. 🗣️➡️📝\n\nAnalyze Image: Point to Vision API via same Google credential. Choose required outputs (labels, landmarks, OCR). 🔎\n\nAggregate media\n\nConfirm the Aggregate node collects text + transcribed audio + image analysis results into a single payload for the AI Agent. 🧩\n\nAI Agent (Gemini)\n\nOpen AI Agent node → choose your Google Gemini/Vertex AI credentials.\n\nEdit System Prompt to include: how to prioritize image/audio text, where to look up knowledge (Docs), and style/tone. Replace placeholders (business name, policies). ✍️\n\nKnowledge Fetch (Google Docs)\n\nConfigure Get a document in Google Docs node to point to your knowledge docs folder or specific document IDs. 📂\n\nConversation Logging\n\nConfigure Google Sheets node to append rows to your chosen spreadsheet (structure below). 🧾\n\nWhatsApp Reply\n\nMap AI Agent output to the WhatsApp Send message node and choose template messaging if needed. 💬\n\nTest end-to-end\n\nActivate the workflow, send a text message, an image, and an audio message to your WhatsApp test number. Verify the AI reply and that logs appear in Google Sheets. 🧪\n\nGoogle Sheet: Conversation Log (suggested columns) 🗒️\nColumn\tType\tDescription\nTimestamp\tDate/Time\tWhen the message arrived\nUserID\tText\tWhatsApp user identifier (phone)\nMessageType\tText\ttext / image / audio / mixed\nMessageText\tText\tOriginal text or transcribed text\nImageAnalysis\tText\tVision API summary / labels / OCR text\nAttachmentURL\tText\tLink to image/audio file\nAIResponse\tText\tFinal text reply sent to user\nNotes\tText\tAny extra flags (e.g., escalation)\nCustomization 🔁\n\nSwap Gemini with another model provider by changing the AI node credentials and prompt structure. 🔄\n\nAdd a vector store (Pinecone) to enable retrieval-augmented generation from indexed docs. 🧠\n\nExtend image analysis to OCR for receipts/invoices or barcode detection. 📑\n\nAdd an escalation path (send to human) by adding an “If → Escalate” node when confidence is low. 🚨\n\nSuggested Node Renaming (for clarity) 🏷️\n\nRename generic nodes to explicit names so reviewers and users instantly understand flow:\n\nWhatsApp Trigger → WhatsApp Trigger (Inbound)\n\nSwitch → Message Type Router\n\naudio receiver1/2 → Audio Receiver (Download) / Audio Receiver (Fallback) 🎧\n\nTranscribe a recording → Transcribe Audio (Speech-to-Text) 📝\n\nimage receiver1/2 → Image Receiver (Download) / Image Receiver (Fallback) 🖼️\n\nAnalyze image → Image Analysis (Vision API) 🔍\n\nAggregate → Aggregate Media Inputs 🧩\n\nAI Agent → Multimodal AI Agent (Gemini) 🤖\n\nGet a document in Google Docs → Fetch Knowledge Doc 📂\n\nCode → Format AI Response 🧾\n\nSend message → WhatsApp – Send Reply 💬\n\nTesting & Going Live 🚀\n\nEnsure n8n webhook is publicly reachable (use an SSL domain/tunnel). 🔒\n\nTest in a sandbox WhatsApp number first. 🧪\n\nMonitor n8n Executions and enable an Error Workflow for graceful failure handling. ⚠️\n\nIf you expect high media volume, consider storage/retention policy for attachments. 🗄️\n\nSupport & Notes 🤝\n\nI offer setup assistance and will help troubleshoot credential issues or prompt tuning until your workflow is working perfectly. Include contact info and a short support pledge in your template description to build trust.\nFeel free to ping me anytime—even after launch!👉 Contact: tharwat.elsayed2000@gmail.com | +20 106 180 3236",
+  "workflow": {
+    "id": "{{CREDENTIAL_ID}}",
+    "meta": {
+      "instanceId": "23ae6e26b6c29172a4aac9b4149bfa956471932012bf9fd6ff44c5409db4d9b6"
+    },
+    "name": "voice and audio chatbot",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "9428edaa-24a2-4137-b078-9359c6db6dbf",
+        "name": "WhatsApp Trigger",
+        "type": "n8n-nodes-base.whatsAppTrigger",
+        "position": [
+          -496,
+          304
+        ],
+        "webhookId": "{{WEBHOOK_ID}}",
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "10cd7dd7-a14a-4b92-a5c7-91bb2c76bd79",
+        "name": "Transcribe a recording",
+        "type": "@n8n/n8n-nodes-langchain.googleGemini",
+        "position": [
+          400,
+          96
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "782dc37a-9f7c-4638-abf1-7131ad795fb3",
+        "name": "AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          912,
+          240
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "c911b184-08c1-4418-aba3-daea79cdc006",
+        "name": "Google Gemini Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "position": [
+          848,
+          464
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "dcdef524-8dea-4fa5-bfe2-2e116808f5ac",
+        "name": "Simple Memory",
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "position": [
+          976,
+          464
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "6d212773-4ca4-4a29-8bfd-317019bb2b2a",
+        "name": "Append or update row in sheet in Google Sheets",
+        "type": "n8n-nodes-base.googleSheetsTool",
+        "position": [
+          1104,
+          464
+        ],
+        "parameters": {},
+        "typeVersion": 4.7
+      },
+      {
+        "id": "d005c2b9-1978-4fdf-9f9e-f7cc2cf68f36",
+        "name": "Aggregate",
+        "type": "n8n-nodes-base.aggregate",
+        "position": [
+          624,
+          240
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "a7ef40f2-136d-4973-a743-2337d8ca5827",
+        "name": "Send message",
+        "type": "n8n-nodes-base.whatsApp",
+        "position": [
+          1536,
+          240
+        ],
+        "webhookId": "{{WEBHOOK_ID}}",
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "b6276da2-9a32-4166-af8a-44025f6d1b0e",
+        "name": "Send message1",
+        "type": "n8n-nodes-base.whatsApp",
+        "position": [
+          -48,
+          576
+        ],
+        "webhookId": "{{WEBHOOK_ID}}",
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "ac011f6f-f983-49f7-886b-125e25e6f769",
+        "name": "Analyze image",
+        "type": "@n8n/n8n-nodes-langchain.googleGemini",
+        "position": [
+          400,
+          384
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "56c2e243-dcda-494e-b148-2c60c93a60bd",
+        "name": "audio receiver1",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -48,
+          96
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "33036a79-dde3-4615-b1e2-37cb2d27c1c1",
+        "name": "audio receiver 2",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          176,
+          96
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "c0993db9-5c5c-46c6-8790-832e9cc7b08e",
+        "name": "image receiver 1",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -48,
+          384
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "39256523-5f18-40f4-99bc-83b28442c0e7",
+        "name": "image receiver2",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          176,
+          384
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "452e3b0e-42d4-47bb-96a9-8a0873317d3c",
+        "name": "Get a document in Google Docs",
+        "type": "n8n-nodes-base.googleDocsTool",
+        "position": [
+          1248,
+          464
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "cb8fcc38-a2cb-48e8-94dc-a217ee1dc2ef",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1344,
+          -32
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9f296d30-c60e-4ee2-9584-a00fe9447024",
+        "name": "clean response",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1312,
+          240
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "aee1a710-4304-486c-8866-76b001a5bebf",
+        "name": "Switch(route incoming messages based on type)",
+        "type": "n8n-nodes-base.switch",
+        "position": [
+          -272,
+          272
+        ],
+        "parameters": {},
+        "typeVersion": 3.2
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "f18a82e3-3e16-450d-a330-0b21c2c6af05",
+    "connections": {
+      "AI Agent": {
+        "main": [
+          [
+            {
+              "node": "clean response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Aggregate": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Analyze image": {
+        "main": [
+          [
+            {
+              "node": "Aggregate",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Simple Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "clean response": {
+        "main": [
+          [
+            {
+              "node": "Send message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "audio receiver1": {
+        "main": [
+          [
+            {
+              "node": "audio receiver 2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "image receiver2": {
+        "main": [
+          [
+            {
+              "node": "Analyze image",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "WhatsApp Trigger": {
+        "main": [
+          [
+            {
+              "node": "Switch(route incoming messages based on type)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "audio receiver 2": {
+        "main": [
+          [
+            {
+              "node": "Transcribe a recording",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "image receiver 1": {
+        "main": [
+          [
+            {
+              "node": "image receiver2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Transcribe a recording": {
+        "main": [
+          [
+            {
+              "node": "Aggregate",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Gemini Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get a document in Google Docs": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Switch(route incoming messages based on type)": {
+        "main": [
+          [
+            {
+              "node": "Aggregate",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "audio receiver1",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "image receiver 1",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Send message1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Append or update row in sheet in Google Sheets": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 40,
+      "name": "Support Chatbot"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8251",
+  "fetched_at": "2026-09-12T13:12:22Z"
+}

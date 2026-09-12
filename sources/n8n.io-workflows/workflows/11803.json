@@ -1,0 +1,494 @@
+{
+  "id": 11803,
+  "name": "Track e-commerce price changes with ScrapeGraphAI, Baserow & Pushover alerts",
+  "description": "# Product Price Monitor with Pushover and Baserow\n\n**⚠️ COMMUNITY TEMPLATE DISCLAIMER: This is a community-contributed template that uses ScrapeGraphAI (a community node). Please ensure you have the ScrapeGraphAI community node installed in your n8n instance before using this template.**\n\nThis workflow automatically scrapes multiple e-commerce sites for selected products, analyzes weekly pricing trends, stores historical data in Baserow, and sends an instant Pushover notification when significant price changes occur. It is ideal for retailers who need to track seasonal fluctuations and optimize inventory or pricing strategies.\n\n## Pre-conditions/Requirements\n\n### Prerequisites\n- An active n8n instance (self-hosted or n8n.cloud)\n- ScrapeGraphAI community node installed\n- At least one publicly accessible webhook URL (for on-demand runs)\n- A Baserow database with a table prepared for product data\n- Pushover account and registered application\n\n### Required Credentials\n- **ScrapeGraphAI API Key** – Enables web-scraping capabilities  \n- **Baserow: Personal API Token** – Allows read/write access to your table  \n- **Pushover: User Key & API Token** – Sends mobile/desktop push notifications  \n- (Optional) **HTTP Basic Token or API Keys** for any private e-commerce endpoints you plan to monitor\n\n### Baserow Table Specification\n| Field Name | Type      | Description              |\n|------------|-----------|--------------------------|\n| Product ID | Number    | Internal or SKU          |\n| Name       | Text      | Product title            |\n| URL        | URL       | Product page             |\n| Price      | Number    | Current price (float)    |\n| Currency   | Single select (`USD`, `EUR`, etc.) |\n| Last Seen  | Date/Time | Last price check         |\n| Trend      | Number    | 7-day % change           |\n\n## How it works\n\nThis workflow automatically scrapes multiple e-commerce sites for selected products, analyzes weekly pricing trends, stores historical data in Baserow, and sends an instant Pushover notification when significant price changes occur. It is ideal for retailers who need to track seasonal fluctuations and optimize inventory or pricing strategies.\n\n## Key Steps:\n- **Webhook Trigger**: Manually or externally trigger the weekly price-check run.\n- **Set Node**: Define an array of product URLs and metadata.\n- **Split In Batches**: Process products one at a time to avoid rate limits.\n- **ScrapeGraphAI Node**: Extract current price, title, and availability from each URL.\n- **If Node**: Determine if price has changed &gt; ±5 % since last entry.\n- **HTTP Request (Trend API)**: Retrieve seasonal trend scores (optional).\n- **Merge Node**: Combine scrape data with trend analysis.\n- **Baserow Nodes**: Upsert latest record and fetch historical data for comparison.\n- **Pushover Node**: Send alert when significant price movement detected.\n- **Sticky Notes**: Documentation and inline comments for maintainability.\n\n## Set up steps\n\n**Setup Time: 15-25 minutes**\n\n1. **Install Community Node**: In n8n, go to “Settings → Community Nodes” and install **ScrapeGraphAI**.\n2. **Create Baserow Table**: Match the field structure shown above.\n3. **Obtain Credentials**: \n   - ScrapeGraphAI API key from your dashboard  \n   - Baserow personal token (`/account/settings`)  \n   - Pushover user key & API token\n4. **Clone Workflow**: Import this template into n8n.\n5. **Configure Credentials in Nodes**: Open each ScrapeGraphAI, Baserow, and Pushover node and select/enter the appropriate credential.\n6. **Add Product URLs**: Open the first **Set** node and replace the example array with your actual product list.\n7. **Adjust Thresholds**: In the **If** node, change the `5` value if you want a higher/lower alert threshold.\n8. **Test Run**: Execute the workflow manually; verify Baserow rows and the Pushover notification.\n9. **Schedule**: Add a **Cron** trigger or external scheduler to run weekly.\n\n## Node Descriptions\n\n### Core Workflow Nodes:\n- **Webhook** – Entry point for manual or API-based triggers.\n- **Set** – Holds the array of product URLs and meta fields.\n- **SplitInBatches** – Iterates through each product to prevent request spikes.\n- **ScrapeGraphAI** – Scrapes price, title, and currency from product pages.\n- **If** – Compares new price vs. previous price in Baserow.\n- **HTTP Request** – Calls a trend API (e.g., Google Trends) to get seasonal score.\n- **Merge** – Combines scraping results with trend data.\n- **Baserow (Upsert & Read)** – Writes fresh data and fetches historical price for comparison.\n- **Pushover** – Sends formatted push notification with price delta.\n- **StickyNote** – Documents purpose and hints within the workflow.\n\n### Data Flow:\n1. **Webhook** → **Set** → **SplitInBatches** → **ScrapeGraphAI**  \n2. **ScrapeGraphAI** → **If**  \n   - **True** branch → **HTTP Request** → **Merge** → **Baserow Upsert** → **Pushover**  \n   - **False** branch → **Baserow Upsert**\n\n## Customization Examples\n\n### Change Notification Channel to Slack\n```javascript\n// Replace the Pushover node with Slack\n{\n  \"channel\": \"#pricing-alerts\",\n  \"text\": `🚨 ${$json[\"Name\"]} changed by ${$json[\"delta\"]}% – now ${$json[\"Price\"]} ${$json[\"Currency\"]}`\n}\n```\n\n### Additional Data Enrichment (Stock Status)\n```javascript\n// Add to ScrapeGraphAI's selector map\n{\n  \"stock\": {\n    \"selector\": \".availability span\",\n    \"type\": \"text\"\n  }\n}\n```\n\n## Data Output Format\n\nThe workflow outputs structured JSON data:\n\n```json\n{\n  \"ProductID\": 12345,\n  \"Name\": \"Winter Jacket\",\n  \"URL\": \"https://shop.example.com/winter-jacket\",\n  \"Price\": 79.99,\n  \"Currency\": \"USD\",\n  \"LastSeen\": \"2024-11-20T10:34:18.000Z\",\n  \"Trend\": 12,\n  \"delta\": -7.5\n}\n```\n\n## Troubleshooting\n\n### Common Issues\n1. **Empty scrape result** – Check if the product page changed its HTML structure; update CSS selectors in ScrapeGraphAI.\n2. **Baserow “Row not found” errors** – Ensure `Product ID` or another unique field is set as the primary key for upsert.\n\n### Performance Tips\n- Limit batch size to 5-10 URLs to avoid IP blocking.\n- Use n8n’s built-in proxy settings if scraping sites with geo-restrictions.\n\n**Pro Tips:**\n- Store historical JSON responses in a separate Baserow table for deeper analytics.\n- Standardize currency symbols to avoid false change detections.\n- Couple this workflow with an **n8n Dashboard** to visualize price trends in real-time.",
+  "workflow": {
+    "id": "y0Yk7da21T4u9zlp",
+    "meta": {
+      "instanceId": "99f4e9e67f2a926c174453b6675a71cc5fb71c1fb19cfc06d50531053c661324",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Product Price Monitor with Pushover and Baserow",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "2c7a5425-7dcd-4c4f-8f73-4094f8d4d54d",
+        "name": "Workflow Overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -288,
+          -288
+        ],
+        "parameters": {
+          "width": 550,
+          "height": 818,
+          "content": "## How it works\n\nThis webhook-driven workflow lets you fire price checks from any system, curl call, or no-code frontend. When the webhook receives a payload, it immediately loads a list of seasonal products that you define in the “Product Configuration” code node. Each product is processed in its own mini-loop so n8n can scale to dozens of URLs without hitting rate limits. ScrapeGraphAI visits every page and extracts the current price, name, and availability with an AI prompt so you never need brittle CSS selectors. A lightweight HTTP call then enriches those raw numbers with historical averages to calculate the exact percentage difference. After validation the workflow stores every record in Baserow for reporting and, if a price drop crosses your threshold, pushes an actionable notification to your phone via Pushover.\n\n## Setup steps\n\n1. Add ScrapeGraphAI API credentials  \n2. Add Baserow API credentials and table ID  \n3. Add your Pushover user and app tokens  \n4. Edit the “Product Configuration” code node with your URLs and thresholds  \n5. Optionally change the enrichment API endpoint in the HTTP node  \n6. Copy the webhook URL and trigger it with an empty POST to test  \n7. Enable the workflow"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "12c92554-c60b-41d5-b93d-090579ea4c9f",
+        "name": "Section – Trigger & Config",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          400,
+          -288
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 546,
+          "height": 798,
+          "content": "## Trigger & Configuration\n\nThe nodes under this note prepare everything the flow needs before any scraping happens. The Webhook Trigger exposes a public endpoint you can hit from a scheduler, another n8n workflow, or even Postman. The nearby “Product Configuration” code node keeps the product list, price-drop threshold, and any other metadata in one place. It returns one item per SKU so downstream nodes stay simple and stateless. Need to add or remove an item? Just update this single node—no fiddling with URLs in multiple places. Centralising setup here shortens onboarding time for team-mates and keeps business logic totally separate from scraping and storage tasks."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "bd2d56a7-7b32-4220-9b5c-0521c72f4d47",
+        "name": "Section – Scraping",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          992,
+          -288
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 450,
+          "height": 798,
+          "content": "## Scraping\n\nThis cluster handles live data retrieval using ScrapeGraphAI. The Split In Batches node feeds one product at a time to respect rate limits and reduce the chance of anti-bot blocks. ScrapeGraphAI then loads each product page and, via a natural-language prompt, extracts the title, numeric price, currency, and availability flag. Because it relies on semantic understanding rather than brittle selectors, the scraper keeps working even when the retailer adds holiday banners or minor layout tweaks. The resulting JSON is clean, well-structured, and ready for enrichment in the next section."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "376a02e1-eb4c-4628-99e4-6086bc3ae48a",
+        "name": "Section – Enrichment",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1472,
+          -272
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 450,
+          "height": 782,
+          "content": "## Enrichment\n\nRaw numbers become insights when you add context. The HTTP Request node calls an external pricing API—swap this for your preferred endpoint—to fetch the product’s 90-day average price. The Merge node then stitches together live and historical data so subsequent calculations have everything in one object. Fetching history on-demand keeps the workflow stateless and your database lean. Because enrichment happens immediately after scraping, every later node only deals with fully-formed, context-rich items, simplifying logic and making future expansions—like currency conversion or competitor comparisons—straightforward."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "02fd80a0-cc90-413d-9c17-933f9c5892f5",
+        "name": "Section – Storage & Validation",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1952,
+          -272
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 450,
+          "height": 798,
+          "content": "## Storage & Validation\n\nThe “Transform & Enrich Data” code node standardises field names, converts strings to proper numbers, calculates the percentage drop, and stamps each record with an ISO timestamp. Only validated, well-structured objects move forward, keeping your database pristine. The Baserow node persists every record so analysts—and even non-technical teammates—can slice, dice, or export the data from a friendly spreadsheet interface. Storing every scrape, successful or not, provides an auditable history that helps debug anomalies or prove pricing trends when negotiating with suppliers."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9daa18eb-c090-4128-9436-b315e91db091",
+        "name": "Section – Notifications",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2448,
+          -272
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 450,
+          "height": 782,
+          "content": "## Alerts & Error Handling\n\nTwo separate paths keep the noise down while ensuring you never miss an important event. When the calculated price drop exceeds your threshold, the workflow formats a concise alert and pushes it to your phone via Pushover. A second path captures scraping errors—such as missing price data or page time-outs—and sends a distinct high-priority notification. Splitting alerts like this lets you ignore routine activity and focus on genuine issues or opportunities. Because both messages use the same credential block, you configure Pushover once and the workflow handles everything else automatically."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9ffea5c4-20db-498b-9567-006274787429",
+        "name": "Price Monitor Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          416,
+          64
+        ],
+        "webhookId": "48fb9c92-9515-41c6-9098-f5672d1c6395",
+        "parameters": {
+          "path": "product-price-monitor",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8600f836-a66b-4a46-8776-441bb272835d",
+        "name": "Product Configuration",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          624,
+          64
+        ],
+        "parameters": {
+          "jsCode": "const products = [\n  { name: 'Winter Jacket', url: 'https://example.com/winter-jacket', thresholdPercentage: 10 },\n  { name: 'Snow Boots', url: 'https://example.com/snow-boots', thresholdPercentage: 10 }\n];\nreturn products.map(p => ({ json: p }));"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "8fcdbc1f-c8ce-4b02-aba3-fb947ce8019b",
+        "name": "Loop Products",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          816,
+          64
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "73e65849-2bd0-49c2-9d60-bb8bb55358df",
+        "name": "Scrape Product Data",
+        "type": "n8n-nodes-scrapegraphai.scrapegraphAi",
+        "position": [
+          1024,
+          64
+        ],
+        "parameters": {
+          "userPrompt": "Extract the product title as \\\"name\\\", numeric price as \\\"price\\\", currency as \\\"currency\\\", and availability text as \\\"availability\\\". Respond as JSON.",
+          "websiteUrl": "={{ $json.url }}"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f59fd8d2-8926-4fb8-9aae-21ccb8dc9f06",
+        "name": "Valid Price Check",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1216,
+          64
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "number": [
+              {
+                "value1": "={{ $json.price }}",
+                "value2": 0,
+                "operation": "larger"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "ccff1ea2-2a8d-4895-9448-b8bf83f1e028",
+        "name": "Fetch Historical Data",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1520,
+          192
+        ],
+        "parameters": {
+          "url": "={{ 'https://api.pricingexample.com/history?name=' + encodeURIComponent($json.name) }}",
+          "options": {}
+        },
+        "typeVersion": 4
+      },
+      {
+        "id": "ca7b92e4-c98d-4494-a3d4-f60956b0668c",
+        "name": "Combine Scrape & History",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          1648,
+          192
+        ],
+        "parameters": {
+          "mode": "mergeByIndex",
+          "options": {}
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "719828e5-438e-4beb-b716-7a1d04352480",
+        "name": "Transform & Enrich Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1792,
+          192
+        ],
+        "parameters": {
+          "jsCode": "const items = $input.all();\nreturn items.map(item => {\n  const current = Number(item.json.price);\n  const average = Number(item.json.averagePrice || item.json.average_price || 0);\n  const drop = average > 0 ? ((average - current) / average) * 100 : 0;\n  return {\n    json: {\n      ...item.json,\n      averagePrice: average,\n      changePercent: Number(drop.toFixed(2)),\n      timestamp: new Date().toISOString(),\n      thresholdPercentage: item.json.thresholdPercentage || 10\n    }\n  };\n});"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "36d847a1-cb58-4582-8c2f-110b914b77e5",
+        "name": "Price Drop?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          2192,
+          176
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "number": [
+              {
+                "value1": "={{ $json.changePercent }}",
+                "value2": "={{ $json.thresholdPercentage }}",
+                "operation": "larger"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "9fcd677f-6e4f-4057-ab69-c7dd263952a3",
+        "name": "Prepare Alert Message",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          2528,
+          224
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "dd463c6b-a9ad-423f-8783-5c1b89e8c3b6",
+        "name": "Send Pushover Alert",
+        "type": "n8n-nodes-base.pushover",
+        "position": [
+          2720,
+          256
+        ],
+        "parameters": {
+          "message": "={{ $json.message }}",
+          "priority": 0,
+          "additionalFields": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "66ff0592-ff37-43d9-a568-0332adeff9be",
+        "name": "Prepare Error Message",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1568,
+          352
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "6c21cd35-b154-40f0-8f9f-35f397c04489",
+        "name": "Send Error Alert",
+        "type": "n8n-nodes-base.pushover",
+        "position": [
+          1760,
+          336
+        ],
+        "parameters": {
+          "message": "={{ $json.message }}",
+          "priority": 1,
+          "additionalFields": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4c8337b9-4ebb-45d1-9f95-daf7fa2aec26",
+        "name": "Insert rows in a table",
+        "type": "n8n-nodes-base.postgres",
+        "position": [
+          2016,
+          176
+        ],
+        "parameters": {
+          "table": {
+            "__rl": true,
+            "mode": "list",
+            "value": ""
+          },
+          "schema": {
+            "__rl": true,
+            "mode": "list",
+            "value": "public"
+          }
+        },
+        "typeVersion": 2.6
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "eb929612-a6ee-4512-a090-5fa9112d25cf",
+    "connections": {
+      "Price Drop?": {
+        "main": [
+          [
+            {
+              "node": "Prepare Alert Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Products": {
+        "main": [
+          [
+            {
+              "node": "Scrape Product Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Valid Price Check": {
+        "main": [
+          [
+            {
+              "node": "Fetch Historical Data",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Combine Scrape & History",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Prepare Error Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Scrape Product Data": {
+        "main": [
+          [
+            {
+              "node": "Valid Price Check",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Historical Data": {
+        "main": [
+          [
+            {
+              "node": "Combine Scrape & History",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Prepare Alert Message": {
+        "main": [
+          [
+            {
+              "node": "Send Pushover Alert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Error Message": {
+        "main": [
+          [
+            {
+              "node": "Send Error Alert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Price Monitor Webhook": {
+        "main": [
+          [
+            {
+              "node": "Product Configuration",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Product Configuration": {
+        "main": [
+          [
+            {
+              "node": "Loop Products",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Insert rows in a table": {
+        "main": [
+          [
+            {
+              "node": "Price Drop?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Transform & Enrich Data": {
+        "main": [
+          [
+            {
+              "node": "Insert rows in a table",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Combine Scrape & History": {
+        "main": [
+          [
+            {
+              "node": "Transform & Enrich Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/11803",
+  "fetched_at": "2026-09-12T13:13:54Z"
+}

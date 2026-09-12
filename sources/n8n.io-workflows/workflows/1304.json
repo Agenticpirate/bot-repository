@@ -1,0 +1,140 @@
+{
+  "id": 1304,
+  "name": "Enrich Google Sheet contacts with Dropcontact",
+  "description": "This workflow allows you to find and verify emails and enrich your contact from a Google Sheet with Dropacontact and add them to Lemlist. \n\n![workflow-screenshot](fileId:557)\n\n**Start node**: The start node exists by default when you create a new workflow.\n\n**Google Sheet node**: This node will list all the records from Google Sheet.\n\n**Dropcontact node**: This node will find the verified email of the contact and enrich it to be able to contact him\n\n**lemlist node**: This node will add a contact to an existing campaign ",
+  "workflow": {
+    "nodes": [
+      {
+        "name": "On clicking 'execute'",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          250,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Dropcontact",
+        "type": "n8n-nodes-base.dropcontact",
+        "position": [
+          650,
+          300
+        ],
+        "parameters": {
+          "email": "={{$json[\"email\"]}}",
+          "options": {
+            "siren": true,
+            "language": "fr"
+          },
+          "additionalFields": {
+            "company": "={{$json[\"companyName\"]}}",
+            "website": "={{$json[\"website\"]}}",
+            "linkedin": "={{$json[\"LinkedIn\"]}}",
+            "full_name": "={{$json[\"fullName\"]}}",
+            "last_name": "={{$json[\"lastName\"]}}",
+            "first_name": "={{$json[\"firstName\"]}}"
+          }
+        },
+        "credentials": {
+          "dropcontactApi": {
+            "id": "credential-id",
+            "name": "dropcontactApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Google Sheets",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          450,
+          300
+        ],
+        "parameters": {
+          "range": "A:K",
+          "options": {
+            "continue": false
+          },
+          "sheetId": "",
+          "authentication": "oAuth2"
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleSheetsOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Lemlist",
+        "type": "n8n-nodes-base.lemlist",
+        "position": [
+          850,
+          300
+        ],
+        "parameters": {
+          "email": "={{$node[\"Dropcontact\"].json[\"email\"][0][\"email\"]}}",
+          "resource": "lead",
+          "campaignId": "",
+          "additionalFields": {
+            "lastName": "={{$node[\"Dropcontact\"].json[\"last_name\"]}}",
+            "firstName": "={{$node[\"Dropcontact\"].json[\"first_name\"]}}",
+            "companyName": "={{$node[\"Dropcontact\"].json[\"company\"]}}"
+          }
+        },
+        "credentials": {
+          "lemlistApi": {
+            "id": "credential-id",
+            "name": "lemlistApi Credential"
+          }
+        },
+        "typeVersion": 1
+      }
+    ],
+    "connections": {
+      "Dropcontact": {
+        "main": [
+          [
+            {
+              "node": "Lemlist",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Sheets": {
+        "main": [
+          [
+            {
+              "node": "Dropcontact",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "On clicking 'execute'": {
+        "main": [
+          [
+            {
+              "node": "Google Sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 37,
+      "name": "Lead Generation"
+    }
+  ],
+  "url": "https://n8n.io/workflows/1304",
+  "fetched_at": "2026-09-12T13:08:54Z"
+}

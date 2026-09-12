@@ -1,0 +1,722 @@
+{
+  "id": 15069,
+  "name": "Turn meeting action items into ClickUp tasks with Fireflies, GPT-4o-mini and Telegram",
+  "description": "### Description\n\nConnect Fireflies to this workflow once and every meeting action item becomes a ClickUp task automatically — no manual note-taking, no copy-pasting. The moment Fireflies finishes transcribing a call, the workflow extracts action items from two sources, uses GPT-4o-mini to parse each one into a clean task with an owner, deadline, and priority, and creates every task in ClickUp via the API. When all tasks are created, you receive a single Telegram message confirming the total count. Built for founders, project managers, and team leads who want zero gap between a meeting ending and the work showing up in their task manager.\n\n---\n\n## What This Workflow Does\n\n- **Triggers automatically on transcription complete** — Fireflies fires the workflow the moment any meeting finishes transcribing, with no manual step needed\n- **Extracts action items from two sources** — Combines Fireflies NLP task-flagged sentences and the AI-generated summary list, then deduplicates and caps at 15 items\n- **Validates every incoming signal** — Checks for a valid meeting ID and silently discards invalid or test pings before any processing begins\n- **Parses each item into a structured task** — GPT-4o-mini converts raw action item text into a verb-first task name, assigns an owner, sets a deadline, and scores a priority from 1 to 4\n- **Creates tasks in ClickUp automatically** — Each parsed task is posted to your specified ClickUp list via the API with priority, due date, and a meeting reference in the description\n- **Sends one Telegram confirmation** — After all tasks are created, a single message is sent with the meeting title, date, and total task count — no spam per task\n- **Exits cleanly when nothing is found** — Meetings with no action items stop silently without errors or empty notifications\n\n---\n\n## Setup Requirements\n\n### Tools Needed\n- n8n instance (self-hosted or cloud)\n- Fireflies.ai account with webhook access\n- OpenAI account with GPT-4o-mini API access\n- ClickUp account with API access and a target list\n- Telegram bot (created via @BotFather)\n\n### Credentials Required\n- Fireflies API key (pasted into **5. Set — Config Values**)\n- ClickUp API token (pasted into **5. Set — Config Values**)\n- OpenAI API key\n- Telegram Bot credential (connected in n8n)\n\n**Estimated Setup Time: 15–20 minutes**\n\n---\n\n## Step-by-Step Setup\n\n1. **Import the workflow** — Open n8n → Workflows → Import from JSON → paste the workflow JSON → click Import\n\n2. **Activate the workflow and copy the webhook URL** — Toggle the workflow to Active → click on node **1. Webhook — Fireflies Transcript Done** → copy the webhook URL shown\n\n3. **Register the webhook in Fireflies** — Log in to fireflies.ai → Settings → Developer Settings → Webhooks → paste the webhook URL → save\n\n4. **Get your Fireflies API key** — In Fireflies, go to Settings → Integrations → copy your API key\n\n5. **Get your ClickUp API token** — In ClickUp, click your avatar (bottom left) → Settings → Apps → API Token → copy the token\n\n6. **Get your ClickUp List ID** — Open the ClickUp list where tasks should be created → look at the URL bar → copy the number after `/li/` (e.g. in `.../li/90121234567`, the list ID is `90121234567`)\n\n7. **Get your Telegram Chat ID** — Open Telegram → search for `@userinfobot` → send `/start` → it will reply with your chat ID\n\n8. **Fill in Config Values** — Open node **5. Set — Config Values** → replace all placeholders:\n\n| Field | What to enter |\n|---|---|\n| `YOUR_FIREFLIES_API_KEY` | Your Fireflies API key from step 4 |\n| `YOUR_CLICKUP_API_TOKEN` | Your ClickUp API token from step 5 |\n| `YOUR_CLICKUP_LIST_ID` | Your ClickUp list ID from step 6 |\n| `YOUR_TELEGRAM_CHAT_ID` | Your Telegram chat ID from step 7 |\n| `YOUR NAME` | Your name (used in the AI prompt context) |\n| `YOUR COMPANY NAME` | Your company name (shown in Telegram message) |\n\n9. **Connect OpenAI** — Open node **11. OpenAI — GPT-4o-mini Model** → click the credential dropdown → add your OpenAI API key → test the connection\n\n10. **Connect Telegram** — Open node **17. Telegram — Send Task Summary** → click the credential dropdown → add your Telegram Bot API credential → open Telegram → send `/start` to your bot before testing\n\n&gt; ⚠️ **Activate the workflow before registering the webhook in Fireflies.** An inactive workflow will not receive signals. Activate first, then paste the URL into Fireflies.\n\n---\n\n## How It Works (Step by Step)\n\n**Step 1 — Webhook: Fireflies Transcript Done**\nThis step listens for a signal from Fireflies. Every time a meeting finishes transcribing, Fireflies sends a request to this webhook URL containing the meeting ID. No manual trigger is needed — it fires automatically after every recorded call.\n\n**Step 2 — Code: Extract Meeting ID**\nThe meeting ID is extracted from the incoming signal. Fireflies can send the payload in several different formats, so this step checks all possible locations and pulls the ID safely. If no meeting ID is present, the signal is marked as invalid.\n\n**Step 3 — IF: Valid Meeting ID?**\nThis is the first gate check. If a valid meeting ID was found (YES path), the workflow moves forward to fetch the transcript. If the signal was invalid or empty (NO path), the workflow routes to **4. Set — Invalid Webhook Skip** and stops cleanly without errors.\n\n**Step 4 — Set: Invalid Webhook Skip**\nThis step handles the invalid signal case. It sets a brief message and the workflow ends here for that trigger.\n\n**Step 5 — Set: Config Values**\nYour Fireflies API key, ClickUp API token, ClickUp list ID, Telegram chat ID, your name, and company name are all stored here. The validated meeting ID from step 2 is also carried forward so the transcript fetch can use it directly.\n\n**Step 6 — HTTP: Fetch Transcript**\nA request is sent to the Fireflies API using your API key and the meeting ID. It retrieves the full transcript including all sentences with speaker labels and task flags, plus the AI-generated summary containing action items, overview, and keywords.\n\n**Step 7 — Code: Process Action Items**\nAction items are collected from two sources simultaneously: sentences that Fireflies NLP flagged as tasks, and the AI-generated action items list from the Fireflies summary. Both lists are combined, duplicates are removed, and the result is limited to 15 items. Meeting metadata (title, date, duration, participants, overview) is also extracted here. If no action items are found at all, a flag is set for the next gate check.\n\n**Step 8 — IF: Action Items Found?**\nThis is the second gate check. If action items were found (YES path), the workflow continues to AI parsing. If no action items were detected or the transcript was not ready (NO path), the workflow routes to **9. Set — No Action Items Skip** and ends cleanly.\n\n**Step 9 — Set: No Action Items Skip**\nThis step handles the no-items case. It logs the meeting ID and a skip message, and the workflow ends here.\n\n**Step 10 — AI Agent: Parse Action Items**\nGPT-4o-mini receives the meeting context and the full list of raw action items. For each item it returns four structured fields: a clean verb-first task name (maximum 60 characters), the responsible owner extracted from the text (or \"Unassigned\" if not mentioned), a deadline in YYYY-MM-DD format with relative date logic built in (today, tomorrow, this week, next week), and a priority number from 1 (Urgent) to 4 (Low). Every input item must produce exactly one output task — no skipping.\n\n**Step 11 — OpenAI: GPT-4o-mini Model**\nThis is the language model powering the parsing step. It runs at temperature 0.2 for precise, consistent structured output and is capped at 1,200 tokens to handle up to 15 tasks per meeting.\n\n**Step 12 — Parser: Structured Task Output**\nThis step enforces the exact array schema GPT-4o-mini must return. It validates that every task has all four required fields in the correct format before the results move to ClickUp creation, preventing any malformed tasks from reaching your account.\n\n**Step 13 — Code: Split Tasks for Loop**\nThe array of parsed tasks is converted into individual items — one per task — so each one can be sent to ClickUp separately. A deadline timestamp is calculated in milliseconds for the ClickUp API. A flag called `isLastTask` is set to true only on the final task in the list, which controls when the Telegram notification fires.\n\n**Step 14 — HTTP: Create ClickUp Task**\nFor each task, a request is sent to the ClickUp API v2. The task is created in your specified list with the task name, a description that includes the meeting title, date, owner, and deadline, plus the priority level, due date, and a tag `meeting-action-item` applied automatically.\n\n**Step 15 — IF: All Tasks Created?**\nAfter each ClickUp task is created, this check reads the `isLastTask` flag. If it is true (YES path — this was the last task), the workflow moves to build the Telegram summary. If it is false (NO path — more tasks still exist), the workflow routes to **18. Set — Loop Continues** and the loop proceeds to the next task.\n\n**Step 16 — Code: Build Telegram Summary**\nOnce all tasks are created, a clean confirmation message is assembled. It includes the meeting title, date, total number of tasks created, and a reminder to review the tasks in ClickUp. Your company name is included in the footer.\n\n**Step 17 — Telegram: Send Task Summary**\nThe confirmation message is sent to your Telegram chat ID. This fires exactly once per meeting — after all tasks are in ClickUp — not once per task.\n\n**Step 18 — Set: Loop Continues**\nThis step handles the non-final tasks in the loop. It sets a brief in-progress message and the loop continues to the next task creation.\n\n---\n\n## Key Features\n\n✅ **Dual-source action item extraction** — Combines Fireflies NLP task flags and the AI summary list for more complete coverage than either source alone\n✅ **Fires exactly once per meeting** — The Telegram notification uses an `isLastTask` flag so you receive one clean summary, not one message per task\n✅ **Relative deadline logic built in** — GPT understands \"by Friday\", \"next week\", and \"tomorrow\" and converts them to real dates automatically\n✅ **Three validation gates** — Invalid webhooks, missing transcripts, and meetings with no action items all exit cleanly without errors or empty tasks\n✅ **Priority scoring per task** — Every task is scored 1–4 (Urgent to Low) based on context so your ClickUp list is pre-sorted by importance\n✅ **Meeting reference in every task description** — Each ClickUp task includes the meeting title, date, owner, and deadline so your team always knows where the task came from\n✅ **`meeting-action-item` tag auto-applied** — Every task created by this workflow is tagged automatically so you can filter and report on meeting-sourced work in ClickUp\n✅ **Structured output enforced** — A schema parser validates all four task fields before anything reaches ClickUp — no broken or incomplete tasks\n\n---\n\n## Customisation Options\n\n**Change the maximum task limit** — In node **7. Code — Process Action Items**, change `.slice(0, 15)` to a higher or lower number to control how many action items per meeting are sent to ClickUp.\n\n**Add tasks to different lists by meeting type** — In node **5. Set — Config Values**, add a second list ID (e.g. `clickupSalesListId`). Then add an IF check after step 7 that reads the meeting title — if it contains \"sales\" or \"demo\", route to the sales list; otherwise use the default list.\n\n**Send a Slack message instead of or alongside Telegram** — After node **16. Code — Build Telegram Summary**, add a Slack node using the same message text to also post the task summary to a `#meetings` channel for team visibility.\n\n**Add a Google Sheets log** — After node **14. HTTP — Create ClickUp Task**, add a Google Sheets append step to log each task: meeting title, task name, owner, deadline, priority, and ClickUp task ID — giving you a permanent record outside ClickUp.\n\n**Assign tasks to specific ClickUp users** — In node **14. HTTP — Create ClickUp Task**, add an `assignees` field to the JSON body containing ClickUp user IDs. Map owner names from step 13 to their ClickUp IDs using a lookup object in the code step.\n\n---\n\n## Troubleshooting\n\n**Workflow not triggering when a call ends:**\n- Confirm the workflow is Active before expecting Fireflies to fire it — inactive workflows do not receive webhooks\n- Log in to Fireflies → Settings → Developer Settings → Webhooks → confirm the URL is saved and matches the URL from node **1. Webhook — Fireflies Transcript Done** exactly\n- Check that your Fireflies plan includes webhook support\n\n**Fireflies API key error or empty transcript:**\n- Confirm `YOUR_FIREFLIES_API_KEY` in node **5. Set — Config Values** is replaced with your actual key — not the placeholder text\n- Get your key from fireflies.ai → Settings → Integrations → API Key\n- If the transcript returns empty, Fireflies may still be processing — the workflow exits cleanly via **9. Set — No Action Items Skip** in this case\n\n**ClickUp tasks not being created:**\n- Confirm `YOUR_CLICKUP_API_TOKEN` in node **5. Set — Config Values** is your personal API token, not an OAuth token — get it from ClickUp avatar → Settings → Apps\n- Confirm `YOUR_CLICKUP_LIST_ID` is the numeric ID from the list URL (after `/li/`), not the list name\n- Check the execution log of node **14. HTTP — Create ClickUp Task** for the exact API error message — a 401 means wrong token, a 404 means wrong list ID\n\n**Telegram message not arriving:**\n- Confirm the Telegram Bot credential in node **17. Telegram — Send Task Summary** is connected with a valid bot token from @BotFather\n- Confirm `YOUR_TELEGRAM_CHAT_ID` in node **5. Set — Config Values** is your numeric chat ID — get it from @userinfobot in Telegram\n- You must send `/start` to your bot before the first message will be delivered — bots cannot initiate conversations\n\n**AI returning incomplete or wrongly formatted tasks:**\n- The schema parser in node **12. Parser — Structured Task Output** validates all four fields — check the execution log of node **10. AI Agent — Parse Action Items** if tasks are missing fields\n- If deadlines are returning as placeholder text instead of dates, confirm the action items text contains recognizable timeframes — GPT defaults to a 2-day deadline when no timeframe is mentioned\n- Confirm the OpenAI credential in node **11. OpenAI — GPT-4o-mini Model** is connected and your account has available credits\n\n---\n\n## Support\n\nNeed help setting this up or want a custom version built for your team or agency?\n\n📧 Email: [info@incrementors.com](info@incrementors.com)\n🌐 Website: [https://www.incrementors.com/](https://www.incrementors.com/)",
+  "workflow": {
+    "meta": {
+      "instanceId": "bc8ca75c203589705ae2e446cad7181d6f2a7cc1766f958ef9f34810e53b8cb2",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "c716600a-7c26-4e23-b04d-ce80288e64ec",
+        "name": "Overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -576,
+          688
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 652,
+          "height": 1152,
+          "content": "## Meeting Action Items to ClickUp — Fireflies + GPT-4o-mini + Telegram\n\nFor founders, project managers, and team leads who want every meeting action item to automatically appear as a ClickUp task — without manual note-taking or copy-pasting. When Fireflies finishes transcribing a meeting, this workflow extracts action items from two sources: the Fireflies NLP task detector and the AI-generated summary. GPT-4o-mini parses each item into a clean task with an owner, deadline, and priority. Every task is created in ClickUp automatically. A single Telegram message confirms the total count when all tasks are done.\n\n## How it works\n- **1. Webhook — Fireflies Transcript Done** receives the meetingId from Fireflies on transcription complete\n- **2. Code — Extract Meeting ID** safely extracts the meetingId from all possible Fireflies payload structures\n- **3. IF — Valid Meeting ID?** validates the meetingId — invalid webhooks exit cleanly\n- **5. Set — Config Values** stores Fireflies API key, ClickUp API token, ClickUp list ID, Telegram chat ID, and author details\n- **6. HTTP — Fetch Transcript** calls the Fireflies GraphQL API for sentences with ai_filters.task and summary.action_items\n- **7. Code — Process Action Items** combines both sources, deduplicates, and limits to 15 items\n- **8. IF — Action Items Found?** stops cleanly if no action items were detected\n- **10. AI Agent — Parse Action Items** uses GPT-4o-mini to parse each item into taskName, owner, deadline, and priority\n- **13. Code — Split Tasks for Loop** converts the array to one item per task and sets isLastTask on the final one\n- **14. HTTP — Create ClickUp Task** creates each task in ClickUp via API v2 with priority and due date\n- **15. IF — All Tasks Created?** checks the isLastTask flag — only the last task triggers Telegram\n- **16. Code — Build Telegram Summary** builds the notification message with meeting title and total task count\n- **17. Telegram — Send Task Summary** sends one confirmation message after all tasks are created\n\n## Set up steps\n1. Activate the workflow and copy the webhook URL from node 1\n2. In Fireflies — go to Settings, Developer Settings, Webhooks, and paste the URL\n3. In **5. Set — Config Values** — replace YOUR_FIREFLIES_API_KEY, YOUR_CLICKUP_API_TOKEN, YOUR_CLICKUP_LIST_ID, YOUR_TELEGRAM_CHAT_ID, your name, and company name\n4. In **11. OpenAI — GPT-4o-mini Model** — connect your OpenAI credential\n5. In **17. Telegram — Send Task Summary** — connect your Telegram Bot API credential and send /start to your bot before testing"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b6253aa9-c796-4d45-920e-bcf6cd7ada48",
+        "name": "Section — Webhook Receipt and Validation",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          160,
+          848
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 708,
+          "height": 708,
+          "content": "## Webhook Receipt and Validation\nFireflies POSTs a meetingId here on transcription complete. A Code node safely extracts the meetingId from any payload structure. Invalid webhooks exit cleanly via the Set node below."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "cde7f040-e4e0-4258-ae1c-804d61f5c341",
+        "name": "Section — Config, Transcript Fetch, and Action Item Extraction",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          944,
+          848
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 964,
+          "height": 660,
+          "content": "## Config, Transcript Fetch, and Action Item Extraction\nConfig stores all credentials and author details. Fireflies GraphQL API fetches the transcript. A Code node extracts action items from two sources: NLP task-flagged sentences and the AI summary list. Combined, deduplicated, limited to 15."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "272d8cca-09f2-4203-90d4-eaf4748bb7f8",
+        "name": "Section — AI Task Parsing",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1968,
+          848
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 468,
+          "height": 660,
+          "content": "## AI Task Parsing\nGPT-4o-mini (temperature 0.2) parses each raw action item into four structured fields: a clean verb-first task name, the responsible owner, a deadline in YYYY-MM-DD format, and a priority from 1 to 4. Structured Output Parser enforces the array schema."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1cdbbbd7-1dcf-41f9-adc4-83767687aba2",
+        "name": "Section — ClickUp Task Creation Loop",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2480,
+          928
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 420,
+          "height": 388,
+          "content": "## ClickUp Task Creation Loop\nConverts the tasks array to one item per task. Creates each task in ClickUp via API v2 with name, description, priority, and due date. The isLastTask flag ensures Telegram fires exactly once after all tasks are created."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ae5e1eb2-7e80-4e15-b852-03de2763849b",
+        "name": "Section — Telegram Notification",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          3040,
+          800
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 532,
+          "height": 340,
+          "content": "## Telegram Notification\nBuilds and sends a single confirmation message after all ClickUp tasks are created. Includes meeting title, date, and total task count."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b264cc7a-7ea4-4323-9873-8faed829015c",
+        "name": "1. Webhook — Fireflies Transcript Done",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          192,
+          1120
+        ],
+        "webhookId": "ff-clickup-tasks-001",
+        "parameters": {
+          "path": "fireflies-action-items",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "d56b297b-0c13-4583-a740-fe00b4ee64c9",
+        "name": "2. Code — Extract Meeting ID",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          416,
+          1120
+        ],
+        "parameters": {
+          "jsCode": "// Safely extract meetingId from all possible payload structures\nconst raw = $input.first().json;\n\nconst meetingId =\n  raw.meetingId ||\n  raw.body?.meetingId ||\n  raw.data?.meetingId ||\n  raw.payload?.meetingId ||\n  '';\n\nconst eventType =\n  raw.eventType ||\n  raw.body?.eventType ||\n  'Transcription completed';\n\nreturn [{\n  json: {\n    isValid: !!meetingId,\n    meetingId: meetingId.trim(),\n    eventType\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "a899f7d0-9c83-4005-96e4-042d06a338c4",
+        "name": "3. IF — Valid Meeting ID?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          640,
+          1120
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "leftValue": "",
+              "caseSensitive": false,
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "cond-001",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true"
+                },
+                "leftValue": "={{ $json.isValid }}",
+                "rightValue": true
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "e340c7c2-8d95-4860-a4a5-4dfc2cf1a0e8",
+        "name": "4. Set — Invalid Webhook Skip",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          640,
+          1328
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "skip-001",
+                "name": "result",
+                "type": "string",
+                "value": "Invalid webhook — no meetingId received."
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "9c683dcc-1e63-4cda-913e-29bc7380651e",
+        "name": "5. Set — Config Values",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          976,
+          1104
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "cfg-001",
+                "name": "firefliesApiKey",
+                "type": "string",
+                "value": "YOUR_FIREFLIES_API_KEY"
+              },
+              {
+                "id": "cfg-002",
+                "name": "clickupApiToken",
+                "type": "string",
+                "value": "YOUR_CLICKUP_API_TOKEN"
+              },
+              {
+                "id": "cfg-003",
+                "name": "clickupListId",
+                "type": "string",
+                "value": "YOUR_CLICKUP_LIST_ID"
+              },
+              {
+                "id": "cfg-004",
+                "name": "telegramChatId",
+                "type": "string",
+                "value": "YOUR_TELEGRAM_CHAT_ID"
+              },
+              {
+                "id": "cfg-005",
+                "name": "hostName",
+                "type": "string",
+                "value": "YOUR NAME"
+              },
+              {
+                "id": "cfg-006",
+                "name": "companyName",
+                "type": "string",
+                "value": "YOUR COMPANY NAME"
+              },
+              {
+                "id": "cfg-007",
+                "name": "meetingId",
+                "type": "string",
+                "value": "={{ $('2. Code — Extract Meeting ID').item.json.meetingId }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "f9e6b942-d647-4929-b71d-3b7e3fcf08e1",
+        "name": "6. HTTP — Fetch Transcript",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1184,
+          1104
+        ],
+        "parameters": {
+          "url": "https://api.fireflies.ai/graphql",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n  \"query\": \"query GetTranscript($id: String!) { transcript(id: $id) { id title date duration participants host_email sentences { speaker_name text ai_filters { task } } summary { action_items overview keywords } } }\",\n  \"variables\": {\n    \"id\": \"{{ $json.meetingId }}\"\n  }\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{ $json.firefliesApiKey }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "3d66e64a-857b-4845-9351-33676a9c9264",
+        "name": "7. Code — Process Action Items",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1408,
+          1104
+        ],
+        "parameters": {
+          "jsCode": "const response = $input.first().json;\nconst config = $('5. Set — Config Values').item.json;\n\nconst transcript = response?.data?.transcript;\n\nif (!transcript || !transcript.id) {\n  return [{\n    json: {\n      hasData: false,\n      meetingId: config.meetingId,\n      error: 'Transcript not found or not ready in Fireflies'\n    }\n  }];\n}\n\n// Collect action items from Fireflies summary\nconst rawActionItems = transcript.summary?.action_items || [];\n\n// ALSO collect sentences flagged as tasks by Fireflies NLP\nconst sentences = transcript.sentences || [];\nconst taskSentences = sentences\n  .filter(s => s.ai_filters?.task && (s.text || '').length > 10)\n  .map(s => (s.speaker_name ? s.speaker_name + ': ' + s.text : s.text))\n  .slice(0, 10);\n\n// Combine both sources\nconst allActionSources = [\n  ...rawActionItems,\n  ...taskSentences\n];\n\n// Deduplicate and clean\nconst uniqueItems = [...new Set(allActionSources)]\n  .filter(item => item && item.trim().length > 5)\n  .slice(0, 15);\n\nif (uniqueItems.length === 0) {\n  return [{\n    json: {\n      hasData: false,\n      meetingId: transcript.id,\n      error: 'No action items found in this meeting'\n    }\n  }];\n}\n\nconst meetingDate = transcript.date\n  ? new Date(transcript.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })\n  : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });\n\nconst durationMin = Math.round((transcript.duration || 0) / 60);\nconst participants = (transcript.participants || []).join(', ') || 'Not listed';\nconst overview = (transcript.summary?.overview || '').substring(0, 500);\nconst keywords = (transcript.summary?.keywords || []).slice(0, 8).join(', ');\n\nreturn [{\n  json: {\n    hasData: true,\n    meetingId: transcript.id,\n    meetingTitle: transcript.title || 'Untitled Meeting',\n    meetingDate,\n    durationMin,\n    participants,\n    overview,\n    keywords,\n    actionItemsRaw: uniqueItems.join('\\n'),\n    actionItemCount: uniqueItems.length,\n    clickupApiToken: config.clickupApiToken,\n    clickupListId: config.clickupListId,\n    telegramChatId: config.telegramChatId,\n    hostName: config.hostName,\n    companyName: config.companyName\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "9f313a3f-0965-43ac-a63d-af3e37276740",
+        "name": "8. IF — Action Items Found?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1648,
+          1104
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "leftValue": "",
+              "caseSensitive": false,
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "cond-data",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true"
+                },
+                "leftValue": "={{ $json.hasData }}",
+                "rightValue": true
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "a7f2b1da-d2d0-4d5d-8996-e637b10413fa",
+        "name": "9. Set — No Action Items Skip",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1648,
+          1312
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "skip-002",
+                "name": "result",
+                "type": "string",
+                "value": "=No action items found or transcript not ready for: {{ $json.meetingId }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "ae6aaf0e-7066-41d2-9b17-83538356c999",
+        "name": "10. AI Agent — Parse Action Items",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          2016,
+          1088
+        ],
+        "parameters": {
+          "text": "=You are a project manager parsing meeting action items into structured ClickUp tasks.\n\nMEETING: {{ $json.meetingTitle }}\nDATE: {{ $json.meetingDate }}\nPARTICIPANTS: {{ $json.participants }}\nOVERVIEW: {{ $json.overview }}\n\nACTION ITEMS FROM MEETING:\n{{ $json.actionItemsRaw }}\n\nFor EACH action item above, extract the following and return a JSON array.\n\nReturn ONLY a valid JSON array. No extra text. No markdown. No backticks.\nEach element in the array must have exactly these 4 fields:\n\ntaskName — A clean, actionable task title. Start with a verb. Maximum 60 characters. Example: Send project proposal to client by Friday\n\nowner — The person responsible. Extract from the action item text if mentioned. If not mentioned, write: Unassigned\n\ndeadline — The deadline in YYYY-MM-DD format. Extract from the action item if a date or timeframe is mentioned. Examples: today = {{ $now.toFormat('yyyy-MM-dd') }}, tomorrow = {{ $now.plus({days: 1}).toFormat('yyyy-MM-dd') }}, this week = {{ $now.plus({days: 3}).toFormat('yyyy-MM-dd') }}, next week = {{ $now.plus({days: 7}).toFormat('yyyy-MM-dd') }}. If no deadline mentioned, default to {{ $now.plus({days: 2}).toFormat('yyyy-MM-dd') }}\n\npriority — A number: 1 for urgent, 2 for high, 3 for normal, 4 for low. Use context to decide. If unclear use 3.\n\nEXAMPLE OUTPUT FORMAT:\n[{\"taskName\": \"Send updated proposal to John by Friday\", \"owner\": \"Rahul\", \"deadline\": \"2026-04-12\", \"priority\": 2}, {\"taskName\": \"Schedule follow-up call with client\", \"owner\": \"Unassigned\", \"deadline\": \"2026-04-14\", \"priority\": 3}]\n\nRULES:\n- Return ONLY the JSON array. Nothing else.\n- Every item in the input must become exactly one task in the output.\n- Do not skip any action items.\n- Do not add tasks that were not in the input.",
+          "options": {},
+          "promptType": "define",
+          "hasOutputParser": true
+        },
+        "typeVersion": 1.7
+      },
+      {
+        "id": "22cf98cc-bad3-4630-b0de-af551b2780df",
+        "name": "11. OpenAI — GPT-4o-mini Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          2016,
+          1280
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4o-mini"
+          },
+          "options": {
+            "maxTokens": 1200,
+            "temperature": 0.2
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "8dc8f45d-5121-46f2-a5fe-eafc367d6895",
+        "name": "12. Parser — Structured Task Output",
+        "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "position": [
+          2160,
+          1360
+        ],
+        "parameters": {
+          "schemaType": "manual",
+          "inputSchema": "{\n  \"type\": \"array\",\n  \"items\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"taskName\": {\n        \"type\": \"string\",\n        \"description\": \"Clean actionable task title starting with a verb. Max 60 chars.\"\n      },\n      \"owner\": {\n        \"type\": \"string\",\n        \"description\": \"Person responsible for this task. Use Unassigned if not mentioned.\"\n      },\n      \"deadline\": {\n        \"type\": \"string\",\n        \"description\": \"Deadline date in YYYY-MM-DD format\"\n      },\n      \"priority\": {\n        \"type\": \"number\",\n        \"description\": \"Priority: 1=Urgent 2=High 3=Normal 4=Low\"\n      }\n    },\n    \"required\": [\"taskName\", \"owner\", \"deadline\", \"priority\"]\n  }\n}"
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "9e247d97-30fd-4111-bdbc-590418922767",
+        "name": "13. Code — Split Tasks for Loop",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2288,
+          1088
+        ],
+        "parameters": {
+          "jsCode": "// Convert parsed tasks array into individual items for ClickUp loop\nconst aiOutput = $input.first().json.output;\nconst meetingData = $('7. Code — Process Action Items').item.json;\n\nif (!aiOutput || !Array.isArray(aiOutput) || aiOutput.length === 0) {\n  return [{\n    json: {\n      hasTasksToCreate: false,\n      error: 'No structured tasks returned from AI',\n      meetingTitle: meetingData.meetingTitle,\n      telegramChatId: meetingData.telegramChatId,\n      hostName: meetingData.hostName\n    }\n  }];\n}\n\n// Return ONE item per task\nreturn aiOutput.map((task, index) => {\n  const deadlineMs = task.deadline\n    ? new Date(task.deadline).getTime()\n    : Date.now() + (2 * 24 * 60 * 60 * 1000);\n\n  const priorityNum = parseInt(task.priority) || 3;\n  const validPriority = [1, 2, 3, 4].includes(priorityNum) ? priorityNum : 3;\n\n  return {\n    json: {\n      hasTasksToCreate: true,\n      taskName: (task.taskName || 'Untitled Task').substring(0, 100),\n      owner: task.owner || 'Unassigned',\n      deadline: task.deadline || 'Not set',\n      deadlineMs,\n      priority: validPriority,\n      taskIndex: index + 1,\n      totalTasks: aiOutput.length,\n      isLastTask: index === aiOutput.length - 1,\n      meetingTitle: meetingData.meetingTitle,\n      meetingDate: meetingData.meetingDate,\n      meetingId: meetingData.meetingId,\n      clickupApiToken: meetingData.clickupApiToken,\n      clickupListId: meetingData.clickupListId,\n      telegramChatId: meetingData.telegramChatId,\n      hostName: meetingData.hostName,\n      companyName: meetingData.companyName\n    }\n  };\n});"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "43a4e049-7535-4281-8cbe-22f7cd9089c2",
+        "name": "14. HTTP — Create ClickUp Task",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          2528,
+          1088
+        ],
+        "parameters": {
+          "url": "=https://api.clickup.com/api/v2/list/{{ $json.clickupListId }}/task",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n  \"name\": \"{{ $json.taskName }}\",\n  \"description\": \"Meeting: {{ $json.meetingTitle }}\\nDate: {{ $json.meetingDate }}\\nOwner: {{ $json.owner }}\\nDeadline: {{ $json.deadline }}\\n\\nAuto-created from meeting notes by n8n + Fireflies + GPT-4o-mini\",\n  \"priority\": {{ $json.priority }},\n  \"due_date\": {{ $json.deadlineMs }},\n  \"due_date_time\": true,\n  \"notify_all\": false,\n  \"tags\": [\"meeting-action-item\"]\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "={{ $json.clickupApiToken }}"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "7fd2b4db-0a42-47eb-9f95-9f135aa40d17",
+        "name": "15. IF — All Tasks Created?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          2752,
+          1088
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "leftValue": "",
+              "caseSensitive": false,
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "cond-last",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true"
+                },
+                "leftValue": "={{ $('13. Code — Split Tasks for Loop').item.json.isLastTask }}",
+                "rightValue": true
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "e1b7862e-3fe4-4f4e-ab22-4bbee4d8c086",
+        "name": "16. Code — Build Telegram Summary",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          3120,
+          928
+        ],
+        "parameters": {
+          "jsCode": "// Build Telegram summary message after all tasks created\nconst lastTaskData = $('13. Code — Split Tasks for Loop').item.json;\nconst totalTasks = lastTaskData.totalTasks;\nconst meetingTitle = lastTaskData.meetingTitle;\nconst meetingDate = lastTaskData.meetingDate;\nconst hostName = lastTaskData.hostName;\nconst companyName = lastTaskData.companyName;\n\nconst message =\n  'Meeting Action Items Created in ClickUp\\n' +\n  '\\n' +\n  'Meeting: ' + meetingTitle + '\\n' +\n  'Date: ' + meetingDate + '\\n' +\n  'Tasks Created: ' + totalTasks + ' tasks\\n' +\n  '\\n' +\n  'All tasks have been added to your ClickUp list automatically.\\n' +\n  'Check ClickUp to review, assign, and adjust deadlines.\\n' +\n  '\\n' +\n  'Powered by ' + companyName + ' + Fireflies.ai + GPT-4o-mini';\n\nreturn [{\n  json: {\n    telegramMessage: message,\n    telegramChatId: lastTaskData.telegramChatId\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "7b482d9e-e013-40cc-9a1e-adaeb708351e",
+        "name": "17. Telegram — Send Task Summary",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          3328,
+          928
+        ],
+        "webhookId": "3e0125f6-1229-49e4-919c-b7eb2dc2e836",
+        "parameters": {
+          "text": "={{ $json.telegramMessage }}",
+          "chatId": "={{ $json.telegramChatId }}",
+          "additionalFields": {
+            "appendAttribution": false
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "69317b16-0964-4ce5-bc28-55717c3ac52f",
+        "name": "18. Set — Loop Continues",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          3104,
+          1248
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "skip-loop-001",
+                "name": "result",
+                "type": "string",
+                "value": "=Task created. Continuing loop — not last task yet."
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "5. Set — Config Values": {
+        "main": [
+          [
+            {
+              "node": "6. HTTP — Fetch Transcript",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "3. IF — Valid Meeting ID?": {
+        "main": [
+          [
+            {
+              "node": "5. Set — Config Values",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "4. Set — Invalid Webhook Skip",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "6. HTTP — Fetch Transcript": {
+        "main": [
+          [
+            {
+              "node": "7. Code — Process Action Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "15. IF — All Tasks Created?": {
+        "main": [
+          [
+            {
+              "node": "16. Code — Build Telegram Summary",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "18. Set — Loop Continues",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "8. IF — Action Items Found?": {
+        "main": [
+          [
+            {
+              "node": "10. AI Agent — Parse Action Items",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "9. Set — No Action Items Skip",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2. Code — Extract Meeting ID": {
+        "main": [
+          [
+            {
+              "node": "3. IF — Valid Meeting ID?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "11. OpenAI — GPT-4o-mini Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "10. AI Agent — Parse Action Items",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "14. HTTP — Create ClickUp Task": {
+        "main": [
+          [
+            {
+              "node": "15. IF — All Tasks Created?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "7. Code — Process Action Items": {
+        "main": [
+          [
+            {
+              "node": "8. IF — Action Items Found?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "13. Code — Split Tasks for Loop": {
+        "main": [
+          [
+            {
+              "node": "14. HTTP — Create ClickUp Task",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "10. AI Agent — Parse Action Items": {
+        "main": [
+          [
+            {
+              "node": "13. Code — Split Tasks for Loop",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "16. Code — Build Telegram Summary": {
+        "main": [
+          [
+            {
+              "node": "17. Telegram — Send Task Summary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "12. Parser — Structured Task Output": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "10. AI Agent — Parse Action Items",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "1. Webhook — Fireflies Transcript Done": {
+        "main": [
+          [
+            {
+              "node": "2. Code — Extract Meeting ID",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 46,
+      "name": "Project Management"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15069",
+  "fetched_at": "2026-09-12T13:15:14Z"
+}

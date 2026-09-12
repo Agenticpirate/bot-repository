@@ -1,0 +1,234 @@
+{
+  "id": 7700,
+  "name": "Send preventive maintenance schedules with Google Sheets and Gmail ICS invites",
+  "description": "# 🗓 Preventive Maintenance Scheduler via ICS Email (n8n | Google Sheets | Gmail)\n\nThis workflow automatically reads your daily preventive maintenance schedule from Google Sheets and sends each assigned team member a personalized calendar invite (.ICS) as an email attachment. No more manual reminders or copying events — your operations and field teams will always be on schedule with clear, actionable reminders!\n\n## Who’s it For\n\n- Maintenance teams at plants, renewable sites, factories.\n- Facility and operations managers.\n- Any field crew, service team or org using Google Sheets and email for coordination.\n- Businesses wanting reliable, zero-touch preventive maintenance notifications.\n\n## How it Works\n\n1. **Daily Trigger:** Workflow runs automatically every morning at 7:00 AM.\n2. **Read Maintenance Tasks:** Pulls all scheduled maintenance for *today* from Google Sheets.\n3. **Generate ICS Data:** Prepares universal calendar event details: summary, location, time, assignee, etc.\n4. **Create ICS File:** Converts event data into a standard `.ics` calendar invite file with correct timings and description.\n5. **Send Calendar Invite Email:** Sends a personalized email to each assignee, with the `.ics` file attached — ready to add to Outlook, Gmail or mobile calendar.\n\n## How to Set Up\n\n1. **Import the workflow JSON** into your n8n instance.\n2. **Set up connections in n8n:**\n- Authenticate Google Sheets (read access) and Gmail (send access).\n3. **Format your Google Sheet** with headers:\n`date`, `asset`, `task`, `location`, `email`\n4. **Activate the workflow.** It runs daily on schedule. You can test it manually for validation.\n5. **Each day**: Team members with tasks scheduled for that date are sent their personalized event invite.\n\n## Requirements\n\n| Tool | Purpose |\n|-----------------|---------------------------------------|\n| n8n Instance | Run and schedule the automation |\n| Google Sheets | Source of maintenance schedule/tasks |\n| Gmail (or SMTP) | Email platform to send calendar files |\n\n## How to Customize\n\n| Customization | How |\n|----------------------------------------|------------------------------------------------------------|\n| Change calendar invite/event wording | Edit title or description in the \"Create ICS File\" node |\n| Adjust event start/end times | Modify time logic in \"Generate ICS Data\" node |\n| Change daily send time | Tweak time in \"Daily Trigger\" node |\n| Use a different email provider (SMTP) | Swap Gmail node for SMTP node; link correct credentials |\n| Add extra notifications (SMS/Slack) | Add appropriate node after or before Send Email node |\n\n## Add‑ons\n\n| Add-on | Description |\n|-------------------------|----------------------------------------------|\n| Recurring Tasks | Automate repeated tasks via your sheet/setup |\n| Email Logging | Log sent invites in another sheet/db |\n| WhatsApp/SMS Alerts | Add Twilio or WhatsApp for instant alerts |\n| Manager Summary | Send daily reports or dashboards to leads |\n| Pre-alerts | Add reminder emails 1hr / 1 day before event |\n\n## Use Case Examples\n\n- Wind turbine engineers receive daily calendar invites for inspections.\n- Solar O&M operators are automatically reminded for inverter cleaning via calendar sync.\n- Facility staff gets scheduled reminders for HVAC or safety checks without manual admin.\n- Managers have a clear audit trail of which reminders were sent on time.\n\n## Common Troubleshooting\n\n| Issue | Possible Cause | Solution |\n|-------------------------------------|---------------------------------------|-------------------------------------------------------|\n| No email received | Gmail/SMTP misconfigured | Check node credentials, token or SMTP settings |\n| Calendar file comes as .txt | Wrong file type/extension/MIME | Ensure \"Create ICS File\" outputs `.ics` and `text/calendar` |\n| No invites sent for today | No matching rows in Google Sheet | Check date/value format; add sample data for today |\n| Google Sheets returns error | Wrong Sheet ID/tab, access issue | Confirm correct Google Sheet is linked and shared |\n| Event time/zone is incorrect | Code node’s time logic not matching | Adjust start/end time settings in the code node |\n\n## Need Help?\n\nWant guided setup, advanced reporting, Outlook synchronization or a full preventive maintenance dashboard?\n\n👉 **Contact WeblineIndia — Your [n8n Automation ](https://www.weblineindia.com/n8n-automation/) partner for smart preventive maintenance and calendar-driven ops!**",
+  "workflow": {
+    "id": "dZK8ffaLQG6lZMAM",
+    "meta": {
+      "instanceId": "14e4c77104722ab186539dfea5182e419aecc83d85963fe13f6de862c875ebfa"
+    },
+    "name": "Maintenance-Scheduler-Via-ICS-Email",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "c45ddf2c-d266-4ca6-afce-5a9daddb4234",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -680,
+          -120
+        ],
+        "parameters": {
+          "width": 1240,
+          "height": 320,
+          "content": "## Preventive Maintenance Scheduler via ICS Email (n8n | Google Sheets | SMTP)"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8cfde48b-026c-4164-9e31-bddba8badfe0",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -680,
+          220
+        ],
+        "parameters": {
+          "width": 1240,
+          "height": 360,
+          "content": "\n**Preventive Maintenance Scheduler (Google Sheets → ICS → Email)**\n\n**1. Daily Trigger**\n   - Triggers workflow daily at desired time.\n\n**2. Read Maintenance Tasks**\n   - Reads maintenance tasks scheduled for today from a configured sheet.\n\n**3. Generate ICS Data**\n   - Prepares ICS event data: event title, start/end, assignee, and details.\n\n**4. Create ICS File**\n   - Converts event data to a standard .ics calendar file with MIME type text/calendar.\n\n**5. Send Calendar Invite Email**\n   - Sends personalized calendar invite (.ics) as an email attachment to the assigned person.\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "43d85eb1-15f2-4dcd-8dba-bf262da239a6",
+        "name": "Daily Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -580,
+          -20
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "triggerAtHour": 7
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "e8f95d48-7616-4c97-83c1-9e73046d0d6b",
+        "name": "Read Maintenance Tasks",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -380,
+          -20
+        ],
+        "parameters": {
+          "options": {},
+          "filtersUI": {
+            "values": [
+              {
+                "lookupValue": "={{ $json[\"Day of month\"] }}/{{ $json.Month }}/{{ $json.Year }}",
+                "lookupColumn": "date"
+              }
+            ]
+          },
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1bYe5FlYuNNcajCWA5WW8f1wfNbVEMwIP9nyAcZtZeCc",
+            "cachedResultUrl": "",
+            "cachedResultName": "Preventive_Maintenance_Scheduler_final"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleSheetsOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 4.6
+      },
+      {
+        "id": "fc964f2f-3323-40ee-83d6-e54b7ab95da9",
+        "name": "Generate ICS Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -180,
+          -20
+        ],
+        "parameters": {
+          "jsCode": "// Utility function: pad number to 2 digits\nfunction pad(n) { return n < 10 ? '0' + n : n; }\n\nconst result = [];\nfor (const item of $input.all()) {\n  // Parse and convert date to iCal format (YYYYMMDDT090000Z)\n  let rawDate = item.json.date;\n  // Your date is \"30/July/2025\", convert it to YYYYMMDD\n  const monthNames = {\n    \"January\": \"01\", \"February\": \"02\", \"March\": \"03\", \"April\": \"04\",\n    \"May\": \"05\", \"June\": \"06\", \"July\": \"07\", \"August\": \"08\",\n    \"September\": \"09\", \"October\": \"10\", \"November\": \"11\", \"December\": \"12\"\n  };\n  // Split and parse date\n  let [day, month, year] = rawDate.split(\"/\");\n  let eventDate = `${year}${monthNames[month]}${pad(Number(day))}`;\n  // Set time: 09:00 to 10:00 UTC (adjust as needed)\n  let dtStart = `${eventDate}T090000Z`;\n  let dtEnd   = `${eventDate}T100000Z`;\n  // Push the ICS content as a new field\n  result.push({\n    json: {\n      ...item.json,\n      dtStart: dtStart,\n      dtEnd: dtEnd\n    }\n  });\n}\n\nreturn result;\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "82b85f31-4329-47ad-a1d0-a4a9959b13e4",
+        "name": "Create ICS File",
+        "type": "n8n-nodes-base.convertToFile",
+        "position": [
+          40,
+          -20
+        ],
+        "parameters": {
+          "end": "={{ $json.dtEnd }}",
+          "start": "={{ $json.dtStart }}",
+          "title": "=Maintenance",
+          "operation": "iCal",
+          "additionalFields": {
+            "location": "={{ $json.location }}",
+            "description": "=Asset - {{ $json.asset }}\nTask - {{ $json.task }}"
+          }
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "63532b15-5a17-4813-9c7a-b51ad825d99b",
+        "name": "Send Calendar Invite Email",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          260,
+          -20
+        ],
+        "webhookId": "03bf7b9d-1dff-406d-96bd-36d2ac261e96",
+        "parameters": {
+          "sendTo": "={{ $('Read Maintenance Tasks').item.json.email }}",
+          "message": "=Hello,\n\nYou have a scheduled preventive maintenance task today.\n\nDetails:\n- Asset: {{ $('Read Maintenance Tasks').item.json.asset }}\n- Task: {{ $('Read Maintenance Tasks').item.json.task }}\n- Location: {{ $('Read Maintenance Tasks').item.json.location }}\n- Date: {{ $('Read Maintenance Tasks').item.json.date }}\n\nPlease find the calendar invite attached. Add it to your calendar so you don’t miss the task.\n\nThank you,\nMaintenance Team\n",
+          "options": {
+            "attachmentsUi": {
+              "attachmentsBinary": [
+                {
+                  "property": "=data"
+                }
+              ]
+            },
+            "appendAttribution": false
+          },
+          "subject": "=Preventive Maintenance Task: {{ $('Read Maintenance Tasks').item.json.task }} for {{ $('Read Maintenance Tasks').item.json.asset }} on {{ $('Read Maintenance Tasks').item.json.date }}"
+        },
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "credential-id",
+            "name": "gmailOAuth2 Credential"
+          }
+        },
+        "typeVersion": 2.1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "282a4855-9d31-4c25-b05a-c034b9849839",
+    "connections": {
+      "Daily Trigger": {
+        "main": [
+          [
+            {
+              "node": "Read Maintenance Tasks",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create ICS File": {
+        "main": [
+          [
+            {
+              "node": "Send Calendar Invite Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate ICS Data": {
+        "main": [
+          [
+            {
+              "node": "Create ICS File",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read Maintenance Tasks": {
+        "main": [
+          [
+            {
+              "node": "Generate ICS Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 46,
+      "name": "Project Management"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7700",
+  "fetched_at": "2026-09-12T13:12:04Z"
+}

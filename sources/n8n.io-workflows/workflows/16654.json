@@ -1,0 +1,420 @@
+{
+  "id": 16654,
+  "name": "Manage Etsy OAuth 2.0 tokens and API headers between workflows",
+  "description": "## Quick Overview\nThis workflow manages Etsy OAuth 2.0 (PKCE) authorization in n8n, stores access and refresh tokens in workflow static data, refreshes tokens when needed, and returns ready-to-use Etsy API request headers to other workflows via an Execute Workflow call.\n\n## How it works\n1. Runs either manually to start authorization, via a webhook callback from Etsy after consent, or when another workflow requests a token.\n2. Loads the Etsy app configuration (client ID, shared secret, redirect URI, scopes) and routes the run to start authorization, handle the callback, or return an access token.\n3. When starting authorization, generates a PKCE verifier/challenge and returns an Etsy authorization URL while storing the pending state for validation.\n4. When Etsy redirects to the callback webhook, validates the returned state and authorization code and then exchanges the code for tokens using the Etsy OAuth token endpoint.\n5. Stores the authorized access and refresh tokens (with expiry timestamps) in n8n workflow static data and returns a confirmation response to the callback request.\n6. When another workflow requests a token, loads the stored refresh token, refreshes the access token with Etsy if it is missing or near expiry, and returns Authorization and x-api-key headers for Etsy API calls.\n\n## Setup\n1. Create an Etsy developer app and register this workflow’s webhook URL (the OAuth callback path) as an allowed redirect URI in Etsy.\n2. Fill in the client ID, shared secret, redirect URI (production webhook URL), and required scopes in the Configuration step.\n3. Activate the workflow and run the manual start to generate the authorization URL, then complete consent in Etsy so the callback can store the initial tokens.\n4. In dependent workflows, use Execute Workflow to call this workflow with `action: get_token` to receive the Etsy API headers.",
+  "workflow": {
+    "name": "Etsy OAuth 2.0 Manager (PRO)",
+    "nodes": [
+      {
+        "id": "oauth-manual",
+        "name": "Start OAuth setup",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          0,
+          260
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "oauth-callback",
+        "name": "OAuth callback",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          0,
+          460
+        ],
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "oauth-execute",
+        "name": "Token request from another workflow",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "position": [
+          0,
+          660
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "oauth-config",
+        "name": "Configuration (EDIT ME)",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          280,
+          460
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "oauth-route",
+        "name": "Route OAuth action",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          560,
+          460
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "oauth-is-callback",
+        "name": "OAuth callback received?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          840,
+          460
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "oauth-validate-callback",
+        "name": "Validate OAuth callback",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1120,
+          260
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "oauth-exchange",
+        "name": "Exchange authorization code",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1400,
+          260
+        ],
+        "parameters": {},
+        "typeVersion": 4.3
+      },
+      {
+        "id": "oauth-store-auth",
+        "name": "Store authorized token",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1680,
+          260
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "oauth-respond",
+        "name": "Confirm OAuth connection",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          1960,
+          260
+        ],
+        "parameters": {},
+        "typeVersion": 1.4
+      },
+      {
+        "id": "oauth-is-token",
+        "name": "Access token requested?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1120,
+          560
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "oauth-load",
+        "name": "Load stored token",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1400,
+          500
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "oauth-refresh-needed",
+        "name": "Refresh required?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1680,
+          500
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "oauth-refresh",
+        "name": "Refresh Etsy token",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1960,
+          400
+        ],
+        "parameters": {},
+        "typeVersion": 4.3
+      },
+      {
+        "id": "oauth-store-refresh",
+        "name": "Store refreshed token",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2240,
+          400
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "oauth-headers",
+        "name": "Return Etsy API headers",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2520,
+          500
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "oauth-pkce",
+        "name": "Generate PKCE authorization URL",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1400,
+          700
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "oauth-overview",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -40,
+          -500
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "oauth-section-1",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -60,
+          180
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "oauth-section-2",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1260,
+          180
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "connections": {
+      "OAuth callback": {
+        "main": [
+          [
+            {
+              "node": "Configuration (EDIT ME)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Load stored token": {
+        "main": [
+          [
+            {
+              "node": "Refresh required?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Refresh required?": {
+        "main": [
+          [
+            {
+              "node": "Refresh Etsy token",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Return Etsy API headers",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Start OAuth setup": {
+        "main": [
+          [
+            {
+              "node": "Configuration (EDIT ME)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Refresh Etsy token": {
+        "main": [
+          [
+            {
+              "node": "Store refreshed token",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Route OAuth action": {
+        "main": [
+          [
+            {
+              "node": "OAuth callback received?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Store refreshed token": {
+        "main": [
+          [
+            {
+              "node": "Return Etsy API headers",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Store authorized token": {
+        "main": [
+          [
+            {
+              "node": "Confirm OAuth connection",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Access token requested?": {
+        "main": [
+          [
+            {
+              "node": "Load stored token",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Generate PKCE authorization URL",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Configuration (EDIT ME)": {
+        "main": [
+          [
+            {
+              "node": "Route OAuth action",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validate OAuth callback": {
+        "main": [
+          [
+            {
+              "node": "Exchange authorization code",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OAuth callback received?": {
+        "main": [
+          [
+            {
+              "node": "Validate OAuth callback",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Access token requested?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Exchange authorization code": {
+        "main": [
+          [
+            {
+              "node": "Store authorized token",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Token request from another workflow": {
+        "main": [
+          [
+            {
+              "node": "Configuration (EDIT ME)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [],
+  "url": "https://n8n.io/workflows/16654",
+  "fetched_at": "2026-09-12T13:16:02Z"
+}

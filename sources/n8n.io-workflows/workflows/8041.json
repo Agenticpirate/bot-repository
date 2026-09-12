@@ -1,0 +1,296 @@
+{
+  "id": 8041,
+  "name": "Weekly LinkedIn connections sync & analysis with Apify and Google Sheets",
+  "description": "# 💼 Auto-Sync LinkedIn Connections to Google Sheets (Apify + n8n)\n\nThis workflow automatically **scrapes your LinkedIn connections using Apify**, processes the data, and logs it into a structured **Google Sheet** every week. It also generates a summary of top companies, locations, and industries across your network.\n\n---\n\n## ⚙️ How It Works\n\n1. **Weekly Sync (Sunday 2 AM)**  \n   - A **Cron node** triggers the workflow weekly (default: Sunday at 2 AM).  \n   - Frequency can be adjusted.  \n\n2. **Start LinkedIn Scrape**  \n   - Calls the **Apify LinkedIn Scraper Actor** with your credentials.  \n   - Initiates a scraping run for all your LinkedIn connections.  \n\n3. **Extract Run ID & Wait**  \n   - Extracts the scrape run ID from Apify’s response.  \n   - Waits 30 seconds before checking status (retries every 60s until completed).  \n\n4. **Check Scrape Status**  \n   - Confirms if the scrape has finished successfully.  \n   - If not completed, waits and retries until done.  \n\n5. **Get Scraped Data**  \n   - Fetches scraped connection data from the Apify dataset.  \n   - Includes fields like name, title, company, location, industry, mutual connections, and profile URL.  \n\n6. **Process Connections Data**  \n   - A **Code node** cleans and normalizes the scraped data.  \n   - Removes incomplete profiles, trims whitespace, merges duplicate fields.  \n\n7. **Save to Google Sheets**  \n   - Clears existing data and appends the latest connections to your Google Sheet.  \n   - Headers include:  \n     ```\n     Name | Title | Company | Location | Profile URL \n     Connection Date | Industry | Mutual Connections\n     ```  \n\n8. **Generate Sync Summary**  \n   - Analyzes all saved connections.  \n   - Produces quick stats:  \n     - Total connections synced  \n     - Top 5 companies  \n     - Top 5 locations  \n     - Industry breakdown  \n\n---\n\n## 🛠️ Setup Steps\n\n### 1. Apify Setup\n- Sign up at [apify.com](https://apify.com).  \n- Get your **API token** from account settings.  \n- Use the **LinkedIn Scraper Actor**.  \n- Add your **LinkedIn session cookies** for stable results.  \n\n⚠️ Respect LinkedIn’s Terms of Service.  \n\n### 2. Google Sheets\n- Create a Google Sheet with headers:  \nName | Title | Company | Location | Profile URL | Connection Date | Industry | Mutual Connections\n- Copy the **Sheet ID** from the URL.  \n- Replace `YOUR_GOOGLE_SHEET_ID` in the workflow.  \n\n### 3. Credentials\n- Add **Apify API Token** as an HTTP header credential in n8n.  \n- Connect your Google Sheets OAuth account.  \n\n### 4. Scheduling\n- Default: runs every **Sunday at 2 AM**.  \n- Modify the Cron node to adjust frequency.  \n\n---\n\n## 📊 Example Output (Google Sheets Row)\n\n| Name        | Title                  | Company       | Location      | Profile URL              | Connection Date | Industry   | Mutual Connections |\n|-------------|------------------------|---------------|--------------|--------------------------|----------------|------------|--------------------|\n| Jane Smith  | Marketing Director     | Acme Corp     | New York, US | linkedin.com/in/janesmith | 2025-08-25     | Marketing  | 12                 |\n\n---\n\n## 📈 Example Sync Summary\n\n✅ LinkedIn sync completed: 248 connections saved\n🏢 Top companies: Acme Corp, Deloitte, Google, Meta, Amazon\n🌍 Top locations: New York, San Francisco, London, Berlin, Toronto\n📌 Industries: Marketing (32), Tech (45), Finance (28), Consulting (20)\n\n---\n\n⚡ With this workflow, your LinkedIn connections stay automatically logged and analyzed — ready for outreach, reporting, or CRM import.\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "2000c64071c20843606b95c63795bb0797c41036047055a6586498e855b96efc"
+    },
+    "nodes": [
+      {
+        "id": "20f1dbb0-303a-4129-87ea-0130f619d86b",
+        "name": "Setup Instructions",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          400,
+          176
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e24ff50b-bb32-4450-9617-c8e64f70eaea",
+        "name": "Weekly Sync (Sunday 2AM)",
+        "type": "n8n-nodes-base.cron",
+        "position": [
+          688,
+          560
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "3c9344c6-3f3c-4123-b26a-04160d3e7069",
+        "name": "Start LinkedIn Scrape",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          896,
+          560
+        ],
+        "parameters": {},
+        "typeVersion": 4.1
+      },
+      {
+        "id": "51b11269-7779-47a9-b613-489bb2870dec",
+        "name": "Extract Run ID",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1088,
+          560
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "41c86b36-af09-4e88-849a-e624e0b6dbdb",
+        "name": "Wait for Scrape (30s)",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          1296,
+          560
+        ],
+        "webhookId": "d784a7fd-6bb6-4d1b-800f-1191c354bc94",
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "fd27f571-51c5-4ac3-bd2a-fc977653362c",
+        "name": "Check Scrape Status",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1488,
+          560
+        ],
+        "parameters": {},
+        "typeVersion": 4.1
+      },
+      {
+        "id": "8adef10e-6281-41b7-8fac-1580bcb676a6",
+        "name": "Scrape Completed?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1696,
+          560
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "207a9ab4-b0ac-457a-9819-4a44f23fbefa",
+        "name": "Get Scraped Data",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1888,
+          464
+        ],
+        "parameters": {},
+        "typeVersion": 4.1
+      },
+      {
+        "id": "f4ad1f43-e96c-43c3-ac29-42672ee3b081",
+        "name": "Process Connections Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2096,
+          464
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "d9008ae6-20ab-485d-a14d-28f665ce9730",
+        "name": "Clear Existing Data",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          2288,
+          384
+        ],
+        "parameters": {},
+        "typeVersion": 4
+      },
+      {
+        "id": "4ae5f39a-1c29-461f-940b-462294cc8e2b",
+        "name": "Save Connections to Sheets",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          2288,
+          544
+        ],
+        "parameters": {},
+        "typeVersion": 4
+      },
+      {
+        "id": "c159d043-ceb1-43b2-879b-d5f6eabe22b5",
+        "name": "Generate Sync Summary",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2496,
+          544
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "e2cf5870-02fa-48e3-a9a4-e07885383d34",
+        "name": "Wait & Retry (60s)",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          1696,
+          704
+        ],
+        "webhookId": "f4502062-9b68-43b6-9069-a8e0c68ab165",
+        "parameters": {},
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Extract Run ID": {
+        "main": [
+          [
+            {
+              "node": "Wait for Scrape (30s)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Scraped Data": {
+        "main": [
+          [
+            {
+              "node": "Process Connections Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Scrape Completed?": {
+        "main": [
+          [
+            {
+              "node": "Get Scraped Data",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Wait & Retry (60s)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait & Retry (60s)": {
+        "main": [
+          [
+            {
+              "node": "Check Scrape Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Scrape Status": {
+        "main": [
+          [
+            {
+              "node": "Scrape Completed?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Start LinkedIn Scrape": {
+        "main": [
+          [
+            {
+              "node": "Extract Run ID",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait for Scrape (30s)": {
+        "main": [
+          [
+            {
+              "node": "Check Scrape Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Process Connections Data": {
+        "main": [
+          [
+            {
+              "node": "Clear Existing Data",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Save Connections to Sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Weekly Sync (Sunday 2AM)": {
+        "main": [
+          [
+            {
+              "node": "Start LinkedIn Scrape",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Save Connections to Sheets": {
+        "main": [
+          [
+            {
+              "node": "Generate Sync Summary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    },
+    {
+      "id": 37,
+      "name": "Lead Generation"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8041",
+  "fetched_at": "2026-09-12T13:12:15Z"
+}

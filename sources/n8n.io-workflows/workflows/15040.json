@@ -1,0 +1,559 @@
+{
+  "id": 15040,
+  "name": "Create LinkedIn post drafts from Fireflies meetings with GPT-4o-mini, Drive and Slack",
+  "description": "### Description\n\nConnect Fireflies to this workflow once and every meeting you record becomes a LinkedIn post draft automatically. The moment Fireflies finishes transcribing a call, it fires a signal to the workflow — which fetches the full transcript, extracts real insights, and uses GPT-4o-mini to write a 180–280 word scroll-stopping post with a hook, key learnings, and hashtags. The finished draft is saved to Google Drive and previewed in Slack so you can review and publish when ready. Built for founders, consultants, and sales leaders who want a consistent LinkedIn presence without spending time writing from scratch after every call.\n\n---\n\n## What This Workflow Does\n\n- **Triggers automatically when a call ends** — Fireflies sends a signal the moment transcription completes, so no manual input is ever needed\n- **Validates every incoming signal** — Checks that the signal contains a valid meeting ID and silently discards invalid or test pings\n- **Extracts real meeting insights** — Pulls speaker dialogue, Fireflies-detected pricing and question sentences, keywords, overview, and sentiment from the full transcript\n- **Writes a structured LinkedIn post** — GPT-4o-mini produces a hook, a specific insight paragraph, 3–5 emoji learnings, a closing question, and hashtags — all grounded in your actual meeting content\n- **Saves a complete Google Doc** — Stores the post alongside meeting reference details, participants, keywords, action items, and a link back to the Fireflies transcript\n- **Previews the post in Slack** — Posts the first 350 characters of the draft to your Slack channel so your team can review before the post goes live\n- **Exits cleanly for incomplete transcripts** — If Fireflies hasn't finished processing yet, the workflow stops silently without errors\n\n---\n\n## Setup Requirements\n\n### Tools Needed\n- n8n instance (self-hosted or cloud)\n- Fireflies.ai account with webhook access\n- OpenAI account with GPT-4o-mini API access\n- Google Drive (one folder where posts will be saved)\n- Slack workspace with OAuth2 app configured\n\n### Credentials Required\n- Fireflies API key (pasted directly into **5. Set — Config Values**)\n- OpenAI API key\n- Google Drive OAuth2\n- Slack OAuth2\n\n**Estimated Setup Time: 15–20 minutes**\n\n---\n\n## Step-by-Step Setup\n\n1. **Import the workflow** — Open n8n → Workflows → Import from JSON → paste the workflow JSON → click Import\n\n2. **Activate the workflow and copy the webhook URL** — Toggle the workflow to Active → click on node **1. Webhook — Fireflies Transcript Done** → copy the webhook URL shown\n\n3. **Register the webhook in Fireflies** — Log in to fireflies.ai → go to Settings → Developer Settings → Webhooks → paste the webhook URL → save\n\n4. **Get your Fireflies API key** — In Fireflies, go to Settings → Integrations → copy your API key\n\n5. **Fill in Config Values** — Open node **5. Set — Config Values** → replace all placeholders:\n\n| Field | What to enter |\n|---|---|\n| `YOUR_FIREFLIES_API_KEY` | Your Fireflies API key from step 4 |\n| `YOUR_GOOGLE_DRIVE_FOLDER_ID` | The folder ID from your Google Drive URL (the string after `/folders/` in the URL when you open the folder) |\n| `#content-team` | Your Slack channel name including the `#` |\n| `YOUR FULL NAME` | The author's full name (used in the post sign-off) |\n| `YOUR JOB TITLE` | The author's job title (e.g. CEO, SEO Consultant) |\n| `YOUR COMPANY NAME` | Your company name (used in the AI prompt) |\n\n6. **Connect OpenAI** — Open node **11. OpenAI — GPT-4o-mini Model** → click the credential dropdown → add your OpenAI API key → test the connection\n\n7. **Connect Google Drive** — Open node **13. Google Drive — Save LinkedIn Post** → click the credential dropdown → add Google Drive OAuth2 → sign in with your Google account → authorize access\n\n8. **Connect Slack** — Open node **14. Slack — Send Post Preview** → click the credential dropdown → connect your Slack workspace via OAuth2 → invite the n8n bot to your channel in Slack (`/invite @n8n`)\n\n&gt; ⚠️ **The workflow must be Active before registering the webhook in Fireflies.** An inactive workflow will not receive signals from Fireflies. Activate first, then paste the URL.\n\n---\n\n## How It Works (Step by Step)\n\n**Step 1 — Webhook: Fireflies Transcript Done**\nThis step listens for a signal from Fireflies. Every time Fireflies finishes transcribing a meeting, it sends a POST request to this webhook URL containing the meeting ID. No manual trigger is needed — it fires automatically after every recorded call.\n\n**Step 2 — Code: Extract Meeting ID**\nThe meeting ID is extracted from the incoming signal. Fireflies can send the payload in several different formats, so this step checks all possible locations and pulls the ID safely. If no meeting ID is found at all, a flag is set to mark the signal as invalid.\n\n**Step 3 — IF: Valid Meeting ID?**\nThis is the first gate check. If a valid meeting ID was found (YES path), the workflow continues to fetch the transcript. If the signal was invalid or contained no meeting ID (NO path), the workflow routes to **4. Set — Invalid Webhook Skip** and stops cleanly.\n\n**Step 4 — Set: Invalid Webhook Skip**\nThis step handles the invalid signal case. It sets a brief message confirming the webhook was skipped and the workflow ends here for that trigger.\n\n**Step 5 — Set: Config Values**\nYour Fireflies API key, Google Drive folder ID, Slack channel, author name, author title, and company name are stored here. The validated meeting ID from step 2 is also carried forward so the transcript fetch can use it directly.\n\n**Step 6 — HTTP: Fetch Transcript**\nA request is sent to the Fireflies API using your API key and the meeting ID. It retrieves the complete transcript including all sentences with speaker labels, AI-detected pricing and task sentences, keyword summary, overview, gist, bullet points, and sentiment percentages.\n\n**Step 7 — Code: Process Transcript Data**\nThe raw transcript is processed into clean, usable fields. All sentences are combined into a readable text block (limited to 5,000 characters for GPT efficiency). Fireflies-flagged pricing sentences, question sentences, and task sentences are extracted separately. Sentiment percentages, keywords, action items, and overview are all pulled out. A formatted document title is generated automatically using the meeting name and date. If the transcript is empty or not yet available, a flag is set for the next gate check.\n\n**Step 8 — IF: Transcript Ready?**\nThis is the second gate check. If transcript data is available (YES path), the workflow moves to AI post writing. If Fireflies hasn't finished processing the transcript yet (NO path), the workflow routes to **9. Set — Transcript Not Ready Skip** and stops cleanly without errors.\n\n**Step 9 — Set: Transcript Not Ready Skip**\nThis step handles the not-ready case. It logs the meeting ID and a message confirming the transcript was skipped. The workflow ends here for that run.\n\n**Step 10 — AI Agent: Write LinkedIn Post**\nGPT-4o-mini receives the author details, meeting context, Fireflies summary, bullet points, keywords, action items, questions raised in the call, and the transcript excerpt. It writes a 180–280 word LinkedIn post following a fixed structure: a scroll-stopping hook (not starting with \"I\" or \"We\"), a specific insight paragraph in first person, 3–5 emoji key learnings pulled from real transcript content, a closing question or call to action, and 4–5 hashtags. A sign-off with the author's name and title is added at the end.\n\n**Step 11 — OpenAI: GPT-4o-mini Model**\nThis is the language model powering the writing step. It runs at temperature 0.8 for creative, varied output and is capped at 700 tokens to keep the post within the target word count.\n\n**Step 12 — Code: Build Doc and Slack Message**\nThe AI-generated post is assembled into a complete Google Doc with the post text at the top, followed by meeting reference details: title, date, duration, participants, Fireflies transcript link, keywords, and action items. A Slack preview is also built here — the first 350 characters of the post plus meeting details and a link back to the Fireflies transcript.\n\n**Step 13 — Google Drive: Save LinkedIn Post**\nThe complete document is saved to your specified Google Drive folder. The file is named automatically using the meeting title and date (e.g. \"LinkedIn Post — Client Strategy Call — 14 Apr 2025\").\n\n**Step 14 — Slack: Send Post Preview**\nThe preview message is posted to your Slack channel at the same time the Google Doc is being saved. Your team sees the post hook and first paragraph instantly, with the full document link available in Drive for review before publishing.\n\n---\n\n## Key Features\n\n✅ **Fully automatic — zero manual trigger** — Fireflies fires the workflow the moment any call transcript is ready, no human action needed\n✅ **Two validation gates** — Invalid webhook signals and unready transcripts both exit cleanly without causing errors or empty posts\n✅ **Grounded in real content** — The AI prompt feeds actual transcript sentences, keywords, bullet points, and action items so posts are specific, not generic\n✅ **Fixed post structure every time** — Hook, insight paragraph, emoji learnings, closing CTA, hashtags, and sign-off are enforced on every run\n✅ **Auto-named Google Docs** — Files are named by meeting title and date automatically so your Drive folder stays organized without any manual renaming\n✅ **Slack preview before publishing** — Your team sees the draft before it goes live — one review step, no surprises\n✅ **Handles all Fireflies payload formats** — The extraction step checks every possible payload structure so the webhook never silently fails due to a format change\n✅ **Temperature tuned for creative writing** — GPT runs at 0.8 so each post has a natural, human tone rather than a repetitive AI pattern\n\n---\n\n## Customisation Options\n\n**Change the post length target** — In node **10. AI Agent — Write LinkedIn Post**, edit the instruction from \"180 to 280 words\" to a different range. Also adjust `maxTokens` in node **11. OpenAI — GPT-4o-mini Model** accordingly (e.g. set to 900 for longer posts).\n\n**Add a second post format** — After node **10. AI Agent — Write LinkedIn Post**, add a second AI Agent step with a different prompt structure (e.g. a short 3-sentence insight post or a carousel-style numbered list) to generate two post options per call instead of one.\n\n**Route posts by meeting type** — In node **5. Set — Config Values**, add a `postCategory` field. Then add an IF check after step 7 that reads the meeting title — if it contains \"demo\" or \"sales\", use a sales-focused prompt; if it contains \"team\" or \"internal\", use a thought leadership prompt.\n\n**Save to a dated subfolder in Drive** — In node **12. Code — Build Doc and Slack Message**, generate a folder path string using the meeting date (e.g. `2025/April`) and use the Google Drive step to create or find that subfolder before saving, keeping your Drive organized by month automatically.\n\n**Add a Notion database entry** — After node **13. Google Drive — Save LinkedIn Post**, add a Notion API HTTP request to create a new row in a content calendar database with the post title, meeting date, status (Draft), and Google Drive link for content planning visibility.\n\n---\n\n## Troubleshooting\n\n**Workflow not triggering when a call ends:**\n- Confirm the workflow is Active before expecting Fireflies to fire it — inactive workflows do not receive webhooks\n- Log in to Fireflies → Settings → Developer Settings → Webhooks → confirm the webhook URL is saved correctly and matches the URL from node **1. Webhook — Fireflies Transcript Done**\n- Check that your Fireflies plan includes webhook support — some plans restrict this feature\n\n**Fireflies API key error or empty transcript:**\n- Confirm `YOUR_FIREFLIES_API_KEY` in node **5. Set — Config Values** is replaced with your actual key — not the placeholder text\n- Get your key from fireflies.ai → Settings → Integrations → API Key\n- If the transcript returns empty, the call may not have been processed yet by Fireflies — the workflow exits cleanly via **9. Set — Transcript Not Ready Skip** in this case\n\n**OpenAI not generating the post:**\n- Confirm the API key is connected in node **11. OpenAI — GPT-4o-mini Model** and your account has available credits\n- Check the execution log of node **10. AI Agent — Write LinkedIn Post** for the raw error message\n- If the post is under 50 characters, node **12. Code — Build Doc and Slack Message** catches this and outputs a failure message instead of a broken doc\n\n**Google Drive not saving the file:**\n- Confirm the Google Drive OAuth2 credential in node **13. Google Drive — Save LinkedIn Post** is connected and not expired — re-authorize if needed\n- Check that `YOUR_GOOGLE_DRIVE_FOLDER_ID` in node **5. Set — Config Values** is the folder ID from your Drive URL, not the full URL — copy only the string after `/folders/`\n- Make sure the Google account you authorized has write access to the target folder\n\n**Slack preview not arriving:**\n- Confirm the Slack OAuth2 credential in node **14. Slack — Send Post Preview** is connected and authorized\n- Check that the channel name in node **5. Set — Config Values** includes the `#` prefix and matches your Slack channel exactly\n- Type `/invite @n8n` in the target Slack channel to ensure the bot has permission to post\n\n---\n\n## Support\n\nNeed help setting this up or want a custom version built for your team or agency?\n\n📧 Email: [info@incrementors.com](info@incrementors.com)\n🌐 Website: [https://www.incrementors.com/](https://www.incrementors.com/)",
+  "workflow": {
+    "meta": {
+      "instanceId": "bc8ca75c203589705ae2e446cad7181d6f2a7cc1766f958ef9f34810e53b8cb2",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "fb351597-01ca-435e-b623-c769e8ef3867",
+        "name": "Overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -5008,
+          -448
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 556,
+          "height": 1160,
+          "content": "## LinkedIn Post Generator — Fireflies + GPT-4o-mini + Google Drive + Slack\n\nFor founders, consultants, and sales leaders who want to turn every client call or meeting into a LinkedIn post automatically. When Fireflies finishes transcribing a meeting, it fires a webhook to this workflow. The transcript is fetched from the Fireflies API, processed for key insights, and passed to GPT-4o-mini which writes a scroll-stopping LinkedIn post with a hook, key learnings with emojis, a closing question, and hashtags. The post is saved as a Google Doc and previewed in Slack for review before publishing.\n\n## How it works\n- **1. Webhook — Fireflies Transcript Done** receives the meetingId from Fireflies when transcription completes\n- **2. Code — Extract Meeting ID** safely extracts the meetingId from all possible Fireflies payload structures\n- **3. IF — Valid Meeting ID?** validates the meetingId — invalid webhooks exit cleanly\n- **5. Set — Config Values** stores your Fireflies API key, Drive folder ID, Slack channel, author name, title, and company\n- **6. HTTP — Fetch Transcript** calls the Fireflies GraphQL API to get the full transcript with sentences, summaries, and sentiment\n- **7. Code — Process Transcript Data** extracts conversation text, pricing and task sentences, keywords, and meeting metadata\n- **8. IF — Transcript Ready?** checks if transcript data is available — not-ready transcripts exit cleanly\n- **10. AI Agent — Write LinkedIn Post** uses GPT-4o-mini to write a 180–280 word LinkedIn post from real meeting insights\n- **12. Code — Build Doc and Slack Message** assembles the full Google Doc content and Slack preview\n- **13. Google Drive — Save LinkedIn Post** saves the post as a document to your Drive folder\n- **14. Slack — Send Post Preview** posts a 350-character preview to your Slack channel for review\n\n## Set up steps\n1. In **5. Set — Config Values** — replace YOUR_FIREFLIES_API_KEY, YOUR_GOOGLE_DRIVE_FOLDER_ID, Slack channel, author name, author title, and company name\n2. Activate the workflow and copy the webhook URL from node 1\n3. In Fireflies — go to Settings, Developer Settings, Webhooks, and paste the URL\n4. In **11. OpenAI — GPT-4o-mini Model** — connect your OpenAI credential\n5. In **13. Google Drive — Save LinkedIn Post** — connect your Google Drive OAuth2 credential\n6. In **14. Slack — Send Post Preview** — connect your Slack OAuth2 credential and invite the bot to your channel"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "45267bbe-2310-4e10-be3b-31afaefb25cc",
+        "name": "Section — Webhook Receipt and Validation",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -4368,
+          -384
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 804,
+          "height": 900,
+          "content": "## Webhook Receipt and Validation\nFireflies POSTs a meetingId here when transcription completes. A Code node safely extracts the meetingId from any payload structure. The IF node validates it — invalid webhooks exit cleanly via the Set node below."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "91a1814c-02a6-4636-99b3-07fcb69dc426",
+        "name": "Section — Config, Transcript Fetch, and Processing",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -3536,
+          -384
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 916,
+          "height": 884,
+          "content": "## Config, Transcript Fetch, and Processing\nConfig stores all credentials and author details. Fireflies GraphQL API fetches the complete transcript. A Code node extracts sentences, ai_filter tags, keywords, sentiment, and metadata. A second IF gates on transcript availability."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3be446ed-9260-41fd-b47c-5242190572e4",
+        "name": "Section — AI LinkedIn Post Writing",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2544,
+          -400
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 360,
+          "height": 900,
+          "content": "## AI LinkedIn Post Writing\nGPT-4o-mini (temperature 0.8) writes a 180–280 word LinkedIn post using real transcript content. Structure: scroll-stopping hook, specific paragraph, 3–5 emoji learnings, closing question or CTA, hashtags, author sign-off."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "348e8b38-5ad2-4aae-a6a3-c58f87b67ee8",
+        "name": "Section — Doc Assembly and Delivery",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2112,
+          -400
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 644,
+          "height": 900,
+          "content": "## Doc Assembly and Delivery\nBuilds a complete Google Doc with the post, meeting reference, keywords, and Fireflies link. Saved to Drive and previewed in Slack simultaneously for team review before publishing."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "23f2fa98-8166-49bc-b124-1589c215c695",
+        "name": "1. Webhook — Fireflies Transcript Done",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -4320,
+          -48
+        ],
+        "webhookId": "ff-linkedin-v2-001",
+        "parameters": {
+          "path": "fireflies-transcript-done",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "f4753deb-a752-4b7c-b772-fe9a2fed3d9d",
+        "name": "2. Code — Extract Meeting ID",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -4064,
+          -48
+        ],
+        "parameters": {
+          "jsCode": "// Safely extract meetingId from Fireflies webhook\n// Fireflies can send payload in different structures\nconst raw = $input.first().json;\n\n// Handle all possible payload structures\nconst meetingId =\n  raw.meetingId ||\n  raw.body?.meetingId ||\n  raw.data?.meetingId ||\n  raw.payload?.meetingId ||\n  '';\n\nconst eventType =\n  raw.eventType ||\n  raw.body?.eventType ||\n  raw.data?.eventType ||\n  'Transcription completed';\n\nif (!meetingId) {\n  return [{\n    json: {\n      isValid: false,\n      error: 'No meetingId found in webhook payload',\n      rawPayload: JSON.stringify(raw).substring(0, 200)\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    isValid: true,\n    meetingId: meetingId.trim(),\n    eventType\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "a89b2910-8a67-456f-bc1f-c7865e3c76e8",
+        "name": "3. IF — Valid Meeting ID?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -3840,
+          -48
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "leftValue": "",
+              "caseSensitive": false,
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "cond-valid",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true"
+                },
+                "leftValue": "={{ $json.isValid }}",
+                "rightValue": true
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "b6ca83bf-18df-49da-b1b5-9495e92337e7",
+        "name": "4. Set — Invalid Webhook Skip",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -3776,
+          288
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "skip-001",
+                "name": "result",
+                "type": "string",
+                "value": "Invalid webhook — no meetingId. Skipped."
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "d1382001-9c58-49f1-928b-1be64f9d7f22",
+        "name": "5. Set — Config Values",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -3472,
+          -80
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "cfg-001",
+                "name": "firefliesApiKey",
+                "type": "string",
+                "value": "YOUR_FIREFLIES_API_KEY"
+              },
+              {
+                "id": "cfg-002",
+                "name": "googleDriveFolderId",
+                "type": "string",
+                "value": "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+              },
+              {
+                "id": "cfg-003",
+                "name": "slackChannel",
+                "type": "string",
+                "value": "#content-team"
+              },
+              {
+                "id": "cfg-004",
+                "name": "authorName",
+                "type": "string",
+                "value": "YOUR FULL NAME"
+              },
+              {
+                "id": "cfg-005",
+                "name": "authorTitle",
+                "type": "string",
+                "value": "YOUR JOB TITLE"
+              },
+              {
+                "id": "cfg-006",
+                "name": "companyName",
+                "type": "string",
+                "value": "YOUR COMPANY NAME"
+              },
+              {
+                "id": "cfg-007",
+                "name": "meetingId",
+                "type": "string",
+                "value": "={{ $('2. Code — Extract Meeting ID').item.json.meetingId }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "c753e123-483c-4ee8-9600-ac1d96be0dba",
+        "name": "6. HTTP — Fetch Transcript",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -3264,
+          -80
+        ],
+        "parameters": {
+          "url": "https://api.fireflies.ai/graphql",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n  \"query\": \"query GetTranscript($id: String!) { transcript(id: $id) { id title date duration participants host_email transcript_url sentences { speaker_name text ai_filters { task pricing question } } summary { keywords action_items overview gist bullet_gist } analytics { sentiments { positive_pct negative_pct } } } }\",\n  \"variables\": {\n    \"id\": \"{{ $json.meetingId }}\"\n  }\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{ $json.firefliesApiKey }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "06d91bbf-c85a-48fa-8555-3ec0068098eb",
+        "name": "7. Code — Process Transcript Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -3040,
+          -80
+        ],
+        "parameters": {
+          "jsCode": "const response = $input.first().json;\nconst config = $('5. Set — Config Values').item.json;\n\nconst transcript = response?.data?.transcript;\n\nif (!transcript || !transcript.id) {\n  return [{\n    json: {\n      hasData: false,\n      meetingId: config.meetingId,\n      error: 'Transcript not found or not yet ready in Fireflies'\n    }\n  }];\n}\n\n// Build full conversation text from sentences\nconst sentences = transcript.sentences || [];\nlet fullText = '';\nconst taskLines = [];\nconst pricingLines = [];\nconst questionLines = [];\n\nsentences.forEach(s => {\n  const speaker = s.speaker_name || 'Speaker';\n  const text = (s.text || '').trim();\n  if (text) {\n    fullText += `${speaker}: ${text}\\n`;\n    if (s.ai_filters?.task && text.length > 15) taskLines.push(text);\n    if (s.ai_filters?.pricing && text.length > 15) pricingLines.push(text);\n    if (s.ai_filters?.question && text.length > 15) questionLines.push(text);\n  }\n});\n\n// Limit transcript text to 5000 chars for GPT token safety\nconst transcriptExcerpt = fullText.substring(0, 5000);\n\n// Summary fields from Fireflies\nconst summary = transcript.summary || {};\nconst keywords = (summary.keywords || []).slice(0, 12).join(', ') || 'None';\nconst actionItems = (summary.action_items || []).slice(0, 5).join(' | ') || 'None';\nconst overview = (summary.overview || '').substring(0, 800);\nconst gist = summary.gist || '';\nconst bulletPoints = (summary.bullet_gist || []).slice(0, 6).join('\\n') || '';\n\n// Date formatting\nconst meetingDate = transcript.date\n  ? new Date(transcript.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })\n  : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });\n\nconst meetingTitle = transcript.title || 'Untitled Meeting';\nconst durationMin = Math.round((transcript.duration || 0) / 60);\nconst participants = (transcript.participants || []).join(', ') || 'Not listed';\nconst transcriptUrl = transcript.transcript_url || 'Not available';\n\nconst positivePct = Math.round(transcript.analytics?.sentiments?.positive_pct || 0);\nconst negativePct = Math.round(transcript.analytics?.sentiments?.negative_pct || 0);\n\nconst logDate = new Date().toISOString().replace('T', ' ').substring(0, 16);\nconst docTitle = `LinkedIn Post — ${meetingTitle} — ${meetingDate}`;\n\nreturn [{\n  json: {\n    hasData: true,\n    meetingId: transcript.id,\n    meetingTitle,\n    meetingDate,\n    durationMin,\n    participants,\n    transcriptUrl,\n    transcriptExcerpt,\n    keywords,\n    actionItems,\n    overview,\n    gist,\n    bulletPoints,\n    taskLines: taskLines.slice(0, 3).join(' | ') || 'None',\n    pricingLines: pricingLines.slice(0, 3).join(' | ') || 'None',\n    questionLines: questionLines.slice(0, 3).join(' | ') || 'None',\n    positivePct,\n    negativePct,\n    docTitle,\n    logDate,\n    authorName: config.authorName,\n    authorTitle: config.authorTitle,\n    companyName: config.companyName,\n    googleDriveFolderId: config.googleDriveFolderId,\n    slackChannel: config.slackChannel\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "f49ba821-f034-4081-9a98-57c313f378c4",
+        "name": "8. IF — Transcript Ready?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -2816,
+          -80
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "leftValue": "",
+              "caseSensitive": false,
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "cond-has-data",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true"
+                },
+                "leftValue": "={{ $json.hasData }}",
+                "rightValue": true
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "c142f426-9e9d-4c90-a819-9e63511495cd",
+        "name": "9. Set — Transcript Not Ready Skip",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -2800,
+          224
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "skip-002",
+                "name": "result",
+                "type": "string",
+                "value": "=Transcript not ready for meetingId: {{ $json.meetingId }}. Skipped."
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "55d411ad-9219-4c4d-865a-caf9968f9411",
+        "name": "10. AI Agent — Write LinkedIn Post",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          -2496,
+          -112
+        ],
+        "parameters": {
+          "text": "=You are a LinkedIn ghostwriter for {{ $json.authorName }}, {{ $json.authorTitle }} at {{ $json.companyName }}.\n\nWrite a LinkedIn post based on insights from a real business meeting or client call.\n\nMEETING CONTEXT:\nMeeting Title: {{ $json.meetingTitle }}\nDate: {{ $json.meetingDate }}\nDuration: {{ $json.durationMin }} minutes\nParticipants: {{ $json.participants }}\nCall Sentiment: {{ $json.positivePct }}% positive\n\nFIREFLIES SUMMARY:\nOverview: {{ $json.overview }}\nGist: {{ $json.gist }}\n\nKEY POINTS:\n{{ $json.bulletPoints }}\n\nKEYWORDS DISCUSSED: {{ $json.keywords }}\n\nACTION ITEMS FROM CALL: {{ $json.actionItems }}\n\nQUESTIONS RAISED IN CALL: {{ $json.questionLines }}\n\nTRANSCRIPT EXCERPT:\n{{ $json.transcriptExcerpt }}\n\nWRITE THE LINKEDIN POST NOW:\n\nFollow this exact structure:\n\nLINE 1: Strong hook. Surprising insight, bold statement, or counterintuitive lesson from this meeting. Must stop the scroll. Do NOT start with the word I or We. Maximum 12 words.\n\nLINE 2: Blank line.\n\nPARAGRAPH: 2 to 3 sentences expanding on the hook. Use first person as {{ $json.authorName }}. Be specific — reference real things from this meeting. Not generic advice.\n\nLINE BREAK.\n\n3 TO 5 KEY LEARNINGS: Each on its own line. Start each with a relevant emoji. Pull from real transcript content. Be specific, not generic.\n\nLINE BREAK.\n\nCLOSING: One sentence — either a thought-provoking question for the audience OR a call to action. Keep it conversational.\n\nLINE BREAK.\n\nHASHTAGS: 4 to 5 relevant hashtags on one line.\n\nLINE BREAK.\n\nSIGN OFF: — {{ $json.authorName }}, {{ $json.authorTitle }}\n\nRULES:\n- Total length 180 to 280 words\n- Plain text only — no asterisks, no markdown\n- Tone: human, professional, conversational — not corporate\n- Do NOT mention the meeting was recorded or transcribed\n- Do NOT fabricate any facts not present in the transcript\n- Write as if this is a genuine personal reflection",
+          "options": {},
+          "promptType": "define"
+        },
+        "typeVersion": 1.7
+      },
+      {
+        "id": "9f0c6bce-408b-4a72-98e7-8fbe7461a86e",
+        "name": "11. OpenAI — GPT-4o-mini Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          -2496,
+          112
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4o-mini"
+          },
+          "options": {
+            "maxTokens": 700,
+            "temperature": 0.8
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "98faeed6-9f31-48ce-852c-aa0f8a12e96e",
+        "name": "12. Code — Build Doc and Slack Message",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -2064,
+          -112
+        ],
+        "parameters": {
+          "jsCode": "// Read AI output and prepare final fields for Drive + Slack\nconst aiPost = $input.first().json.output || '';\nconst data = $('7. Code — Process Transcript Data').item.json;\n\nif (!aiPost || aiPost.length < 50) {\n  return [{\n    json: {\n      linkedinPost: 'Post generation failed. Please check OpenAI credentials.',\n      docTitle: data.docTitle,\n      folderId: data.googleDriveFolderId,\n      slackChannel: data.slackChannel,\n      slackMessage: 'LinkedIn post generation failed for: ' + data.meetingTitle,\n      meetingTitle: data.meetingTitle,\n      meetingDate: data.meetingDate,\n      transcriptUrl: data.transcriptUrl\n    }\n  }];\n}\n\n// Full document content for Google Drive\nconst docContent =\n  'LINKEDIN POST DRAFT\\n' +\n  'Meeting: ' + data.meetingTitle + '\\n' +\n  'Date: ' + data.meetingDate + '\\n' +\n  'Author: ' + data.authorName + ', ' + data.authorTitle + '\\n' +\n  'Company: ' + data.companyName + '\\n' +\n  'Generated: ' + data.logDate + '\\n' +\n  '\\n' +\n  '============================================================\\n' +\n  'LINKEDIN POST — READY TO COPY AND PASTE\\n' +\n  '============================================================\\n' +\n  '\\n' +\n  aiPost +\n  '\\n\\n' +\n  '============================================================\\n' +\n  'MEETING REFERENCE\\n' +\n  '============================================================\\n' +\n  'Title: ' + data.meetingTitle + '\\n' +\n  'Date: ' + data.meetingDate + '\\n' +\n  'Duration: ' + data.durationMin + ' minutes\\n' +\n  'Participants: ' + data.participants + '\\n' +\n  'Fireflies Link: ' + data.transcriptUrl + '\\n' +\n  'Keywords: ' + data.keywords + '\\n' +\n  'Action Items: ' + data.actionItems + '\\n' +\n  '\\n' +\n  'Auto-generated by n8n + Fireflies.ai + GPT-4o-mini';\n\n// Slack preview — first 350 chars of post\nconst preview = aiPost.length > 350 ? aiPost.substring(0, 350) + '...' : aiPost;\n\nconst slackMessage =\n  '*New LinkedIn Post Draft Ready*\\n' +\n  '\\n' +\n  '*Meeting:* ' + data.meetingTitle + '\\n' +\n  '*Date:* ' + data.meetingDate + '   *Duration:* ' + data.durationMin + ' min\\n' +\n  '*Author:* ' + data.authorName + ', ' + data.authorTitle + '\\n' +\n  '\\n' +\n  '*POST PREVIEW:*\\n' +\n  preview +\n  '\\n\\n' +\n  '_Full post saved to Google Drive_\\n' +\n  '_Fireflies transcript: ' + data.transcriptUrl + '_';\n\nreturn [{\n  json: {\n    linkedinPost: aiPost,\n    docContent,\n    docTitle: data.docTitle,\n    folderId: data.googleDriveFolderId,\n    slackChannel: data.slackChannel,\n    slackMessage,\n    meetingTitle: data.meetingTitle,\n    meetingDate: data.meetingDate\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "b4a8fec2-fe2f-4389-b37f-e7db1c811415",
+        "name": "13. Google Drive — Save LinkedIn Post",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          -1728,
+          -272
+        ],
+        "parameters": {
+          "operation": "create"
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "c87dfa34-f185-43db-85e2-d135a970dc17",
+        "name": "14. Slack — Send Post Preview",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          -1728,
+          64
+        ],
+        "webhookId": "d0db220b-b6f2-4bff-b535-43ba197e8509",
+        "parameters": {
+          "text": "={{ $json.slackMessage }}",
+          "otherOptions": {
+            "mrkdwn": true
+          },
+          "authentication": "oAuth2"
+        },
+        "typeVersion": 2.2
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "5. Set — Config Values": {
+        "main": [
+          [
+            {
+              "node": "6. HTTP — Fetch Transcript",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "3. IF — Valid Meeting ID?": {
+        "main": [
+          [
+            {
+              "node": "5. Set — Config Values",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "4. Set — Invalid Webhook Skip",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "8. IF — Transcript Ready?": {
+        "main": [
+          [
+            {
+              "node": "10. AI Agent — Write LinkedIn Post",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "9. Set — Transcript Not Ready Skip",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "6. HTTP — Fetch Transcript": {
+        "main": [
+          [
+            {
+              "node": "7. Code — Process Transcript Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2. Code — Extract Meeting ID": {
+        "main": [
+          [
+            {
+              "node": "3. IF — Valid Meeting ID?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "11. OpenAI — GPT-4o-mini Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "10. AI Agent — Write LinkedIn Post",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "7. Code — Process Transcript Data": {
+        "main": [
+          [
+            {
+              "node": "8. IF — Transcript Ready?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "10. AI Agent — Write LinkedIn Post": {
+        "main": [
+          [
+            {
+              "node": "12. Code — Build Doc and Slack Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "1. Webhook — Fireflies Transcript Done": {
+        "main": [
+          [
+            {
+              "node": "2. Code — Extract Meeting ID",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "12. Code — Build Doc and Slack Message": {
+        "main": [
+          [
+            {
+              "node": "13. Google Drive — Save LinkedIn Post",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "14. Slack — Send Post Preview",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 31,
+      "name": "Content Creation"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15040",
+  "fetched_at": "2026-09-12T13:15:14Z"
+}

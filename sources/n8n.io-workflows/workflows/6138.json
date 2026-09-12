@@ -1,0 +1,438 @@
+{
+  "id": 6138,
+  "name": "Convert documents to podcast audio with GPT-4o & OpenAI TTS",
+  "description": "*This workflow contains community nodes that are only compatible with the self-hosted version of n8n.*\n\n## What it does\nThis n8n workflow delivers a comprehensive, automated solution for transforming written content into dynamic, multi-speaker podcast audio. It automatically detects new documents in Google Drive, leverages advanced AI to craft a detailed podcast script, generates individual audio segments for each speaker, uploads these segments to a dedicated file storage, seamlessly concatenates them into a full episode, and finally, saves the completed audio back into Google Drive. This end-to-end pipeline significantly streamlines your content-to-audio production process.\n\n\n## How it works\nThe workflow is a powerful orchestration of AI and automation, designed to take your raw document and deliver a polished audio product.\n\n#### 1. Document Ingestion & Text Extraction 📄➡️💬\nYour journey begins when you simply place a document in a designated Google Drive folder.\n\n#### 2. AI-Powered Script Generation 🧠✍️\nWith the text extracted, the workflow hands it over to an AI scriptwriter.\n\n#### 3. Dynamic Audio Generation & Storage 🗣️💾\nOnce the script is ready, each piece of dialogue is brought to life with distinct voices.\n\n#### 4. Generate Podcast 🔗🎧📂\nFinally, all the individual audio pieces are assembled into one complete podcast episode.\n\n\n## How to set it up (~15 Minutes)\n\nGetting this workflow running requires a few key configurations and external service dependencies.\n\n#### Google Drive Account Setup:\n\n1. Create Google Drive Folder: Designate a specific Google Drive folder (e.g., \"AIAGENTDEMO\") that will serve as both the input (where you drop source documents) and output (where the final podcast audio lands). Make note of its ID or name.\n\n2. n8n Google Drive Credential: In your n8n instance, add a new Google Drive OAuth2 API credential. Give it a clear name (e.g., \"My Google Drive Account\") and authenticate it with your Google account, ensuring it has the necessary permissions for the designated folder.\n\n#### OpenAI API Key Setup:\n\n1. Obtain OpenAI API Key: Log in to your OpenAI account and generate a new API key.\n\n2. n8n OpenAI Credential: Within n8n, create a new OpenAI API credential. Name it appropriately (e.g., \"My OpenAI Key for TTS & LLM\") and paste your API key. This single credential will be used by both the AI scriptwriter (OpenAI Chat Model) and the audio generation (Generate audio files) nodes.\n\n#### External API Services (Self-Hosted/Provided):\n\n1. MongoDB File Storage API: Ensure a file storage API is fully operational and accessible from your n8n instance. This API must accept POST requests with filename and Base64 file_data in the body, returning a file_id upon successful upload.\n\n2. Audio Concatenation API: Verify that your audio concatenation service is live and reachable. This API should expect a POST request with an audio_urls array in the request body and provide the concatenated audio file in return.\n\n## How you could enhance it ✨\n\nThis workflow offers numerous avenues for advanced customization and expansion:\n\n1. Flexible Document Ingestion: Expand the Google Drive Trigger to monitor multiple folders or integrate with other cloud storage services (like Dropbox, OneDrive) or even local file systems. Broaden the Extract from File node's capabilities (or add pre-processing) to handle a wider range of document types beyond just PDFs, such as Word documents, markdown files, or even raw text.\n\n2. Expanded Speaker & Voice Control: Move beyond simple \"host\" and \"guest\" roles. Define an arbitrary number of speakers (e.g., \"Narrator,\" \"Expert A,\" \"Interviewer B\") and assign unique, distinct voices to each. This could involve a lookup table within n8n to map speaker roles to specific voice IDs from your TTS provider, allowing for granular control over more speakers and diverse voices.\n\n3. Multilingual Podcast Production: Implement language detection services (e.g., Google Cloud Language API) to automatically identify the language of your input document. This detected language can then be passed to the OpenAI TTS node (if supported) to enable the generation of podcast audio in multiple languages, broadening your audience reach.\n\n4. Dynamic LLM Prompting: Add parameters to the initial trigger or an earlier node to allow users to configure aspects of the podcast, such as desired length, specific tone, or a list of key discussion points, all of which can dynamically adjust the LLM's prompt.\n\n5. Alternative Text-to-Speech Engines: Easily swap out OpenAI's TTS with other leading providers like Google Cloud Text-to-Speech, AWS Polly, or ElevenLabs by simply changing the Generate audio files node and its associated credentials.\n\n6. Versatile File Storage: Replace the current MongoDB file storage with your preferred cloud storage solution, such as AWS S3 or Google Cloud Storage, by utilizing dedicated n8n nodes for those services.\n\n7. Advanced Audio Post-Processing: Introduce more sophisticated audio post-production steps directly within the workflow. This could include adding intros/outros, integrating background music, applying sound effects, or performing volume normalization before the final concatenation.\n\n8. Notification and Reporting: Implement robust error handling (e.g., retries for failed API calls) and add notification systems (e.g., email, Slack, Discord messages) to alert you to workflow completions, successes, or failures, including links to the generated podcast file.\n\n9. Direct Playback Integration: After the final audio is concatenated and uploaded, consider integrating with a media player or a sharing platform to immediately provide a public link for easy listening and distribution.\n\n10. Direct Publishing to Podcast Sites: Integrate with podcast hosting platforms that offer API access (e.g., Podbean, Libsyn, Captivate, Transistor). This would involve adding an HTTP Request node after the Upload file step to publish the newly generated podcast episode directly to your chosen podcast host via their API, including episode metadata (title, description, artwork). This bypasses manual uploads and pushes your content to all major podcast directories (Apple Podcasts, Spotify, Google Podcasts, etc.) that your hosting platform distributes to.#\n\n## Getting Assistance & More Resources\nNeed assistance setting this up, adapting it to a unique use case, or exploring more advanced customizations? Don't hesitate to reach out! You can contact me directly at **nanabrownsnr@gmail.com**. Also, feel free to check out my **[YouTube Channel](https://www.youtube.com/@InnovationAndAutomation)** where I discuss other n8n templates, as well as Innovation and automation solutions.\n",
+  "workflow": {
+    "id": "Uw2ldaC4MMBk1Hp5",
+    "meta": {
+      "instanceId": "13d96e1ebd7901d1ed300d36db3a4447107e9ad60df51fe711e45683875362aa",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Automated Podcast Production: Document to Dynamic Audio",
+    "tags": [
+      {
+        "id": "88Rkm7VaAFefsT34",
+        "name": "AI",
+        "createdAt": "2025-05-06T22:52:26.053Z",
+        "updatedAt": "2025-05-06T22:52:26.053Z"
+      },
+      {
+        "id": "4MwMqoYXQeLzfpT7",
+        "name": "Podcast",
+        "createdAt": "2025-07-18T11:41:58.652Z",
+        "updatedAt": "2025-07-18T11:41:58.652Z"
+      },
+      {
+        "id": "6CpXJCvm5RUvG77h",
+        "name": "Audio",
+        "createdAt": "2025-07-18T11:42:01.178Z",
+        "updatedAt": "2025-07-18T11:42:01.178Z"
+      },
+      {
+        "id": "W0kwHUnhvUn7kmRu",
+        "name": "Content Generation",
+        "createdAt": "2025-05-12T20:58:58.942Z",
+        "updatedAt": "2025-05-12T20:58:58.942Z"
+      },
+      {
+        "id": "Lh7rPgYrwjn9e48m",
+        "name": "Multimodal AI",
+        "createdAt": "2025-05-12T20:59:10.487Z",
+        "updatedAt": "2025-05-12T20:59:10.487Z"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "810de711-e7ba-4612-9c40-033882e36da1",
+        "name": "Google Drive Trigger",
+        "type": "n8n-nodes-base.googleDriveTrigger",
+        "position": [
+          -180,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "58c0461e-ffaf-437f-a1f7-c3f3bf352a3b",
+        "name": "Download file",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          40,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "3568824e-78c9-417f-9aba-bacd15efe55f",
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          440,
+          140
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "6dc0b5ed-0578-4cd7-93bf-c075c59b6850",
+        "name": "Structured Output Parser",
+        "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "position": [
+          640,
+          140
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "1470abd5-1328-4ec2-a0b4-20a0133c28a8",
+        "name": "Split Out",
+        "type": "n8n-nodes-base.splitOut",
+        "position": [
+          1060,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "34faf382-cf7d-4002-833e-c4f735d57473",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          40,
+          -560
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e951a8f4-e652-4b87-b154-b5e305d9ed94",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1060,
+          -560
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "48c39890-9dee-48a6-9a72-ef487e0baeaf",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2160,
+          -560
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "02dd8a82-1621-4681-b8c6-982d148bfd10",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -700,
+          -580
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3ef8027f-2322-4b70-8aae-da25884fcf80",
+        "name": "Generate Podcast Script from Text",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "position": [
+          480,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 1.7
+      },
+      {
+        "id": "7b75fe94-7016-4392-b515-1a038064bd9b",
+        "name": "Determine Participants",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          840,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "0bdbcd98-a501-4afe-b32a-cb2d1b643728",
+        "name": "Generate Speaker Audios with Prefered Voices",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "position": [
+          1280,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 1.8
+      },
+      {
+        "id": "773556dd-4108-4f4b-8c15-90cd21e018a4",
+        "name": "Convert File to Base 64",
+        "type": "n8n-nodes-base.extractFromFile",
+        "position": [
+          1500,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "05ccf0c1-be7a-4447-b330-4a4ccb947374",
+        "name": "Convert File to Text",
+        "type": "n8n-nodes-base.extractFromFile",
+        "position": [
+          260,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "f6479353-3cea-4644-bfcf-6e5e2722ca8b",
+        "name": "Store Files in MongoDB",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1720,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "8ad23362-4a8a-445c-a5fe-32ce29f09408",
+        "name": "Convert IDs to URL",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1940,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "068915e6-2d89-434a-902f-83557642e86a",
+        "name": "Combine URLs into Payload",
+        "type": "n8n-nodes-base.aggregate",
+        "position": [
+          2160,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "22356f16-bdc1-41db-a4e1-2010e27dcd4b",
+        "name": "Generate Podcast",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          2380,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "467bb334-f8ae-47cb-83c5-89ea956b75b0",
+        "name": "Upload File to Google Drive",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          2600,
+          -120
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "e2d5dfce-3059-4acd-b5ad-6f66cb2dafc2",
+    "connections": {
+      "Split Out": {
+        "main": [
+          [
+            {
+              "node": "Generate Speaker Audios with Prefered Voices",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Download file": {
+        "main": [
+          [
+            {
+              "node": "Convert File to Text",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Podcast": {
+        "main": [
+          [
+            {
+              "node": "Upload File to Google Drive",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Generate Podcast Script from Text",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Convert IDs to URL": {
+        "main": [
+          [
+            {
+              "node": "Combine URLs into Payload",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Convert File to Text": {
+        "main": [
+          [
+            {
+              "node": "Generate Podcast Script from Text",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Drive Trigger": {
+        "main": [
+          [
+            {
+              "node": "Download file",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Determine Participants": {
+        "main": [
+          [
+            {
+              "node": "Split Out",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Store Files in MongoDB": {
+        "main": [
+          [
+            {
+              "node": "Convert IDs to URL",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Convert File to Base 64": {
+        "main": [
+          [
+            {
+              "node": "Store Files in MongoDB",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Structured Output Parser": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "Generate Podcast Script from Text",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Combine URLs into Payload": {
+        "main": [
+          [
+            {
+              "node": "Generate Podcast",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Podcast Script from Text": {
+        "main": [
+          [
+            {
+              "node": "Determine Participants",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Speaker Audios with Prefered Voices": {
+        "main": [
+          [
+            {
+              "node": "Convert File to Base 64",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 31,
+      "name": "Content Creation"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6138",
+  "fetched_at": "2026-09-12T13:11:10Z"
+}

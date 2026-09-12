@@ -1,0 +1,470 @@
+{
+  "id": 9368,
+  "name": "Automate monthly CrUX report transfer from BigQuery to NocoDB with data cleanup",
+  "description": "## **Overview**\n\nThis n8n workflow automatically **retrieves the monthly CrUX (Chrome User Experience) Report from Google BigQuery** and updates the data in **NocoDB**.  \nIt removes the previous month’s data before inserting the new dataset, ensuring your database always contains the latest CrUX rankings for website origins.  \nThe flow is fully automated, using schedule triggers to handle both data cleanup and data insertion each month.\n\n---\n\n## ✅ **Tasks**\n\n* ⏰ Runs automatically on a **monthly schedule**  \n* 🔢 Converts the **month name to a numeric value** for table selection  \n* 🧹 Deletes last month’s CrUX data from **NocoDB**  \n* 🌐 Queries **Google BigQuery** for the latest monthly dataset  \n* 💾 Inserts the new CrUX rankings into **NocoDB**  \n* ⚙️ Keeps your database up to date with **zero manual effort**\n\n---\n\n## **🛠 How to Use**\n\n1️⃣ **Set Up BigQuery Access**  \n   - Connect your **Google BigQuery** credentials.  \n   - Make sure your project includes access to the **chrome-ux-report** public dataset.  \n\n2️⃣ **Adjust the Query**  \n   - In the **Google BigQuery** node, change the `LIMIT` value to control how many top-ranked sites are retrieved.  \n   - Ensure the `{{ $json.table }}` field correctly references the dataset for the desired month (e.g., `202509`).  \n\n3️⃣ **Prepare NocoDB Table**  \n   - Create a table in **NocoDB** with fields: `origin`, `crux_rank`, and any additional metadata you wish to track.  \n\n4️⃣ **Schedule Automation**  \n   - The workflow includes two **Schedule Trigger** nodes:\n     - One runs the **data cleanup** process (deletes last month).  \n     - One runs the **data insertion** for the new month.  \n\n5️⃣ **Run or Activate the Workflow**  \n   - Activate it to run automatically each month.  \n   - You can also run it manually to refresh data on demand.\n\n## **📋 Prerequisites**\n\nBefore running this workflow, make sure you complete the following setup steps:\n\n* 🧱 **Enable BigQuery API**  \n  - Go to [Google Cloud Console → APIs & Services](https://console.cloud.google.com/apis/library/bigquery.googleapis.com)  \n  - Enable the **BigQuery API** for your project.\n\n* 📊 **Access the Chrome UX Report Dataset**  \n  - In BigQuery, search for **“Chrome UX Report”** in the Marketplace or go directly to:  \n    [https://console.cloud.google.com/marketplace/product/chrome-ux-report/chrome-ux-report](https://console.cloud.google.com/marketplace/product/chrome-ux-report/chrome-ux-report)  \n  - Click **“View Dataset”** and add it to your BigQuery project.\n\n* 🔑 **Connect BigQuery to n8n**  \n  - In n8n, create credentials for your Google BigQuery account using **Service Account Authentication**.  \n  - Ensure the account has permission to query the `chrome-ux-report` dataset.\n\n* 🗄️ **Create a NocoDB Table**  \n  - In NocoDB, create a new table to store your CrUX data with the following fields:  \n    - **origin** → Short text  \n    - **crux_rank** → Number  \n\n* ⚙️ **Connect NocoDB to n8n**  \n  - Use your **NocoDB API Token** to connect and allow the workflow to read/write data.\n\n\n## **What is CrUX Rank?**\n\n**CrUX Rank** (Chrome User Experience Rank) is a metric from Google’s **Chrome UX Report (CrUX)** dataset that indicates a website’s **popularity based on real user visits**.  \nIt reflects how frequently an origin (website) is loaded by Chrome users around the world.\n\n- A **lower rank number** means the site is **more popular** (e.g., rank 1 = top site).  \n- The data is collected from **anonymized Chrome usage statistics**, aggregated monthly.  \n- This rank helps you **track site popularity trends** and compare your domain’s visibility over time.",
+  "workflow": {
+    "id": "B0aEQAsAIg2pLUfx",
+    "meta": {
+      "instanceId": "c24388df44432e8ff2c4acecd7ab0dd2faec628bd83c70beb384cea105f7a50a",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Automate Monthly CrUX Report Transfer from BigQuery to NocoDB with Data Cleanup",
+    "tags": [
+      {
+        "id": "RhAmCaLYc9EkF42I",
+        "name": "n8n",
+        "createdAt": "2025-08-24T08:04:35.027Z",
+        "updatedAt": "2025-08-24T08:04:35.027Z"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "b3ff85fe-b34b-4426-8c0b-83b15d22b6f4",
+        "name": "Google BigQuery",
+        "type": "n8n-nodes-base.googleBigQuery",
+        "position": [
+          980,
+          60
+        ],
+        "parameters": {
+          "options": {},
+          "sqlQuery": "SELECT\n  origin,\n  experimental.popularity.rank AS crux_rank\nFROM\n  `chrome-ux-report.all.{{ $json.table }}`\nWHERE\n  experimental.popularity.rank IS NOT NULL\nORDER BY\n  crux_rank ASC\nLIMIT 10;",
+          "projectId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "crucial-ray-454512-g1",
+            "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=crucial-ray-454512-g1",
+            "cachedResultName": "n8n-test"
+          },
+          "authentication": "serviceAccount"
+        },
+        "credentials": {
+          "googleApi": {
+            "id": "credential-id",
+            "name": "googleApi Credential"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "9072f57b-a4b3-4f2c-912b-cb60450c9cf2",
+        "name": "Get Last Month Data",
+        "type": "n8n-nodes-base.nocoDb",
+        "position": [
+          600,
+          460
+        ],
+        "parameters": {
+          "table": "m4fowxbiwoqqj2m",
+          "options": {},
+          "operation": "getAll",
+          "projectId": "p4lnw5vwzf2yy3i",
+          "returnAll": true,
+          "authentication": "nocoDbApiToken"
+        },
+        "credentials": {
+          "nocoDbApiToken": {
+            "id": "credential-id",
+            "name": "nocoDbApiToken Credential"
+          }
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "8f293e9a-c763-4e8a-afb3-2350dcfee4f4",
+        "name": "Delete in NocoDB",
+        "type": "n8n-nodes-base.nocoDb",
+        "position": [
+          1100,
+          460
+        ],
+        "parameters": {
+          "id": "={{ $json.Id }}",
+          "table": "m4fowxbiwoqqj2m",
+          "operation": "delete",
+          "projectId": "p4lnw5vwzf2yy3i",
+          "authentication": "nocoDbApiToken"
+        },
+        "credentials": {
+          "nocoDbApiToken": {
+            "id": "credential-id",
+            "name": "nocoDbApiToken Credential"
+          }
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "66d662f4-46e9-42a6-801e-fff09dd173db",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          840,
+          460
+        ],
+        "parameters": {
+          "options": {},
+          "batchSize": 100
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "3ddb8941-047f-41ef-83b5-cf7245fba81b",
+        "name": "Append Crux Data into NocoDB",
+        "type": "n8n-nodes-base.nocoDb",
+        "position": [
+          1320,
+          60
+        ],
+        "parameters": {
+          "table": "m4fowxbiwoqqj2m",
+          "fieldsUi": {
+            "fieldValues": [
+              {
+                "fieldName": "origin",
+                "fieldValue": "={{ $json.origin }}"
+              },
+              {
+                "fieldName": "crux_rank",
+                "fieldValue": "={{ $json.crux_rank }}"
+              }
+            ]
+          },
+          "operation": "create",
+          "projectId": "p4lnw5vwzf2yy3i",
+          "authentication": "nocoDbApiToken"
+        },
+        "credentials": {
+          "nocoDbApiToken": {
+            "id": "credential-id",
+            "name": "nocoDbApiToken Credential"
+          }
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "c3e55cfa-f46e-48f8-9d5c-de83dd57d894",
+        "name": "Convert month name to number",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          460,
+          60
+        ],
+        "parameters": {
+          "jsCode": "// Get all input items\nconst items = $input.all();\n\nconst monthMap = {\n  January: '01',\n  February: '02',\n  March: '03',\n  April: '04',\n  May: '05',\n  June: '06',\n  July: '07',\n  August: '08',\n  September: '09',\n  October: '10',\n  November: '11',\n  December: '12'\n};\n\nconst output = items.map(item => {\n  const monthName = item.json.Month || \"\";\n  const formattedName = monthName.trim().charAt(0).toUpperCase() + monthName.trim().slice(1).toLowerCase();\n  const monthNumber = monthMap[formattedName] || null;\n\n  return {\n    json: {\n      Month: monthName,\n      Month_Number: monthNumber // string like \"01\"\n    }\n  };\n});\n\nreturn output;"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "e874c5f0-b894-4fc2-a81d-46b49247a6a8",
+        "name": "Edit Fields",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          720,
+          60
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "e8ea6d77-9952-4d86-9042-fd38f53fac71",
+                "name": "table",
+                "type": "string",
+                "value": "={{ $('Monthly Trigger2').item.json.Year }}{{ $json.Month_Number }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "0cf7f728-87aa-411e-b2bb-174ae10c06eb",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          380,
+          -300
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 280,
+          "height": 540,
+          "content": "This node convert **Gregorian month name** to number:\n\nJanuary: 01\nFebruary: 02\nMarch: 03\n...\nDecember: '12'"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "07188746-d762-467e-b40c-773bb865f903",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          880,
+          -300
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 280,
+          "height": 540,
+          "content": "## **Google BigQuery**\n\nThis node connects to **Google BigQuery** and runs a dynamic SQL query to fetch the **CrUX (Chrome User Experience) Report** data.  \nIt retrieves the top-ranked website origins and their **popularity rank** from the monthly dataset.\n\n📝 **Note:** Change the **LIMIT** value in the query to adjust how many top-ranked sites are fetched.\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3b463b1c-1d3a-4868-8944-6552dcaa725a",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          180,
+          340
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 1160,
+          "height": 320,
+          "content": "## **Delete Last Month Data**\n\n🗑️ **Note:** This workflow deletes records for the last month — review filters carefully before running. Triggers before Monthly Trigger2."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "225a6af1-8761-41d5-b328-805a5abd473a",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          20,
+          -300
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 280,
+          "height": 540,
+          "content": "## Monthly Trigger2\n\nTriggers 1st day of every month, after Monthly Trigger1."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "60266227-51f4-4076-aa10-265a1a13cf3f",
+        "name": "Monthly Trigger1",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          340,
+          460
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "months",
+                "triggerAtHour": 1
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "57deaa20-2727-4bcc-b8e6-cb31931223f0",
+        "name": "Monthly Trigger2",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          120,
+          60
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "months",
+                "triggerAtHour": 12
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "87a6421a-51e6-4d95-af2e-6a0dcf107c2a",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1220,
+          -300
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 300,
+          "height": 540,
+          "content": "## Append Crux Data into NocoDB\n\nThe database contains 2 fields:\n- origin\n- crux_rank\n\norigin: url of the website.\ncrux_rank: estimated crux rank of that website. (1000, 5000,10000 and ...)"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {
+      "Google BigQuery": [
+        {
+          "json": {
+            "origin": "https://www.epfindia.gov.in",
+            "crux_rank": "1000"
+          }
+        },
+        {
+          "json": {
+            "origin": "https://mail.yahoo.com",
+            "crux_rank": "1000"
+          }
+        },
+        {
+          "json": {
+            "origin": "https://tw.stock.yahoo.com",
+            "crux_rank": "1000"
+          }
+        },
+        {
+          "json": {
+            "origin": "https://www.epfindia.gov.in",
+            "crux_rank": "1000"
+          }
+        },
+        {
+          "json": {
+            "origin": "https://triunfobet.com",
+            "crux_rank": "1000"
+          }
+        },
+        {
+          "json": {
+            "origin": "https://tw.stock.yahoo.com",
+            "crux_rank": "1000"
+          }
+        },
+        {
+          "json": {
+            "origin": "https://tw.stock.yahoo.com",
+            "crux_rank": "1000"
+          }
+        },
+        {
+          "json": {
+            "origin": "https://mail.yahoo.com",
+            "crux_rank": "1000"
+          }
+        },
+        {
+          "json": {
+            "origin": "https://homepage.vivo.com",
+            "crux_rank": "1000"
+          }
+        },
+        {
+          "json": {
+            "origin": "https://triunfobet.com",
+            "crux_rank": "1000"
+          }
+        }
+      ]
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "88273070-007c-4f34-92e5-2360b84603c7",
+    "connections": {
+      "Edit Fields": {
+        "main": [
+          [
+            {
+              "node": "Google BigQuery",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google BigQuery": {
+        "main": [
+          [
+            {
+              "node": "Append Crux Data into NocoDB",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Delete in NocoDB",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Delete in NocoDB": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Monthly Trigger1": {
+        "main": [
+          [
+            {
+              "node": "Get Last Month Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Monthly Trigger2": {
+        "main": [
+          [
+            {
+              "node": "Convert month name to number",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Last Month Data": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Convert month name to number": {
+        "main": [
+          [
+            {
+              "node": "Edit Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 35,
+      "name": "Document Extraction"
+    }
+  ],
+  "url": "https://n8n.io/workflows/9368",
+  "fetched_at": "2026-09-12T13:12:54Z"
+}

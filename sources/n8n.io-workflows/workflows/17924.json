@@ -1,0 +1,235 @@
+{
+  "id": 17924,
+  "name": "Find local sales leads from Google Maps with CoreClaw",
+  "description": "## Quick overview\nGoogle Maps Lead Finder collects structured local business leads from a keyword and location. It returns business names, categories, addresses, phone numbers, websites, ratings, review counts, and Google Maps URLs for sales automation and local market research.\n\n## How it works\n1. Receives a POST webhook request containing a business keyword/category, a target location, and an optional result limit.\n2. Validates and normalizes the input into the keyword, location, and max_results parameters.\n3. Sends the parameters to the CoreClaw Google Maps Lead Finder API to fetch matching businesses from Google Maps.\n4. Normalizes the API response into consistent lead records (name, category, address, phone, website, rating, review count, and Maps URL).\n5. Responds to the original webhook request with a JSON payload that includes the lead count and the list of normalized leads.\n\n## Setup\n1. Set the CORECLAW_API_KEY environment variable in your n8n instance so the workflow can authenticate to the CoreClaw API.\n2. Activate the workflow and copy the production webhook URL from the Webhook trigger.\n3. Send a POST request to the webhook URL with at least keyword (or query/category) and location (or base_location), and optionally max_results (or limit).\n\n## Additional info\nRetrieve public web page data using the CoreClaw production-grade Web Data API: https://www.coreclaw.com/?utm_source=google&utm_medium=cpc&utm_campaign=n8&utm_term=&utm_id=n8",
+  "workflow": {
+    "name": "Google Maps Lead Finder",
+    "tags": [
+      {
+        "name": "lead-generation"
+      },
+      {
+        "name": "google-maps"
+      },
+      {
+        "name": "sales"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "lead-overview",
+        "name": "Overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -420,
+          80
+        ],
+        "parameters": {
+          "width": 480,
+          "height": 520,
+          "content": "## Google Maps Lead Finder\n\nAccepts a business category and location, runs the CoreClaw Google Maps Lead Finder Worker, and returns structured local business leads ready for a CRM, spreadsheet, or outreach workflow.\n\n### Setup\n\nSet CORECLAW_API_KEY in n8n, activate the webhook, and send a POST request with keyword and location.\n\n### Output\n\nEach result includes business contact and location data when available."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "lead-step-1",
+        "name": "Receive Criteria",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          120,
+          100
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 360,
+          "height": 220,
+          "content": "## Receive lead criteria\n\nThe webhook accepts a keyword, target location, and optional result limit."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "lead-step-2",
+        "name": "Find Leads",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          550,
+          100
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 360,
+          "height": 220,
+          "content": "## Find local leads\n\nCoreClaw retrieves relevant Google Maps business leads in a single synchronous request."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "lead-step-3",
+        "name": "Return Leads",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          980,
+          100
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 360,
+          "height": 220,
+          "content": "## Return lead data\n\nThe response is normalized into business records for downstream sales automation."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "lead-webhook",
+        "name": "Receive Lead Request",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          160,
+          300
+        ],
+        "webhookId": "google-maps-lead-finder",
+        "parameters": {
+          "path": "google-maps-lead-finder",
+          "options": {},
+          "httpMethod": "POST",
+          "responseMode": "responseNode"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "lead-format-input",
+        "name": "Format Lead Criteria",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          400,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst keyword = body.keyword || body.query || body.category;\nconst location = body.location || body.base_location;\nconst maxResults = Number(body.max_results || body.limit || 25);\n\nif (!keyword || !location) {\n  throw new Error('Send keyword and location, for example: { \\\"keyword\\\": \\\"roofing contractors\\\", \\\"location\\\": \\\"Austin, TX\\\" }.');\n}\n\nreturn [{ json: { keyword, location, max_results: maxResults, timestamp: new Date().toISOString() } }];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "lead-run-worker",
+        "name": "Run CoreClaw Lead Finder",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          660,
+          300
+        ],
+        "parameters": {
+          "url": "https://openapi.coreclaw.com/api/v2/workers/coreclaw~google-maps-lead-finder/runs",
+          "method": "POST",
+          "options": {
+            "timeout": 300000
+          },
+          "jsonBody": "={\n  \\\"input\\\": {\n    \\\"parameters\\\": {\n      \\\"custom\\\": {\n        \\\"keywords\\\": [\\\"{{ $json.keyword }}\\\"],\n        \\\"base_location\\\": \\\"{{ $json.location }}\\\",\n        \\\"max_results\\\": {{ $json.max_results }}\n      }\n    }\n  },\n  \\\"is_async\\\": false\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer {{$env.CORECLAW_API_KEY}}"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "lead-parse-results",
+        "name": "Normalize Lead Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          920,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const response = $input.first().json;\nif (response.code !== 0) {\n  return [{ json: { status: 'error', message: response.message || 'CoreClaw request failed', request_id: response.request_id || '' } }];\n}\n\nconst leads = response.data?.list || response.data?.items || [];\nreturn leads.map((lead) => ({\n  json: {\n    name: lead.name || lead.title || '',\n    category: lead.category || '',\n    address: lead.address || lead.formatted_address || '',\n    phone: lead.phone || lead.phone_number || '',\n    website: lead.website || '',\n    rating: lead.rating || 0,\n    review_count: lead.reviews || lead.review_count || 0,\n    maps_url: lead.maps_url || lead.url || ''\n  }\n}));"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "lead-respond",
+        "name": "Return Lead Results",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          1180,
+          300
+        ],
+        "parameters": {
+          "options": {
+            "responseCode": 200
+          },
+          "respondWith": "json",
+          "responseBody": "={\n  \\\"status\\\": \\\"success\\\",\n  \\\"keyword\\\": \\\"{{ $('Format Lead Criteria').first().json.keyword }}\\\",\n  \\\"location\\\": \\\"{{ $('Format Lead Criteria').first().json.location }}\\\",\n  \\\"lead_count\\\": {{ $('Normalize Lead Data').all().length }},\n  \\\"leads\\\": {{ JSON.stringify($('Normalize Lead Data').all().map(item => item.json)) }}\n}"
+        },
+        "typeVersion": 1.1
+      }
+    ],
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "connections": {
+      "Normalize Lead Data": {
+        "main": [
+          [
+            {
+              "node": "Return Lead Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Lead Criteria": {
+        "main": [
+          [
+            {
+              "node": "Run CoreClaw Lead Finder",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Receive Lead Request": {
+        "main": [
+          [
+            {
+              "node": "Format Lead Criteria",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Run CoreClaw Lead Finder": {
+        "main": [
+          [
+            {
+              "node": "Normalize Lead Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 37,
+      "name": "Lead Generation"
+    }
+  ],
+  "url": "https://n8n.io/workflows/17924",
+  "fetched_at": "2026-09-12T13:16:44Z"
+}

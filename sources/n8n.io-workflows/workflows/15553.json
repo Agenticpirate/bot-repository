@@ -1,0 +1,558 @@
+{
+  "id": 15553,
+  "name": "Turn course videos into ClickUp learning tasks with WayinVideo and GPT‑4o‑mini",
+  "description": "### Description\n\nSubmit any course or lecture video URL along with the course title, module name, assignee, due date, and priority and the workflow automatically converts the entire module into a ClickUp task list. [WayinVideo](https://wayin.ai/api/) summarizes the video and extracts key learning highlights, then GPT-4o-mini reads the summary and returns 5–12 structured tasks — each with a title starting with an action verb, a description with what to do and why it matters, a task type, an estimated time, and step-by-step checklist items. Each task is created in ClickUp with your chosen priority and due date, tagged as `course-task` and `learning`, and every task is logged to Google Sheets with the ClickUp Task ID and URL. Built for learning and development teams, student communities, training managers, and knowledge workers who want learning to translate directly into action.\n\n---\n\n## What This Workflow Does\n\n- **Summarizes the course module automatically** — WayinVideo extracts a structured summary with numbered highlights from the video so GPT has real content to build tasks from\n- **Extracts 5–12 actionable tasks in pure JSON** — GPT returns a structured JSON array — each task has a title, description, type, estimated minutes, and checklist steps — no free-text parsing needed\n- **Prefixes every task title with the course name** — Tasks are created in ClickUp as `[Course Title] Task Title` so your board stays organized when processing multiple modules\n- **Maps your priority input to ClickUp numbers** — Urgent, High, Normal, and Low are automatically converted to the correct ClickUp priority value (1–4) so no manual setup is needed\n- **Converts the due date to the format ClickUp requires** — The date you type in the form is converted to a Unix timestamp automatically before the ClickUp task is created\n- **Creates one ClickUp task per learning objective** — Each extracted task becomes a separate ClickUp task with To Do status, course-task and learning tags, priority, and due date\n- **Logs every task to Google Sheets** — Course title, module, task title, type, estimated minutes, total tasks in module, ClickUp Task ID, ClickUp URL, assignee, due date, and priority are all recorded\n\n---\n\n## Setup Requirements\n\n### Tools Needed\n- n8n instance (self-hosted or cloud)\n- WayinVideo account with API access\n- OpenAI account with GPT-4o-mini API access\n- ClickUp account with a List where tasks will be created\n- Google Sheets (one sheet with a tab named **Course Tasks Log**)\n\n### Credentials Required\n- WayinVideo API key (pasted into **2. WayinVideo — Submit Summarization** and **4. WayinVideo — Get Summary Results**)\n- OpenAI API key\n- ClickUp OAuth2 credential + List ID\n- Google Sheets OAuth2\n\n&gt; ⚠️ **WayinVideo API key appears in 2 steps** — replace `YOUR_WAYINVIDEO_API_KEY` in both **2. WayinVideo — Submit Summarization** and **4. WayinVideo — Get Summary Results**. Missing either one will cause the workflow to fail.\n\n**Estimated Setup Time: 20–25 minutes**\n\n---\n\n## Step-by-Step Setup\n\n1. **Import the workflow** — Open n8n → Workflows → Import from JSON → paste the workflow JSON → click Import\n\n2. **Get your WayinVideo API key** — Log in to your WayinVideo account → go to Account Settings → copy your API key\n\n3. **Add your WayinVideo API key to node 2** — Open node **2. WayinVideo — Submit Summarization** → find the `Authorization` header value `Bearer YOUR_WAYINVIDEO_API_KEY` → replace `YOUR_WAYINVIDEO_API_KEY` with your actual key\n\n4. **Add your WayinVideo API key to node 4** — Open node **4. WayinVideo — Get Summary Results** → find the same `Authorization` header → replace `YOUR_WAYINVIDEO_API_KEY` with the same key\n\n5. **Connect OpenAI** — Open node **9. OpenAI — GPT-4o-mini Model** → click the credential dropdown → add your OpenAI API key → test the connection\n\n6. **Get your ClickUp List ID** — Open ClickUp in a browser → navigate to the List where you want tasks created → right-click the List name → click Copy link → the List ID is the last segment of the URL after the final `/`\n\n7. **Connect ClickUp** — Open node **11. ClickUp — Create Task** → click the credential dropdown → add ClickUp OAuth2 → complete the authorization flow → in the List ID field, replace `YOUR_CLICKUP_LIST_ID` with your actual List ID\n\n8. **Create your Google Sheet tab** — Open your Google Sheet → add a tab named exactly **Course Tasks Log** → add these 14 column headers in row 1: `Course Title`, `Module Title`, `Video URL`, `Task Number`, `Task Title`, `Task Type`, `Estimated Minutes`, `Total Tasks in Module`, `ClickUp Task ID`, `ClickUp Task URL`, `Assigned To`, `Due Date`, `Priority`, `Generated On`\n\n9. **Get your Google Sheet ID** — Open your Google Sheet in a browser → copy the string between `/d/` and `/edit` in the URL — this is your Sheet ID\n\n10. **Connect Google Sheets** — Open node **12. Google Sheets — Log Tasks** → click the document field → replace `YOUR_GOOGLE_SHEET_ID` by selecting your spreadsheet or entering the Sheet ID manually → click the credential dropdown → add Google Sheets OAuth2 → authorize access\n\n11. **Activate the workflow** — Toggle the workflow to Active → copy the Form URL from node **1. Form — Course Video + Details** → open it in a browser to submit your first module\n\n---\n\n## How It Works (Step by Step)\n\n**Step 1 — Form: Course Video + Details**\nYou open the form URL and fill in six fields: the course video URL (YouTube, Zoom, Vimeo, Loom, or any direct link), the course title, the module or lecture title, who to assign tasks to, the task due date (formatted as YYYY-MM-DD), and the task priority (High, Normal, or Low). Submitting the form starts the entire pipeline.\n\n**Step 2 — HTTP: WayinVideo — Submit Summarization**\nThe course video URL is sent to WayinVideo's Summarization API. WayinVideo accepts the job and returns a task ID confirming the summarization has started.\n\n**Step 3 — Wait: 90 Seconds**\nThe workflow pauses 90 seconds before the first status check, giving WayinVideo time to process the video.\n\n**Step 4 — HTTP: WayinVideo — Get Summary Results**\nA GET request checks the summarization results endpoint using the task ID. It returns the current status and, once complete, the summary text, highlights array, and tags array.\n\n**Step 5 — IF: Summary Complete?**\nThis is the polling gate. If the status equals `SUCCEEDED` (YES path), the summary is ready and the workflow moves forward to data extraction. If still processing (NO path), the workflow routes to **6. Wait — 30 Seconds Retry** which pauses 30 seconds then loops back to step 4. This repeats until SUCCEEDED.\n\n**Step 6 — Wait: 30 Seconds Retry**\nWhen the summary is not yet ready, the workflow waits 30 seconds then returns to step 4 for another check.\n\n**Step 7 — Code: Extract Summary Data**\nThe summary text and highlights (formatted as a numbered list) are extracted from the WayinVideo response. All six form inputs are also packaged. Two important conversions happen here: the priority text (e.g. \"High\") is mapped to the ClickUp priority number (2) using a lookup table — Urgent=1, High=2, Normal=3, Low=4 — and the due date string is converted to a Unix timestamp in milliseconds which is what ClickUp requires.\n\n**Step 8 — AI Agent: Extract Learning Tasks**\nGPT-4o-mini receives the module summary, numbered highlights, and full module context in the system prompt. It is instructed to return ONLY a valid JSON array with no extra text — a strict format that makes parsing reliable. Each task in the array must have a title starting with an action verb, a description explaining what to do and why it matters with the video URL included as a reference, a task type chosen from Review, Practice, Build, Implement, or Reflect, a realistic estimated time in minutes between 15 and 120, and 2–3 specific checklist steps. A minimum of 5 tasks and a maximum of 12 must be extracted.\n\n**Step 9 — OpenAI: GPT-4o-mini Model**\nThis is the language model producing the JSON task array.\n\n**Step 10 — Code: Parse Tasks Array**\nThe AI output is cleaned of any markdown backticks and parsed as JSON. If parsing fails, the step throws a clear error showing the first 300 characters of the output for debugging. If the array is empty or missing, another error is thrown. Each task in the array is returned as a separate row — one per task — with the course name prefixed to every task title as `[Course Title] Task Title`. The total number of tasks is also carried forward for the sheet log.\n\n**Step 11 — ClickUp: Create Task**\nOne ClickUp task is created per learning objective in your specified List. The task title, due date timestamp, priority number, status set to To Do, and two tags (`course-task` and `learning`) are all set. ClickUp returns the new task's ID and URL.\n\n**Step 12 — Google Sheets: Log Tasks**\nOne row is appended to your Course Tasks Log tab for every task created. The row captures all 14 fields: course title, module title, video URL, task number, task title, task type, estimated minutes, total tasks in module, ClickUp Task ID, ClickUp Task URL, assignee, due date, priority, and generation timestamp. Every task is logged immediately after its ClickUp task is created.\n\n---\n\n## Key Features\n\n✅ **Pure JSON output from GPT** — GPT is instructed to return only a JSON array with no extra text — making the output directly parseable without complex regex extraction\n✅ **Priority mapped automatically to ClickUp numbers** — Your plain text input (High, Normal, Low) is converted to ClickUp's numeric priority system (1–4) in one step — no manual mapping needed\n✅ **Due date converted to ClickUp timestamp format** — The date you type in the form is automatically converted to the Unix millisecond timestamp that ClickUp requires — no manual conversion\n✅ **Course name prefixed to every task title** — Tasks appear in ClickUp as `[Course Name] Task Title` so your board stays identifiable when processing multiple courses or modules\n✅ **Course-task and learning tags on every task** — All created tasks are automatically tagged so you can filter your entire ClickUp workspace for course-related tasks across any list or project\n✅ **Estimated minutes per task** — GPT assigns a realistic completion time to each task so assignees can plan their learning schedule without guessing how long each task will take\n✅ **ClickUp Task ID and URL captured in Google Sheets** — Every row in the log includes direct links to the ClickUp task so you can navigate from the sheet to any task in one click\n\n---\n\n## Customisation Options\n\n**Add checklist items to each ClickUp task** — After node **11. ClickUp — Create Task**, add a ClickUp Create Checklist step using the Task ID returned from step 11 and loop through the `checklistItems` array from step 10 to add each step as a checklist item on the task.\n\n**Change the minimum and maximum task count** — In the system prompt of node **8. AI Agent — Extract Learning Tasks**, change `minimum 5 tasks, maximum 12 tasks` to a different range — for example 3–8 for shorter lectures or 8–15 for full-day workshops.\n\n**Send a summary email when all tasks are created** — After node **12. Google Sheets — Log Tasks** (on the last task row), add a Gmail step that sends the assignee a plain-text email listing all task titles, types, estimated times, and ClickUp URLs so they have everything in their inbox.\n\n**Add a Slack notification when tasks are created** — After node **12. Google Sheets — Log Tasks**, add a Slack step that posts the course title, module name, number of tasks created, and a link to the ClickUp List to a `#learning` or `#training` channel.\n\n**Change the ClickUp task status** — In node **11. ClickUp — Create Task**, change `\"status\": \"To Do\"` to match your ClickUp List's actual status names — for example `\"status\": \"Backlog\"` or `\"status\": \"Learning\"` if your List uses custom statuses.\n\n---\n\n## Troubleshooting\n\n**Form submission not starting the workflow:**\n- Confirm the workflow is Active — inactive workflows do not receive form submissions\n- Copy the Form URL fresh from node **1. Form — Course Video + Details** after activating — URLs copied before activation will not work\n- Make sure all six fields are filled in — all are marked required\n\n**WayinVideo returning an error on submission:**\n- Confirm `YOUR_WAYINVIDEO_API_KEY` in node **2. WayinVideo — Submit Summarization** is replaced with your actual API key\n- Confirm the same key is in node **4. WayinVideo — Get Summary Results** — both steps require it\n- Check the execution log of node 2 for the raw error — a 401 means wrong key, a 422 means the URL format is not supported\n\n**GPT returning a parse error (JSON parsing failed):**\n- Check the execution log of node **8. AI Agent — Extract Learning Tasks** for the raw output — if GPT returned markdown code blocks with backticks, node **10. Code — Parse Tasks Array** will strip them, but if GPT added other text before or after the array, parsing can fail\n- The error message in node 10 shows the first 300 characters of the raw output to help diagnose — look at what GPT returned and whether it is valid JSON\n- Confirm your OpenAI account has credits — a failed API call can produce an empty or error response that looks like a JSON parse problem\n\n**ClickUp tasks not being created:**\n- Confirm the ClickUp OAuth2 credential in node **11. ClickUp — Create Task** is connected and not expired — re-authorize if needed\n- Confirm `YOUR_CLICKUP_LIST_ID` has been replaced with your actual List ID — the ID is the last segment of the URL when viewing the list in ClickUp in a browser\n- Check that your ClickUp account has permission to create tasks in the target List — shared or read-only lists will reject task creation\n\n**Google Sheets not logging rows:**\n- Confirm `YOUR_GOOGLE_SHEET_ID` in node **12. Google Sheets — Log Tasks** is replaced with your actual Sheet ID from the URL\n- Confirm the tab is named **Course Tasks Log** exactly and all 14 column headers in row 1 match exactly\n- Check that the Google Sheets OAuth2 credential is connected and not expired — re-authorize if needed\n\n---\n\n## Support\n\nNeed help setting this up or want a custom version built for your team or agency?\n\n📧 Email: [info@incrementors.com](info@incrementors.com)\n🌐 Website: [https://www.incrementors.com/](https://www.incrementors.com/)",
+  "workflow": {
+    "meta": {
+      "instanceId": "bc8ca75c203589705ae2e446cad7181d6f2a7cc1766f958ef9f34810e53b8cb2",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "beef18db-1b18-435f-b79b-b7ca441bb745",
+        "name": "Overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1136,
+          -752
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 508,
+          "height": 1140,
+          "content": "## Online Course Video to ClickUp Task List Generator — WayinVideo Summarization + GPT-4o-mini + ClickUp + Sheets\n\nFor L&D teams, student communities, training managers, and knowledge workers who watch online courses and want to automatically convert every module into an actionable ClickUp task list — so learning translates directly into doing. Submit any course or lecture video URL via the form. WayinVideo Summarization API generates a structured summary with numbered highlights and tags. GPT-4o-mini reads the summary and returns a pure JSON array of 5–12 tasks — each with a title, description, task type, estimated minutes, and checklist steps. Each task is created in ClickUp with the priority, due date, and course-prefixed title. Every task is also logged to Google Sheets with the ClickUp Task ID and URL.\n\n## How it works\n- **1. Form — Course Video + Details** collects the video URL, course title, module title, assignee name, due date, and priority level\n- **2. WayinVideo — Submit Summarization** submits the URL to the Summarization API\n- **3. Wait — 90 Seconds** gives the API initial processing time\n- **4. WayinVideo — Get Summary Results** polls the summaries results endpoint\n- **5. IF — Summary Complete?** checks for SUCCEEDED — if not, retries via 30-second wait\n- **7. Code — Extract Summary Data** extracts summary, numbered highlights, tags, and maps the priority string to a ClickUp priority number and converts the due date to a Unix timestamp\n- **8. AI Agent — Extract Learning Tasks** uses GPT-4o-mini with strict JSON output rules to extract 5–12 structured tasks with checklist steps\n- **10. Code — Parse Tasks Array** parses the JSON array from AI output with error handling, prefixes task titles with the course name, and returns one item per task\n- **11. ClickUp — Create Task** creates one ClickUp task per learning objective with priority, due date, and course-learning tags\n- **12. Google Sheets — Log Tasks** appends one row per task with ClickUp Task ID, URL, type, estimated time, and all module metadata\n\n## Set up steps\n1. In **2** and **4** — replace `YOUR_WAYINVIDEO_API_KEY`\n2. In **9. OpenAI — GPT-4o-mini Model** — connect your OpenAI credential\n3. In **11. ClickUp — Create Task** — connect your ClickUp OAuth2 credential and replace `YOUR_CLICKUP_LIST_ID` (right-click your list in ClickUp → Copy link → ID is the last segment in the URL)\n4. In **12. Google Sheets — Log Tasks** — connect your Google Sheets OAuth2 credential and replace `YOUR_GOOGLE_SHEET_ID`\n5. Create a Google Sheet tab named Course Tasks Log with columns: Course Title, Module Title, Video URL, Task Number, Task Title, Task Type, Estimated Minutes, Total Tasks in Module, ClickUp Task ID, ClickUp Task URL, Assigned To, Due Date, Priority, Generated On"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5aecae4c-aa1a-4a93-84f3-e5a26ac42dfb",
+        "name": "Section — Form Input",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -480,
+          -480
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 276,
+          "height": 452,
+          "content": "## Form Input\nUser submits course video URL, course title, module title, assignee name, task due date, and priority level. Priority is mapped to ClickUp numbers: urgent=1, high=2, normal=3, low=4."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "040303b1-6b96-4826-8e1e-7143a8bc31c3",
+        "name": "Section — WayinVideo Summarization Submit and Poll",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -160,
+          -448
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 660,
+          "height": 420,
+          "content": "## WayinVideo Summarization Submit and Poll\nSubmits the course video URL to the Summarization API. Waits 90 seconds for initial processing. Polls the results endpoint until status equals SUCCEEDED."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "fc607626-f32c-4b6c-bad6-7c41317da904",
+        "name": "Section — Summary Status Check and Retry Loop",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          528,
+          -592
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 308,
+          "height": 772,
+          "content": "## Summary Status Check and Retry Loop\nIF checks for SUCCEEDED status. TRUE proceeds to summary extraction. FALSE waits 30 seconds and polls again. Loop continues until summary is ready."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "88140aab-b057-4cdf-878c-43ca2a8a9cda",
+        "name": "Section — Summary Extraction and AI Learning Task Extraction",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          864,
+          -544
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 564,
+          "height": 596,
+          "content": "## Summary Extraction and AI Learning Task Extraction\nFormats summary, numbered highlights, and maps priority and due date. GPT-4o-mini returns a pure JSON array of 5–12 tasks — each with title, description, type, estimated minutes, and checklist steps."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "7e7372db-b40f-4149-842b-9370f35fea83",
+        "name": "Section — Task Parse, ClickUp Create, and Sheet Log",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1456,
+          -416
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 788,
+          "height": 340,
+          "content": "## Task Parse, ClickUp Create, and Sheet Log\nParses the JSON task array with error handling and prefixes titles with the course name. Creates one ClickUp task per learning objective. Logs every task to Google Sheets with ClickUp Task ID and URL."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9ae48f6e-6b69-4c84-8d72-d83fe178c30c",
+        "name": "1. Form — Course Video + Details",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          -416,
+          -288
+        ],
+        "webhookId": "0aa5b306-6888-44ec-ab26-f107837f8d37",
+        "parameters": {
+          "options": {},
+          "formTitle": "Course Video to ClickUp Task Generator",
+          "formFields": {
+            "values": [
+              {
+                "fieldLabel": "Course Video URL",
+                "placeholder": "https://www.youtube.com/watch?v=xxxxxxx or Zoom/Vimeo/Loom link",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Course Title",
+                "placeholder": "e.g. Complete Python Bootcamp, Advanced SEO Mastery",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Module / Lecture Title",
+                "placeholder": "e.g. Module 3 — Functions and Loops, Week 2 — On-Page SEO",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Assign Tasks To",
+                "placeholder": "e.g. John Smith, Marketing Team, Self",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Task Due Date",
+                "placeholder": "e.g. 2025-05-10",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Task Priority",
+                "placeholder": "e.g. High / Normal / Low",
+                "requiredField": true
+              }
+            ]
+          },
+          "formDescription": "Paste your course or lecture video URL. AI will summarize the module and automatically create a ClickUp task list with all learning objectives and action items."
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "ee589678-b3be-4110-85c5-a66691d3f269",
+        "name": "2. WayinVideo — Submit Summarization",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -112,
+          -288
+        ],
+        "parameters": {
+          "url": "https://wayinvideo-api.wayin.ai/api/v2/summaries",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n  \"video_url\": \"{{ $json['Course Video URL'] }}\",\n  \"target_lang\": \"en\"\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              },
+              {
+                "name": "x-wayinvideo-api-version",
+                "value": "v2"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "2e1fb45b-046c-4548-a0ff-5b81c87f18e7",
+        "name": "3. Wait — 90 Seconds",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          128,
+          -288
+        ],
+        "webhookId": "wait-clickup-summary-90s",
+        "parameters": {
+          "amount": 90
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "f110c588-f069-4935-b54b-313856656dd7",
+        "name": "4. WayinVideo — Get Summary Results",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          368,
+          -288
+        ],
+        "parameters": {
+          "url": "=https://wayinvideo-api.wayin.ai/api/v2/summaries/results/{{ $('2. WayinVideo — Submit Summarization').item.json.data.id }}",
+          "options": {},
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              },
+              {
+                "name": "x-wayinvideo-api-version",
+                "value": "v2"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "0230f615-3e91-4ca7-8141-ff5c0ff2fdbb",
+        "name": "5. IF — Summary Complete?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          608,
+          -288
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 3,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "status-check",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.data.status }}",
+                "rightValue": "SUCCEEDED"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "d64916fe-669f-4a5f-bead-0668873f71a8",
+        "name": "6. Wait — 30 Seconds Retry",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          608,
+          -80
+        ],
+        "webhookId": "wait-clickup-retry-30s",
+        "parameters": {
+          "amount": 30
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "6e90c7e6-23ae-4d5d-bf9e-0d18245cb2ef",
+        "name": "7. Code — Extract Summary Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          896,
+          -304
+        ],
+        "parameters": {
+          "jsCode": "// Extract summary data from WayinVideo\nconst summaryData = $('4. WayinVideo — Get Summary Results').item.json.data;\n\nconst summary = summaryData.summary || '';\nconst highlights = Array.isArray(summaryData.highlights)\n  ? summaryData.highlights.map((h, i) => `${i + 1}. ${h.desc}`).join('\\n')\n  : '';\nconst tags = Array.isArray(summaryData.tags)\n  ? summaryData.tags.join(', ')\n  : '';\n\n// Get form data\nconst courseTitle = $('1. Form — Course Video + Details').item.json['Course Title'];\nconst moduleTitle = $('1. Form — Course Video + Details').item.json['Module / Lecture Title'];\nconst assignTo = $('1. Form — Course Video + Details').item.json['Assign Tasks To'];\nconst dueDate = $('1. Form — Course Video + Details').item.json['Task Due Date'];\nconst priority = $('1. Form — Course Video + Details').item.json['Task Priority'];\nconst videoUrl = $('1. Form — Course Video + Details').item.json['Course Video URL'];\n\n// Map priority to ClickUp priority number\nconst priorityMap = {\n  'urgent': 1,\n  'high': 2,\n  'normal': 3,\n  'low': 4\n};\nconst priorityNumber = priorityMap[priority.toLowerCase()] || 3;\n\n// Convert due date to Unix timestamp (milliseconds)\nconst dueDateTimestamp = new Date(dueDate).getTime();\n\nreturn [{\n  json: {\n    summary,\n    highlights,\n    tags,\n    courseTitle,\n    moduleTitle,\n    assignTo,\n    dueDate,\n    dueDateTimestamp,\n    priority,\n    priorityNumber,\n    videoUrl\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "1a41b04b-bef2-4421-95ab-eb7cf0a14c6c",
+        "name": "8. AI Agent — Extract Learning Tasks",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          1136,
+          -304
+        ],
+        "parameters": {
+          "text": "={{ $json.summary }}\n\nKey Highlights:\n{{ $json.highlights }}",
+          "options": {
+            "systemMessage": "=You are an expert learning and development specialist who converts course module summaries into actionable ClickUp tasks.\n\nYour job is to read this course module summary and extract every specific learning objective, practice exercise, and action item as a separate ClickUp task.\n\n---\n\n## MODULE DETAILS\n- Course: {{ $json.courseTitle }}\n- Module: {{ $json.moduleTitle }}\n- Assigned To: {{ $json.assignTo }}\n- Due Date: {{ $json.dueDate }}\n- Priority: {{ $json.priority }}\n- Video URL: {{ $json.videoUrl }}\n\n---\n\n## TASK EXTRACTION RULES\n1. Extract ONLY actionable tasks — things someone must DO or PRACTICE\n2. Each task must be specific and achievable — not vague goals\n3. Task titles must start with an action verb — e.g. 'Complete', 'Practice', 'Build', 'Review', 'Implement', 'Watch'\n4. Task descriptions must explain WHAT to do and WHY it matters from the module\n5. Generate minimum 5 tasks, maximum 12 tasks per module\n6. Every task must be clearly derived from the module content\n7. Include a mix of: review tasks, practice tasks, implementation tasks, and reflection tasks\n\n---\n\n## OUTPUT FORMAT\nReturn ONLY a valid JSON array — no text before or after, no markdown backticks.\n\n[\n  {\n    \"task_number\": 1,\n    \"task_title\": \"[Action verb] + specific task name — 5-10 words\",\n    \"task_description\": \"What to do: [2-3 sentences explaining the task]\\n\\nWhy it matters: [1 sentence on importance from the module]\\n\\nReference: {{ $json.videoUrl }}\",\n    \"task_type\": \"[Choose one: Review / Practice / Build / Implement / Reflect]\",\n    \"estimated_minutes\": [Number — realistic time to complete this task],\n    \"checklist_items\": [\n      \"Step 1 to complete this task\",\n      \"Step 2 to complete this task\",\n      \"Step 3 if applicable\"\n    ]\n  }\n]\n\n---\n\nRULES:\n- Return ONLY the JSON array — nothing else\n- task_title must start with an action verb\n- estimated_minutes must be a realistic number (15-120)\n- checklist_items must be specific steps — not generic\n- Extract minimum 5 tasks\n\nNow extract the tasks from this course module:"
+          },
+          "promptType": "define"
+        },
+        "typeVersion": 3.1
+      },
+      {
+        "id": "3ad4483b-4295-4299-b641-a180b0555046",
+        "name": "9. OpenAI — GPT-4o-mini Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          1136,
+          -96
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4o-mini"
+          },
+          "options": {},
+          "builtInTools": {}
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "de9904b3-2410-4dae-a44a-2d2c2a3e8cf1",
+        "name": "10. Code — Parse Tasks Array",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1504,
+          -304
+        ],
+        "parameters": {
+          "jsCode": "// Parse AI output — extract JSON array of tasks\nconst output = $input.first().json.output || '';\n\nlet tasks = [];\ntry {\n  const cleaned = output\n    .replace(/```json/gi, '')\n    .replace(/```/g, '')\n    .trim();\n\n  const match = cleaned.match(/\\[\\s*\\{[\\s\\S]*\\}\\s*\\]/);\n  if (match) {\n    tasks = JSON.parse(match[0]);\n  } else {\n    tasks = JSON.parse(cleaned);\n  }\n} catch (e) {\n  throw new Error('Could not parse tasks from AI output: ' + output.substring(0, 300));\n}\n\nif (!Array.isArray(tasks) || tasks.length === 0) {\n  throw new Error('No tasks extracted from AI output.');\n}\n\n// Get module data\nconst courseTitle = $('7. Code — Extract Summary Data').item.json.courseTitle;\nconst moduleTitle = $('7. Code — Extract Summary Data').item.json.moduleTitle;\nconst assignTo = $('7. Code — Extract Summary Data').item.json.assignTo;\nconst dueDateTimestamp = $('7. Code — Extract Summary Data').item.json.dueDateTimestamp;\nconst priorityNumber = $('7. Code — Extract Summary Data').item.json.priorityNumber;\nconst videoUrl = $('7. Code — Extract Summary Data').item.json.videoUrl;\nconst summary = $('7. Code — Extract Summary Data').item.json.summary;\n\n// Return one item per task\nreturn tasks.map(task => ({\n  json: {\n    taskNumber: task.task_number || 0,\n    taskTitle: `[${courseTitle}] ${task.task_title || 'Learning Task'}`,\n    taskDescription: task.task_description || '',\n    taskType: task.task_type || 'Practice',\n    estimatedMinutes: task.estimated_minutes || 30,\n    checklistItems: Array.isArray(task.checklist_items) ? task.checklist_items : [],\n    courseTitle,\n    moduleTitle,\n    assignTo,\n    dueDateTimestamp,\n    priorityNumber,\n    videoUrl,\n    summary,\n    totalTasks: tasks.length\n  }\n}));"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "c1807339-d6fb-4b17-8273-aeb59beeedde",
+        "name": "11. ClickUp — Create Task",
+        "type": "n8n-nodes-base.clickUp",
+        "position": [
+          1744,
+          -304
+        ],
+        "parameters": {
+          "name": "={{ $json.taskTitle }}",
+          "additionalFields": {
+            "tags": [
+              "course-task",
+              "learning"
+            ],
+            "status": "To Do",
+            "dueDate": "={{ $json.dueDateTimestamp }}",
+            "priority": "={{ $json.priorityNumber }}"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "025b0078-9c82-44ed-b7ed-e8545e568706",
+        "name": "12. Google Sheets — Log Tasks",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1984,
+          -304
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "Due Date": "={{ $('7. Code — Extract Summary Data').item.json.dueDate }}",
+              "Priority": "={{ $('7. Code — Extract Summary Data').item.json.priority }}",
+              "Task Type": "={{ $('10. Code — Parse Tasks Array').item.json.taskType }}",
+              "Video URL": "={{ $('10. Code — Parse Tasks Array').item.json.videoUrl }}",
+              "Task Title": "={{ $('10. Code — Parse Tasks Array').item.json.taskTitle }}",
+              "Assigned To": "={{ $('10. Code — Parse Tasks Array').item.json.assignTo }}",
+              "Task Number": "={{ $('10. Code — Parse Tasks Array').item.json.taskNumber }}",
+              "Course Title": "={{ $('10. Code — Parse Tasks Array').item.json.courseTitle }}",
+              "Generated On": "={{ $now.toFormat('dd MMMM yyyy HH:mm') }}",
+              "Module Title": "={{ $('10. Code — Parse Tasks Array').item.json.moduleTitle }}",
+              "ClickUp Task ID": "={{ $json.id }}",
+              "ClickUp Task URL": "={{ $json.url }}",
+              "Estimated Minutes": "={{ $('10. Code — Parse Tasks Array').item.json.estimatedMinutes }}",
+              "Total Tasks in Module": "={{ $('10. Code — Parse Tasks Array').item.json.totalTasks }}"
+            },
+            "schema": [],
+            "mappingMode": "defineBelow",
+            "matchingColumns": []
+          },
+          "options": {},
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "Course Tasks Log"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "YOUR_GOOGLE_SHEET_ID"
+          }
+        },
+        "typeVersion": 4.5
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "3. Wait — 90 Seconds": {
+        "main": [
+          [
+            {
+              "node": "4. WayinVideo — Get Summary Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "11. ClickUp — Create Task": {
+        "main": [
+          [
+            {
+              "node": "12. Google Sheets — Log Tasks",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "5. IF — Summary Complete?": {
+        "main": [
+          [
+            {
+              "node": "7. Code — Extract Summary Data",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "6. Wait — 30 Seconds Retry",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "6. Wait — 30 Seconds Retry": {
+        "main": [
+          [
+            {
+              "node": "4. WayinVideo — Get Summary Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "10. Code — Parse Tasks Array": {
+        "main": [
+          [
+            {
+              "node": "11. ClickUp — Create Task",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "9. OpenAI — GPT-4o-mini Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "8. AI Agent — Extract Learning Tasks",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "7. Code — Extract Summary Data": {
+        "main": [
+          [
+            {
+              "node": "8. AI Agent — Extract Learning Tasks",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "1. Form — Course Video + Details": {
+        "main": [
+          [
+            {
+              "node": "2. WayinVideo — Submit Summarization",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "4. WayinVideo — Get Summary Results": {
+        "main": [
+          [
+            {
+              "node": "5. IF — Summary Complete?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2. WayinVideo — Submit Summarization": {
+        "main": [
+          [
+            {
+              "node": "3. Wait — 90 Seconds",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "8. AI Agent — Extract Learning Tasks": {
+        "main": [
+          [
+            {
+              "node": "10. Code — Parse Tasks Array",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 46,
+      "name": "Project Management"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15553",
+  "fetched_at": "2026-09-12T13:15:28Z"
+}

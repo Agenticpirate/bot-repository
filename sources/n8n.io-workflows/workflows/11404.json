@@ -1,0 +1,290 @@
+{
+  "id": 11404,
+  "name": "Track software vulnerability patents with ScrapeGraphAI, Matrix, and Intercom",
+  "description": "# Software Vulnerability Patent Tracker\n\n![Workflow Preview Image](https://via.placeholder.com/800x400/004AAD/FFFFFF?text=Software+Vulnerability+Patent+Tracker+Workflow+Preview)\n\n**⚠️ COMMUNITY TEMPLATE DISCLAIMER: This is a community-contributed template that uses ScrapeGraphAI (a community node). Please ensure you have the ScrapeGraphAI community node installed in your n8n instance before using this template.**\n\nThis workflow automatically tracks newly-published patent filings that mention software-security vulnerabilities, buffer-overflow mitigation techniques, and related technology keywords. Every week it aggregates fresh patent data from USPTO and international patent databases, filters it by relevance, and delivers a concise JSON digest (and optional Intercom notification) to R&D teams and patent attorneys.\n\n## Pre-conditions/Requirements\n\n### Prerequisites\n- n8n instance (self-hosted or n8n cloud, v1.7.0+)\n- ScrapeGraphAI community node installed\n- Basic understanding of patent search syntax (for customizing keyword sets)\n- Optional: Intercom account for in-app alerts\n\n### Required Credentials\n| Credential | Purpose |\n|------------|---------|\n| **ScrapeGraphAI API Key** | Enables ScrapeGraphAI nodes to fetch and parse patent-office webpages |\n| **Intercom Access Token** (optional) | Sends weekly digests directly to an Intercom workspace |\n\n### Additional Setup Requirements\n| Setting | Recommended Value | Notes |\n|---------|-------------------|-------|\n| Cron schedule | `0 9 * * 1` | Triggers every Monday at 09:00 server time |\n| Patent keyword matrix | See example CSV below | List of comma-separated keywords per tech focus |\n\nExample keyword matrix (upload as `keywords.csv` or paste into the “Matrix” node):\n\n```\ntopic,keywords\nBuffer Overflow,\"buffer overflow, stack smashing, stack buffer\"\nMemory Safety,\"memory safety, safe memory allocation, pointer sanitization\"\nCode Injection,\"SQL injection, command injection, injection prevention\"\n```\n\n## How it works\n\nThis workflow automatically tracks newly-published patent filings that mention software-security vulnerabilities, buffer-overflow mitigation techniques, and related technology keywords. Every week it aggregates fresh patent data from USPTO and international patent databases, filters it by relevance, and delivers a concise JSON digest (and optional Intercom notification) to R&D teams and patent attorneys.\n\n## Key Steps:\n- **Schedule Trigger**: Fires weekly based on the configured cron expression.\n- **Matrix (Keyword Loader)**: Loads the CSV-based technology keyword matrix into memory.\n- **Code (Build Search Queries)**: Dynamically assembles patent-search URLs for each keyword group.\n- **ScrapeGraphAI (Fetch Results)**: Scrapes USPTO, EPO, and WIPO result pages and parses titles, abstracts, publication numbers, and dates.\n- **If (Relevance Filter)**: Removes patents older than 1 year or without vulnerability-related terms in the abstract.\n- **Set (Normalize JSON)**: Formats the remaining records into a uniform JSON schema.\n- **Intercom (Notify Team)**: Sends a summarized digest to your chosen Intercom workspace.  \n  _(Skip or disable this node if you prefer to consume the raw JSON output instead.)_\n- **Sticky Notes**: Contain inline documentation and customization tips for future editors.\n\n## Set up steps\n\n**Setup Time: 10-15 minutes**\n\n1. **Install Community Node**  \n   Navigate to “Settings → Community Nodes”, search for **ScrapeGraphAI**, and click “Install”.\n2. **Create Credentials**  \n   - Go to “Credentials” → “New Credential” → select **ScrapeGraphAI API** → paste your API key.  \n   - (Optional) Add an **Intercom** credential with a valid access token.\n3. **Import the Workflow**  \n   - Click “Import” → “Workflow JSON” and paste the template JSON, or drag-and-drop the `.json` file.\n4. **Configure Schedule**  \n   Open the **Schedule Trigger** node and adjust the cron expression if a different frequency is required.\n5. **Upload / Edit Keyword Matrix**  \n   Open the **Matrix** node, paste your custom CSV, or modify existing topics & keywords.\n6. **Review Search Logic**  \n   In the **Code (Build Search Queries)** node, review the base URLs and adjust patent databases as needed.\n7. **Define Notification Channel**  \n   If using Intercom, select your Intercom credential in the **Intercom** node and choose the target channel.\n8. **Execute & Activate**  \n   Click “Execute Workflow” for a trial run. Verify the output. If satisfied, switch the workflow to “Active”.\n\n## Node Descriptions\n\n### Core Workflow Nodes:\n- **Schedule Trigger** – Initiates the workflow on a weekly cron schedule.\n- **Matrix** – Holds the CSV keyword table and makes each row available as an item.\n- **Code (Build Search Queries)** – Generates search URLs and attaches meta-data for later nodes.\n- **ScrapeGraphAI** – Scrapes patent listings and extracts structured fields (title, abstract, pub. date, link).\n- **If (Relevance Filter)** – Applies date and keyword relevance filters.\n- **Set (Normalize JSON)** – Maps scraped fields into a clean JSON schema for downstream use.\n- **Intercom** – Sends formatted patent summaries to an Intercom inbox or channel.\n- **Sticky Notes** – Provide inline documentation and edit history markers.\n\n### Data Flow:\n1. **Schedule Trigger** → **Matrix** → **Code** → **ScrapeGraphAI** → **If** → **Set** → **Intercom**\n\n## Customization Examples\n\n### Change Data Source to Google Patents\n```javascript\n// In the Code node\nconst base = 'https://patents.google.com/?q=';\nitems.forEach(item =&gt; {\n  item.json.searchUrl = `${base}${encodeURIComponent(item.json.keywords)}&oq=${encodeURIComponent(item.json.keywords)}`;\n});\nreturn items;\n```\n\n### Send Digest via Slack Instead of Intercom\n```javascript\n// Replace Intercom node with Slack node\n{\n  \"text\": `🚀 New Vulnerability-related Patents (${items.length})\\n` +\n          items.map(i =&gt; `• &lt;${i.json.link}|${i.json.title}&gt;`).join('\\n')\n}\n```\n\n## Data Output Format\n\nThe workflow outputs structured JSON data:\n\n```json\n{\n  \"topic\": \"Memory Safety\",\n  \"keywords\": \"memory safety, safe memory allocation, pointer sanitization\",\n  \"title\": \"Memory protection for compiled binary code\",\n  \"publicationNumber\": \"US20240123456A1\",\n  \"publicationDate\": \"2024-03-21\",\n  \"abstract\": \"Techniques for enforcing memory safety in compiled software...\",\n  \"link\": \"https://patents.google.com/patent/US20240123456A1/en\",\n  \"source\": \"USPTO\"\n}\n```\n\n## Troubleshooting\n\n### Common Issues\n1. **Empty Result Set** – Ensure that the keywords are specific but not overly narrow; test queries manually on USPTO.\n2. **ScrapeGraphAI Timeouts** – Increase the `timeout` parameter in the ScrapeGraphAI node or reduce concurrent requests.\n\n### Performance Tips\n- Limit the keyword matrix to &lt;50 rows to keep weekly runs under 2 minutes.\n- Schedule the workflow during off-peak hours to reduce load on patent-office servers.\n\n**Pro Tips:**\n- Combine this workflow with a vector database (e.g., Pinecone) to create a semantic patent knowledge base.\n- Add a “Merge” node to correlate new patents with existing vulnerability CVE entries.\n- Use a second ScrapeGraphAI node to crawl citation trees and identify emerging technology clusters.",
+  "workflow": {
+    "id": "y0Yk7da21T4u9zlp",
+    "meta": {
+      "instanceId": "99f4e9e67f2a926c174453b6675a71cc5fb71c1fb19cfc06d50531053c661324",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "My workflow 23",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "48f6bb57-f8c8-4d43-b518-b1d67bc28499",
+        "name": "Workflow Overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1120,
+          -192
+        ],
+        "parameters": {
+          "width": 550,
+          "height": 690,
+          "content": "## How it works\n\nEvery Monday the Schedule Trigger fires and builds a dynamic search URL that targets the latest software-security patent publications on USPTO / Google Patents websites. ScrapeGraphAI visits that page and returns structured fields such as title, publication number, abstract, filing date and assignee. A Code node analyses each record for keywords that signal potential relevance to software vulnerabilities. The IF node routes the flow: highly relevant patents immediately generate a Matrix message to your engineering war-room, while the rest are silently archived in Intercom for later research. The whole chain runs unattended and can be tweaked by simply changing the keyword list or schedule.\n\n## Setup steps\n\n1. Add your ScrapeGraphAI API key in credentials  \n2. Create a Matrix bot account and room ID credential  \n3. Connect an Intercom workspace via credentials  \n4. Edit the keyword list inside “Analyze Relevance” Code node  \n5. Adjust the search query in “Construct Patent Query” if needed  \n6. Activate the workflow and run a manual test"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "0c27bd04-5881-4980-b3a9-2c4d6f5e1ece",
+        "name": "Section – Collection",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -496,
+          -32
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 364,
+          "height": 432,
+          "content": "## Data Collection\n\nSchedule Trigger fires weekly (Mondays). Code node constructs Google Patents search URL with query \"software vulnerability\" filtered to last 7 days. ScrapeGraphAI extracts structured fields: title, publication_number, abstract, filing_date, assignee, and URL for each patent listing."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "61761a4c-aa64-4ff1-9dcd-e74d65329722",
+        "name": "Section – Filter",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -96,
+          -32
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 396,
+          "height": 432,
+          "content": "## Relevance Filter\n\nCode node searches patent title and abstract text for keywords: 'vulnerability', 'exploit', 'buffer overflow', 'cve', 'cybersecurity'. Each patent receives a boolean 'relevant' flag. IF node routes relevant=true patents to Matrix alert path; relevant=false patents continue to archive path."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2a1561b2-9717-410b-bff2-08bb78038c0b",
+        "name": "Section – Output",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          336,
+          -64
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 540,
+          "height": 544,
+          "content": "## Alert & Archive\n\nRelevant patents (IF true path): Matrix node sends formatted alert message to configured room with patent title, publication number, filing date, assignee, and link. Non-relevant patents (IF false path): Set node maps all patent fields to Intercom contact format, then Intercom node creates a contact record with patent details stored as custom attributes for future research."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "98bed3dc-ecd6-430a-a497-6343d6baa497",
+        "name": "Weekly Patent Check",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -480,
+          224
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "weeks"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "366a8f0d-8440-4e47-af7e-e381a159aed3",
+        "name": "Construct Patent Query",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -288,
+          224
+        ],
+        "parameters": {
+          "jsCode": "// Build a search URL for the last 7 days of software vulnerability patents\nconst query = encodeURIComponent(\"software vulnerability\");\nconst url = `https://patents.google.com/?q=${query}&before=priority:today&after=priority:7d`;\nreturn [{ json: { url } }];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "5aa5dd0f-d617-4c13-b1b8-981f49d7f131",
+        "name": "Scrape Patent Data",
+        "type": "n8n-nodes-scrapegraphai.scrapegraphAi",
+        "position": [
+          -80,
+          224
+        ],
+        "parameters": {
+          "userPrompt": "Extract the latest patent listings. Use this schema: {\"title\":\"string\",\"publication_number\":\"string\",\"abstract\":\"string\",\"filing_date\":\"string\",\"assignee\":\"string\",\"url\":\"string\"}",
+          "websiteUrl": "={{ $json.url }}"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5b736a1a-b9b9-4d14-85f3-4d6f82c0e1be",
+        "name": "Analyze Relevance",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          128,
+          224
+        ],
+        "parameters": {
+          "jsCode": "// Analyse each patent for vulnerability-related keywords\nconst keywords = [\n  'vulnerability',\n  'exploit',\n  'buffer overflow',\n  'cve',\n  'cybersecurity'\n];\nreturn $input.all().map(item => {\n  const data = item.json;\n  const text = `${data.title || ''} ${data.abstract || ''}`.toLowerCase();\n  const relevant = keywords.some(k => text.includes(k.toLowerCase()));\n  return { json: { ...data, relevant } };\n});"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "27ca12a3-3db8-4f4f-ba01-14bf9fbfc93b",
+        "name": "Relevant?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          352,
+          224
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "boolean": [
+              {
+                "value1": "={{ $json.relevant }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "b5d2cfb9-0cdb-4422-851f-f74bfc3796e4",
+        "name": "Matrix Alert",
+        "type": "n8n-nodes-base.matrix",
+        "position": [
+          528,
+          128
+        ],
+        "parameters": {
+          "operation": "sendMessage"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "feba41f3-5e21-4f98-a276-0624bf680ce7",
+        "name": "Map Fields for Storage",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          528,
+          320
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "f956bfda-d4ec-4dd7-ab54-6cc636059e54",
+        "name": "Save to Intercom",
+        "type": "n8n-nodes-base.intercom",
+        "position": [
+          720,
+          320
+        ],
+        "parameters": {
+          "resource": "contact"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "106f4c99-e7b9-45b4-81f6-2c54f6e1c97f",
+    "connections": {
+      "Relevant?": {
+        "main": [
+          [
+            {
+              "node": "Matrix Alert",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Map Fields for Storage",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Analyze Relevance": {
+        "main": [
+          [
+            {
+              "node": "Relevant?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Scrape Patent Data": {
+        "main": [
+          [
+            {
+              "node": "Analyze Relevance",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Weekly Patent Check": {
+        "main": [
+          [
+            {
+              "node": "Construct Patent Query",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Construct Patent Query": {
+        "main": [
+          [
+            {
+              "node": "Scrape Patent Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Map Fields for Storage": {
+        "main": [
+          [
+            {
+              "node": "Save to Intercom",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/11404",
+  "fetched_at": "2026-09-12T13:13:45Z"
+}

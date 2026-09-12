@@ -1,0 +1,272 @@
+{
+  "id": 6739,
+  "name": "Sentiment analysis of product reviews using Google Sheets & OpenAI",
+  "description": "# 🧠 Sentiment Analysis of Product Reviews using Google Sheets & OpenAI\n\n## 🚀 Quick Implementation Steps\n\n**Automated customer feedback analyzer**:\n\n- **Trigger**: Google Sheets triggers on new product review rows.\n- **Sentiment Analysis**: Review text sent to OpenAI.\n- **Writeback**: Resulting sentiment (Positive, Neutral, Negative) is written back to the sheet.\n\nJust connect your credentials and sheet — you're ready to go!\n\n## 🔍 What It Does\n\nThis workflow automatically analyzes user-submitted product reviews and classifies them by sentiment using OpenAI’s powerful language models. It eliminates the need to manually sift through feedback by tagging each review with a sentiment score.\n\nThe sentiment result is then written back to the Google Sheet next to the original review, enabling you to get a fast, clear snapshot of overall customer perception, satisfaction and pain points. Whether you're monitoring 10 or 10,000 reviews, this process scales effortlessly and updates every minute.\n\n## 👤 Who’s It For\n\nThis workflow is designed for:\n\n- **E-commerce teams** collecting user reviews.\n- **Product teams** monitoring customer feedback.\n- **Marketing teams** identifying promotable reviews.\n- **Support teams** watching for negative experiences.\n- **SaaS platforms**, apps, and survey tools managing structured text feedback.\n\n## ✅ Requirements\n\nYou’ll need:\n\n- A Google Sheet with two columns: `Review` and `Sentiment`\n- Google Sheets OAuth2 credentials in n8n\n- OpenAI API Key (for GPT-4o-mini or GPT-3.5)\n- n8n instance with LangChain and OpenAI nodes enabled\n\n## ⚙️ How It Works\n\n1. **Google Sheets Trigger**: Watches for new rows every minute\n2. **OpenAI Integration**:\n   - Uses LangChain’s `Sentiment Analysis` node\n   - Passes review text into GPT-4o-mini via the `OpenAI Chat Model` node\n3. **Sheet Update**: The sentiment result (Positive, Negative, or Neutral) is written into the `Sentiment` column in the same row.\n\nSticky Notes included for better visual understanding inside the workflow editor.\n\n## 🛠️ Steps to Configure and Use\n\n### 1. Prepare Your Google Sheet\n\nMake sure your sheet is named `Sheet1` with the following structure:\n\n| Review                                | Sentiment |\n|---------------------------------------|-----------|\n| Absolutely love it!                  |           |\n| Not worth the price.                 |           |\n\n### 2. Set Up Credentials\n\n- **Google Sheets**: OAuth2 credentials\n- **OpenAI**: API Key added via `OpenAI API` credential in n8n\n\n### 3. Import & Activate Workflow\n\n- Import the workflow JSON into your n8n instance.\n- Assign the proper credentials to the trigger and OpenAI nodes.\n- Activate the workflow.\n\n## 🧩 How To Customize\n\n- 🛎️ **Alerting**: Add Slack/Email nodes for negative sentiment alerts\n- 🔄 **Triggering**: Change the polling interval to real-time triggers (e.g., webhook)\n- 📊 **Extended Sentiment**: Modify sentiment categories (e.g., \"Mixed\", \"Sarcastic\")\n- 🧾 **Summary Report**: Add Cron + Aggregation nodes for daily/weekly summaries\n- 🧠 **Prompt Tuning**: Adjust system prompt for deeper or context-based sentiment evaluation\n\n## 🧱 Add‑ons (Optional Features)\n\n- Email Digest of Negative Reviews\n- Google Drive Logging\n- Team Notification via Slack\n- Summary to Notion, Airtable, or Google Docs\n\n## 📌 Use Case Examples\n\n- **Online Stores**: Auto-tag reviews for reputation monitoring\n- **Product Teams**: See which feature releases generate positive or negative buzz\n- **CX Dashboards**: Feed real-time sentiment to internal BI tools\n- **Marketing**: Extract glowing reviews for social proof\n- **Support**: Triage issues by flagging critical comments instantly\n\n*...and many more applications wherever text feedback is collected.*\n\n## 🧰 Troubleshooting Guide\n\n| Issue                    | Possible Cause                              | Suggested Fix                                      |\n|-------------------------|---------------------------------------------|---------------------------------------------------|\n| Sentiment not updating  | Sheet credentials missing or misconfigured  | Reconnect Google Sheets OAuth2                   |\n| Blank sentiment         | Review column empty or misaligned           | Ensure proper column header & value present      |\n| OpenAI errors           | Invalid or expired API key                  | Regenerate API Key from OpenAI and re-auth       |\n| Workflow doesn’t run    | Polling settings incorrect                  | Confirm interval & document ID in trigger node   |\n\n## 🤝 Need Help?\n\nIf you need assistance for\n\n- ✅ Help setting up this workflow\n- ⚙️ Customizing prompts or output\n- 🚀 Automating your full review pipeline\n\n👉 Contact us today at WeblineIndia. We will be happy to assist.\n",
+  "workflow": {
+    "id": "ugi00HVDOW9kN81g",
+    "meta": {
+      "instanceId": "14e4c77104722ab186539dfea5182e419aecc83d85963fe13f6de862c875ebfa",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Sentiment Analysis of Product Reviews with OpenAI",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "a0c76f41-a0f7-4c15-88ed-9372ecac1db3",
+        "name": "Sentiment Analysis",
+        "type": "@n8n/n8n-nodes-langchain.sentimentAnalysis",
+        "position": [
+          -100,
+          -40
+        ],
+        "parameters": {
+          "options": {},
+          "inputText": "={{ $json.Review }}"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4fc752b9-8dcf-4c92-9ffe-83ff63f02a6e",
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          -80,
+          160
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4o-mini"
+          },
+          "options": {}
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "",
+            "name": ""
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "2fb5412d-bf2f-4e9c-9f99-e057b6b8c0bc",
+        "name": "Google Sheets Trigger",
+        "type": "n8n-nodes-base.googleSheetsTrigger",
+        "position": [
+          -300,
+          -40
+        ],
+        "parameters": {
+          "options": {},
+          "pollTimes": {
+            "item": [
+              {
+                "mode": "everyMinute"
+              }
+            ]
+          },
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1HOq0GIqZ80rMhlDaU9B4d4Vq9BPj1WsTzfnB1kAmY2g",
+            "cachedResultUrl": "",
+            "cachedResultName": "Review"
+          }
+        },
+        "credentials": {
+          "googleSheetsTriggerOAuth2Api": {
+            "id": "",
+            "name": ""
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "88925ca1-3294-4655-8943-67f403044dd9",
+        "name": "Updated Sentiment of Product Review",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          440,
+          -60
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "Review": "={{ $json.Review }}",
+              "Sentiment": "={{ $json.sentimentAnalysis.category }}"
+            },
+            "schema": [
+              {
+                "id": "Review",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "Review",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Sentiment",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "Sentiment",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "row_number",
+                "type": "string",
+                "display": true,
+                "removed": true,
+                "readOnly": true,
+                "required": false,
+                "displayName": "row_number",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [
+              "Review"
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "update",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1HOq0GIqZ80rMhlDaU9B4d4Vq9BPj1WsTzfnB1kAmY2g",
+            "cachedResultUrl": "",
+            "cachedResultName": "Review"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "",
+            "name": ""
+          }
+        },
+        "typeVersion": 4.5
+      },
+      {
+        "id": "dd0610dd-524c-4987-8fca-fc2ed6e1deb2",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -440,
+          -240
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 1100,
+          "height": 520,
+          "content": "## Sentiment Analysis of Product Review Using OpenAI"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "be858b1d-e0c6-4337-b3da-77b748b82597",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -440,
+          300
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 1100,
+          "height": 180,
+          "content": "## Description\n\nWhenever a product review is submitted, the workflow is initiated. Each review is then sent for sentiment analysis using OpenAI. Once the sentiment is determined, the result is updated alongside the review."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "07a342c5-be90-41f9-99c3-93d918db974d",
+    "connections": {
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Sentiment Analysis",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Sentiment Analysis": {
+        "main": [
+          [
+            {
+              "node": "Updated Sentiment of Product Review",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Updated Sentiment of Product Review",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Updated Sentiment of Product Review",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Sheets Trigger": {
+        "main": [
+          [
+            {
+              "node": "Sentiment Analysis",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6739",
+  "fetched_at": "2026-09-12T13:11:32Z"
+}

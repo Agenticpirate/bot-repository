@@ -1,0 +1,497 @@
+{
+  "id": 10266,
+  "name": "Generate personalized cold emails with Anthropic, GPT-4 & Google Sheets",
+  "description": "**Your Cold Email is Now Researched.** This pipeline finds specific bottlenecks on prospect websites and instantly crafts an irresistible pitch\n\n---\n\n### 🎯 Problem Statement\n\n\nTraditional high-volume cold email outreach is stuck on generic personalization (e.g., \"Love your website!\"). Sales teams, especially those selling high-value **AI Receptionists**, struggle to efficiently find the one **Unique Operational Hook** (like manual scheduling dependency or high call volume) needed to make the pitch relevant. This forces reliance on expensive, slow manual research, leading to low reply rates and inefficient spending on bulk outreach tools.\n\n---\n\n###  ✨ Solution\n\nThis workflow deploys a resilient **Dual-AI Personalization Pipeline** that runs on a batch basis. It uses the **Filter (Qualified Leads)** node as a cost-saving **Quality Gate** to prevent processing bad leads. It executes a **Targeted Deep Dive** on successful leads, using **GPT-4** for analytical insight extraction and **Claude Sonnet** for coherent, human-like copy generation. The entire process outputs campaign-ready data directly to **Google Sheets** and sends a critical QA Draft via **Gmail**.\n\n---\n\n### ⚙️ How It Works (Multi-Step Execution)\n\n#### 1\\. Ingestion and Cost Control (The Quality Gate)\n\n*   **Trigger and Ingestion:** The workflow starts via a **Manual Trigger**, pulling leads directly from **Get All Leads (Google Sheets)**.\n    \n*   **Cost Filtering:** The **Filter (Qualified Leads)** node removes leads that lack a working email or website URL.\n    \n*   **Execution Isolation:** The **Loop Over Leads** node initiates individual processing. The **Capture Lead Data (Set)** node immediately captures and locks down the original lead context for stability throughout the loop.\n    \n*   **Hybrid Scraping:** The **Scrape Site (HTTP Request)** and **Extract Text & Links (HTML)** nodes execute the **Hybrid Scraping** strategy, simultaneously capturing **website text** and **external links**.\n    \n*   **Data Shaping & Status:** The **Filter Social & Status (Code)** node is the control center. It filters links, bundles the context, and critically, assigns a **status** of 'Success' or 'Scrape Fail'.\n    \n*   **Cost Control Branch:** The **If (IF node)** checks this status. Items with 'Scrape Fail' bypass all AI steps (saving **100% of AI token costs**) and jump directly to **Log Final Result**. Successful items proceed to the AI core.\n    \n\n#### 2\\. Dual-AI Coherence & Dispatch (The Executive Output)\n\n*   **Analytical Synthesis:** The **Summarize Website (OpenAI)** node uses **GPT-4** to synthesize the full context and extract the **Unique Operational Hook** (e.g., manual booking overhead).\n    \n*   **Coherent Copy Generation:** The **Generate Subject & Body (Anthropic)** node uses the **Claude Sonnet** model to generate the subject and the multi-line body, guaranteeing **coherence** by creating both simultaneously in a single JSON output.\n    \n*   **Final Parsing:** The **Parse AI Output (Code)** node reliably strips markdown wrappers and extracts the clean **subject** and **body** strings.\n    \n*   **Final Delivery:** The data is logged via **Log Final Result (Google Sheets)**, and the completed email is sent to the user via **Create a draft (Gmail)** for final **Quality Assurance** before sending.\n    \n---\n\n### 🛠️ Setup Steps\n\n\nBefore running the workflow, ensure these credentials and data structures are correctly configured:\n\n#### Credentials\n\n*   **Anthropic:** Configure credentials for the Language Model (Claude Sonnet).\n    \n*   **OpenAI:** Configure credentials for the Analytical Model (GPT-4/GPT-4o).\n    \n*   **Google Services:** Set up OAuth2 credentials for **Google Sheets** (Input/Output) and **Gmail** (Draft QA and Completion Alert).\n    \n\n#### Configuration\n\n*   **Google Sheet Setup:** Your input sheet must include the columns **email**, **website\\_url**, and an empty **Icebreaker** column for initial filtering.\n    \n*   **HTTP URL:** Verify that the **Scrape Site** node's URL parameter is set to pull the website URL from the stabilized data structure: ={{ $json.website\\_url }}.\n    \n*   **AI Prompts:** Ensure the Anthropic prompt contains your current Irresistible Sales Offer and the required nested JSON output structure.\n    \n---\n\n### ✅ Benefits\n\n*   **Coherence Guarantee:** A single **Anthropic** node generates both the subject and body, guaranteeing the message is perfectly aligned and hits the same unique insight.\n    \n*   **Maximum Cost Control:** The **IF node** prevents spending tokens on bad or broken websites, making the campaign highly **budget-efficient**.\n    \n*   **Deep Personalization:** Combines **website text** and **social media links**, creating an icebreaker that implies thorough, manual research.\n    \n*   **High Reliability:** Uses robust **Code nodes** for data structuring and parsing, ensuring the workflow runs consistently under real-world conditions without crashing.\n    \n*   **Zero-Risk QA:** The final **Gmail (Create a draft)** step ensures human review of the generated copy before any cold emails are sent out.",
+  "workflow": {
+    "id": "ISQl1ZnXPDDlWSuN",
+    "meta": {
+      "instanceId": "766c8c237f056d009bb1bd53e73633458b146427b1ae9c6ec10561694aa89152",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "My Cold Email Generator",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "0eac1a6b-0b4d-47d8-a80a-e9943dd8b1a1",
+        "name": "Create a draft",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          5456,
+          -288
+        ],
+        "webhookId": "69af6c5c-f647-4c70-a6a1-cefa3fdc4066",
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "e9e12661-7809-4b13-ac5a-cfa01e1fef87",
+        "name": "If",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          3440,
+          -304
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "fdb78e15-cb51-486e-a113-01b6b6abd09f",
+        "name": "Manual Trigger",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          2352,
+          -1456
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "882fb7a2-7ba4-48f9-8b4c-499814a56dd3",
+        "name": "Get All Leads",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          2576,
+          -1456
+        ],
+        "parameters": {},
+        "typeVersion": 4.7
+      },
+      {
+        "id": "dac7abb5-e34c-4cd9-b794-22d1130dc136",
+        "name": "Filter (Qualified Leads)",
+        "type": "n8n-nodes-base.filter",
+        "position": [
+          2800,
+          -1456
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "5bc390bb-567c-44ad-a2e3-ed0cb585ef9d",
+        "name": "Loop Over Leads",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          1872,
+          -1104
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "9982c117-d123-4568-952a-4d35cc3de958",
+        "name": "Extract Text & Links",
+        "type": "n8n-nodes-base.html",
+        "position": [
+          2720,
+          -544
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "5e749a6e-921b-426f-8991-d1b4d3f5c00c",
+        "name": "Scrape Site",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          2496,
+          -544
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "34a3caf7-d823-46c7-8588-87d5a83e78ff",
+        "name": "Capture Lead Data",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          2272,
+          -544
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "974fcfea-1921-45a4-99d4-761b2d43e608",
+        "name": "Filter Social & Status",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2944,
+          -544
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "97a1c64c-e02e-42c7-82c4-50ba4d6df06f",
+        "name": "Summarize Website",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "position": [
+          3920,
+          -544
+        ],
+        "parameters": {},
+        "typeVersion": 1.8
+      },
+      {
+        "id": "bf426de8-d6e3-4474-8f5e-0541277f1f56",
+        "name": "Merge Summary",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          4272,
+          -544
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "ac63c0ff-87a5-41f1-82e3-b22498bfecf8",
+        "name": "Generate Subject & Body",
+        "type": "@n8n/n8n-nodes-langchain.anthropic",
+        "position": [
+          4496,
+          -544
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "444404fd-8635-4485-943a-f78df5b66e07",
+        "name": "Parse AI Output",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          4848,
+          -544
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "23fbfc16-e835-437c-8cb0-a3ad0ee2e758",
+        "name": "Log Final Result",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          5232,
+          -288
+        ],
+        "parameters": {},
+        "typeVersion": 4.7
+      },
+      {
+        "id": "ab1d0b36-d848-461a-9252-2628590feccc",
+        "name": "Send Team Completion Alert",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          5344,
+          -1120
+        ],
+        "webhookId": "f3ed8103-1679-41ed-aacc-ff2a14afce2b",
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "a4d963e7-ebea-4a65-bca2-c7ce38c16161",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          3888,
+          -944
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3ca20d99-a682-41bb-be20-d0256b665f69",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          3232,
+          -944
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "bbdae9ce-cfef-4349-9b53-4f2454f9d005",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2176,
+          -1696
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2d3bdc9c-d0be-486c-980e-1095de1d2952",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2176,
+          -944
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e0c20f03-b200-42ee-bf9e-a8fed167aab4",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          5072,
+          -1216
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "94a21ec9-b05b-4737-8a06-52d6a4292f98",
+        "name": "Sticky Note12",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1056,
+          -1840
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a466d18b-11a8-4ef0-98e5-0c999a32aee4",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1664,
+          -1840
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "772a5fab-5af7-48ce-9d7c-76051e02535e",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1056,
+          -1456
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "93a44ccd-e4b6-4b9b-b169-74dd390cd046",
+    "connections": {
+      "If": {
+        "main": [
+          [
+            {
+              "node": "Summarize Website",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Log Final Result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Scrape Site": {
+        "main": [
+          [
+            {
+              "node": "Extract Text & Links",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get All Leads": {
+        "main": [
+          [
+            {
+              "node": "Filter (Qualified Leads)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge Summary": {
+        "main": [
+          [
+            {
+              "node": "Generate Subject & Body",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create a draft": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Leads",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Manual Trigger": {
+        "main": [
+          [
+            {
+              "node": "Get All Leads",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Leads": {
+        "main": [
+          [
+            {
+              "node": "Send Team Completion Alert",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Capture Lead Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse AI Output": {
+        "main": [
+          [
+            {
+              "node": "Log Final Result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log Final Result": {
+        "main": [
+          [
+            {
+              "node": "Create a draft",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Capture Lead Data": {
+        "main": [
+          [
+            {
+              "node": "Scrape Site",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Summarize Website": {
+        "main": [
+          [
+            {
+              "node": "Merge Summary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Text & Links": {
+        "main": [
+          [
+            {
+              "node": "Filter Social & Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter Social & Status": {
+        "main": [
+          [
+            {
+              "node": "If",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Subject & Body": {
+        "main": [
+          [
+            {
+              "node": "Parse AI Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter (Qualified Leads)": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Leads",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 38,
+      "name": "Lead Nurturing"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/10266",
+  "fetched_at": "2026-09-12T13:13:18Z"
+}

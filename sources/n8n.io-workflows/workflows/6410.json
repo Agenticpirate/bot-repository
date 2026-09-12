@@ -1,0 +1,226 @@
+{
+  "id": 6410,
+  "name": "CYBERPULSE AI BlueOps: asset enrichment engine",
+  "description": "👤 Who it’s for\nBlue teamers, SOC operators, cyber analysts, and SME defenders who want to automatically enrich daily CVE/IOC threats by matching them to their internal asset database.\nIdeal for compliance-driven teams (NIST CSF, Essential Eight) seeking automated enrichment and alert routing.\n\n⚙️ How it works / What it does\nLoads current threat data from Sheet or Module 1 output\n\nLoads internal asset database from Google Sheets\n\nMerges based on matching IP fields\n\nCalculates impact score (threat score × asset value)\n\nApplies basic playbook logic to classify action\n\nSends summary emails for matched threats\n\nLogs to archived and live threat monitoring sheets\n\nBuilt with modular, no-code logic and alerting support\n\n🛠️ How to set up\nGoogle Sheets:\nAuthenticate your Google account\n(OAuth2) and set your Asset DB and Threats log sheet IDs.\n\nEmail:\nAdd sender/recipient addresses and SMTP credentials.\n\nCustomize Matching Logic:\nAdjust enrichment rule in the “🧠 Match Threats to Assets” node.\n\nTriggers:\nAdd a Cron node or Webhook to schedule the enrichment job.\n\nReview sticky notes:\nAll steps are explained clearly within the workflow nodes.\n\n📋 Requirements\nGoogle Sheets with asset inventory + threat log\n\nGoogle account with Sheets API access\n\nSMTP service (Gmail, Mailgun, SendGrid, etc.)\n\nOptional: OpenAI for dynamic playbook scoring (if extending logic)\n\n🧩 How to customize the workflow\nReplace Google Sheets with Supabase, Airtable, or Postgres\n\nExtend enrichment rule to include hostname or UUID matching\n\nFine-tune scoring logic by severity, CVSS, or business unit\n\nRoute alerts via Slack, Discord, or n8n Webhook endpoints\n\nAdd conditional routing for alert suppression or review queues\n\n📦 No sensitive data included. All credentials and sheet IDs are placeholders.\n\n🔐 This module is part of the CYBERPULSEBlueOps Pro Pack.\nFor full access to advanced Blue Team automations, visit cyberpulsesolutions.com/blueops",
+  "workflow": {
+    "id": "FulCIypj42nIklCO",
+    "meta": {
+      "instanceId": "6feff41aadeb8409737e26476f9d0a45f95eec6a9c16afff8ef87a662455b6df"
+    },
+    "name": "M2 - Asset Enrichment Engine",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "14a7268a-be41-4a5a-a5cb-9727b1f6d814",
+        "name": "Merge",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          100,
+          240
+        ],
+        "parameters": {},
+        "typeVersion": 3.1
+      },
+      {
+        "id": "5baea5d2-c41f-4eb1-868a-2307e2b931c2",
+        "name": "🔁 Daily Trigger",
+        "type": "n8n-nodes-base.cron",
+        "position": [
+          -420,
+          240
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "dabf2c97-d177-4cda-9103-df589a0f3e66",
+        "name": "🧠Match Threats to Assets",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          320,
+          240
+        ],
+        "parameters": {},
+        "executeOnce": true,
+        "typeVersion": 1,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "e370d6aa-be47-47a3-8a58-186dc5db4d6c",
+        "name": "📊 Apend New Threat",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          560,
+          240
+        ],
+        "parameters": {},
+        "typeVersion": 4.5
+      },
+      {
+        "id": "a1e771b7-6f18-4b7e-a1bb-49139dee5c75",
+        "name": "📊 Delete Row",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          560,
+          420
+        ],
+        "parameters": {},
+        "typeVersion": 4.5
+      },
+      {
+        "id": "621cf885-f05e-4fc3-9189-bfffe9a4f547",
+        "name": "📬Send Summary Email",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          560,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "700a7223-bfde-4a69-bbb4-e94999bcf444",
+        "name": "🗃️  Archived_Threats",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          740,
+          240
+        ],
+        "parameters": {},
+        "typeVersion": 4.5
+      },
+      {
+        "id": "a468d0cf-47c8-4604-8500-3ee66620f218",
+        "name": "📊Threats Sheets",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -200,
+          160
+        ],
+        "parameters": {},
+        "typeVersion": 4.5
+      },
+      {
+        "id": "fbe3a884-9151-44ca-92d4-7e44593f6c48",
+        "name": "📊Load Asset DB",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -200,
+          360
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "a585c636-aec5-4b50-8f1c-68ad28b67ffa",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1b243f06-2e22-46c7-a269-65b35fe3cbd4",
+    "connections": {
+      "Merge": {
+        "main": [
+          [
+            {
+              "node": "🧠Match Threats to Assets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "📊Load Asset DB": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "📊Threats Sheets": {
+        "main": [
+          [
+            {
+              "node": "📊Load Asset DB",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "🔁 Daily Trigger": {
+        "main": [
+          [
+            {
+              "node": "📊Threats Sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "📊 Apend New Threat": {
+        "main": [
+          [
+            {
+              "node": "🗃️  Archived_Threats",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "🧠Match Threats to Assets": {
+        "main": [
+          [
+            {
+              "node": "📬Send Summary Email",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "📊 Apend New Threat",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "📊 Delete Row",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 29,
+      "name": "SecOps"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6410",
+  "fetched_at": "2026-09-12T13:11:20Z"
+}

@@ -1,0 +1,192 @@
+{
+  "id": 7912,
+  "name": "Ga4 anomaly detection with automated Slack & email alerts",
+  "description": "## Who’s it for\n\nTeams that monitor traffic, signups, or conversions in Google Analytics 4 and want automatic Slack/email alerts when a channel suddenly spikes or drops.\n\n## What it does\n\nThis n8n template pulls daily GA4 metrics, detects outliers with a rolling mean and z-score, and sends alerts with a sparkline chart. It supports per-channel analysis (e.g., `sessionDefaultChannelGroup`) and consolidates multiple anomalies into a single email while posting each one to Slack.\n\n## How it works\n\n* **HTTP Request (GA4 Data API)** fetches `sessions`, `newUsers`, `conversions`, `bounceRate` by `date` + channel.\n* **Code** calculates 7-day moving average and z-scores, flags anomalies, and builds QuickChart links.\n* **If** filters on `alert === true` and optional `ALERT_ME` toggle.\n* **Slack** posts an alert + chart.\n* **Email** sends one summary email (subject + HTML table + charts).\n\n## Requirements\n\n* GA4 OAuth2 credential in n8n.\n* Slack API credential (bot with chat\\:write).\n* Email credential (SMTP or service).\n* GA4 property ID and at least several recent days of data.\n\n## Where to find your GA4 Property ID\n\n* **In the GA UI:**\n\n  1. Open **Google Analytics** → bottom-left **Admin** (gear).\n  2. In the **Property** column, click **Property settings**.\n  3. Copy **Property ID** — it’s a **numeric** value (e.g., `481356553`).\n\n* **From the URL (quick way):**\n  When you’re inside the GA4 property, the URL looks like:\n  `…/analytics/web/#/p123456789/…` → the digits after **`p`** are your **Property ID** (`123456789` in this example).\n\n* **What *not* to use:**\n\n  * **Measurement ID** (looks like `G-XXXXXXX`) — that’s the data stream ID, **not** the property ID.\n  * **Universal Analytics IDs** (`UA-XXXXX-Y`) — those are legacy and won’t work with GA4 Data API.\n\n* **In this template:**\n  Put that numeric ID into the **Set → `PROPERTY_ID`** field. The HTTP node path `properties/{{ $json.PROPERTY_ID }}:runReport` expects **only the number**, no prefixes.\n\n\n## How to set up\n\n1. Open the **Set (Define variables)** node and fill: `PROPERTY_ID`, `LOOKBACK_DAYS`, `ALERT_PCT`, `Z_THRESHOLD`, `CHANNEL_DIM`, `ALERT_ME`.\n2. Connect your **Google Analytics OAuth2**, **Slack**, and **Email** credentials.\n3. In **Email Send**, map `Subject` → `{{$json.emailSubject}}` and **HTML** body → `{{$json.emailHtml}}`. Keep **Execute once** enabled.\n4. Run the workflow.\n\n## How to customize\n\n* Change the moving-average window (`WINDOW/MA_WINDOW`) and chart range (`LAST_N_DAYS_CHART`).\n* Swap `CHANNEL_DIM` (e.g., source/medium) to analyze different dimensions.\n* Add/remove metrics in the GA4 request and the metrics list in the Code node.\n* Tweak thresholds to reduce noise: raise `Z_THRESHOLD` or `ALERT_PCT`.\n\n## Output example\n\n![Screenshot 20250826 at 18.32.15.png](fileId:2202)",
+  "workflow": {
+    "meta": {
+      "instanceId": "2718e70d3927cc6f222cd0fca1f41929053688eb8b4504451ee7746fdfef7be1"
+    },
+    "nodes": [
+      {
+        "id": "c78448ee-b1f9-4455-b9e9-94ca9bcdf8e5",
+        "name": "Detect GA4 Anomalies",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          368,
+          -80
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "34b855f2-0d92-4600-baa8-7f3181a91c0b",
+        "name": "Define variables",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -32,
+          -80
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "1525c5d3-18c6-4a93-9756-99fc8ebf63ca",
+        "name": "Get GA4 Data",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          160,
+          -80
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "a2b38011-ab3f-4ea6-ac18-68f311a452b5",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          320,
+          -528
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5c73dc42-5021-4d51-8737-0632fc953b33",
+        "name": "Send a message",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          960,
+          16
+        ],
+        "webhookId": "8656825d-f8e1-40d0-a4b7-ec1585de4db3",
+        "parameters": {},
+        "typeVersion": 2.3
+      },
+      {
+        "id": "5e6e7560-3027-401e-af65-d1f9798c771a",
+        "name": "Send an email",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          960,
+          -224
+        ],
+        "webhookId": "ed3b920e-753e-45b4-a783-d548fb8f3492",
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "bbf1cf7d-4179-4896-b787-1301c358a0dd",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -224,
+          -80
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "6df9c8bc-e52f-4d3e-93c3-4ab199b5f85b",
+        "name": "If anomaly is found",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          608,
+          -80
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "0559d7c3-cec0-447c-ab48-43804e067f3e",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -224,
+          -528
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Get GA4 Data": {
+        "main": [
+          [
+            {
+              "node": "Detect GA4 Anomalies",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Define variables": {
+        "main": [
+          [
+            {
+              "node": "Get GA4 Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Define variables",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If anomaly is found": {
+        "main": [
+          [
+            {
+              "node": "Send a message",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Send an email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Detect GA4 Anomalies": {
+        "main": [
+          [
+            {
+              "node": "If anomaly is found",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7912",
+  "fetched_at": "2026-09-12T13:12:10Z"
+}

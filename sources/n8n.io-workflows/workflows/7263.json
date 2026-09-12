@@ -1,0 +1,244 @@
+{
+  "id": 7263,
+  "name": "Automate JotForm submissions to Google Sheets",
+  "description": "\nThis workflow is a simple example showing how to fetch submissions from JotForm using its API and then use that data in another service — in this case, Google Sheets.\n\n## It demonstrates the basics of:\n\n- Connecting to an API\n\n- Parsing the response\n\n- Looping through results\n\n- Sending processed data to another app\n\n## How It Works\n\n1. Manual Trigger\nStarts the workflow manually.\n(Can be replaced with a schedule or webhook trigger for automation.)\n\n2. HTTP Request – Get Submissions from JotForm\nFetches all submissions for a specific form from the JotForm API.\n\n3. Code Node – Parse API Response\nConverts the API’s JSON response into individual submission items.\n\n4. Split In Batches – Loop Through Each Submission\nProcesses submissions one at a time to avoid hitting API rate limits.\n\n5. Wait Node\nAdds a short delay before sending data to the next API.\n\n6. Google Sheets – Append Submission Data\nSends the selected fields from each JotForm submission into a Google Sheet:\n\n\n\n## Adaptations\nYou can modify this workflow to:\n\nSend JotForm results to CRM systems like HubSpot or Pipedrive\n\nTrigger email or Slack notifications for each new submission\n\nStore submissions in a database for reporting and analytics",
+  "workflow": {
+    "meta": {
+      "instanceId": "4dec90995ececbc62e9e87d2686828c375ae5080bb5c39789af3396400555208",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "8ec873d2-615b-4f5d-8dbd-fd8707a35e64",
+        "name": "get all submissions",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -272,
+          -32
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "ad59d4c5-e709-49a9-93a5-ca8dd023f0ac",
+        "name": "When clicking ‘Execute workflow’",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          -528,
+          -32
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "ab335e18-901d-4733-8c61-595f05ede02c",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          288,
+          -32
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "9d4c6804-440a-4a6c-aabd-f51bbd071751",
+        "name": "No Operation, do nothing",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          832,
+          -288
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "e409f00f-02b1-4a87-8553-13909cc8da23",
+        "name": "Append row in sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          976,
+          16
+        ],
+        "parameters": {},
+        "typeVersion": 4.6
+      },
+      {
+        "id": "e2b900db-b9eb-45e8-9e59-a8e258d03c59",
+        "name": "Code",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -64,
+          -32
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "51639a36-6d3f-4437-a6fd-c16f96b5c255",
+        "name": "Wait",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          640,
+          0
+        ],
+        "webhookId": "f22a4495-ea34-4a2e-b8ca-116da66ef4c3",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "d4b9f5d5-625f-4635-ad96-b1e78d4a9569",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -352,
+          -112
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e7149bdd-2981-4de6-840a-71fec52e8b2a",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -96,
+          -112
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "311426d1-5c9e-43ab-8f6a-7dd5c849309f",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          928,
+          -64
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "fc1f4b5b-a491-41cc-bfd8-d9aeafad891c",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          224,
+          -352
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8e6ab364-5d2c-4e99-b9f1-af26815e3c03",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          544,
+          -64
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Code": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait": {
+        "main": [
+          [
+            {
+              "node": "Append row in sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [
+            {
+              "node": "No Operation, do nothing",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Append row in sheet": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "get all submissions": {
+        "main": [
+          [
+            {
+              "node": "Code",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When clicking ‘Execute workflow’": {
+        "main": [
+          [
+            {
+              "node": "get all submissions",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 37,
+      "name": "Lead Generation"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7263",
+  "fetched_at": "2026-09-12T13:11:48Z"
+}

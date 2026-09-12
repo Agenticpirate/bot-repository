@@ -1,0 +1,144 @@
+{
+  "id": 2660,
+  "name": "Upload files via n8n form and save them to Digital Ocean Spaces",
+  "description": "## How it works\nThis workflow provides a streamlined process for uploading files to Digital Ocean Spaces, making them publicly accessible. The process happens in three main steps:\n\n1. User submits the form with file, in this case I needed it to upload images I use in my seo tags.\n2. File is automatically uploaded to Digital Ocean Spaces using S3-compatible storage\n3. Form completion confirmation is provided\n\n## Setup steps\n* Initial setup typically takes 5-10 minutes\n* Configure your Digital Ocean Spaces credentials and bucket settings\n* Test the upload functionality with a small sample file\n* Verify public access permissions are working as expected\n\n![Credentials](https://dailyai.nyc3.cdn.digitaloceanspaces.com/do_template_example.png)\n\n## Important notes\n* Credentials are tricky check the screenshot above for how I set the url, bucket etc.\n* I am just using the S3 Node\n* Set the ACL as seen below\n\n![ACL](https://dailyai.nyc3.cdn.digitaloceanspaces.com/do_settings.png)\n\n## Troubleshooting\n* Bucket name might be incorrect\n* Region Wrong\n* Check Space permissions if uploads fail\n* Verify API credentials are correctly configured\n\n\nYou can see a video here. (live in 24 hours)\n[https://youtu.be/pYOpy3Ntt1o](https://youtu.be/pYOpy3Ntt1o)",
+  "workflow": {
+    "id": "CYv2u2izrgZWk5bK",
+    "meta": {
+      "instanceId": "b77b374d91a001765a8bf2832badc1f8fcc5407c99c4c6f3f68d6413d663ef83",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "DigialOceanUpload",
+    "tags": [
+      {
+        "id": "6YbZxCb4ODJ2Rmva",
+        "name": "admin",
+        "createdAt": "2024-12-01T14:18:53.184Z",
+        "updatedAt": "2024-12-01T14:18:53.184Z"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "dedd8475-1f90-4c6e-a7b3-d4246648fcec",
+        "name": "On form submission",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          200,
+          340
+        ],
+        "webhookId": "f506f7cd-dded-491a-b56e-fb4e0eade910",
+        "parameters": {
+          "options": {},
+          "formTitle": "Upload File",
+          "formFields": {
+            "values": [
+              {
+                "fieldType": "file",
+                "fieldLabel": "File to Upload",
+                "requiredField": true
+              }
+            ]
+          },
+          "formDescription": "Upload the file to the public storage area"
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "bbaed371-3860-4370-8103-16b7b955cd7e",
+        "name": "S3",
+        "type": "n8n-nodes-base.s3",
+        "position": [
+          360,
+          340
+        ],
+        "parameters": {
+          "fileName": "={{ $json['File to Upload'][0].filename }}",
+          "operation": "upload",
+          "bucketName": "dailyai",
+          "additionalFields": {
+            "acl": "publicRead"
+          },
+          "binaryPropertyName": "File_to_Upload"
+        },
+        "credentials": {
+          "s3": {
+            "id": "credential-id",
+            "name": "s3 Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "da21e508-a62f-49dd-ac1c-6ed4b9a307a6",
+        "name": "Form",
+        "type": "n8n-nodes-base.form",
+        "position": [
+          540,
+          340
+        ],
+        "webhookId": "cea10f93-617e-4762-9c40-582a8d159240",
+        "parameters": {
+          "options": {},
+          "operation": "completion",
+          "completionTitle": "Your file path is below!",
+          "completionMessage": "=https://dailyai.nyc3.cdn.digitaloceanspaces.com/{{ $('On form submission').first().json['File to Upload'][0].filename }}"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": true,
+    "pinData": {
+      "On form submission": [
+        {
+          "json": {
+            "formMode": "production",
+            "submittedAt": "2024-12-19T13:00:27.445-05:00",
+            "File to Upload": [
+              {
+                "size": 986986,
+                "filename": "prompt_booster.png",
+                "mimetype": "image/png"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "e7f5d777-36c3-4601-8eef-dc1ab68cf67e",
+    "connections": {
+      "S3": {
+        "main": [
+          [
+            {
+              "node": "Form",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "On form submission": {
+        "main": [
+          [
+            {
+              "node": "S3",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 36,
+      "name": "File Management"
+    }
+  ],
+  "url": "https://n8n.io/workflows/2660",
+  "fetched_at": "2026-09-12T13:09:24Z"
+}

@@ -1,0 +1,372 @@
+{
+  "id": 17698,
+  "name": "Track competitor Google Ads Transparency Center ads with Apify and Google Sheets",
+  "description": "## Quick overview\nNo ad spy subscription and no agency retainer. Every week this reads the Google Ads Transparency Center for the advertisers you list and appends one row per ad to Google Sheets: advertiser, format, when it first ran, how long it has run, and a link to the creative.\n\n## How it works\n1. Runs every Monday morning on a schedule.\n2. Defines the competitor advertiser IDs to track, the maximum ads to pull per advertiser, and an optional region.\n3. Uses Apify (google-ads-transparency-api actor) to retrieve each advertiser’s current ads from the Google Ads Transparency Center.\n4. Filters the results to keep only items that are actual ads.\n5. Formats each ad into a spreadsheet-ready row, converting timestamps to dates and flagging creatives that have run for 90+ days.\n6. Appends the formatted rows to the selected Google Sheets spreadsheet and worksheet.\n\n## Setup\n1. Create an Apify account and add your Apify API token in n8n credentials for the Apify node.\n2. Connect your Google Sheets account in n8n credentials and pick the target spreadsheet and tab in the Google Sheets node.\n3. Open adstransparency.google.com, search each competitor you want to watch, and copy the AR code out of the URL into the config node.\n\n## Requirements\n- An Apify account. The free tier works, and an ad costs about a third of a cent.\n- A Google account for Sheets.\n- No ad spy subscription and no scraping vendor account. There is no AI model in the workflow, so nothing to pay per token.\n\n## Customization\n- Add more `AR...` codes to the config node. Each advertiser becomes its own set of rows, so the sheet turns into a side by side.\n- Raise or lower `maxAdsPerAdvertiser` to control cost. Twenty per advertiser is usually enough to see the pattern.\n- Set `region` to a Google ads region code to see only the ads running in one country.\n- Add an IF node after the Code node to alert you only when a brand new creative appears, or swap Google Sheets for Slack or Airtable.\n\n## Additional info\n**How do I see what ads a competitor is running?** Google publishes them. The Google Ads Transparency Center lists every ad an advertiser is currently running, and this template reads it on a schedule so the answer lands in a spreadsheet instead of a browser tab you forget to open.\n\n**What is an advertiser ID and where do I get it?** Go to adstransparency.google.com, search the company, and open its page. The URL contains an `AR...` code, and that code is the advertiser ID. Large companies often have several, one per legal entity, so check you picked the one running the ads you care about.\n\n**Which column actually matters?** Days running. Anyone can look up what a competitor is advertising today. The useful signal is which creative they have kept paying for: in testing one advertiser had a text ad running for 827 days. A creative alive that long is a proven winner, and it is worth more study than the twelve they launched last month.\n\n**Does this show ad spend or impressions?** No, and nothing else can either. Google does not publish spend, impressions, or targeting in the Transparency Center for commercial advertisers. What you get is the creative itself, its format, and how long it has been live. Treat anyone selling you competitor ad spend numbers with suspicion.\n\n**Does it show ads that were stopped?** No. The Transparency Center lists what an advertiser is running now, so every row in your sheet is a live ad. Because the workflow appends a dated snapshot each week, a creative that disappears from next week's rows is one they have stopped, which the history gives you for free.\n\n**What does it cost?** The template is free. An ad costs about a third of a cent, so three competitors at 20 ads each is roughly 20 cents a week. There is no AI model in the workflow, so there is no token bill on top.\n\nSelf-hosting n8n? There is also a dedicated community node, `n8n-nodes-google-ads-transparency-api` on npm.\n\n**About Apify.** [Google Ads Transparency API](https://apify.com/johnvc/google-ads-transparency-api?fpr=9n7kx3&fp_sid=n8n) runs on Apify, a platform of ready-made scrapers and APIs for sources that have no usable public API. Actors are pay per use with no subscription, and they run in the cloud, so nothing runs on your machine and nothing breaks when the source changes its markup.\n\n**New to Apify?** You can [set up a free account](https://apify.com?fpr=9n7kx3&fp_sid=n8n) and get the API token this template needs in a couple of minutes.",
+  "workflow": {
+    "name": "Track competitor ads from the Google Ads Transparency Center in Google Sheets",
+    "nodes": [
+      {
+        "id": "b7e2d914-0001-4c01-9001-000000000001",
+        "name": "Every Monday morning",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          0,
+          460
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "weeks",
+                "triggerAtDay": [
+                  1
+                ],
+                "triggerAtHour": 8
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "b7e2d914-0002-4c02-9002-000000000002",
+        "name": "Set the competitors to watch",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          260,
+          460
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "b7e2d914-0010-4c10-9010-+1234567890",
+                "name": "advertiserIds",
+                "type": "array",
+                "value": "[\"AR0161401435+1234567890\"]"
+              },
+              {
+                "id": "b7e2d914-0011-4c11-9011-+1234567890",
+                "name": "maxAdsPerAdvertiser",
+                "type": "number",
+                "value": "20"
+              },
+              {
+                "id": "b7e2d914-0012-4c12-9012-+1234567890",
+                "name": "region",
+                "type": "string",
+                "value": ""
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "b7e2d914-0003-4c03-9003-000000000003",
+        "name": "Fetch each advertiser's ads",
+        "type": "@apify/n8n-nodes-apify.apify",
+        "position": [
+          520,
+          460
+        ],
+        "parameters": {
+          "memory": 128,
+          "actorId": "johnvc~google-ads-transparency-api",
+          "resource": "Actors",
+          "operation": "Run actor and get dataset",
+          "customBody": "={{ JSON.stringify({ advertiserIds: $json.advertiserIds, maxResultsPerAdvertiser: $json.maxAdsPerAdvertiser, region: $json.region }) }}"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b7e2d914-0004-4c04-9004-000000000004",
+        "name": "Keep rows that are real ads",
+        "type": "n8n-nodes-base.filter",
+        "position": [
+          780,
+          460
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "b7e2d914-0041-4c41-9041-+1234567890",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.result_type }}",
+                "rightValue": "ad"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "b7e2d914-0005-4c05-9005-000000000005",
+        "name": "Shape ad rows for the sheet",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1040,
+          460
+        ],
+        "parameters": {
+          "jsCode": "// One row per competitor ad, with the dates made readable and the\n// long-running creatives flagged. A creative that has been live for months\n// is one the competitor keeps paying for, which is the useful signal here.\nconst weekOf = $now.toFormat('yyyy-MM-dd');\nconst asDate = (unix) =>\n  typeof unix === 'number' && unix > 0\n    ? new Date(unix * 1000).toISOString().slice(0, 10)\n    : '';\n\nreturn $input.all().map((item) => {\n  const ad = item.json;\n  const days = typeof ad.total_days_shown === 'number' ? ad.total_days_shown : '';\n  return {\n    json: {\n      'Week of': weekOf,\n      Advertiser: ad.advertiser || '',\n      'Ad format': ad.format || '',\n      'First shown': asDate(ad.first_shown),\n      'Days running': days,\n      'Long runner': days !== '' && days >= 90 ? 'YES' : '',\n      'Creative link': ad.details_link || '',\n      'Creative ID': ad.ad_creative_id || '',\n      'Advertiser ID': ad.advertiser_id || '',\n    },\n  };\n});\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "b7e2d914-0006-4c06-9006-000000000006",
+        "name": "Append this week's ads",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1300,
+          460
+        ],
+        "parameters": {
+          "columns": {
+            "value": {},
+            "mappingMode": "autoMapInputData",
+            "matchingColumns": []
+          },
+          "options": {},
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": ""
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": ""
+          }
+        },
+        "typeVersion": 4.5
+      },
+      {
+        "id": "b7e2d914-0090-4c90-9090-000000000090",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -620,
+          40
+        ],
+        "parameters": {
+          "width": 520,
+          "height": 1140,
+          "content": "## Track competitor ads from the Google Ads Transparency Center in Google Sheets\n\nNo ad spy subscription and no agency retainer. Every week this workflow reads the Google Ads Transparency Center for the advertisers you list and appends one row per ad to your sheet: advertiser, format, when it first ran, how many days it has been running, and a link to the creative itself.\n\nThe column that earns its keep is Days running. Anyone can see what a competitor is advertising today. Seeing that one creative has been live for 543 days tells you which message they keep paying for, which is the one worth studying.\n\n**Who's it for**\nPerformance marketers sizing up a competitor before a launch, agencies building a pitch deck, and founders who want to know what the funded competitor is actually saying.\n\n**How it works**\n1. A schedule trigger fires once a week\n2. One Set node holds the advertiser IDs you want to watch\n3. The Apify node pulls each advertiser's live ad library\n4. A Code node turns the timestamps into dates and flags the long runners\n\n**Setup**\n1. Create a free Apify account and add your API token to the Apify credential\n2. Connect your Google account in the Sheets node and pick a spreadsheet\n3. Open adstransparency.google.com, search each competitor, and copy the AR... code out of the URL into the config node. The example ships with one advertiser; add the rest of your set and the sheet becomes a side by side.\n\n**Good to know**\nAbout a third of a cent per ad, so three competitors at 20 ads each is roughly 20 cents a week.\nThe Transparency Center only lists ads an advertiser is running now, so every row is live. It does not publish spend or impressions.\nActor: https://apify.com/johnvc/google-ads-transparency-api?fpr=9n7kx3&fp_sid=n8n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b7e2d914-0091-4c91-9091-000000000091",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -40,
+          60
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 240,
+          "height": 240,
+          "content": "### 1. Schedule\nRuns every Monday morning. Change the cadence, or swap in a manual trigger while you test."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b7e2d914-0092-4c92-9092-000000000092",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          220,
+          60
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 240,
+          "height": 240,
+          "content": "### 2. Your input\nThe advertiser IDs you want to watch, and how many ads to pull for each. This is the only node you edit."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b7e2d914-0093-4c93-9093-000000000093",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          480,
+          60
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 240,
+          "height": 240,
+          "content": "### 3. Fetch\nReads each advertiser's library from the Google Ads Transparency Center. Add your Apify credential here."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b7e2d914-0094-4c94-9094-000000000094",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          740,
+          60
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 240,
+          "height": 240,
+          "content": "### 4. Clean\nDrops any advertiser that returned an error, so only real ads reach the sheet."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b7e2d914-0095-4c95-9095-000000000095",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1000,
+          60
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 240,
+          "height": 240,
+          "content": "### 5. Shape\nTurns the timestamps into readable dates and flags creatives running 90 days or more."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b7e2d914-0096-4c96-9096-000000000096",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1260,
+          60
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 240,
+          "height": 240,
+          "content": "### 6. Deliver\nPick your spreadsheet and tab. Columns map automatically."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b7e2d914-0080-4c80-9080-000000000080",
+        "name": "Sticky Note7",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          220,
+          760
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 400,
+          "height": 240,
+          "content": "### Where do I find an advertiser ID?\nGo to adstransparency.google.com, search the company, and open its page. The URL contains an `AR...` code. That code is the advertiser ID. One company can have several, one per legal entity."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b7e2d914-0081-4c81-9081-000000000081",
+        "name": "Sticky Note8",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          660,
+          760
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 400,
+          "height": 240,
+          "content": "### Self-hosting n8n?\nThere is also a dedicated community node for this actor: `n8n-nodes-google-ads-transparency-api` on npm."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "connections": {
+      "Every Monday morning": {
+        "main": [
+          [
+            {
+              "node": "Set the competitors to watch",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch each advertiser's ads": {
+        "main": [
+          [
+            {
+              "node": "Keep rows that are real ads",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Keep rows that are real ads": {
+        "main": [
+          [
+            {
+              "node": "Shape ad rows for the sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Shape ad rows for the sheet": {
+        "main": [
+          [
+            {
+              "node": "Append this week's ads",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set the competitors to watch": {
+        "main": [
+          [
+            {
+              "node": "Fetch each advertiser's ads",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    }
+  ],
+  "url": "https://n8n.io/workflows/17698",
+  "fetched_at": "2026-09-12T13:16:37Z"
+}

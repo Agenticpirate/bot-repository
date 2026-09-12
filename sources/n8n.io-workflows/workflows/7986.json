@@ -1,0 +1,220 @@
+{
+  "id": 7986,
+  "name": "Daily hydration 💧 reminder with Slack/Discord & Airtable reaction tracking",
+  "description": "##  💧 Daily Hydration Reminder with Slack/Discord & Airtable Reaction Tracking\n\nAutomate wellness engagement in your community with a **twice-daily hydration reminder** sent to **Slack or Discord**, and automatically **track member reactions in Airtable**. This no-code workflow nurtures self-care culture while capturing engagement data—zero manual effort required.\n\nPerfect for coaches, community managers, and solopreneurs who want to foster mindful habits and recognize active members.\n\n---\n\n## 🛠️ Step-by-Step Setup Instructions\n\nFollow these steps to deploy the workflow in **Make.com** (compatible with n8n):\n\n### 1. **Import the Workflow**\n- In Make.com or n8n, go to **Scenarios &gt; Import from File**\n- Upload the provided JSON template\n\n### 2. **Set Up Scheduling**\n- Locate the **Schedule Trigger** node\n- Confirm times are set to:\n  - `10:00 AM`\n  - `3:00 PM`\n- Adjust **timezone** in Make/n8n settings to match your audience\n\n### 3. **Configure GIF Library**\n- Open the **\"Pick Random GIF\"** node\n- Replace placeholder URLs with your own:\n  - Hosted on Giphy, Imgur, or a public CDN\n  - Must end in `.gif` and allow hotlinking\n- Example:\n  ```text\n  https://media.giphy.com/media/abc123/giphy.gif\n  ```\n\n### 4. **Connect Messaging Platform**\nChoose **Slack** or **Discord**:\n\n#### For Slack:\n- Go to **Send to Slack** node\n- Replace `{{SLACK_WEBHOOK_URL}}` with your incoming webhook\n- Ensure the channel allows bot messages\n\n#### For Discord:\n- Go to **Send to Discord** node\n- Replace `{{DISCORD_WEBHOOK_URL}}` with your server webhook\n- Enable embed permissions\n\n&gt; 🔗 Webhook Guide:\n&gt; - [Slack Webhooks](https://api.slack.com/messaging/webhooks)\n&gt; - [Discord Webhooks](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks)\n\n### 5. **Enable Reaction Polling (Slack)**\n- In **Get Slack Reactions**, add:\n  - `{{SLACK_BOT_TOKEN}}` with scopes:\n    - `reactions:read`\n    - `channels:history`\n  - `{{SLACK_CHANNEL_ID}}` (e.g., `C012AB3CD`)\n- The workflow uses the message timestamp to fetch reactions after 24 hours\n\n&gt; ⚠️ Discord note: Native reaction polling requires a **Discord bot**. This version supports Slack; Discord support can be extended using the Discord API.\n\n### 6. **Set Up Airtable Logging**\n- In **Log in Airtable** node:\n  - Enter your **Airtable Base ID**\n  - Ensure table `Hydration Reactions` exists (see structure below)\n  - Map fields correctly (Date, Username, Reaction Count, etc.)\n- Connect your **Airtable API credential**\n\n---\n\n## 🗃️ Airtable Base Structure\n\nThis workflow logs every ✅ reaction into Airtable for long-term tracking.\n\n### Base: `Community Wellness Tracker`\n\n#### Table: `Hydration Reactions`\n\n| Field | Type | Description |\n|------|------|-------------|\n| `Date` | Date | Date of the reminder (auto-filled) |\n| `Time Slot` | Single Select | `10:00 AM` or `3:00 PM` |\n| `User ID` | Text | Slack/Discord user ID |\n| `Username` | Text | Display name (e.g., `@alex`) |\n| `Platform` | Single Select | `Slack` or `Discord` |\n| `Reaction Count` | Number | Always `1` per reaction |\n| `Message Timestamp` | Text | Message ID for reference |\n| `Processed` | Checkbox | Marked `false` initially |\n\n&gt; 🏆 Use a **Grouped View** in Airtable to create a monthly leaderboard:\n&gt; - Group by `Username`\n&gt; - Rollup: `SUM(Reaction Count)`\n\n---\n\n## 🔄 Workflow Explanation\n\nThe automation runs a **daily cycle** with feedback tracking:\n\n1. **Trigger**: Fires at 10 AM and 3 PM via **Schedule node**\n2. **GIF Selection**: Randomly picks a calming hydration GIF\n3. **Message Delivery**: Sends formatted message to Slack or Discord\n4. **Wait**: Pauses for 24 hours to allow reactions\n5. **Reaction Check**: Uses Slack API to fetch ✅ reactions\n6. **Filter**: Only proceeds if at least one ✅ is found\n7. **Log**: Creates a record in Airtable for each reacting user\n\n🔁 This creates a **self-sustaining wellness loop**—encouraging care and capturing engagement.\n\n---\n\n## 📦 Pre-Conditions & Requirements\n\nBefore use, ensure:\n\n- ✅ **Make.com or n8n account** (Free tier supported)\n- ✅ **Slack workspace** with webhook and bot token **or** **Discord server** with webhook\n- ✅ **Airtable account** with base and API key\n- ✅ Publicly accessible **GIF library**\n- ✅ Internet access and JSON parsing enabled\n\n&gt; ❗ Permissions Required:\n&gt; - Slack: `reactions:read`, `channels:history`\n&gt; - Airtable: `create`, `read` access to table\n\n---\n\n## 🎨 Customization Guidance\n\nExtend the workflow to fit your needs:\n\n### 🕒 Change Timing\n- Edit the **Schedule node** to send at 9 AM and 1 PM, or only once daily.\n\n### 🖼️ Add Seasonal GIFs\n- Rotate GIFs by season (e.g., winter themes in December).\n\n### 🧩 Track Multiple Emojis\n- Add switches for 💧, 🫶, or ❤️ to measure different engagement types.\n\n### 📈 Auto-Generate Monthly Reports\n- Use **Airtable Automations** to:\n  - Email top 5 members\n  - Export CSV for reward fulfillment\n  - Post leaderboard in your community\n\n### 🎁 Reward Integration\n- Connect **Shopify**, **Gmail**, or **Printful** to auto-send stickers or discount codes.\n\n### 🔕 Opt-Out Option\n- Let users react with ❌ to be excluded from future tracking.\n- Add a filter to skip users in a “Do Not Disturb” Airtable table.\n\n---\n\n## 🌐 Who It’s For\n\n- **Coaches & Facilitators** running masterminds or accountability groups\n- **Etsy Sellers** with private customer communities\n- **Remote Teams** supporting wellness\n- **Wellness Creators** promoting mindful habits\n\n\n**Deploy once. Nurture your community forever.**  \nWith **Daily Hydration Reminder**, consistency meets compassion—automatically. 💧💙\n\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "__PLACEHOLDER_INSTANCE_ID__"
+    },
+    "name": "Daily Hydration Hug 💧",
+    "nodes": [
+      {
+        "id": "trigger-schedule",
+        "name": "Every Day at 10 AM & 3 PM",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "notes": "🕒 Schedule: Daily Wellness Nudges\n\nTriggers the workflow twice daily:\n- 10:00 AM\n- 3:00 PM\n\n🔹 Set timezone in Make settings to match your community.\n\nThis is the heartbeat of the hydration reminder system.",
+        "position": [
+          250,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1,
+        "notesAlignment": "top"
+      },
+      {
+        "id": "random-gif-picker",
+        "name": "Pick Random GIF",
+        "type": "n8n-nodes-base.set",
+        "notes": "🖼️ Random GIF Selector\n\nRotates through a curated list of calming hydration-themed GIFs.\n\n💡 Hosted on Giphy, Imgur, or CDN.\n\nExample URLs:\n- https://media.giphy.com/.../water.gif\n- https://example.com/hug.gif\n\nYou can expand the list for seasonal variety.",
+        "position": [
+          500,
+          300
+        ],
+        "inputNames": [
+          "GIFs"
+        ],
+        "parameters": {},
+        "outputNames": [
+          "With GIF"
+        ],
+        "notesAlignment": "top"
+      },
+      {
+        "id": "send-slack-message",
+        "name": "Send to Slack",
+        "type": "n8n-nodes-base.httpRequest",
+        "notes": "📤 Send Message to Slack\n\nPosts a friendly hydration reminder with:\n- Soothing text\n- Random GIF (accessory)\n\n✅ Uses Slack's Block Kit for rich formatting.\n\n🔧 Replace URL with Discord webhook if needed.",
+        "position": [
+          750,
+          250
+        ],
+        "parameters": {},
+        "notesAlignment": "top"
+      },
+      {
+        "id": "send-discord-message",
+        "name": "Send to Discord",
+        "type": "n8n-nodes-base.httpRequest",
+        "notes": "📤 Send Message to Discord\n\nSends a clean, embed-based message with hydration GIF.\n\n🎨 Color: Soft blue (#2C7873 → 2899551)\n\n💡 Use only one send node (Slack OR Discord) unless routing dynamically.",
+        "position": [
+          750,
+          350
+        ],
+        "parameters": {},
+        "notesAlignment": "top"
+      },
+      {
+        "id": "wait-24-hours",
+        "name": "Wait 24 Hours",
+        "type": "n8n-nodes-base.wait",
+        "notes": "⏸️ Wait for Reactions\n\nPauses 24 hours to allow members to react with ✅.\n\n🔹 You can reduce to 12h for faster cycles.\n\n⚠️ Do not skip: needed to capture engagement.",
+        "position": [
+          1000,
+          300
+        ],
+        "parameters": {},
+        "notesAlignment": "top"
+      },
+      {
+        "id": "fetch-reactions-slack",
+        "name": "Get Slack Reactions",
+        "type": "n8n-nodes-base.httpRequest",
+        "notes": "🔍 Fetch Slack Reactions\n\nUses Slack API to check if ✅ was added.\n\n🔐 Requires Bot Token with:\n- reactions:read\n- channels:read\n\n💡 Store message timestamp from initial post.",
+        "position": [
+          1250,
+          250
+        ],
+        "parameters": {},
+        "notesAlignment": "top"
+      },
+      {
+        "id": "filter-yes-reactions",
+        "name": "Filter ✅ Reactions",
+        "type": "n8n-nodes-base.switch",
+        "notes": "✅ Filter for Checkmark Reactions\n\nOnly continues if at least one ✅ (white_check_mark) was added.\n\n🔧 You can add more emoji filters (e.g., 💧, 🫶) for expanded tracking.",
+        "position": [
+          1500,
+          300
+        ],
+        "parameters": {},
+        "notesAlignment": "top"
+      },
+      {
+        "id": "airtable-log-reaction",
+        "name": "Log in Airtable",
+        "type": "n8n-nodes-base.airtable",
+        "notes": "📊 Log Reaction in Airtable\n\nSaves each ✅ reaction as a new record.\n\n🔁 Used later to generate monthly 'Hydration Heroes' leaderboard.\n\n💡 Link to user profiles or add tags for segmentation.",
+        "position": [
+          1750,
+          300
+        ],
+        "parameters": {},
+        "notesAlignment": "top"
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "callerPolicy": "none",
+      "saveDataError": "all",
+      "executionOrder": "parallel",
+      "saveDataSuccess": "all"
+    },
+    "connections": {
+      "Send to Slack": {
+        "main": [
+          [
+            {
+              "node": "Wait 24 Hours",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait 24 Hours": {
+        "main": [
+          [
+            {
+              "node": "Get Slack Reactions",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Pick Random GIF": {
+        "main": [
+          [
+            {
+              "node": "Send to Slack",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Send to Discord",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send to Discord": {
+        "main": [
+          [
+            {
+              "node": "Wait 24 Hours",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Slack Reactions": {
+        "main": [
+          [
+            {
+              "node": "Filter ✅ Reactions",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter ✅ Reactions": {
+        "main": [
+          [
+            {
+              "node": "Log in Airtable",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Every Day at 10 AM & 3 PM": {
+        "main": [
+          [
+            {
+              "node": "Pick Random GIF",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 43,
+      "name": "Personal Productivity"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7986",
+  "fetched_at": "2026-09-12T13:12:13Z"
+}

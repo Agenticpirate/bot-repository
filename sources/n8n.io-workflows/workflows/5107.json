@@ -1,0 +1,423 @@
+{
+  "id": 5107,
+  "name": "Auto-generate problem-focused blog posts for Shopify products with AI",
+  "description": "*This workflow contains community nodes that are only compatible with the self-hosted version of [n8n](https://n8n.partnerlinks.io/creator-khmuhtadin).* \n\nTurn Shopify products into traffic. **AI Blog Automation for Shopify** is an [n8n](https://n8n.partnerlinks.io/creator-khmuhtadin) workflow that transforms your products into engaging, problem-focused blog posts.\n\nStop spending 5+ hours per article. This workflow generates SEO-optimized content around customer pain points, not just product features.\n\n![Screenshot 20250621 at 23.16.26.png](fileId:1543)\n\n*Last updated: September 2026.*\n\n**Who is this for?**\n* **E-commerce store owners** wanting consistent content marketing without the time investment.\n* **Dropshipping entrepreneurs** with frequent product launches needing automated blog content.\n* **Shopify merchants** who know blogging drives traffic but lack writing resources.\n* **Content marketers** seeking scalable, cost-effective blog automation.\n\n**Problem Solved**\nCreating quality blog content is time-consuming and expensive. Most store owners either skip blogging entirely or burn out after a few posts. This workflow solves it by:\n* Automatically generating problem-first content (not salesy product descriptions).\n* Creating stunning AI-generated hero images for each post.\n* Publishing directly to your Shopify blog with proper SEO formatting.\n* Costing only $0.05-0.15 per post vs. $200+ for professional writers.\n\n**What This Workflow Does**\n\n| Feature | Description |\n|---------|-------------|\n| **Triggers** | - **Manual execution** for existing products<br>- **Automatic trigger** when new products are created |\n| **Analyzes Products** | Uses **LangChain + OpenAI** to:<br>- Identify core problems the product solves<br>- Analyze customer pain points<br>- Generate problem-focused angles |\n| **Creates Content** | **gpt-5.6-terra** generates 1000-1500 word articles:<br>- Problem-first approach (not product-first)<br>- SEO-optimized structure<br>- Natural product integration<br>- Soft call-to-actions |\n| **Generates Images** | **DALL-E 3** creates blog hero images:<br>- Matches blog theme (not just product)<br>- Brand-consistent styling<br>- Mobile-optimized dimensions |\n| **Hosts Images** | Uploads to **ImgBB** (free CDN):<br>- No expiration<br>- Fast global delivery<br>- Direct URL integration |\n| **Publishes** | Posts directly to **Shopify blog**:<br>- Proper HTML formatting<br>- SEO meta descriptions<br>- Relevant tags<br>- Mobile-responsive images |\n\n**Setup Instructions**\n\n**Credentials Needed**\n* **Shopify Access Token API** (with `read_products`, `write_content`, `read_content` scopes)\n* **OpenAI API** (for content + image generation, [docs](https://platform.openai.com/docs/))\n* **ImgBB API** (free image hosting)\n\n**Shopify Configuration**\n* Create **private app** in Shopify admin\n* Enable required **API scopes**:\n  * `read_products` - Read product data\n  * `write_content` - Create blog posts  \n  * `read_content` - Access blog configuration\n* Copy **access token** (starts with `shpat_`)\n\n**Node Setup**\n* **Manual Trigger** — For on-demand execution\n* **Shopify Trigger** — Auto-runs on product creation\n* **Shopify Node** — Fetches product data\n* **LangChain + OpenAI** — Generates problem-focused content\n* **Structured Output Parser** — Formats AI response\n* **HTTP Request** — Retrieves blog configuration\n* **DALL-E Node** — Creates hero images\n* **ImgBB Upload** — Hosts images on free CDN\n* **GraphQL Mutation** — Publishes to Shopify blog\n\n**Customization Tips**\n\n| Feature | How to Customize |\n|---------|------------------|\n| **Content Length** | Adjust word count in AI Content Generator prompt |\n| **Image Style** | Modify DALL-E prompt for brand colors/aesthetics |\n| **Author Name** | Change author field in Publish Blog Article node |\n| **Blog Selection** | Update blog ID to target specific Shopify blog |\n| **Publishing** | Set `isPublished: false` to save as drafts |\n| **Brand Voice** | Customize tone and style in content prompts |\n\n**Pre-Requirements**\n* **Self-hosted [n8n instance](https://n8n.partnerlinks.io/creator-khmuhtadin)**\n* Install: `@n8n/n8n-nodes-langchain`\n* **Shopify private app** with proper scopes\n* **OpenAI account** with billing enabled\n* **ImgBB account** (free)\n\n**Nodes Used**\n* `Manual Trigger`\n* `Shopify Trigger`\n* `Shopify`\n* `LangChain LLM`\n* `OpenAI Chat Model`\n* `Structured Output Parser`\n* `HTTP Request`\n* `OpenAI (DALL-E)`\n* `Wait`\n\n**Test the Workflow**\n1. Import workflow and configure all credentials.\n2. Update store URLs and API tokens.\n3. Run manually or add a new product to trigger automatically.\n4. Check your Shopify blog for the new problem-focused post!\n\n**Expected Results**\n* **Time Saved**: 5+ hours per blog post\n* **Cost**: $0.10-0.20 per post (vs. $200+ for writers)\n* **Traffic**: 40-60% increase within 3 months (typical)\n* **Content Quality**: Problem-focused, not salesy\n\n### Quick Answers\n**What does each post cost?**  \nAround $0.05-0.15 per post, versus $200+ for a professional writer.  \n**Does this run on n8n Cloud?**  \nNo. It uses community nodes, so you need self-hosted n8n.  \n**How is it triggered?**  \nManually for existing products, or automatically when a new product is created.  \n\n---\n\n*Made by: [khmuhtadin](https://khmuhtadin.com)*\n*Tags: shopify, blog, automation, ai, content-marketing, seo*\n*Category: E-commerce Automation, Content Marketing*\nNeed customization? contact me on **[LinkedIn](https://www.linkedin.com/in/khmuhtadin/)** or **[Web](https://khmuhtadin.com)**\n\n## Additional info\nBuilt with [n8n](https://n8n.partnerlinks.io/creator-khmuhtadin). Need an assessment on your business? Feel free to reach out at [https://khmuhtadin.com/consultation/](https://khmuhtadin.com/consultation/)",
+  "workflow": {
+    "id": "rVCbug44PE4NbGEu",
+    "meta": {
+      "instanceId": "c2650793f644091dc80fb900fe63448ad1f4b774008de9608064d67294f8307c",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "n8n (AI-Powered Shopify Blog Automation)",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "a4c17ff5-ef96-48e8-9198-d578fd0aead6",
+        "name": "Start",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          -460,
+          -560
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "039a3952-342f-48d9-b5c5-6cc167bfc7ee",
+        "name": "Publish Blog Article",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1300,
+          -360
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "36a57759-3595-42d2-9ae4-c00195a065e9",
+        "name": "Processing Delay",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          1060,
+          -360
+        ],
+        "webhookId": "6a6836c7-143a-4a43-a9a6-a3298864970d",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "fea56c6a-2efb-4d62-8448-234092bab590",
+        "name": "Retrieve Blog Configuration",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          400,
+          -360
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "e1934dbb-ad5b-43c9-b9b2-8305fbbad9d1",
+        "name": "Upload to Image Host",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          820,
+          -360
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "a8fed918-a3b7-4dc1-bfb4-481ec2588282",
+        "name": "AI Content Generator",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "position": [
+          20,
+          -360
+        ],
+        "parameters": {},
+        "typeVersion": 1.7
+      },
+      {
+        "id": "f26fb1c2-4f62-4769-aee0-aca2f33afbcf",
+        "name": "Fetch Product Data",
+        "type": "n8n-nodes-base.shopify",
+        "position": [
+          -160,
+          -360
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "864cffa4-cc18-4659-844b-2e6e8afd7cb1",
+        "name": "OpenAI",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          20,
+          -200
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "585798c8-2ae7-4c79-b915-e4e0fb72c1e4",
+        "name": "Output Parser",
+        "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "position": [
+          180,
+          -200
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "1801538d-2175-443f-8d90-2903ca3d6554",
+        "name": "On Product Created",
+        "type": "n8n-nodes-base.shopifyTrigger",
+        "position": [
+          -460,
+          -360
+        ],
+        "webhookId": "7d1e4f1e-73e4-4138-a460-de4d0f01a94c",
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "db48c417-2c01-4f1f-b84f-46023d3853b9",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1320,
+          -700
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9cfa48a3-2a44-422c-a6a3-fb625a2b5446",
+        "name": "AI Image Generator",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "position": [
+          600,
+          -360
+        ],
+        "parameters": {},
+        "typeVersion": 1.8
+      },
+      {
+        "id": "e6d82c54-5ff6-47b6-b0dc-2d47ae56979f",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -740,
+          20
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3da060cb-64b3-47e7-87ff-1e2d1597890e",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -260,
+          20
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9c03d91c-8bca-4c4a-815c-4c5fd795c66c",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          220,
+          20
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "17049232-4a30-482b-9d0c-2529f1d0e82e",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          700,
+          20
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "17425395-954f-43d6-ae9a-cef1e7d22f1d",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1200,
+          20
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "206ea900-2d8e-44eb-8e37-e9277fc39f08",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1880,
+          -700
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "56eeeb01-0401-4710-9770-6e43c1aa0353",
+        "name": "Notify: Published",
+        "type": "n8n-nodes-base.slack",
+        "disabled": true,
+        "position": [
+          1520,
+          -360
+        ],
+        "webhookId": "0dbe71e3-d113-4e62-bcd7-506fc149f6a2",
+        "parameters": {},
+        "typeVersion": 2.3
+      },
+      {
+        "id": "917a43dc-b6e6-489c-9d30-7b4c1d6fc4f0",
+        "name": "Sticky Note7",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -740,
+          -700
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "d796b874-c2bf-4f40-89a9-45df036c6b93",
+        "name": "Sticky Note8",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          140,
+          180
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c175d406-3413-4845-b6c1-fbbd7c4bca35",
+        "name": "Sticky Note9",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          120,
+          -520
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "48016090-d565-4327-ac34-8e27233acb7d",
+    "connections": {
+      "Start": {
+        "main": [
+          [
+            {
+              "node": "Fetch Product Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Content Generator",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Output Parser": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "AI Content Generator",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Processing Delay": {
+        "main": [
+          [
+            {
+              "node": "Publish Blog Article",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Image Generator": {
+        "main": [
+          [
+            {
+              "node": "Upload to Image Host",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Product Data": {
+        "main": [
+          [
+            {
+              "node": "AI Content Generator",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "On Product Created": {
+        "main": [
+          [
+            {
+              "node": "Fetch Product Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Content Generator": {
+        "main": [
+          [
+            {
+              "node": "Retrieve Blog Configuration",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Publish Blog Article": {
+        "main": [
+          [
+            {
+              "node": "Notify: Published",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Upload to Image Host": {
+        "main": [
+          [
+            {
+              "node": "Processing Delay",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Retrieve Blog Configuration": {
+        "main": [
+          [
+            {
+              "node": "AI Image Generator",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 31,
+      "name": "Content Creation"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/5107",
+  "fetched_at": "2026-09-12T13:10:34Z"
+}

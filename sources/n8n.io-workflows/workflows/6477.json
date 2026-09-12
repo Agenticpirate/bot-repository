@@ -1,0 +1,281 @@
+{
+  "id": 6477,
+  "name": "Analyze Reddit content and comments for sentiment with Deepseek AI",
+  "description": "# Reddit Sentiment Analysis with AI-Powered Insights\n\n**Automatically analyze Reddit posts and comments to extract sentiment, emotional tone, and actionable community insights using AI.**\n\nThis powerful n8n workflow combines Reddit's API with advanced AI sentiment analysis to help community managers, researchers, and businesses understand public opinion and engagement patterns on Reddit. Get structured insights including sentiment scores, toxicity levels, trending concerns, and moderation recommendations.\n\n## Features\n\n- **Comprehensive Sentiment Analysis**: Categorizes content as Positive, Negative, or Neutral with confidence scores\n- **Emotional Intelligence**: Detects emotional tones like excitement, frustration, concern, or sarcasm\n- **Content Categorization**: Identifies discussion types (questions, complaints, praise, debates)\n- **Toxicity Detection**: Flags potentially harmful content with severity levels\n- **Community Insights**: Analyzes engagement quality and trending concerns\n- **Actionable Intelligence**: Provides moderation recommendations and response urgency levels\n- **Batch Processing**: Efficiently processes multiple posts and their comments\n- **Structured JSON Output**: Returns organized data ready for further analysis or integration\n\n## How It Works\n\nThe workflow follows a two-stage process:\n\n1. **Data Collection**: Fetches recent posts from specified subreddits along with their comments\n2. **AI Analysis**: Processes content through DeepSeek AI to generate comprehensive sentiment and contextual insights\n\n## Use Cases\n\n- **Community Management**: Monitor sentiment trends and identify posts requiring moderator attention\n- **Brand Monitoring**: Track public opinion about your products or services on Reddit\n- **Market Research**: Understand customer sentiment and concerns in relevant communities\n- **Content Strategy**: Identify what type of content resonates positively with your audience\n- **Crisis Management**: Quickly detect and respond to negative sentiment spikes\n\n## Required Credentials\n\nBefore setting up this workflow, you'll need to obtain the following credentials:\n\n### Reddit OAuth2 API\n1. Go to [Reddit App Preferences](https://www.reddit.com/prefs/apps)\n2. Click \"Create App\" or \"Create Another App\"\n3. Choose \"web app\" as the app type\n4. Fill in the required fields:\n   - **Name**: Your app name\n   - **Description**: Brief description of your app\n   - **Redirect URI**: `http://localhost:8080/oauth/callback` (or your n8n instance URL + `/oauth/callback`)\n5. Note down your **Client ID** and **Client Secret**\n\n### OpenRouter API\n1. Visit [OpenRouter](https://openrouter.ai/)\n2. Sign up for an account\n3. Navigate to your API Keys section\n4. Generate a new API key\n5. Copy the API key for use in n8n\n\n## Step-by-Step Setup Instructions\n\n### Step 1: Import the Workflow\n1. Copy the workflow JSON from this template\n2. In your n8n instance, click the \"+\" button to create a new workflow\n3. Select \"Import from URL\" or \"Import from Clipboard\"\n4. Paste the workflow JSON and click \"Import\"\n\n### Step 2: Configure Reddit Credentials\n1. Click on any Reddit node (e.g., \"Get many posts\")\n2. In the credentials dropdown, click \"Create New\"\n3. Select \"Reddit OAuth2 API\"\n4. Enter your Reddit app credentials:\n   - **Client ID**: Your Reddit app client ID\n   - **Client Secret**: Your Reddit app client secret\n   - **Auth URI**: `https://www.reddit.com/api/v1/authorize`\n   - **Access Token URI**: `https://www.reddit.com/api/v1/access_token`\n5. Click \"Connect my account\" and authorize the app\n6. Save the credentials\n\n### Step 3: Configure OpenRouter Credentials\n1. Click on the \"OpenRouter Chat Model1\" node\n2. In the credentials dropdown, click \"Create New\"\n3. Select \"OpenRouter API\"\n4. Enter your OpenRouter API key\n5. Save the credentials\n\n### Step 4: Test the Webhook\n1. Click on the \"Webhook\" node\n2. Copy the webhook URL (it will look like: `https://your-n8n-instance.com/webhook/reddit-sentiment`)\n3. Test the webhook using a tool like Postman or curl with this sample payload:\n\n```json\n{\n  \"subreddit\": \"technology\",\n  \"query\": \"AI\",\n  \"limit\": 5\n}\n```\n\n### Step 5: Customize the Analysis\n1. **Modify the Structured Data Generator prompt**: Edit the prompt in the \"Structured Data Generator\" node to adjust the analysis criteria or output format\n2. **Change the AI model**: In the \"OpenRouter Chat Model1\" node, you can switch to different models like `anthropic/claude-3-haiku` or `openai/gpt-4` based on your preferences and budget\n3. **Adjust post limits**: Modify the `limit` parameter in the \"Get many posts\" and \"Get many comments in a post\" nodes to control how much data you process\n\n## Usage Instructions\n\n### Making API Calls\n\nSend a POST request to your webhook URL with the following parameters:\n\n**Required Parameters:**\n- `subreddit`: The subreddit name (without r/)\n- `limit`: Number of posts to analyze (recommended: 5-15)\n\n**Optional Parameters:**\n- `query`: Search term to filter posts (optional)\n\n**Example Request:**\n```bash\ncurl -X POST https://your-n8n-instance.com/webhook/reddit-sentiment \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"subreddit\": \"CustomerService\",\n    \"limit\": 10\n  }'\n```\n\n### Understanding the Output\n\nThe workflow returns a JSON array with detailed analysis for each post:\n\n```json\n[\n  {\n    \"sentiment_analysis\": {\n      \"overall_sentiment\": {\n        \"category\": \"Negative\",\n        \"confidence_score\": 8\n      },\n      \"emotional_tone\": [\"frustrated\", \"concerned\"],\n      \"intensity_level\": \"High\"\n    },\n    \"content_categorization\": {\n      \"discussion_type\": \"Complaint\",\n      \"key_themes\": [\"billing issues\", \"customer support\"],\n      \"toxicity_level\": {\n        \"level\": \"Low\",\n        \"indicators\": \"No offensive language detected\"\n      }\n    },\n    \"contextual_insights\": {\n      \"community_engagement_quality\": \"Constructive\",\n      \"potential_issues_flagged\": [\"service disruption\"],\n      \"trending_concerns\": [\"response time\", \"resolution process\"]\n    },\n    \"actionable_intelligence\": {\n      \"moderator_attention_needed\": {\n        \"required\": \"Yes\",\n        \"reason\": \"Customer complaint requiring company response\"\n      },\n      \"response_urgency\": \"High\",\n      \"suggested_follow_up_actions\": [\n        \"Escalate to customer service team\",\n        \"Monitor for similar complaints\"\n      ]\n    }\n  }\n]\n```\n\n## Workflow Nodes Explanation\n\n### Data Collection Nodes\n- **Webhook**: Receives API requests with subreddit and analysis parameters\n- **Get many posts**: Fetches recent posts from the specified subreddit\n- **Split Out**: Processes individual posts for analysis\n- **Get many comments in a post**: Retrieves comments for each post\n\n### Processing Nodes\n- **Loop Over Items**: Manages batch processing of multiple posts\n- **Sentiment Analyzer**: Primary AI analysis node that processes content\n- **Structured Data Generator**: Formats AI output into structured JSON\n- **Code**: Parses and cleans the AI response\n- **Respond to Webhook**: Returns the final analysis results\n\n## Customization Options\n\n### Adjusting Analysis Depth\n- Modify the `limit` parameters to analyze more or fewer posts/comments\n- Update the AI prompts to focus on specific aspects (e.g., product mentions, competitor analysis)\n\n### Adding Data Storage\n- Connect database nodes to store analysis results for historical tracking\n- Add email notifications for high-priority findings\n\n### Integrating with Other Tools\n- Connect to Slack/Discord for real-time alerts\n- Link to Google Sheets for easy data visualization\n- Integrate with CRM systems for customer feedback tracking\n\n## Tips for Best Results\n\n1. **Choose Relevant Subreddits**: Focus on communities where your target audience is active\n2. **Monitor Regularly**: Set up scheduled executions to track sentiment trends over time\n3. **Customize Prompts**: Tailor the AI prompts to your specific industry or use case\n4. **Respect Rate Limits**: Reddit API has rate limits, so avoid excessive requests\n5. **Review AI Output**: Periodically check the AI analysis accuracy and adjust prompts as needed\n\n## Troubleshooting\n\n### Common Issues\n\n**\"Reddit API Authentication Failed\"**\n- Verify your Reddit app credentials are correct\n- Ensure your redirect URI matches your n8n instance\n- Check that your Reddit app is set as \"web app\" type\n\n**\"OpenRouter API Error\"**\n- Confirm your API key is valid and has sufficient credits\n- Check that the selected model is available\n- Verify your account has access to the chosen model\n\n**\"Webhook Not Responding\"**\n- Ensure the workflow is activated\n- Check that the webhook URL is correct\n- Verify the request payload format matches the expected structure\n\n**\"AI Analysis Returns Errors\"**\n- Review the prompt formatting in the Structured Data Generator\n- Check if the selected AI model supports the required features\n- Ensure the input data is not empty or malformed\n\n## Performance Considerations\n\n- **Rate Limits**: Reddit allows 60 requests per minute for OAuth applications\n- **AI Costs**: Monitor your OpenRouter usage to manage costs\n- **Processing Time**: Larger batches will take longer to process\n- **Memory Usage**: Consider n8n instance resources when processing large datasets\n\n## Contributing\n\nThis workflow can be extended and improved. Consider adding:\n- Support for multiple subreddits in a single request\n- Historical sentiment tracking and trend analysis\n- Integration with visualization tools\n- Custom classification models for industry-specific analysis\n\n---\n\n**Ready to start analyzing Reddit sentiment?** Import this workflow and start gaining valuable insights into online community discussions!",
+  "workflow": {
+    "id": "TEMPLATE_WORKFLOW_ID",
+    "meta": {
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Reddit Sentiment Analysis",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "b38ce2cf-0db8-448f-9447-41fa2ad7deb0",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -440,
+          -140
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "22a4c3e7-7013-4628-8df1-2398aad3ff80",
+        "name": "Get many comments in a post",
+        "type": "n8n-nodes-base.reddit",
+        "position": [
+          100,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "83bb326b-ad7e-4c30-bad3-f2a2a2a51300",
+        "name": "Get many posts",
+        "type": "n8n-nodes-base.reddit",
+        "position": [
+          -240,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "1d211962-4178-4454-8c80-1c00bbdd13e8",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -400,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "5c8e928b-1eb7-4e81-8d8c-6adc79914c5c",
+        "name": "Split Out",
+        "type": "n8n-nodes-base.splitOut",
+        "position": [
+          -60,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "6f00526d-b220-44a2-8cca-8c2284b7d097",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          280,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "41d1795e-14e4-4a20-8852-c432d875833d",
+        "name": "OpenRouter Chat Model1",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+        "position": [
+          720,
+          260
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "dc60016c-55bd-48b1-b368-abe79c939055",
+        "name": "Structured Data Generator",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "position": [
+          820,
+          100
+        ],
+        "parameters": {},
+        "typeVersion": 1.7
+      },
+      {
+        "id": "69a475a7-631d-41c9-aeb5-4ac09ebf5536",
+        "name": "Code",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1120,
+          100
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "29ed9837-4dca-4c7b-9110-6c118cf9d914",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          1260,
+          100
+        ],
+        "parameters": {},
+        "typeVersion": 1.4
+      },
+      {
+        "id": "9e595a99-ca1e-47f1-b3c1-a3acaea64546",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          480,
+          -140
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "400088ab-5276-4554-940e-1d98448eb0e9",
+        "name": "Sentiment Analyzer",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "position": [
+          500,
+          100
+        ],
+        "parameters": {},
+        "typeVersion": 1.7
+      }
+    ],
+    "active": true,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "NEW_VERSION_ID",
+    "connections": {
+      "Code": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Get many posts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split Out": {
+        "main": [
+          [
+            {
+              "node": "Get many comments in a post",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get many posts": {
+        "main": [
+          [
+            {
+              "node": "Split Out",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Split Out",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Sentiment Analyzer",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Sentiment Analyzer": {
+        "main": [
+          [
+            {
+              "node": "Structured Data Generator",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenRouter Chat Model1": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Structured Data Generator",
+              "type": "ai_languageModel",
+              "index": 0
+            },
+            {
+              "node": "Sentiment Analyzer",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Structured Data Generator": {
+        "main": [
+          [
+            {
+              "node": "Code",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get many comments in a post": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6477",
+  "fetched_at": "2026-09-12T13:11:22Z"
+}

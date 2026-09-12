@@ -1,0 +1,185 @@
+{
+  "id": 4153,
+  "name": "Auto-ticket maker: Convert Slack conversations into structured project tickets",
+  "description": "\n# Workflow: Auto-Ticket Maker\n\n## ⚡ About the Creators\nThis workflow was created by [Varritech Technologies](https://varritech.com), an innovative agency that leverages AI to engineer, design, and deliver software development projects 500% faster than traditional agencies. Based in New York City, we specialize in custom software development, web applications, and digital transformation solutions. If you need assistance implementing this workflow or have questions about content management solutions, please reach out to our team.\n\n## 🏗️ Architecture Overview\nThis workflow transforms your Slack conversations into complete project tickets, effectively replacing the need for a dedicated PM for task creation:\n\nSlack Webhook → Captures team conversation\nCode Transformation → Parses Slack message structure\nAI PM Agent → Analyzes requirements and creates complete tickets\nMemory Buffer → Maintains conversation context\nSlack Output → Returns formatted tickets to your channel\n\nSay goodbye to endless PM meetings just to create tickets! Simply describe what you need in Slack, and our AI PM handles the rest, breaking down complex projects into structured epics and tasks with all the necessary details.\n\n## 📦 Node-by-Node Breakdown\nflowchart LR\n  A[Webhook: Slack Trigger] --&gt; B[Code: Parse Message]\n  B --&gt; C[AI PM Agent] \n  C --&gt; D[Slack: Post Tickets]\n  E[Memory Buffer] --&gt; C\n  F[OpenAI Model] --&gt; C\n\n### Webhook: Slack Trigger\nType: HTTP Webhook (POST /slack-ticket-maker)\nPurpose: Captures messages from your designated Slack channel.\n\n### Code Transformation\nFunction: Parses complex Slack payload structure\nExtracts: User ID, channel, message text, timestamp, thread information\n\n### AI PM Agent\nInputs: Parsed Slack message\nProcess:\n- Evaluates project complexity\n- Requests project name if needed\n- Asks clarifying questions (up to 2 rounds)\n- Breaks down into epics and tasks\n- Formats with comprehensive structure\n\nTicket Structure:\n- Title\n- Description\n- Objectives/Goals\n- Definition of Done\n- Requirements/Acceptance Criteria\n- Implementation Details\n- Risks & Challenges\n- Testing & Validation\n- Timeline & Milestones\n- Related Notes & References\n- Open Questions\n\n### Memory Buffer\nType: Window Buffer Memory\nPurpose: Maintains context across conversation\n\n### Slack Output\nPosts fully-formatted tickets back to your channel\nUses markdown for clean, structured presentation\n\n## 🔍 Design Rationale & Best Practices\n**Replace Your PM's Ticket Creation Time**\nLet your PM focus on strategy while AI handles the documentation. Cut ticket creation time by 90%.\n\n**Standardized Quality**\nEvery ticket follows best practices with consistent structure, detail level, and formatting.\n\n**No Training Required**\nDescribe your needs conversationally - the AI adapts to your communication style.\n\n**Seamless Integration**\nWorks within your existing Slack workflow - no new tools to learn.\n```\n",
+  "workflow": {
+    "id": "8PxWIzEWlqJ3Anov",
+    "meta": {
+      "instanceId": "6bcff5ef8a06e8086902526a05c2a4c7bf5da8101f89e582301ed78094606f40",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Auto-Ticket Maker",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "a1297b26-107e-40dd-9695-8ecb0534cacb",
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          -80,
+          360
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "5b67ef11-54e0-41b0-afd0-f3c4f359e513",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -520,
+          100
+        ],
+        "webhookId": "e5d97187-896a-423b-9ba7-e23044ae1d7e",
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "02cbd3c7-b0ac-4556-a00b-6f357ed8f7e9",
+        "name": "Code",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -300,
+          100
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "bee83d84-b9b6-454a-91dd-eda6087ad2fd",
+        "name": "Simple Memory",
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "position": [
+          140,
+          360
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "eaccaa91-8a69-49fd-8dd4-418f4ea1dbd0",
+        "name": "AI PM Wellington",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          -40,
+          100
+        ],
+        "parameters": {},
+        "typeVersion": 1.8
+      },
+      {
+        "id": "09a6a284-8d70-4b3b-9a66-3c9045528552",
+        "name": "Slack",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          320,
+          100
+        ],
+        "webhookId": "7408d0f3-4e82-4a45-8ad6-9e573fdc7f30",
+        "parameters": {},
+        "typeVersion": 2.3
+      },
+      {
+        "id": "bcfb3867-8c8c-45a9-a0a6-9286a42e8fdf",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1080,
+          -100
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "af714830-26e0-4e93-8c46-765c0ccb445c",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          520,
+          60
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": true,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "9fe68472-1bb0-4950-a4aa-eb2f51ecbfe9",
+    "connections": {
+      "Code": {
+        "main": [
+          [
+            {
+              "node": "AI PM Wellington",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Code",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Simple Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "AI PM Wellington",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI PM Wellington": {
+        "main": [
+          [
+            {
+              "node": "Slack",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI PM Wellington",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 46,
+      "name": "Project Management"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/4153",
+  "fetched_at": "2026-09-12T13:10:06Z"
+}

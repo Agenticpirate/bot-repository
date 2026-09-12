@@ -1,0 +1,147 @@
+{
+  "id": 6412,
+  "name": "Auto-classify security incidents with GPT-4 and Google Sheets for SOC teams",
+  "description": "## 👤 Who it’s for\nBlue Team leads, SOC analysts, and IT responders looking to automatically classify security alerts using AI-driven logic and asset-based risk signals.\n\nIdeal for teams already scoring threats via CyberScan or BlueOps Module 3, and needing to prioritize next steps across Monitor / Investigate / Isolate / Escalate playbooks.\n\n## ⚙️ How it works / What it does\nReads recent endpoint alerts from Google Sheets\n\nSends alert data (hostname, IP, risk score) to OpenAI GPT model\n\nGPT returns structured JSON with:\n\nseverity tag (Low / Medium / High / Critical)\n\naction recommendation (Monitor / Investigate / Isolate / Escalate)\n\nLogs the full result to a centralized incident sheet\n\nCan be expanded to trigger automated EDR actions or email alerts\n\n## 🛠️ How to set up\nInsert OpenAI API Key\nReplace placeholder with your actual OpenAI secret in the HTTP Request node\n\nConnect Sheets\nUse your OAuth2 credentials to access the alerts input + classified log sheet\n\nTune GPT Prompt\nAdjust language or risk thresholds inside the 🧠 Classify Incident (GPT) node\n\nAutomation\nAdd a Cron node or Webhook to run every X minutes/hours\n\n## 📋 Requirements\nOpenAI API key (GPT-4 or GPT-3.5 supported)\n\nGoogle Sheets (or similar DB with alerts)\n\nn8n credentials for Sheets access\n\nOptional: Connected playbook actions or EDR endpoint logic\n\n## 🧩 How to customize the workflow\nSwap GPT with Claude, Gemini, or local LLM via API\n\nReplace Google Sheets with Supabase or Airtable\n\nAdd a playbook router for Notify / Isolate logic\n\nIntegrate email or ticketing notification step\n\n## 📦 This is a production-grade, AI-powered classification engine.\nAll inputs and tags are configurable. Safe placeholders are marked clearly.\n\n## 📘 This module is part of the CYBERPULSEBlueOps Pro automation suite.\nExplore the full set at 👉 cyberpulsesolutions.com/blueops",
+  "workflow": {
+    "id": "QW7kCwPVKSKLDhCx",
+    "meta": {
+      "instanceId": "6feff41aadeb8409737e26476f9d0a45f95eec6a9c16afff8ef87a662455b6df"
+    },
+    "name": "M4 - Incident Classifier",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "46dd925e-64ff-484b-aaa5-5bb74a7b2962",
+        "name": "✏️ Format Tags",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          640,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "505923f8-9721-4f62-a2ea-ce19696d3991",
+        "name": "📄 Google Sheets - Read Alerts",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          220,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "98817baf-2004-4bae-b934-66dec5ba7187",
+        "name": "🧠 Classify Incident (GPT)",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          440,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "618eeced-d0f2-4903-9217-150c38a95509",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "4f3d43dd-e63b-4c27-8590-ef7a2c9f8a3e",
+        "name": "Google Sheets",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          820,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 4.5
+      },
+      {
+        "id": "7aaf5255-ba15-477c-b4c5-d3e4626fdd84",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          80,
+          -220
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "c0181fb9-37ad-4204-8630-4741b3f5e72e",
+    "connections": {
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "📄 Google Sheets - Read Alerts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "✏️ Format Tags": {
+        "main": [
+          [
+            {
+              "node": "Google Sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "🧠 Classify Incident (GPT)": {
+        "main": [
+          [
+            {
+              "node": "✏️ Format Tags",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "📄 Google Sheets - Read Alerts": {
+        "main": [
+          [
+            {
+              "node": "🧠 Classify Incident (GPT)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 29,
+      "name": "SecOps"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6412",
+  "fetched_at": "2026-09-12T13:11:20Z"
+}

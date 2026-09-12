@@ -1,0 +1,523 @@
+{
+  "id": 6080,
+  "name": "Automated lead capture & business Q&A with GPT-4o, Pinecone, and Google Sheets",
+  "description": "## What Problem Does This Solve?\nThis workflow automates the end-to-end process of capturing company information from Google Drive, storing it semantically in Pinecone, and interacting with users via an intelligent AI chatbot. It eliminates the need for manual customer service, lead tracking, and company information retrieval—offering a fully automated, intelligent engagement system.\n\n#### Perfect for teams that need to:\n* Maintain accurate, AI-readable company knowledge bases\n\n* Answer customer inquiries 24/7 using AI\n\n* Automatically collect and log lead information\n\n* Embed a chatbot into their website to assist potential customers\n\n---\n\n#### Target Audience:\nSales teams, business owners, marketing departments, customer support reps, startup founders, or anyone looking to automate AI-powered lead generation and customer engagement.\n\n---\n\n### What Does It Do?\n #### Part One – Knowledge Ingestion\n* **Monitors** a Google Drive folder for new .txt or document uploads.\n\n* **Downloads** the document and splits the content into manageable chunks using a recursive character splitter.\n\n* **Generates** embeddings via OpenAI.\n\n* **Stores** the embeddings in a Pinecone vector database under the Q&A namespace.\n\n* **Purpose:** This knowledge base is later used to answer business-related questions through AI.\n\n#### Part Two – AI Chatbot Engagement\n* **Listens** for incoming chat messages using n8n’s `chatTrigger` node.\n\n* **Activates an AI agent** (powered by GPT-4o) to respond to inquiries regarding business hours, services, products, or general company info.\n\n* **Retrieves knowledge** using a vector search tool connected to Pinecone (newCompany_q).\n\n* **Captures leads:** If a user shows interest, the AI collects and stores:\n\n  * Name\n\n  * Email\n\n  * Phone number\n\n  * Specific interest \n\n  into a connected Google Sheet automatically.\n\n---\n\n### Key Features\n🔄 Google Drive integration for real-time file processing\n\n* 🧠 OpenAI embedding + Pinecone vector store for semantic memory\n\n* 🤖 LangChain agent with tool-based reasoning\n\n* 🗃️ Google Sheets integration for dynamic lead storage\n\n* 💬 GPT-4o model for accurate, human-like conversation\n\n* ⚙️ Modular design to expand into CRM, Notion, or email workflows\n\n* 🌐 Website-ready chatbot endpoint\n\n---\n\n### 🧰 Setup Instructions\n**Prerequisites:**\n* n8n instance (cloud or self-hosted)\n\n* Google Drive account (for uploading company data)\n\n* Pinecone account (for vector storage)\n\n* OpenAI API key\n\n* Google Sheets access with OAuth2 credentials\n\n---\n\n### 📦 Installation Steps\n**1. Import the Workflow**\nUpload the JSON files into your n8n instance.\n\n**2. Configure Credentials**\nIn n8n &gt; Credentials, connect:\n\n   * Google Drive\n\n* OpenAI\n\n* Pinecone\n\n* Google Sheets\n\n**3. Set Pinecone Index & Namespace\nExample:**\n\n* Index: `comanyName`\n\n* Namespace: `Q&A`\n\n**4. Test the Flow**\n\n* Upload a sample `.txt` or `pdf` file to the monitored Drive folder.\n\n* Send a message to the chatbot (e.g., \"What are your opening hours?\").\n\n* Check the Google Sheet for collected user info.\n\n---\n\n###  How It Works (Behind the Scenes)\n**Part 1 – Data Preparation:**\n1. Company files are uploaded to Google Drive.\n\n2. File is detected, downloaded, and chunked.\n\n3. Embeddings are created using OpenAI.\n\n4. Data is stored in Pinecone for semantic retrieval.\n\n**Part 2 – Chat Interaction:**\n1. A chat message triggers the workflow via webhook.\n\n2. The AI agent interprets the intent and accesses company data via `newCompany_q`.\n\n3. If lead data is gathered, it is appended to a Google Sheet using the AI-parsed values.\n\n---\n\n### Need help customizing?\n[Contact me](mailto:belgacem.dhiflaoui@gmail.com)  for consulting and support or add me on [Linkedin.](https://www.linkedin.com/in/belgacem-dhiflaoui/)",
+  "workflow": {
+    "id": "R07KTq4pioC2A0oL",
+    "meta": {
+      "instanceId": "82cad572864ecfae931ea0fa4a2122d5ad401b8f2cb25fb3ff144b553e0d676d"
+    },
+    "name": "AI Chatbot for Lead Capture and Business Q&A",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "083c6eeb-bc14-43a9-ae83-3545ba49444c",
+        "name": "Google Drive Trigger",
+        "type": "n8n-nodes-base.googleDriveTrigger",
+        "position": [
+          -100,
+          60
+        ],
+        "parameters": {
+          "event": "fileCreated",
+          "options": {},
+          "pollTimes": {
+            "item": [
+              {
+                "mode": "everyMinute"
+              }
+            ]
+          },
+          "triggerOn": "specificFolder",
+          "folderToWatch": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1UDedbXYGMpviGjiHLbYpTXmERrnQYvy4",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/1UDedbXYGMpviGjiHLbYpTXmERrnQYvy4",
+            "cachedResultName": "Rag App"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ba298cb7-50de-4aa3-a87c-1e826724ffa8",
+        "name": "Google Drive",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          120,
+          60
+        ],
+        "parameters": {
+          "fileId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ $json.id }}"
+          },
+          "options": {},
+          "operation": "download"
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "525e9fdb-b424-49a2-8d47-1fd6dfad5e7f",
+        "name": "Pinecone Vector Store",
+        "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+        "position": [
+          340,
+          60
+        ],
+        "parameters": {
+          "mode": "insert",
+          "options": {
+            "pineconeNamespace": "Q&A"
+          },
+          "pineconeIndex": {
+            "__rl": true,
+            "mode": "id",
+            "value": "pineconeIndex"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "05dfceca-03ec-48ca-97a1-c8a03df55bf4",
+        "name": "Embeddings OpenAI",
+        "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+        "position": [
+          240,
+          260
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "0ef50e4c-19c1-468d-83b7-d108297b57cb",
+        "name": "Default Data Loader",
+        "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+        "position": [
+          440,
+          240
+        ],
+        "parameters": {
+          "options": {},
+          "dataType": "binary"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "819b7187-fdc3-4b66-8658-c9b9e029157f",
+        "name": "Recursive Character Text Splitter",
+        "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+        "position": [
+          400,
+          420
+        ],
+        "parameters": {
+          "options": {},
+          "chunkSize": 500,
+          "chunkOverlap": 20
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "fb6b0698-8ac7-41bb-b3b3-9f0ab56903f0",
+        "name": "When chat message received",
+        "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+        "position": [
+          -100,
+          680
+        ],
+        "webhookId": "854c829c-2ce6-426f-89e2-ed44d33182f3",
+        "parameters": {
+          "mode": "webhook",
+          "public": true,
+          "options": {}
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "0a6f0695-a028-4e26-9648-0c8b66b15627",
+        "name": "AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          320,
+          680
+        ],
+        "parameters": {
+          "options": {
+            "systemMessage": "=## Role:\nYou are a friendly assistant for a Company named *New Company**.\n\n## Task:\nYou answer questions about the business.\n\n## Details:\nYou have access to various tools, which you use correctly.\n\n## Tools:\n- **newCompany_q**  \n  Use this tool to answer questions with knowledge about the company.\n\n- **sheets**  \n  Use this tool to store contact information such as name, email, interestet in and phone number.\n\nAfter a customer asks about opening hours, products, location, or business information, ask them for their name, email, specific interests and phone number.\n"
+          }
+        },
+        "typeVersion": 1.7
+      },
+      {
+        "id": "2f6f4f3c-fa64-40be-97e6-db66a65f21ae",
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          80,
+          900
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4o",
+            "cachedResultName": "gpt-4o"
+          },
+          "options": {}
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "ac7eff3d-de14-4921-b980-0bccd327492e",
+        "name": "Window Buffer Memory",
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "position": [
+          240,
+          900
+        ],
+        "parameters": {
+          "contextWindowLength": 12
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "562d791b-c360-4fdb-b238-3518d4c39a04",
+        "name": "OpenAI Chat Model1",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          720,
+          1140
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4o",
+            "cachedResultName": "gpt-4o"
+          },
+          "options": {}
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "553af7e0-7f68-4d90-992a-b998b30952af",
+        "name": "Pinecone Vector Store1",
+        "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+        "position": [
+          380,
+          1120
+        ],
+        "parameters": {
+          "options": {
+            "pineconeNamespace": "Q&A"
+          },
+          "pineconeIndex": {
+            "__rl": true,
+            "mode": "id",
+            "value": "=pineconeIndex"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "0ea4f43e-3e55-4da4-a43e-dfbdf1e435ef",
+        "name": "Embeddings OpenAI1",
+        "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+        "position": [
+          340,
+          1280
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "dac4e2e6-23a3-4afa-a0a3-ef5b1f296219",
+        "name": "newCompany_q",
+        "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+        "position": [
+          480,
+          900
+        ],
+        "parameters": {
+          "description": "gives answers related to the company newCompany"
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "d05ee3f4-a112-4221-810c-49a717bb0720",
+        "name": "Append row in sheet in Google Sheets",
+        "type": "n8n-nodes-base.googleSheetsTool",
+        "position": [
+          800,
+          920
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "Name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Name', ``, 'string') }}",
+              "Email": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Email', ``, 'string') }}",
+              "Phone": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Phone', ``, 'string') }}",
+              "Interestet in": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Interestet_in', ``, 'string') }}"
+            },
+            "schema": [
+              {
+                "id": "Name",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Name",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Phone",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Phone",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Email",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Email",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Interestet in",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Interestet in",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "id",
+            "value": "="
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": ""
+          }
+        },
+        "typeVersion": 4.5
+      },
+      {
+        "id": "08fb98b6-74b3-466b-a529-012996f7ebac",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1320,
+          0
+        ],
+        "parameters": {
+          "color": 2,
+          "width": 1060,
+          "height": 540,
+          "content": "## Part One – Company Info to Pinecone Vector Store\nThis workflow automatically processes company information files uploaded to a designated Google Drive folder and stores the extracted knowledge in a Pinecone vector database for later AI usage.\n\n**Trigger:**\nThe workflow is triggered every minute when a new file is created in the specified Google Drive folder you can chose.\n\n**Process:**\nFile Upload\nThe company owner uploads a .txt or other document file containing essential company information to the Google Drive folder.\n\n**Download**\nThe file is automatically downloaded from Google Drive once detected.\n\n**Chunking and Parsing**\nThe content is split using a recursive character splitter (chunk size: 500, overlap: 20), then loaded and prepared for embeddings.\n\n**Embedding Generation**\nUsing OpenAI embeddings, the file content is transformed into vector representations.\n\n**Storage in Pinecone**\nThe resulting embeddings are inserted into the “goldsmith” index within Pinecone under the namespace Q&A.\n\n**Purpose:**\nThis structured knowledge will later be used in Part Two of the project, where an AI chatbot can retrieve relevant company info to assist in generating responses and converting leads."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a5b192a3-e660-4492-a312-4d409dbd954b",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1320,
+          680
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 1060,
+          "height": 740,
+          "content": "## Part Two – AI Chatbot for Lead Capture and Business Q&A\nThis workflow enables a chatbot assistant for the goldsmith business Gold Digger, allowing it to answer customer inquiries and collect leads in an automated, intelligent way.\n\n**Trigger:**\nThe workflow is initiated when a customer sends a message to the public AI chat endpoint.\n\n**Process:**\nAI Assistant Activation\nA chat agent is triggered with a system prompt instructing it to act as a friendly assistant for you business. It uses tools intelligently to assist with:\n\nBusiness details (e.g., products, opening hours, services).\n\nCollecting lead data (name, email, interests, phone number).\n\n**Contextual Memory**\nA memory buffer is used to maintain conversation context (window of 12 messages), enabling coherent multi-turn dialogues.\n\n**Knowledge Retrieval**\nThe agent leverages the newCompany_q tool, which accesses a Pinecone vector store populated in Part One. This allows the chatbot to answer questions based on the uploaded company data.\n\n**AI Model**\nGPT-4o is used to generate natural and accurate responses throughout the conversation.\n\n**Lead Capture**\nWhen a user shows interest, the agent collects their:\nName, Email, Phone\n\n**Specific interests**\nThis information is then automatically stored in a connected Google Sheet\n\n**Purpose:**\nThis chatbot workflow acts as a digital front desk, available 24/7 to answer frequently asked questions and collect potential customer information. It streamlines lead generation and boosts customer engagement by providing instant, intelligent responses.\nYou can easily integrate this chatbot into your company website to enhance user experience and automate customer support.\n\n"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "cd9bd04e-8114-474b-a8a7-3802a869811f",
+    "connections": {
+      "Google Drive": {
+        "main": [
+          [
+            {
+              "node": "Pinecone Vector Store",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "newCompany_q": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Embeddings OpenAI": {
+        "ai_embedding": [
+          [
+            {
+              "node": "Pinecone Vector Store",
+              "type": "ai_embedding",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Embeddings OpenAI1": {
+        "ai_embedding": [
+          [
+            {
+              "node": "Pinecone Vector Store1",
+              "type": "ai_embedding",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model1": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "newCompany_q",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Default Data Loader": {
+        "ai_document": [
+          [
+            {
+              "node": "Pinecone Vector Store",
+              "type": "ai_document",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Drive Trigger": {
+        "main": [
+          [
+            {
+              "node": "Google Drive",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Window Buffer Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Pinecone Vector Store1": {
+        "ai_vectorStore": [
+          [
+            {
+              "node": "newCompany_q",
+              "type": "ai_vectorStore",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When chat message received": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Recursive Character Text Splitter": {
+        "ai_textSplitter": [
+          [
+            {
+              "node": "Default Data Loader",
+              "type": "ai_textSplitter",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Append row in sheet in Google Sheets": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 38,
+      "name": "Lead Nurturing"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6080",
+  "fetched_at": "2026-09-12T13:11:08Z"
+}

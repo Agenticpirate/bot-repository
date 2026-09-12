@@ -1,0 +1,968 @@
+{
+  "id": 9036,
+  "name": "Automated customer onboarding with HubSpot, Gmail, and AI-powered scheduling",
+  "description": "# HubSpot Customer Onboarding Automation\n\n## Overview\nStreamline your customer onboarding process with this intelligent automation that triggers when new contacts are created in HubSpot. The workflow automatically sends personalized welcome emails, schedules onboarding calls, and assigns customer success managers - ensuring every new customer receives immediate attention and proper support.\n\n## What This Workflow Does\n\n### Core Features\n- **Real-time Contact Detection**: Monitors HubSpot for new contact creation events via webhooks\n- **Intelligent Email Generation**: Uses AI to create personalized welcome emails based on contact information\n- **Automated Calendar Scheduling**: Finds available time slots and schedules onboarding calls with new contacts\n- **Smart CSM Assignment**: Automatically assigns contacts to appropriate customer success managers\n- **Multi-channel Communication**: Sends HTML-formatted emails with professional styling\n- **Calendar Integration**: Full Google Calendar management with attendee invitations\n\n### Business Value\n- **Instant Response**: New customers receive immediate welcome communication\n- **Personalization at Scale**: Each email is uniquely crafted based on contact details and company information\n- **Process Consistency**: Ensures every new contact follows the same high-quality onboarding process\n- **Resource Optimization**: Automatically schedules meetings in available time slots\n- **Customer Experience**: Professional, timely communication builds trust from day one\n\n## Prerequisites\n\n### Required Accounts & Credentials\n1. **HubSpot Account** with Developer API access for webhooks\n2. **HubSpot Pro/Enterprise** for OAuth2 API access\n3. **OpenAI API** access for AI-powered email generation\n4. **Google Calendar** account for meeting scheduling\n5. **Gmail** account for email delivery\n6. **Public-facing n8n instance** or n8n Cloud for webhook reception\n\n### Technical Requirements\n- HubSpot webhook subscription capabilities\n- Google Workspace or personal Google account\n- OpenAI API with GPT-4o access\n- n8n instance with LangChain nodes package installed\n\n## Setup Instructions\n\n### Step 1: HubSpot Developer Setup\n1. **Create HubSpot Developer Account**:\n   - Go to [HubSpot Developer Portal](https://developers.hubspot.com/)\n   - Create or access your developer account\n   - Navigate to Apps section\n\n2. **Create Webhook Subscription**:\n   - In HubSpot Developer Portal: Apps &gt; Create App\n   - Configure webhook subscription for `contact.creation` events\n   - Set webhook URL to your n8n webhook endpoint\n   - Note the App ID and Developer API key\n\n3. **Add HubSpot Developer Credentials**:\n   - In n8n: Settings &gt; Credentials &gt; \"HubSpot Developer API\"\n   - Enter Developer API key and App ID\n\n### Step 2: HubSpot OAuth2 Configuration\n1. **Create OAuth2 App**:\n   - In HubSpot Developer Portal: Create OAuth2 app\n   - Add required scopes:\n     - `contacts.read`\n     - `contacts.write`\n     - `crm.objects.owners.read`\n\n2. **Add HubSpot OAuth2 Credentials**:\n   - In n8n: Settings &gt; Credentials &gt; \"HubSpot OAuth2 API\"\n   - Complete OAuth authorization flow\n\n### Step 3: OpenAI Configuration\n1. **Get OpenAI API Key**:\n   - Visit [OpenAI Platform](https://platform.openai.com/)\n   - Create API key with GPT-4o model access\n\n2. **Add OpenAI Credentials**:\n   - In n8n: Settings &gt; Credentials &gt; \"OpenAI API\"\n   - Enter your API key\n\n### Step 4: Google Calendar Setup\n1. **Enable Google Calendar API**:\n   - Go to [Google Cloud Console](https://console.cloud.google.com/)\n   - Enable Google Calendar API\n   - Create OAuth2 credentials\n\n2. **Add Google Calendar Credentials**:\n   - In n8n: Settings &gt; Credentials &gt; \"Google Calendar OAuth2 API\"\n   - Complete OAuth authorization flow\n\n### Step 5: Gmail Configuration\n1. **Enable Gmail API**:\n   - In Google Cloud Console: Enable Gmail API\n   - Use same OAuth2 credentials as Calendar\n\n2. **Add Gmail Credentials**:\n   - In n8n: Settings &gt; Credentials &gt; \"Gmail OAuth2\"\n   - Complete OAuth authorization\n\n### Step 6: Customize Company Information\n1. **Update \"Enter your company data here\" Node**:\n   ```\n   company_name: \"Your Company Name\"\n   sender_name: \"Your Name\"\n   sender_email: \"your-email@company.com\"\n   company_activity: \"Your company description\"\n   ```\n\n2. **Important**: The `sender_email` must match your HubSpot user email and Google account email\n\n### Step 7: Configure Calendar Settings\n1. **Update Calendar Agent Tool**:\n   - Verify calendar ID matches your Google Calendar\n   - Ensure proper timezone settings\n   - Test calendar access permissions\n\n## Configuration Details\n\n### Webhook Event Handling\nThe workflow processes HubSpot webhook events:\n- **Event Type**: `contact.creation`\n- **Data Processing**: Extracts contact ID and subscription type\n- **Validation**: Ensures event is contact creation before proceeding\n\n### AI Email Generation System\nThe email generation process uses:\n- **Model**: GPT-4o-mini for cost-effective, high-quality content\n- **Structured Output**: JSON format with subject and body fields\n- **Personalization Variables**: Contact name, email, company information\n- **Template Consistency**: Maintains professional tone and branding\n\n### Calendar Management Features\nThe calendar agent provides:\n- **Event Creation**: With and without attendees\n- **Event Retrieval**: Find available time slots\n- **Event Updates**: Modify existing appointments\n- **Event Deletion**: Remove canceled meetings\n- **Smart Scheduling**: Automatically finds next available slot\n\n### Contact Assignment Logic\nThe CSM assignment process:\n- **Owner Lookup**: Retrieves all HubSpot owners\n- **Sender Matching**: Finds owner matching the configured sender email\n- **Contact Assignment**: Updates contact record with owner ID\n\n## Usage Instructions\n\n### Automatic Operation\n1. **Activate Workflow**:\n   - Toggle workflow to \"Active\" status\n   - Webhook automatically registers with HubSpot\n\n2. **Test with New Contact**:\n   - Create test contact in HubSpot\n   - Monitor n8n execution log\n   - Verify email delivery and calendar event creation\n\n3. **Monitor Performance**:\n   - Check HubSpot webhook delivery logs\n   - Review email delivery success rates\n   - Validate calendar event creation\n\n### Manual Testing\n1. **Create Test Contact**:\n   - Add new contact in HubSpot with complete information\n   - Ensure contact has valid email address\n   - Monitor workflow execution\n\n2. **Validate Outputs**:\n   - **Email**: Check recipient inbox for welcome email\n   - **Calendar**: Verify meeting invitation sent and accepted\n   - **HubSpot**: Confirm contact owner assignment\n   - **Logs**: Review n8n execution for any errors\n\n## Expected Outputs\n\n### Personalized Welcome Email\nAI-generated email featuring:\n- **Subject Line**: Customized based on company and contact information\n- **Personalized Greeting**: Uses contact's first name and relevant details\n- **Company Introduction**: Includes sender name, company name, and business description\n- **Meeting Notification**: Mentions upcoming scheduled onboarding call\n- **Professional Formatting**: HTML-styled for professional appearance\n\n### Scheduled Onboarding Call\nGoogle Calendar event with:\n- **Title**: Descriptive meeting title including contact name\n- **Attendees**: New contact automatically invited\n- **Timing**: Next available 1-hour slot in sender's calendar\n- **Location**: Virtual meeting details (if configured)\n- **Description**: Meeting purpose and agenda\n\n### HubSpot Contact Updates\nAutomated contact management:\n- **Owner Assignment**: Contact assigned to appropriate CSM\n- **Activity Logging**: Webhook event recorded in contact timeline\n- **Data Enrichment**: Additional contact information if available\n\n### Calendar Tool Responses\nStructured responses from calendar operations:\n- **Success Confirmations**: Meeting created successfully\n- **Error Handling**: Clear error messages for failed operations\n- **Event Details**: Complete information about created/modified events\n\n## Troubleshooting\n\n### Common Issues\n\n#### HubSpot Webhook Not Triggering\n**Cause**: Webhook subscription not properly configured or n8n endpoint not accessible\n**Solutions**:\n- Verify n8n webhook URL is publicly accessible\n- Check HubSpot webhook subscription settings\n- Confirm webhook is active in HubSpot Developer Portal\n- Test webhook delivery using HubSpot's testing tools\n\n#### Contact Information Not Retrieved\n**Cause**: Insufficient HubSpot API permissions or invalid contact ID\n**Solutions**:\n- Verify HubSpot OAuth2 scopes include contact read permissions\n- Check contact ID extraction from webhook payload\n- Ensure contact exists and is accessible via API\n- Test contact retrieval manually\n\n#### Email Generation Failed\n**Cause**: OpenAI API issues or insufficient token limits\n**Solutions**:\n- Check OpenAI API key validity and usage limits\n- Verify GPT-4o model access permissions\n- Review prompt complexity and token requirements\n- Test AI generation with simpler prompts\n\n#### Calendar Event Creation Failed\n**Cause**: Google Calendar permissions or invalid calendar ID\n**Solutions**:\n- Verify Google Calendar OAuth2 permissions\n- Check calendar ID configuration matches sender email\n- Ensure calendar is accessible and not restricted\n- Test calendar operations manually\n\n#### Gmail Delivery Problems\n**Cause**: Authentication issues or email formatting problems\n**Solutions**:\n- Check Gmail OAuth2 token validity\n- Verify sender email matches authenticated account\n- Review HTML formatting for email compatibility\n- Test email delivery with simple text format\n\n### Performance Optimization\n\n#### High Contact Volume\n- Implement rate limiting for API calls\n- Add error retry mechanisms with exponential backoff\n- Monitor token usage and API quotas\n- Consider batch processing for multiple contacts\n\n#### Large Calendar Schedules\n- Optimize calendar queries with specific date ranges\n- Implement caching for frequently accessed calendar data\n- Add timeout handling for slow calendar operations\n- Consider pagination for large event lists\n\n## Customization Examples\n\n### Different CRM Systems\nReplace HubSpot with alternative CRMs:\n- **Salesforce**: Use Salesforce webhook and contact management\n- **Pipedrive**: Implement Pipedrive person creation triggers\n- **Zoho CRM**: Configure Zoho webhook subscriptions\n- **Airtable**: Use Airtable as simple CRM with webhooks\n\n### Alternative Email Providers\nReplace Gmail with other email services:\n- **SendGrid**: Use SendGrid for transactional emails\n- **Mailgun**: Implement Mailgun email delivery\n- **Microsoft Outlook**: Use Outlook for business email\n- **AWS SES**: Configure Amazon Simple Email Service\n\n### Enhanced Email Content\nImprove email personalization:\n- **Company Research**: Add web scraping for company information\n- **Industry-Specific Templates**: Different emails for different industries\n- **Multi-language Support**: Detect contact language and localize content\n- **Dynamic Content**: Include relevant resources based on contact properties\n\n### Advanced Calendar Features\nExtend calendar functionality:\n- **Buffer Time**: Automatically add buffer between meetings\n- **Meeting Types**: Different durations for different contact types\n- **Timezone Handling**: Automatic timezone detection and conversion\n- **Recurring Meetings**: Schedule follow-up meetings automatically\n\n### Workflow Branching\nAdd conditional logic:\n- **Contact Source**: Different flows for different lead sources\n- **Company Size**: Tailored onboarding for enterprise vs SMB\n- **Geographic Routing**: Regional CSM assignment\n- **Product Interest**: Specialized onboarding based on product selection\n\n## Security Considerations\n\n### API Security\n- Store all credentials securely in n8n credential system\n- Use OAuth2 authentication where available\n- Regularly rotate API keys and refresh tokens\n- Monitor API usage for unauthorized access\n\n### Data Privacy\n- Ensure compliance with data protection regulations (GDPR, CCPA)\n- Implement data retention policies for contact information\n- Consider data encryption for sensitive customer data\n- Document data flows for privacy audits\n\n### Webhook Security\n- Implement webhook signature verification where supported\n- Use HTTPS endpoints for all webhook URLs\n- Monitor webhook delivery logs for suspicious activity\n- Consider IP whitelisting for webhook sources\n\n## Integration Considerations\n\n### HubSpot Best Practices\n- **Rate Limiting**: Respect HubSpot API rate limits\n- **Error Handling**: Implement proper error responses for webhooks\n- **Data Sync**: Ensure data consistency between systems\n- **Backup Procedures**: Regular backup of workflow configurations\n\n### Email Deliverability\n- **Authentication**: Implement SPF, DKIM, and DMARC records\n- **Content Quality**: Avoid spam triggers in email content\n- **List Management**: Respect unsubscribe requests\n- **Monitoring**: Track email delivery and engagement metrics\n\n## Business Process Integration\n\n### Sales Handoff\n- **Lead Qualification**: Integrate with lead scoring systems\n- **Sales Notification**: Alert sales team of high-value prospects\n- **CRM Updates**: Sync onboarding status with sales pipeline\n- **Activity Tracking**: Log all onboarding activities in CRM\n\n### Customer Success Workflows\n- **Milestone Tracking**: Monitor onboarding progress\n- **Health Scoring**: Assess customer engagement levels\n- **Escalation Procedures**: Flag at-risk customers for intervention\n- **Success Metrics**: Track onboarding completion rates\n\n## Support and Maintenance\n\n### Regular Maintenance\n- Monitor webhook delivery success rates\n- Review email open and response rates\n- Update AI prompts based on feedback\n- Audit calendar scheduling efficiency\n\n### Performance Monitoring\n- Track workflow execution times and success rates\n- Monitor API usage and costs across all services\n- Review customer feedback on onboarding experience\n- Analyze conversion rates from onboarding to activation\n\n### Updates and Improvements\n- Stay updated with API changes from integrated services\n- Test workflow compatibility with platform updates\n- Implement customer feedback and feature requests\n- Document all customizations for team reference\n\n## Cost Optimization\n\n### API Usage Management\n- Monitor OpenAI token consumption patterns\n- Optimize prompts for efficiency and effectiveness\n- Track Google API usage for calendar and email operations\n- Implement usage alerts and budgets\n\n### Alternative Approaches\n- Consider using local AI models for email generation\n- Implement template-based emails for cost reduction\n- Use free tiers where available and appropriate\n- Regular cost-benefit analysis of integrated services\n\n## License and Attribution\n\nThis workflow template is provided under MIT license. Calendar agent implementation inspired by [Nate Herk's YouTube channel](https://www.youtube.com/@nateherk). Attribution to original creators appreciated when sharing or modifying. Users are responsible for compliance with all integrated services' terms of service and data handling requirements.\n\n## Support Contact\n\nFor customizations, troubleshooting, or additional workflow development:\n- **Email**: punit@geekfleet.dev\n- **Creator Profile**: [n8n Creator Profile](https://n8n.io/creators/punitkumar/)\n- **Specializations**: n8n, Make, LangChain, and LangGraph workflow development",
+  "workflow": {
+    "nodes": [
+      {
+        "id": "b9256d00-9dff-432a-a678-e71a4074b26c",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -20,
+          -160
+        ],
+        "webhookId": "06d29616-8fa9-42cf-8b5f-abe856083c75",
+        "parameters": {
+          "path": "06d29616-8fa9-42cf-8b5f-abe856083c75",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "2726dd28-5366-4c0e-ad16-bae6dc2cbc0b",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -880,
+          -200
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 320,
+          "height": 440,
+          "content": "## What does it do?\nObjective:\n\nStreamline the onboarding process for new customers, ensuring they receive all necessary resources and support.\nTrigger: Set a webhook trigger or a CRM trigger (like HubSpot or Salesforce) for when a new customer is added.\n\nSend Welcome Email: Use the Gmail or SMTP node to send a personalized welcome email to the customer.\n\nSchedule a Welcome Call: Use the Calendar node (Google Calendar) to automatically create a calendar event for a welcome call.\n\nAssign a CSM: Use the CRM node (like HubSpot) to assign the new customer to a dedicated CSM."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "680bdd4e-f382-4d20-8197-a7d65454ce36",
+        "name": "Try Again",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1000,
+          500
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "7ab380a2-a8d3-421c-ab4e-748ea8fb7904",
+                "name": "response",
+                "type": "string",
+                "value": "Unable to perform task. Please try again."
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "1ab48997-7533-4572-86d5-980af557d09d",
+        "name": "Success",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1000,
+          300
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "39c2f302-03be-4464-a17a-d7cc481d6d44",
+                "name": "=response",
+                "type": "string",
+                "value": "={{$json.output}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "4cb493a1-1eff-42ca-9c51-8f070fe3e9ba",
+        "name": "Calendar Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "onError": "continueErrorOutput",
+        "position": [
+          412,
+          400
+        ],
+        "parameters": {
+          "text": "={{ $json.query }}",
+          "options": {
+            "systemMessage": "=# Overview\nYou are a calendar assistant. Your responsibilities include creating, getting, and deleting events in the user's calendar.\nIf no date is proposed, find the next available slot using \"Get Events\" and create an event using \"Create Event with Attendee\"\n\n**Calendar Management Tools**  \n   - Use \"Create Event with Attendee\" when an event includes a participant.     \n   - Use \"Get Events\" to fetch calendar schedules when requested.\n   - Use \"Delete Event\" to delete an event. You must use \"Get Events\" first to get the ID of the event to delete.\n   - Use \"Update Event\" to update an event. You must use \"Get Events\" first to get the ID of the event to update.\n\n## Final Notes\nHere is the current date/time: {{ $now }}\nIf a duration for an event isn't specified, assume it will be one hour."
+          },
+          "promptType": "define"
+        },
+        "typeVersion": 1.6
+      },
+      {
+        "id": "8c088b37-1005-4bc4-bdf5-0558ccb0c873",
+        "name": "Create Event with Attendee",
+        "type": "n8n-nodes-base.googleCalendarTool",
+        "position": [
+          320,
+          620
+        ],
+        "parameters": {
+          "end": "={{ $fromAI(\"eventEnd\") }}",
+          "start": "={{ $fromAI(\"eventStart\") }}",
+          "calendar": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Calendar', ``, 'string') }}",
+            "__regex": "(^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*)"
+          },
+          "additionalFields": {
+            "summary": "={{ $fromAI(\"eventTitle\") }}",
+            "attendees": [
+              "={{ $fromAI(\"eventAttendeeEmail\") }}"
+            ]
+          }
+        },
+        "credentials": {
+          "googleCalendarOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleCalendarOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "91a0e49a-888f-4511-94e7-e0166ce7dd58",
+        "name": "Create Event",
+        "type": "n8n-nodes-base.googleCalendarTool",
+        "position": [
+          440,
+          620
+        ],
+        "parameters": {
+          "end": "={{ $fromAI(\"eventEnd\") }}",
+          "start": "={{ $fromAI(\"eventStart\") }}",
+          "calendar": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Calendar', ``, 'string') }}",
+            "__regex": "(^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*)"
+          },
+          "additionalFields": {
+            "summary": "={{ $fromAI(\"eventTitle\") }}",
+            "attendees": []
+          }
+        },
+        "credentials": {
+          "googleCalendarOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleCalendarOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "8cfb90e5-6108-4003-b048-271650d4bc6c",
+        "name": "Get Events",
+        "type": "n8n-nodes-base.googleCalendarTool",
+        "position": [
+          560,
+          620
+        ],
+        "parameters": {
+          "options": {},
+          "timeMax": "={{ $fromAI(\"dayBefore\",\"today plus 7 days\") }}",
+          "timeMin": "={{ $fromAI(\"dayAfter\",\"today\") }}",
+          "calendar": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ $fromAI('Calendar', `sender's email`, 'string') }}"
+          },
+          "operation": "getAll"
+        },
+        "credentials": {
+          "googleCalendarOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleCalendarOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "c5cc3550-7d9a-43c9-8434-e1ab78f7f596",
+        "name": "Delete Event",
+        "type": "n8n-nodes-base.googleCalendarTool",
+        "position": [
+          680,
+          620
+        ],
+        "parameters": {
+          "eventId": "={{ $fromAI(\"eventID\") }}",
+          "options": {},
+          "calendar": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Calendar', ``, 'string') }}",
+            "__regex": "(^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*)"
+          },
+          "operation": "delete"
+        },
+        "credentials": {
+          "googleCalendarOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleCalendarOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "7ce45da8-dc24-4634-9f48-3864165885cd",
+        "name": "Update Event",
+        "type": "n8n-nodes-base.googleCalendarTool",
+        "position": [
+          800,
+          620
+        ],
+        "parameters": {
+          "eventId": "={{ $fromAI(\"eventID\") }}",
+          "calendar": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Calendar', ``, 'string') }}",
+            "__regex": "(^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*)"
+          },
+          "operation": "update",
+          "updateFields": {
+            "end": "={{ $fromAI(\"endTime\") }}",
+            "start": "={{ $fromAI(\"startTime\") }}"
+          }
+        },
+        "credentials": {
+          "googleCalendarOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleCalendarOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "b46f24a4-719c-414e-94d9-ecfb1e7dfe39",
+        "name": "When Executed by Another Workflow",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "position": [
+          200,
+          400
+        ],
+        "parameters": {
+          "inputSource": "passthrough"
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "aedbe138-ed51-4300-881b-6b58928f5bb4",
+        "name": "OpenAI Chat Model2",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          1520,
+          160
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4o-mini"
+          },
+          "options": {}
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "credential-id",
+            "name": "openAiApi Credential"
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "a540ae6b-e1ee-4d91-988e-e60bae743377",
+        "name": "calendarAgent",
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "position": [
+          1640,
+          160
+        ],
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ $workflow.id}}",
+            "cachedResultName": "={{ $workflow.id}}"
+          },
+          "description": "Call this tool for any calendar action.",
+          "workflowInputs": {
+            "value": {},
+            "schema": [],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "64979b9f-a29a-4c53-b87a-cec84e7ba1fe",
+        "name": "Structured Output Parser",
+        "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "position": [
+          1760,
+          160
+        ],
+        "parameters": {
+          "jsonSchemaExample": "{\n\t\"subject\": \"\",\n\t\"body\": \"\"\n}"
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "359d7296-a8e9-494c-b519-cca62c0805df",
+        "name": "Get list of owners",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          420,
+          -60
+        ],
+        "parameters": {
+          "url": "https://api.hubapi.com/crm/v3/owners",
+          "options": {},
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "hubspotOAuth2Api"
+        },
+        "credentials": {
+          "hubspotOAuth2Api": {
+            "id": "credential-id",
+            "name": "hubspotOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "e8aab719-a5d9-4168-9c68-eea32c7d3ef4",
+        "name": "Split Out owners",
+        "type": "n8n-nodes-base.splitOut",
+        "position": [
+          640,
+          -60
+        ],
+        "parameters": {
+          "options": {},
+          "fieldToSplitOut": "results"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5e44ea67-e2f9-4cea-a030-c452b8bb482f",
+        "name": "Get current owner",
+        "type": "n8n-nodes-base.filter",
+        "position": [
+          860,
+          -60
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "7c6aec6e-66a9-4739-8a59-28f2ab1c4a26",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.email }}",
+                "rightValue": "={{ $('Enter your company data here').item.json.sender_email }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "c03bd58c-7a42-4966-96e8-45928f745475",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -540,
+          -200
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 680,
+          "height": 1340,
+          "content": "## How to Set a Webhook in n8n and HubSpot\n\n## 1. Set Up a Webhook in n8n\n\n### Step 1: Create a New Workflow\n- Go to your **n8n dashboard**.\n- Click on **\"New Workflow.\"**\n\n### Step 2: Add the Webhook Node\n- Click on the **“+”** icon to add a new node.\n- Search for **“Webhook”** and select it.\n- Set the **Webhook Method** (usually POST).\n- Define the **Webhook URL path**, for example, `/hubspot-webhook`.\n- Set the **\"Response Mode\"** (e.g., \"On Received\").\n- Save the workflow.\n\n### Step 3: Set Webhook URL\n- Copy the **Webhook URL** generated by n8n. It should look something like:https://your-n8n-domain/webhook/hubspot-webhook\n\n- Ensure the workflow is **active**.\n\n---\n\n## 2. Set Up a Webhook in HubSpot\n\n### Step 1: Log in to HubSpot\n- Go to **HubSpot Developer Account** (required for webhook setup).\n- Navigate to **\"Settings\" > \"Integrations\" > \"Webhooks.\"**\n\n### Step 2: Create a New Webhook Subscription\n- Click **“Create Webhook”** or **“Add Webhook”** if this is your first one.\n- Select the **events** you want to track (e.g., contact creation, form submission).\n- Set the **Webhook URL** as the n8n Webhook URL you copied earlier.\n- Choose **“POST”** as the request method.\n- Set the **Authentication** if needed (you can set a secret or use OAuth).\n\n### Step 3: Test the Webhook\n- Use the **“Test Webhook”** feature in HubSpot to send a test request.\n- Switch to n8n and ensure the webhook is triggering properly.\n\n---\n\n## 3. Process the Data in n8n\n- After the webhook is triggered in n8n, you will see the data sent by HubSpot.\n- You can now add additional nodes to **process the data** (e.g., save to database, send email, perform actions in another app).\n\n---\n\n## 4. Make the Workflow Active\n- Once you are done configuring, make sure the workflow is **set to “Active.”**\n- This will allow it to receive live data from HubSpot."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3861fa49-909d-4591-a1b8-d7bdd20e6560",
+        "name": "HubSpot Trigger",
+        "type": "n8n-nodes-base.hubspotTrigger",
+        "position": [
+          -20,
+          40
+        ],
+        "webhookId": "632f3fc8-b921-4697-ba12-037d5c7f8971",
+        "parameters": {
+          "eventsUi": {
+            "eventValues": [
+              {}
+            ]
+          },
+          "additionalFields": {}
+        },
+        "credentials": {
+          "hubspotDeveloperApi": {
+            "id": "credential-id",
+            "name": "hubspotDeveloperApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9051cc3d-06be-4238-998e-7cb938313d24",
+        "name": "Enter your company data here",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          200,
+          -60
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "11a8b9e9-a7ed-454a-9aef-a9137c0e17ea",
+                "name": "company_name",
+                "type": "string",
+                "value": "Pollup Data Services"
+              },
+              {
+                "id": "f2dcfe2e-3145-4a30-9731-0a8d02c7aa9a",
+                "name": "sender_name",
+                "type": "string",
+                "value": "Thomas Vié"
+              },
+              {
+                "id": "18b5c0bd-4e75-4b98-92fc-5fca90a8b680",
+                "name": "sender_email",
+                "type": "string",
+                "value": "user@example.com"
+              },
+              {
+                "id": "2c8de3ed-57dc-455b-bfa5-87a0d8d046d2",
+                "name": "company_activity",
+                "type": "string",
+                "value": "Whether it’s automating recurring tasks, analysing data faster, or personalising customer interactions, we build bespoke AI agents to help your workforce work smarter."
+              }
+            ]
+          }
+        },
+        "notesInFlow": true,
+        "typeVersion": 3.4
+      },
+      {
+        "id": "5260ec73-0733-47d1-af03-66ead128820e",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          160,
+          -200
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 400,
+          "height": 320,
+          "content": "## Set your data and your company's \nThe sender_email you set here has to be the same as the one you use in hubspot "
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "78e301c7-3146-4bd9-9546-9f8c5b46cac7",
+        "name": "If a contact is created",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1080,
+          -60
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "b70f4699-008f-4924-8e69-af4fa69422a5",
+                "operator": {
+                  "name": "filter.operator.equals",
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $('Webhook').item.json.body[0].subscriptionType }}",
+                "rightValue": "contact.creation"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "b575fed7-da03-412d-aa00-fcf0edc85ae2",
+        "name": "Get all info about the contact",
+        "type": "n8n-nodes-base.hubspot",
+        "position": [
+          1300,
+          -60
+        ],
+        "parameters": {
+          "contactId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ $('Webhook').item.json.body[0].objectId }}"
+          },
+          "operation": "get",
+          "authentication": "oAuth2",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "hubspotOAuth2Api": {
+            "id": "credential-id",
+            "name": "hubspotOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "956a02eb-970b-49bd-b1a5-3eebf7acb852",
+        "name": "Write a personalized message",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          1552,
+          -60
+        ],
+        "parameters": {
+          "text": "=Your task is to write a personalized Welcome email to a recipient.\nWrite also to indicate him that he will receive shortly an invitation for a meeting to resolve his doubts. Use for that the calendarAgent.\nUse the \"Sender's calendar ID\" as the Calendar. And the \"Recipient email\" as an attendee\n\n## Tools\n- calendarAgent: Use this tool to take action in calendar. Send it a query like \"Schedule a meeting with attendee 'Recipient email' on 'Sender's calendar ID' calendar.\"\n\n## Rules\n- Some actions require you to look up contact information first. For the following actions, you must get contact information and send that to the agent who needs it:\n- creating calendar event with attendee, create it as son as there is some free slot\n\nreturn the message as a json like this one:{\"subject\":\"Subject of the message\",\"body\":\"Body of the message\"}\n\n## Use the variables below\nSender's name:  {{ $('Enter your company data here').item.json.sender_name }}\nSender's email: {{ $('Enter your company data here').item.json.sender_email }}\nSender's company name: {{ $('Enter your company data here').item.json.company_name }}\nSender's company activity: {{ $('Enter your company data here').item.json.company_activity }}\nSender's calendar ID: zeerobug@gmail.com\nRecipient first name: {{ $json.properties.firstname.value }}\nRecipient last name: {{ $json.properties.lastname }}\nRecipient email: {{ $json.properties.email.value }}",
+          "options": {
+            "systemMessage": "=# Overview\nYou are a professional Customer Success Manager.\n"
+          },
+          "promptType": "define",
+          "hasOutputParser": true
+        },
+        "typeVersion": 1.9
+      },
+      {
+        "id": "6d392f67-5940-43ed-ac8d-d27f8dab91ed",
+        "name": "Send the message",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          2180,
+          -60
+        ],
+        "webhookId": "d1d18d77-71ad-4eab-91c6-08b6a9f5d736",
+        "parameters": {
+          "sendTo": "={{ $('Get all info about the contact').item.json.properties.email.value }}",
+          "message": "={{ $json.data }}",
+          "options": {
+            "bccList": "user@example.com"
+          },
+          "subject": "={{ $json.output.subject }}"
+        },
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "credential-id",
+            "name": "gmailOAuth2 Credential"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "1928e760-4ca1-443c-9de0-211b3c3c88b8",
+        "name": "Set owner to contact",
+        "type": "n8n-nodes-base.hubspot",
+        "position": [
+          2400,
+          -60
+        ],
+        "parameters": {
+          "email": "={{ $('Get all info about the contact').item.json.properties.email.value }}",
+          "options": {},
+          "authentication": "oAuth2",
+          "additionalFields": {
+            "contactOwner": "={{ $('Get current owner').item.json.id }}"
+          }
+        },
+        "credentials": {
+          "hubspotOAuth2Api": {
+            "id": "credential-id",
+            "name": "hubspotOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "727e52cc-ba62-4f1e-b7b3-c8cd17ef1f42",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          160,
+          220
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 1080,
+          "height": 560,
+          "content": "## Calendar tool\nThis part has been borrowed from the excellent [Nate Herk](https://www.youtube.com/@nateherk) youtube channel"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e605ec3f-ecbe-47c7-a46b-d20ded665c55",
+        "name": "Transforms markdown to HTML",
+        "type": "n8n-nodes-base.markdown",
+        "position": [
+          1960,
+          -60
+        ],
+        "parameters": {
+          "mode": "markdownToHtml",
+          "options": {},
+          "markdown": "={{ $json.output.body }}"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ac43422a-3642-424c-a95a-902652705dbc",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1460,
+          -220
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 440,
+          "height": 540,
+          "content": "## Email writer\n- This agent writes a personalized Email\n- Uses the calendar Agent tool to create an appointmenton an empty slot.\nFeel free to personalize the prompt"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c0e5511a-a84f-4603-9c23-3d5266f761c1",
+        "name": "OpenAI Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          200,
+          620
+        ],
+        "parameters": {
+          "model": "gpt-4o",
+          "options": {}
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "credential-id",
+            "name": "openAiApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c195ad96-7b04-4b01-a3a5-cb0df3c5cb26",
+        "name": "Sticky Note7",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -880,
+          260
+        ],
+        "parameters": {
+          "width": 320,
+          "height": 260,
+          "content": "## Contact me\n- If you need any modification to this workflow\n- if you need some help with this workflow\n- Or if you need any workflow in n8n, Make, or Langchain / Langgraph\n\nWrite to me: [thomas@pollup.net](mailto:thomas@pollup.net)\n\n**Take a look at my others workflows [here](https://n8n.io/creators/zeerobug/)**\n\n"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Enter your company data here",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Events": {
+        "ai_tool": [
+          [
+            {
+              "node": "Calendar Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create Event": {
+        "ai_tool": [
+          [
+            {
+              "node": "Calendar Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Delete Event": {
+        "ai_tool": [
+          [
+            {
+              "node": "Calendar Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Calendar Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update Event": {
+        "ai_tool": [
+          [
+            {
+              "node": "Calendar Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "calendarAgent": {
+        "ai_tool": [
+          [
+            {
+              "node": "Write a personalized message",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Calendar Agent": {
+        "main": [
+          [
+            {
+              "node": "Success",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Try Again",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "HubSpot Trigger": {
+        "main": [
+          [
+            {
+              "node": "Enter your company data here",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send the message": {
+        "main": [
+          [
+            {
+              "node": "Set owner to contact",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split Out owners": {
+        "main": [
+          [
+            {
+              "node": "Get current owner",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get current owner": {
+        "main": [
+          [
+            {
+              "node": "If a contact is created",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get list of owners": {
+        "main": [
+          [
+            {
+              "node": "Split Out owners",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model2": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Write a personalized message",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If a contact is created": {
+        "main": [
+          [
+            {
+              "node": "Get all info about the contact",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Structured Output Parser": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "Write a personalized message",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create Event with Attendee": {
+        "ai_tool": [
+          [
+            {
+              "node": "Calendar Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Transforms markdown to HTML": {
+        "main": [
+          [
+            {
+              "node": "Send the message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Enter your company data here": {
+        "main": [
+          [
+            {
+              "node": "Get list of owners",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Write a personalized message": {
+        "main": [
+          [
+            {
+              "node": "Transforms markdown to HTML",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get all info about the contact": {
+        "main": [
+          [
+            {
+              "node": "Write a personalized message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When Executed by Another Workflow": {
+        "main": [
+          [
+            {
+              "node": "Calendar Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 38,
+      "name": "Lead Nurturing"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/9036",
+  "fetched_at": "2026-09-12T13:12:45Z"
+}

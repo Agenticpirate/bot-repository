@@ -1,0 +1,428 @@
+{
+  "id": 17596,
+  "name": "Track competitor Google review ratings and counts with Apify and Google Sheets",
+  "description": "## Quick overview\nNo Google Business Profile connection and no SerpApi or Bright Data account. This template runs weekly review tracking across the whole Google local pack for your search term, appending one row per business to Google Sheets: star rating, review count, rank, and the gap to each rival.\n\n## How it works\n1. Runs every Monday morning on a schedule.\n2. Uses your business name plus a search term, location, and Google domain/country settings to define the query.\n3. Calls the Apify Google Local API actor to retrieve the Google local pack results for that query.\n4. Skips the run if the search returns no local results to avoid writing empty data.\n5. Splits the local pack into one item per business and calculates rank, rating, review count, and whether the result matches your business.\n6. Computes “Reviews vs you” and “Rating vs you” for each competitor when your own listing is present in the results.\n7. Appends the weekly scoreboard rows to the selected Google Sheets spreadsheet and sheet tab.\n\n## Setup\n1. Create an Apify account, add your Apify API token in n8n, and ensure it can run the actor `johnvc~google-local-api`.\n2. Connect Google Sheets credentials in n8n and select the target spreadsheet document and sheet tab in the append step.\n3. Update the input values for your business name, search term, location, Google domain, and country to match the market you want to track.\n\n## Requirements\n- An Apify account. The free tier works, and one local search costs about 2 cents.\n- A Google account for Sheets.\n- No Google Business Profile access and no scraping vendor account. There is no AI model in the workflow either, so nothing to pay per token.\n\n## Customization\n- Change the search term or city in the config node to watch a different market. Each run captures the full local pack for that one search.\n- Track another country by changing `googleDomain` and `country` together, for example `google.co.uk` and `uk`.\n- Add an IF node after the Code node to alert you only when a rival overtakes you on review count.\n- Swap Google Sheets for Airtable, Slack, or email if you would rather be pinged than build a history.\n\n## Additional info\n**How do I track my competitors' Google reviews?** Put your business name, a search term, and a city into one Set node and let the weekly schedule run. Every run records the entire local pack Google returns for that search, so your rating and review count land in the same sheet as the shops ranking beside you, with the gap to each one already worked out.\n\nThat is the part most review tools cannot do. They connect to a Google Business Profile, which means they can only ever read a listing you own. This reads Google's public local results, so a competitor's numbers are no harder to collect than your own.\n\n**Do I need access to the Google Business Profile I am tracking?** No, and that is the point. There is no OAuth step and nothing to claim. If a business shows up in Google's local results for your search, it shows up in your sheet.\n\n**Does this collect the text of individual reviews?** No. It records the star rating and the total review count for each business, which is the number reputation monitoring runs on. If you need the wording of specific reviews, or sentiment analysis over them, this is not the template for that job.\n\n**Can I use this for client reporting?** That is most of what I would use it for. One search term per client, a weekly schedule, and the sheet becomes a local seo reporting log you can screenshot straight into a monthly update. Add a second copy of the workflow per client rather than trying to loop several businesses through one run, since the comparison columns are anchored to a single business name.\n\n**How do I turn weekly snapshots into review growth?** After the second run the sheet holds the history, and one formula turns it into velocity. With the default columns, put this in the first empty column and fill it down:\n\n```\n=IF(COUNTIFS($M$2:$M,$M2,$A$2:$A,\"<\"&$A2)=0,\"\",$H2-MAXIFS($H$2:$H,$M$2:$M,$M2,$A$2:$A,\"<\"&$A2))\n```\n\nIt matches each business on Place ID, finds its most recent earlier snapshot, and shows how many reviews it gained since. Blank on a business's first appearance. Sort by that column and you can see who is actually running a review campaign and who has gone quiet.\n\n**Is there a Google reviews API behind this?** Not Google's own. Google's public APIs do not hand out a competitor's review history, which is why competitor monitoring usually means paying a scraping vendor or a rank tracker. This template collects the same public local results through an Apify actor, so a free Apify token covers it.\n\n**What does it cost?** The template is free. One local search runs about 2 cents, so a weekly schedule is roughly 9 cents a month. There is no AI model in the workflow, so there is no token bill on top.\n\n**Why does a rating here differ slightly from what I see?** Google personalizes local results by exact location, and ratings update continuously. This searches from the city you specify with no personalization, which is the consistent baseline you want when you are comparing the same set of businesses week over week.\n\nSelf-hosting n8n? There is also a dedicated community node, `n8n-nodes-google-local-api` on npm.\n\n**About Apify.** [Google Local API](https://apify.com/johnvc/google-local-api?fpr=9n7kx3&fp_sid=n8n) runs on Apify, a platform of ready-made scrapers and APIs for sources that have no usable public API. Actors are pay per use with no subscription, and they run in the cloud, so nothing runs on your machine and nothing breaks when the source changes its markup.\n\n**New to Apify?** You can [set up a free account](https://apify.com?fpr=9n7kx3&fp_sid=n8n) and get the API token this template needs in a couple of minutes.",
+  "workflow": {
+    "name": "Track competitor Google review counts and star ratings in Google Sheets",
+    "nodes": [
+      {
+        "id": "9a1f4c70-0001-4b01-a001-000000000001",
+        "name": "Every Monday morning",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          0,
+          460
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "weeks",
+                "triggerAtDay": [
+                  1
+                ],
+                "triggerAtHour": 8
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "9a1f4c70-0002-4b02-a002-000000000002",
+        "name": "Set your business and search",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          260,
+          460
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "9a1f4c70-0011-4b11-a011-+1234567890",
+                "name": "yourBusinessName",
+                "type": "string",
+                "value": "Greg's Auto Repair"
+              },
+              {
+                "id": "9a1f4c70-0012-4b12-a012-+1234567890",
+                "name": "searchTerm",
+                "type": "string",
+                "value": "auto repair"
+              },
+              {
+                "id": "9a1f4c70-0013-4b13-a013-+1234567890",
+                "name": "location",
+                "type": "string",
+                "value": "Nashville, Tennessee, United States"
+              },
+              {
+                "id": "9a1f4c70-0014-4b14-a014-+1234567890",
+                "name": "googleDomain",
+                "type": "string",
+                "value": "google.com"
+              },
+              {
+                "id": "9a1f4c70-0015-4b15-a015-+1234567890",
+                "name": "country",
+                "type": "string",
+                "value": "us"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "9a1f4c70-0003-4b03-a003-000000000003",
+        "name": "Search the Google local pack",
+        "type": "@apify/n8n-nodes-apify.apify",
+        "position": [
+          520,
+          460
+        ],
+        "parameters": {
+          "memory": 4096,
+          "actorId": "johnvc~google-local-api",
+          "resource": "Actors",
+          "operation": "Run actor and get dataset",
+          "customBody": "={{ JSON.stringify({ q: $json.searchTerm, location: $json.location, google_domain: $json.googleDomain, gl: $json.country, hl: 'en', max_pages: 1 }) }}"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9a1f4c70-0004-4b04-a004-000000000004",
+        "name": "Keep searches that returned results",
+        "type": "n8n-nodes-base.filter",
+        "position": [
+          780,
+          460
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "9a1f4c70-0041-4b41-a041-+1234567890",
+                "operator": {
+                  "type": "array",
+                  "operation": "notEmpty",
+                  "singleValue": true
+                },
+                "leftValue": "={{ $json.local_results }}",
+                "rightValue": ""
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "9a1f4c70-0005-4b05-a005-000000000005",
+        "name": "One row per business",
+        "type": "n8n-nodes-base.splitOut",
+        "position": [
+          1040,
+          460
+        ],
+        "parameters": {
+          "include": "selectedOtherFields",
+          "options": {},
+          "fieldToSplitOut": "local_results",
+          "fieldsToInclude": "search_parameters"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9a1f4c70-0006-4b06-a006-000000000006",
+        "name": "Score every rival against you",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1300,
+          460
+        ],
+        "parameters": {
+          "jsCode": "// Build this week's review scoreboard.\n// Every business Google showed in the local pack becomes one row, and each\n// rival is scored against your own listing on review count and star rating.\nconst config = $('Set your business and search').first().json;\nconst yourName = String(config.yourBusinessName || '').trim().toLowerCase();\nconst weekOf = $now.toFormat('yyyy-MM-dd');\n\nconst rows = $input.all().map((item) => {\n  const biz = item.json.local_results || {};\n  const params = item.json.search_parameters || {};\n  const title = String(biz.title || '');\n  return {\n    search: params.q || '',\n    location: params.location || '',\n    rank: biz.position ?? '',\n    business: title,\n    isYours: yourName !== '' && title.toLowerCase().includes(yourName),\n    rating: typeof biz.rating === 'number' ? biz.rating : '',\n    reviews: typeof biz.reviews === 'number' ? biz.reviews : '',\n    category: biz.type || '',\n    phone: biz.phone || '',\n    placeId: biz.place_id || '',\n  };\n});\n\n// Your own listing, if it ranked for this search. When it did not, the two\n// comparison columns stay blank rather than guessing a baseline.\nconst you = rows.find((r) => r.isYours);\nconst canCompare = (r, field) =>\n  you && !r.isYours && r[field] !== '' && you[field] !== '';\n\nreturn rows.map((r) => ({\n  json: {\n    'Week of': weekOf,\n    Search: r.search,\n    Location: r.location,\n    'Rank in pack': r.rank,\n    Business: r.business,\n    'Is your business': r.isYours ? 'YES' : '',\n    Rating: r.rating,\n    Reviews: r.reviews,\n    'Reviews vs you': canCompare(r, 'reviews') ? r.reviews - you.reviews : '',\n    'Rating vs you': canCompare(r, 'rating')\n      ? Number((r.rating - you.rating).toFixed(1))\n      : '',\n    Category: r.category,\n    Phone: r.phone,\n    'Place ID': r.placeId,\n  },\n}));\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "9a1f4c70-0007-4b07-a007-000000000007",
+        "name": "Append this week's scoreboard",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1560,
+          460
+        ],
+        "parameters": {
+          "columns": {
+            "value": {},
+            "mappingMode": "autoMapInputData",
+            "matchingColumns": []
+          },
+          "options": {},
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": ""
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": ""
+          }
+        },
+        "typeVersion": 4.5
+      },
+      {
+        "id": "9a1f4c70-0090-4b90-a090-000000000090",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -620,
+          40
+        ],
+        "parameters": {
+          "width": 520,
+          "height": 1140,
+          "content": "## Track competitor Google review counts and star ratings in Google Sheets\n\nNo Google Business Profile connection, no SerpApi or Bright Data account, and no AI model. Every week this workflow reads the Google local pack for your search term and appends one row per business to your sheet: star rating, review count, rank, and how far ahead or behind each rival sits, with your own listing flagged YES.\n\nBecause it reads Google's public local results instead of a listing you own, it picks up your competitors' numbers as easily as your own. That is the part a Google Business Profile integration cannot do.\n\n**Who's it for**\nOwners watching their reputation against the shop down the street, local SEO consultants reporting to clients, and agencies pitching review generation work.\n\n**How it works**\n1. A schedule trigger fires once a week\n2. One Set node holds your business name, search term, and city\n3. The Apify node pulls the whole local pack for that search\n4. A Code node scores every rival against you, and the rows land in your sheet\n\n**Setup**\n1. Create a free Apify account and add your API token to the Apify credential\n2. Connect your Google account in the Sheets node and pick a spreadsheet\n3. Replace the example business name, search term, and location, then run once to test\n\n**Good to know**\nAbout 2 cents per run, so roughly 9 cents a month on a weekly schedule.\nOne run reads one page of Google's local results, which is about 20 businesses on desktop.\nThis records star rating and review count, not the text of individual reviews.\nActor: https://apify.com/johnvc/google-local-api?fpr=9n7kx3&fp_sid=n8n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9a1f4c70-0091-4b91-a091-000000000091",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -40,
+          60
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 240,
+          "height": 240,
+          "content": "### 1. Schedule\nRuns every Monday morning. Change the cadence, or swap in a manual trigger while you test."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9a1f4c70-0092-4b92-a092-000000000092",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          220,
+          60
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 240,
+          "height": 240,
+          "content": "### 2. Your input\nYour business name, search term, and city. This is the only node you edit."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9a1f4c70-0093-4b93-a093-000000000093",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          480,
+          60
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 240,
+          "height": 240,
+          "content": "### 3. Search\nRuns the Google Local API actor on your search term. Add your Apify credential here."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9a1f4c70-0094-4b94-a094-000000000094",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          740,
+          60
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 240,
+          "height": 240,
+          "content": "### 4. Clean\nSkips the run when Google returned no local results, so blank rows never reach the sheet."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9a1f4c70-0095-4b95-a095-000000000095",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1000,
+          60
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 240,
+          "height": 240,
+          "content": "### 5. Unpack\nSplits the local pack into one item per business."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9a1f4c70-0096-4b96-a096-000000000096",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1260,
+          60
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 240,
+          "height": 240,
+          "content": "### 6. Score\nFlags your listing and works out the review and rating gap to every rival."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9a1f4c70-0097-4b97-a097-000000000097",
+        "name": "Sticky Note7",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1520,
+          60
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 240,
+          "height": 240,
+          "content": "### 7. Deliver\nPick your spreadsheet and tab. Columns map automatically."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9a1f4c70-0080-4b80-a080-000000000080",
+        "name": "Sticky Note8",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          220,
+          760
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 380,
+          "height": 220,
+          "content": "### Your business not in the pack?\nThe two comparison columns stay blank when your listing does not rank for that search. That is a finding worth logging: try a closer search term, or a city you actually rank in."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9a1f4c70-0081-4b81-a081-000000000081",
+        "name": "Sticky Note9",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          640,
+          760
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 380,
+          "height": 220,
+          "content": "### Self-hosting n8n?\nThere is also a dedicated community node for this actor: `n8n-nodes-google-local-api` on npm."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "connections": {
+      "Every Monday morning": {
+        "main": [
+          [
+            {
+              "node": "Set your business and search",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "One row per business": {
+        "main": [
+          [
+            {
+              "node": "Score every rival against you",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Search the Google local pack": {
+        "main": [
+          [
+            {
+              "node": "Keep searches that returned results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set your business and search": {
+        "main": [
+          [
+            {
+              "node": "Search the Google local pack",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Score every rival against you": {
+        "main": [
+          [
+            {
+              "node": "Append this week's scoreboard",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Keep searches that returned results": {
+        "main": [
+          [
+            {
+              "node": "One row per business",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    }
+  ],
+  "url": "https://n8n.io/workflows/17596",
+  "fetched_at": "2026-09-12T13:16:33Z"
+}

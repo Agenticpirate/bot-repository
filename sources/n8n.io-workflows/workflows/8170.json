@@ -1,0 +1,186 @@
+{
+  "id": 8170,
+  "name": "Weekly gratitude pulse: Automated appreciation DMs for Slack & Discord communities",
+  "description": "## Weekly Gratitude Pulse: Automated Appreciation DMs for Slack & Discord Communities\n\nFoster belonging with a **weekly, automated appreciation message** sent directly to members who engaged in your **Slack or Discord community**. The **Weekly Gratitude Pulse** **runs every Sunday at 6 PM**, quietly recognizing presence — not performance — with a warm, personalized DM that says: *“You showed up. We see you. Thank you.”*\n\nNo manual tracking. No public callouts. Just gentle, scalable care.\n\nPerfect for coaches, Etsy sellers, and solopreneurs who want to nurture emotional safety and connection — **without adding to their workload.**\n\n---\n\n## 🛠️ Step-by-Step Setup Instructions\n\nDeploy this workflow in under 10 minutes.\n\n### 1. **Import the Workflow**\n- Go to **Scenarios &gt; Import from File**\n- Upload the provided JSON template\n\n### 2. **Set the Weekly Schedule**\n- Find the **Schedule Trigger** node\n- Set to:\n  - **Day**: Sunday\n  - **Time**: 6:00 PM\n  - Adjust **timezone** to match your audience\n\n### 3. **Connect Your Messaging Platform**\n\n#### For Slack:\n- Use **Slack → List Conversations** or **HTTP Request** to get channel messages\n- Replace `{{SLACK_BOT_TOKEN}}` with a token that has:\n  - `channels:history`\n  - `users:read`\n  - `im:write` (for DMs)\n- Set `{{SLACK_CHANNEL_ID}}` (e.g., your main community channel)\n\n#### For Discord:\n- Use **Discord Bot** with:\n  - `Read Message History`\n  - `Send Messages`\n  - `Create DM`\n- Set `{{DISCORD_BOT_TOKEN}}` and `{{GUILD_ID}}`\n\n&gt; 🔗 Guide: [Slack API Permissions](https://api.slack.com/scopes) | [Discord Bot Setup](https://discord.com/developers/applications)\n\n### 4. **Pull Active Users**\n- The workflow pulls all users who:\n  - Posted a message\n  - Reacted to a message\n- Filters out bots and duplicates\n\n### 5. **Send Personalized DMs**\nUses a templated message like:\n\n&gt; “Hey {{Name}},  \n&gt; Just wanted to say — I noticed you were around this week, and I’m so glad you were.  \n&gt; You’re part of what makes this space feel like home. 💛  \n&gt; Rest well, and I’ll see you in the week ahead.  \n&gt; — [Your Name]”\n\nCustomize the message in the **Set Message** node.\n\n### 6. **Log in Airtable (Optional)**\n- Each sent DM is logged in Airtable for reflection\n- Never for surveillance — for gratitude auditing\n\n---\n\n## 🗃️ Airtable Structure\n\n### Base: `Community Wellness Tracker`  \n#### Table: `Gratitude Logs`\n\n| Field | Type | Description |\n|------|------|-------------|\n| `Date Sent` | Date | When the DM was sent |\n| `User ID` | Text | Slack/Discord user ID |\n| `Username` | Text | Display name (e.g., `@alex`) |\n| `Engagement Type` | Multi-select | `Message`, `Reaction`, `Thread Reply` |\n| `Message Preview` | Text | First 50 characters of their post |\n| `Gratitude Sent` | Checkbox | `true` after DM sent |\n| `Channel` | Text | Source channel (e.g., `#general`) |\n\n&gt; 📊 Use a **Monthly View** to reflect on community rhythm — not to rank, but to honor.\n\n---\n\n## 🔄 Workflow Explanation\n\nThe **Weekly Gratitude Pulse** runs a thoughtful, automated cycle:\n\n1. **Trigger**: Fires every **Sunday at 6:00 PM**\n2. **Fetch Messages**: Pulls all messages from the past 7 days\n3. **Extract Users**: Gathers IDs of users who posted or reacted\n4. **De-duplicate & Filter**: Removes bots and duplicates\n5. **Personalize Message**: Injects first name or username\n6. **Send DM**: Direct message via Slack/DM or Discord/DM\n7. **Log in Airtable**: Records the gesture for reflection\n\n🔁 This creates a **culture of quiet recognition** — where showing up is enough.\n\n---\n\n## 📦 Pre-Conditions & Requirements\n\n- ✅ **Make.com or n8n account** (Free tier supported)\n- ✅ **Slack Bot Token** with scopes:\n  - `channels:history`, `users:read`, `im:write`\n- **OR** **Discord Bot** with:\n  - `Read Message History`, `Send Messages`, `Create DM`\n- ✅ **Airtable base** with `Gratitude Logs` table\n- ✅ Internet access and JSON parsing\n\n&gt; ⚠️ Note: Slack DMs require resolving user → IM channel via `conversations.open`. Discord requires `users.get` and `channels.create` for DMs.\n\n---\n\n## 🎨 Customization Guidance\n\nMake it your own:\n\n### 🎯 Change the Message Tone\n- Use warm, coach-like, or playful tones\n- Add emojis: 💤 🫶 🌸 ☕\n\n### 🧩 Adjust Engagement Criteria\n- Only send to those who posted (not just reacted)\n- Exclude certain channels (e.g., announcements)\n\n### 📆 Change Frequency\n- Bi-weekly? Edit the schedule.\n- Monthly “Big Thank You”? Add a filter for high engagement.\n\n### 💌 Add a Small Gift\n- Auto-send a **discount code** or **freebie link** in the DM\n- Use **Google Sheets** or **Shopify** to generate unique codes\n\n### 📈 Combine with Hydration Hug\n- Use the same Airtable base\n- Create a **“Care Score”** view: Hydration reactions + Gratitude receipts\n\n---\n\n## 🌐 Who It’s For\n\n- **Coaches & Facilitators** who want to deepen trust\n- **Etsy Sellers** with VIP customer groups\n- **Wellness Creators** building mindful spaces\n- **Community Managers** reducing burnout\n\nThis isn’t engagement farming.  \nIt’s **digital hospitality** — automation with a heartbeat.\n\n  ",
+  "workflow": {
+    "meta": {
+      "instanceId": "__PLACEHOLDER_INSTANCE_ID__"
+    },
+    "name": "Weekly Gratitude Pulse",
+    "nodes": [
+      {
+        "id": "trigger-sunday-6pm",
+        "name": "Every Sunday at 6 PM",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "notes": "🕒 Weekly Trigger\n\nFires every Sunday at 6:00 PM.\n\n🔹 Adjust timezone in Make/n8n settings.\n\nThis is the heartbeat of the gratitude cycle.",
+        "position": [
+          250,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1,
+        "notesAlignment": "top"
+      },
+      {
+        "id": "get-slack-messages",
+        "name": "Get Slack Channel Messages",
+        "type": "n8n-nodes-base.httpRequest",
+        "notes": "📥 Fetch Last 7 Days of Messages\n\nPulls all messages from the community channel.\n\n🔧 Requires:\n- SLACK_BOT_TOKEN\n- SLACK_CHANNEL_ID\n\nUsed to identify active members.",
+        "position": [
+          500,
+          250
+        ],
+        "parameters": {},
+        "notesAlignment": "top"
+      },
+      {
+        "id": "extract-active-users",
+        "name": "Extract Active Users",
+        "type": "n8n-nodes-base.function",
+        "notes": "👥 Extract Unique User IDs\n\nFinds all users who:\n- Posted a message\n- Added a reaction\n\nFilters out bots and duplicates.\n\nOutput: List of user IDs for DMs.",
+        "position": [
+          750,
+          300
+        ],
+        "parameters": {},
+        "notesAlignment": "top"
+      },
+      {
+        "id": "get-user-info",
+        "name": "Get User Info",
+        "type": "n8n-nodes-base.httpRequest",
+        "notes": "🏷️ Get Username & Profile\n\nResolves user ID to:\n- Display name\n- Real name (optional)\n\nUsed to personalize the DM.",
+        "position": [
+          1000,
+          300
+        ],
+        "parameters": {},
+        "notesAlignment": "top"
+      },
+      {
+        "id": "open-dm-channel",
+        "name": "Open DM Channel",
+        "type": "n8n-nodes-base.httpRequest",
+        "notes": "📨 Open Direct Message Channel\n\nCreates a 1:1 DM channel between bot and user.\n\nRequired before sending private messages in Slack.",
+        "position": [
+          1250,
+          300
+        ],
+        "parameters": {},
+        "notesAlignment": "top"
+      },
+      {
+        "id": "send-gratitude-dm",
+        "name": "Send Gratitude DM",
+        "type": "n8n-nodes-base.httpRequest",
+        "notes": "💌 Send Personalized DM\n\nWarm, no-pressure message of appreciation.\n\n💡 Customize the text to match your voice.\n\nNever demands a response — just honors presence.",
+        "position": [
+          1500,
+          300
+        ],
+        "parameters": {},
+        "notesAlignment": "top"
+      },
+      {
+        "id": "log-in-airtable",
+        "name": "Log in Airtable",
+        "type": "n8n-nodes-base.airtable",
+        "notes": "📊 Log Sent Gratitude\n\nRecords the gesture in Airtable for reflection.\n\nNot for tracking — for honoring.\n\nUse to see patterns, not pressure.",
+        "position": [
+          1750,
+          300
+        ],
+        "parameters": {},
+        "notesAlignment": "top"
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "callerPolicy": "none",
+      "saveDataError": "all",
+      "executionOrder": "parallel",
+      "saveDataSuccess": "all"
+    },
+    "connections": {
+      "Get User Info": {
+        "main": [
+          [
+            {
+              "node": "Open DM Channel",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Open DM Channel": {
+        "main": [
+          [
+            {
+              "node": "Send Gratitude DM",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Gratitude DM": {
+        "main": [
+          [
+            {
+              "node": "Log in Airtable",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Every Sunday at 6 PM": {
+        "main": [
+          [
+            {
+              "node": "Get Slack Channel Messages",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Active Users": {
+        "main": [
+          [
+            {
+              "node": "Get User Info",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Slack Channel Messages": {
+        "main": [
+          [
+            {
+              "node": "Extract Active Users",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 33,
+      "name": "Social Media"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8170",
+  "fetched_at": "2026-09-12T13:12:19Z"
+}

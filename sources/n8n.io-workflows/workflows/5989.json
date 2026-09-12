@@ -1,0 +1,329 @@
+{
+  "id": 5989,
+  "name": "Schedule food photo sharing to Pinterest with GPT-3.5 captions and Google Sheets",
+  "description": "In this guide, we’ll walk you through setting up an AI-driven workflow that automatically processes highly-rated food photos from a Google Sheet, generates AI-powered captions, shares them to Pinterest, and updates the sheet to reflect the posts. Ready to automate your food photo sharing? Let’s dive in!\n\n## What’s the Goal?\n- Automatically detect and process highly-rated food photos (4 stars or above) from a Google Sheet.\n- Use AI to generate engaging and relevant captions.\n- Share the photos with captions to Pinterest via the Pinterest API.\n- Update the Google Sheet to mark photos as posted.\n- Enable scheduled automation for consistent posting.\n\nBy the end, you’ll have a self-running system that shares your best food photos effortlessly.\n\n## Why Does It Matter?\nManual photo sharing is time-consuming and inconsistent. Here’s why this workflow is a game changer:\n\n- **Zero Human Error**: AI ensures consistent captions and posting accuracy.\n- **Time-Saving Automation**: Automatically handle photo sharing, boosting efficiency.\n- **Scheduled Posting**: Maintain a regular presence on Pinterest without manual effort.\n- **Focus on Creativity**: Free your team from repetitive posting tasks.\nThink of it as your tireless social media assistant that keeps your Pinterest feed vibrant.\n\n## How It Works\nHere’s the step-by-step magic behind the automation:\n\n### Step 1: Trigger the Workflow\n- Detect new photos to post using the Daily Post Scheduler node (e.g., once daily).\n- Initiate the workflow at a scheduled time to check for new food photos.\n\n### Step 2: Fetch Food Photos from Sheet\n- Retrieve rows from the Google Sheet that contain food photo metadata like image URLs, ratings, and status.\n\n### Step 3: Filter 4+ Star Dishes\n- Filter only those food entries with high ratings (4 stars or above) and unposted status.\n\n### Step 4: AI Caption Generator\n- Use AI (e.g., GPT/OpenAI) to create engaging and relevant captions for selected food photos.\n\n### Step 5: Upload to Pinterest\n- Automatically post the food photo with the generated caption to Pinterest via the Pinterest API.\n\n### Step 6: Mark as Posted in Sheet\n- Update the Google Sheet to reflect that the photo has been successfully shared.\n\n## How to Use the Workflow?\nImporting a workflow in n8n is a straightforward process that allows you to use pre-built workflows to save time. Below is a step-by-step guide to importing the Automated Food Photo Sharing workflow in n8n.\n\n### Steps to Import a Workflow in n8n\n\n1. **Obtain the Workflow JSON**\n   - **Source the Workflow**: Workflows are shared as JSON files or code snippets, e.g., from the n8n community, a colleague, or exported from another n8n instance.\n   - **Format**: Ensure you have the workflow in JSON format, either as a file (e.g., workflow.json) or copied text.\n\n2. **Access the n8n Workflow Editor**\n   - Log in to n8n (via n8n Cloud or self-hosted instance).\n   - Navigate to the Workflows tab in the n8n dashboard.\n   - Click Add Workflow to create a blank workflow.\n\n3. **Import the Workflow**\n   - **Option 1: Import via JSON Code (Clipboard)**:\n     - Click the three dots (⋯) in the top-right corner to open the menu.\n     - Select Import from Clipboard.\n     - Paste the JSON code into the text box.\n     - Click Import to load the workflow.\n   - **Option 2: Import via JSON File**:\n     - Click the three dots (⋯) in the top-right corner.\n     - Select Import from File.\n     - Choose the .json file from your computer.\n     - Click Open to import.\n\n### Setup Notes\n- **Google Sheet Columns**: Ensure your Google Sheet includes the following columns: `Image URL`, `Rating` (numeric, e.g., 1-5), `Feedback` (text), `Pin Title`, `Pin Description`, `Destination URL`, `Board ID`, and `Status` (e.g., \"Pending\" or \"Posted\").\n- **Google Sheets Credentials**: Configure OAuth2 settings in the Fetch Food Photos node with your Google Sheet ID and credentials.\n- **AI Model**: Set up the AI Caption Generator node with OpenAI credentials (e.g., API key).\n- **Pinterest API**: Authorize the Upload to Pinterest node with Pinterest API credentials (e.g., Bearer Token) and obtain the Board ID.\n- **Scheduling**: Adjust the Daily Post Scheduler node to your preferred posting time (e.g., daily at 9 AM).",
+  "workflow": {
+    "id": "AhLdSHGzYENHBtdk",
+    "meta": {
+      "instanceId": "dd69efaf8212c74ad206700d104739d3329588a6f3f8381a46a481f34c9cc281",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Automated Food Photo Sharing with AI Captions – Pinterest Scheduler",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "adea325f-884b-4fc9-9582-74c97e9c3473",
+        "name": "Daily Post Scheduler",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {}
+            ]
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1866b165-64c4-45ce-b9a5-e19e810272c4",
+        "name": "Fetch Food Photos from Sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          220,
+          0
+        ],
+        "parameters": {
+          "resource": "spreadsheet",
+          "operation": "get"
+        },
+        "credentials": {
+          "googleApi": {
+            "id": "credential-id",
+            "name": "googleApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "522fc6bc-88a1-4c52-a16e-7a72c9ce8b62",
+        "name": "Filter 4+ Star Dishes",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          440,
+          0
+        ],
+        "parameters": {
+          "conditions": {
+            "string": [
+              {
+                "value1": "{{$node['Google Sheets'].json['Status']}}",
+                "value2": "Pending"
+              },
+              {
+                "value1": "{{$node['Google Sheets'].json['Rating']}}",
+                "value2": 4,
+                "operation": "largerEqual"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "0818f0bb-a769-4e64-a951-106dcd3b12c6",
+        "name": "AI Caption Generator",
+        "type": "n8n-nodes-base.openAi",
+        "position": [
+          660,
+          0
+        ],
+        "parameters": {
+          "model": "gpt-3.5-turbo",
+          "prompt": "Generate a concise, engaging Pinterest caption for a food photo based on this customer feedback: '{{$node['Google Sheets'].json['Feedback']}}'. Keep it under 100 characters and include a positive tone.",
+          "options": {},
+          "requestOptions": {}
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "credential-id",
+            "name": "openAiApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1e7a31cd-e6be-48f1-aad1-6af1c56ccbab",
+        "name": "Upload to Pinterest",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          880,
+          0
+        ],
+        "parameters": {
+          "url": "https://api.pinterest.com/v5/pins",
+          "options": {},
+          "requestMethod": "POST",
+          "authentication": "headerAuth",
+          "jsonParameters": true,
+          "bodyParametersJson": "{\"title\":\"{{$node['Google Sheets'].json['Pin Title']}}\",\"description\":\"{{$node['Generate Caption'].json['text']}}\",\"link\":\"{{$node['Google Sheets'].json['Destination URL']}}\",\"board_id\":\"{{$node['Google Sheets'].json['Board ID']}}\",\"media_source\":{\"source_type\":\"image_url\",\"url\":\"{{$node['Google Sheets'].json['Image URL']}}\"}}"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "credential-id",
+            "name": "httpHeaderAuth Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "cc06c3aa-e57a-4b01-9614-e2f5a4876dcf",
+        "name": "Mark as Posted in Sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1100,
+          0
+        ],
+        "parameters": {
+          "resource": "spreadsheet",
+          "operation": "update"
+        },
+        "credentials": {
+          "googleApi": {
+            "id": "credential-id",
+            "name": "googleApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "62bec8d6-0535-425c-8151-af312a20e98e",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -40,
+          -260
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 180,
+          "height": 420,
+          "content": "Triggers the workflow at a scheduled time (e.g., once daily) to check for new food photos to post.\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "007ca09a-8d6a-4fa3-b02b-a066cc9a8999",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          400,
+          -260
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 180,
+          "height": 420,
+          "content": "Filters only those food entries with high ratings (4 stars or above) and unposted status.\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "107ef438-5954-4230-af66-b12ebaac449f",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          620,
+          -260
+        ],
+        "parameters": {
+          "width": 180,
+          "height": 420,
+          "content": "Uses AI (e.g., GPT/OpenAI) to create engaging and relevant captions for selected food photos.\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2990e8da-40e2-47aa-959a-b1c70741aec4",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          840,
+          -260
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 180,
+          "height": 420,
+          "content": "Automatically posts the food photo with the generated caption to Pinterest via API.\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "14b92980-38cc-47bf-8e03-f1d530f276b3",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1060,
+          -260
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 180,
+          "height": 420,
+          "content": "Updates the Google Sheet to reflect that the photo has been successfully shared.\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4997f1e2-a34f-4aa3-8580-a63042f4aac9",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          180,
+          -260
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 180,
+          "height": 420,
+          "content": "Retrieves rows from the Google Sheet that contain food photos and metadata like rating and status.\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ba50326f-70f6-4af4-a213-34752536cd40",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          160,
+          -520
+        ],
+        "parameters": {
+          "width": 720,
+          "height": 140,
+          "content": "## Purpose: Automatically share highly-rated food photos from a spreadsheet to Pinterest with AI-generated captions, and mark them as posted."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "71cb591a-be5f-4ed4-adaf-a5df321d922c",
+    "connections": {
+      "Upload to Pinterest": {
+        "main": [
+          [
+            {
+              "node": "Mark as Posted in Sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Caption Generator": {
+        "main": [
+          [
+            {
+              "node": "Upload to Pinterest",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Daily Post Scheduler": {
+        "main": [
+          [
+            {
+              "node": "Fetch Food Photos from Sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter 4+ Star Dishes": {
+        "main": [
+          [
+            {
+              "node": "AI Caption Generator",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Food Photos from Sheet": {
+        "main": [
+          [
+            {
+              "node": "Filter 4+ Star Dishes",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 33,
+      "name": "Social Media"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/5989",
+  "fetched_at": "2026-09-12T13:11:04Z"
+}

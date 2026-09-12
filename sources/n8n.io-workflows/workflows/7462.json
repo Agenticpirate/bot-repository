@@ -1,0 +1,193 @@
+{
+  "id": 7462,
+  "name": "AI-powered mock job interview with voice, assessment & Gmail reporting",
+  "description": "# AI Mock Interview System - Complete n8n Template\n\n## Overview\n\nThis n8n workflow template creates a comprehensive AI-powered mock interview system that conducts voice-based interviews, provides real-time transcription, and generates detailed performance assessments. The system uses OpenAI's GPT-4o Realtime API for natural conversations and automated scoring across five professional criteria.\n\n## What This Template Does\n\n### Core Functionality\n- **Voice-Enabled Interviews**: Real-time AI conversations using OpenAI's Realtime API\n- **Resume-Aware Questioning**: Tailored questions based on uploaded resume content\n- **Automatic Timing**: 15-minute sessions with automatic conclusion\n- **Live Transcription**: Real-time conversation display during interviews\n- **Comprehensive Assessment**: 5-criteria scoring system with STAR method evaluation\n- **Automated Reporting**: HTML report generation and email delivery\n\n### Workflow Components\n1. **Interview Setup Form**: Collects job role, email, and resume information\n2. **Interview Engine**: Manages real-time AI conversation flow\n3. **Assessment Generator**: Analyzes performance and creates detailed reports\n4. **Email Delivery**: Sends professional assessment reports automatically\n\n## Prerequisites\n\n### Required Services and Accounts\n- **n8n Instance**: Cloud or self-hosted version\n- **OpenAI API**: Account with GPT-4o Realtime API access\n- **OpenRouter Account**: For cost-effective assessment analysis (free tier available)\n- **Gmail Account**: For automated email delivery\n- **Google Cloud Console**: For Gmail API credentials\n\n### Estimated API Costs\n- OpenAI API: ~$0.15-0.75 per 15-minute interview\n- OpenRouter: ~$0.001-0.01 per assessment report\n- Total operational cost: Under $1 per session\n\n## Step-by-Step Setup Instructions\n\n### 1. Import the Workflow\n\n1. Download the workflow JSON file\n2. In your n8n instance, click **\"Import from file\"**\n3. Select the downloaded file and import\n4. Verify all nodes are properly connected\n\n### 2. Configure OpenAI API Integration\n\n#### Get Your API Key\n1. Visit [platform.openai.com/api-keys](https://platform.openai.com/api-keys)\n2. Create a new secret key named \"Mock Interview System\"\n3. Copy the key (format: `sk-proj-...`)\n4. Ensure billing is enabled on your OpenAI account\n\n#### Configure in Workflow\n**Method 1: Direct Configuration**\n1. Locate the **HTTP Request** node for OpenAI\n2. In Headers section, find Authorization parameter\n3. Replace placeholder with: `Bearer YOUR_API_KEY`\n\n**Method 2: Using n8n Credentials (Recommended)**\n1. Go to **Settings** → **Credentials** in n8n\n2. Add new **OpenAI** credential\n3. Enter your API key and save as \"OpenAI Mock Interview\"\n4. Reference this credential in the HTTP Request node\n\n### 3. Set Up OpenRouter for Assessments\n\n1. Sign up at [openrouter.ai](https://openrouter.ai)\n2. Generate an API key from the dashboard\n3. In the workflow, find the **OpenRouter Chat Model** node\n4. Add your OpenRouter credentials\n5. Verify model is set to `deepseek/deepseek-r1:free` for cost efficiency\n\n### 4. Configure Gmail Integration\n\n#### Enable Gmail API\n1. Go to [Google Cloud Console](https://console.cloud.google.com)\n2. Create a new project or select existing\n3. Enable the Gmail API for your project\n4. Create OAuth 2.0 credentials\n5. Add authorized redirect URIs (n8n will provide these)\n\n#### Configure in n8n\n1. Navigate to **Settings** → **Credentials**\n2. Add new **Gmail OAuth2** credential\n3. Enter Client ID and Client Secret from Google Cloud\n4. Complete OAuth authorization flow\n5. Test the connection\n\n#### Update Email Node\n1. Find the **\"Send interview assessment report\"** node\n2. Select your Gmail credentials\n3. Customize the email template as needed\n4. Test email delivery functionality\n\n### 5. Update Webhook URLs\n\nThe template contains placeholder URLs that must be updated for your instance.\n\n#### Find Your n8n Base URL\n- **n8n Cloud**: `https://[your-subdomain].app.n8n.cloud`\n- **Self-hosted**: Your custom domain\n\n#### Update HTML Forms\n1. **Interview Setup Form Node**:\n   - Find: `action=\"https://n8n.dominixai.com/webhook/start-interview\"`\n   - Replace with: `action=\"https://YOUR_N8N_URL/webhook/start-interview\"`\n\n2. **Interview Interface Node**:\n   - Find: `https://n8n.dominixai.com/webhook/generate-report`\n   - Replace with: `https://YOUR_N8N_URL/webhook/generate-report`\n\n#### Get Webhook URLs\n1. Click each Webhook trigger node\n2. Copy the Production URL\n3. Use these URLs in your HTML form actions\n\n## Testing the System\n\n### Component Testing\n1. **API Connection Test**: Execute the OpenAI HTTP Request node to verify connectivity\n2. **Email Test**: Send a test assessment report to your email\n3. **Assessment Generation**: Test the OpenRouter node with sample transcript data\n\n### Full System Test\n1. Activate the workflow\n2. Navigate to the interview setup webhook URL\n3. Fill the form with test data:\n   - Job Role: \"Software Developer\"\n   - Your email address  \n   - Sample resume content\n4. Complete the interview process\n5. Verify assessment email delivery\n\n## Customization Guide\n\n### Interview Duration\nModify the timer in the Interview Interface HTML:\n```javascript\nconst interviewDuration = 15; // Change to desired minutes\n```\n\n### Assessment Criteria\nEdit the prompt in the \"Interview Assessor\" node to:\n- Modify scoring weights\n- Add industry-specific criteria\n- Customize feedback categories\n\n### Question Customization\nUpdate the conversation prompt to:\n- Add role-specific questions\n- Include company culture queries\n- Incorporate technical assessments\n\n### Branding and Styling\n- Update CSS styling in HTML nodes\n- Add company logos and colors\n- Customize email templates\n- Modify form layouts and designs\n\n### Advanced Customizations\n- Add multiple interview rounds\n- Implement difficulty progression\n- Include video recording capabilities\n- Add candidate scoring comparison\n\n## Workflow Architecture\n\n### Node Structure\n- **Webhook Triggers**: Handle form submissions and interview completion\n- **HTTP Request Nodes**: Interface with OpenAI Realtime API\n- **Code Nodes**: Process resume data and generate interview questions\n- **HTML Nodes**: Serve interview forms and interfaces\n- **OpenRouter Node**: Generate performance assessments\n- **Gmail Node**: Deliver assessment reports\n\n### Data Flow\n1. User submits setup form → Resume processing\n2. Interview initialization → OpenAI session creation\n3. Real-time conversation → Transcript generation\n4. Interview completion → Assessment analysis\n5. Report generation → Email delivery\n\n## Security and Privacy\n\n### Data Handling\n- No permanent storage of personal information\n- Real-time processing with automatic cleanup\n- GDPR-compliant data handling practices\n- Secure API credential management\n\n### Security Best Practices\n- Use n8n credential system for API keys\n- Enable HTTPS for all webhook endpoints\n- Implement rate limiting on public endpoints\n- Regular security updates and monitoring\n\n## Troubleshooting\n\n### Common Issues\n\n**OpenAI API Errors**\n- Verify API key format and permissions\n- Check billing status on OpenAI account\n- Ensure Realtime API access is enabled\n\n**Email Delivery Problems**\n- Confirm Gmail OAuth setup\n- Check spam folders for test emails\n- Verify Gmail API quotas and limits\n\n**Webhook Connection Issues**\n- Ensure workflow is activated\n- Verify URL formatting (no trailing slashes)\n- Test webhook endpoints individually\n\n**Interview Interface Problems**\n- Check browser microphone permissions\n- Test on different browsers\n- Verify JavaScript console for errors\n\n### Debug Steps\n1. Enable workflow execution logging\n2. Test individual nodes in isolation\n3. Check API response status codes\n4. Verify credential configurations\n5. Monitor workflow execution logs\n\n## Performance Optimization\n\n### API Efficiency\n- Implement request caching where appropriate\n- Set up retry logic for failed API calls\n- Monitor API usage and costs\n- Configure timeout settings\n\n### Scalability Considerations\n- Set up load balancing for high traffic\n- Implement queue management for concurrent interviews\n- Monitor system resources and performance\n- Plan for API rate limit management\n\n## Use Cases and Applications\n\n### Educational Institutions\n- Student career preparation\n- Mock interview practice sessions\n- Interview skill development programs\n- Career counseling support\n\n### Corporate Training\n- Employee interview training\n- Hiring manager preparation\n- Internal promotion assessments\n- Skills evaluation programs\n\n### Career Coaching\n- Individual coaching sessions\n- Group interview workshops\n- Resume and interview alignment\n- Confidence building exercises\n\n### HR and Recruitment\n- Candidate pre-screening\n- Interview process standardization\n- Hiring bias reduction\n- Recruitment efficiency improvement\n\n## Conclusion\n\nThis AI Mock Interview System template provides a complete solution for automated interview practice and assessment. With proper setup and customization, it can serve various educational, corporate, and professional development needs while maintaining cost efficiency and user privacy.\n\nThe modular design allows for extensive customization while the automated assessment system provides consistent, objective feedback to help candidates improve their interview performance.\n\nIf you would rather avoid setup hassles, you can check [HERE](https://jobmonkey.dev/mock-interview/)\n\n**Turn Interview Anxiety Into Interview Success**",
+  "workflow": {
+    "meta": {
+      "templateCreatedBy": "n8n-ai-assistant"
+    },
+    "name": "Performance Report Generator",
+    "tags": [
+      "assessment",
+      "report",
+      "ai-analysis",
+      "email"
+    ],
+    "nodes": [
+      {
+        "id": "report-overview",
+        "name": "Report Generator Overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -200,
+          100
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "report-webhook",
+        "name": "Receive Interview Data",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -100,
+          300
+        ],
+        "webhookId": "2587540b-3552-4617-82c2-06b0729d1d6c",
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "ai-assessor",
+        "name": "AI Interview Assessor",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "position": [
+          120,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1.7
+      },
+      {
+        "id": "openrouter-model",
+        "name": "OpenRouter Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+        "position": [
+          120,
+          500
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "process-report",
+        "name": "Process Report Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          340,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "display-report",
+        "name": "Display HTML Report",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          560,
+          200
+        ],
+        "parameters": {},
+        "typeVersion": 1.4
+      },
+      {
+        "id": "email-report",
+        "name": "Email Assessment Report",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          560,
+          400
+        ],
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "setup-notes",
+        "name": "Setup Requirements",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          600,
+          600
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "criteria-info",
+        "name": "Assessment Criteria",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -100,
+          600
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "connections": {
+      "Process Report Data": {
+        "main": [
+          [
+            {
+              "node": "Display HTML Report",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Email Assessment Report",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Interview Assessor": {
+        "main": [
+          [
+            {
+              "node": "Process Report Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenRouter Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Interview Assessor",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Receive Interview Data": {
+        "main": [
+          [
+            {
+              "node": "AI Interview Assessor",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7462",
+  "fetched_at": "2026-09-12T13:11:55Z"
+}

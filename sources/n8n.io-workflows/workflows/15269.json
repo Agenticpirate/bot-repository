@@ -1,0 +1,155 @@
+{
+  "id": 15269,
+  "name": "Send a weekly smenso project status report via email with Gmail",
+  "description": "# Workflow Description — Weekly smenso Project Status Report via Email\n\n---\n\n## English\n\n### Title\nWeekly smenso Project Status Report via Email\n\n### Short Description (for n8n template subtitle)\nAutomatically send a formatted weekly project status report from smenso to your inbox every Monday morning — no manual effort required.\n\n### Full Description\n\nThis workflow runs every Monday at 8:00 AM, fetches all active projects from your smenso workspace, and sends a clean HTML status report via email. Perfect for management reporting, weekly standups, or keeping stakeholders informed without any manual work.\n\n**How it works:**\n1. The Schedule Trigger fires every Monday at 8:00 AM\n2. The smenso node fetches all active projects from your workspace using the Get Many operation\n3. A Code node builds a formatted HTML table with project names, start dates, and end dates\n4. The report is sent via email (Gmail, Outlook, or SMTP)\n\n**Use cases:**\n- Automated weekly project overview for management or clients\n- Monday morning briefing for project leads\n- Keep stakeholders informed without logging into smenso\n- Build a paper trail of weekly project status\n\n**Setup requirements:**\n- A smenso workspace with the Integration API add-on enabled\n- A smenso API token (generated in the smenso Admin Center at admin.smenso.cloud)\n- An email account configured in n8n (Gmail, Microsoft Outlook, or SMTP)\n\n**Customize:**\n- Change the schedule (e.g. daily, every Friday) by editing the cron expression\n- Add additional project fields to the report (status, budget, responsible user)\n- Replace Gmail with Microsoft Outlook or any SMTP node\n\n---\n\n## Deutsch\n\n### Titel\nWöchentlicher smenso Projektstatusbericht per E-Mail\n\n### Kurzbeschreibung\nVerschicke jeden Montag automatisch einen formatierten Projektstatusbericht aus smenso per E-Mail — ohne manuellen Aufwand.\n\n### Ausführliche Beschreibung\n\nDieser Workflow läuft jeden Montag um 8:00 Uhr, ruft alle aktiven Projekte aus deinem smenso Workspace ab und versendet einen übersichtlichen HTML-Statusbericht per E-Mail. Ideal für Management-Reporting, wöchentliche Standups oder um Stakeholder ohne manuellen Aufwand auf dem Laufenden zu halten.\n\n**So funktioniert es:**\n1. Der Schedule Trigger startet jeden Montag um 8:00 Uhr\n2. Der smenso Node ruft alle aktiven Projekte über die Get Many Operation ab\n3. Ein Code Node erstellt eine formatierte HTML-Tabelle mit Projektnamen, Start- und Enddaten\n4. Der Bericht wird per E-Mail versendet (Gmail, Outlook oder SMTP)\n\n**Anwendungsfälle:**\n- Automatisierte wöchentliche Projektübersicht für Management oder Kunden\n- Montagmorgen-Briefing für Projektleiter\n- Stakeholder informieren ohne smenso zu öffnen\n- Wöchentliche Projektstatushistorie aufbauen\n\n**Voraussetzungen:**\n- smenso Workspace mit aktiviertem Enterprise Add-on \"smenso Integration API\"\n- smenso API-Token (generiert im smenso Admin Center unter admin.smenso.cloud)\n- E-Mail-Konto in n8n konfiguriert (Gmail, Microsoft Outlook oder SMTP)\n\n**Anpassen:**\n- Zeitplan ändern (z.B. täglich, jeden Freitag) über den Cron-Ausdruck\n- Weitere Projektfelder in den Bericht aufnehmen (Status, Budget, Verantwortlicher)\n- Gmail durch Microsoft Outlook oder einen SMTP-Node ersetzen",
+  "workflow": {
+    "name": "Weekly smenso Project Status Report via Email",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "c1d2e3f4-0001-0001-0001-000000000001",
+        "name": "Every Monday at 8am",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "notes": "Runs every Monday at 8:00 AM.\nAdjust the cron expression to your preferred day and time.",
+        "position": [
+          160,
+          208
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 8 * * 1"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "c1d2e3f4-0002-0002-0002-000000000002",
+        "name": "Get All Projects",
+        "type": "n8n-nodes-smenso.smenso",
+        "position": [
+          384,
+          208
+        ],
+        "parameters": {
+          "resource": "project",
+          "operation": "getMany"
+        },
+        "credentials": {
+          "smensoApi": {
+            "id": "credential-id",
+            "name": "smenso API"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c1d2e3f4-0003-0003-0003-000000000003",
+        "name": "Build HTML Report",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          608,
+          208
+        ],
+        "parameters": {
+          "jsCode": "const projects = items.map(item => item.json);\nconst date = new Date().toLocaleDateString('en-GB', {\n  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'\n});\n\nconst rows = projects.map(p => {\n  const title = p.title ?? p.name ?? 'Unnamed Project';\n  const start = p.startDate ? new Date(p.startDate).toLocaleDateString('en-GB') : '—';\n  const end = p.endDate ? new Date(p.endDate).toLocaleDateString('en-GB') : '—';\n  return `<tr><td style=\"padding:8px;border:1px solid #ddd;\">${title}</td><td style=\"padding:8px;border:1px solid #ddd;text-align:center;\">${start}</td><td style=\"padding:8px;border:1px solid #ddd;text-align:center;\">${end}</td></tr>`;\n}).join('');\n\nconst html = `\n<html><body style=\"font-family:Arial,sans-serif;color:#333;\">\n<h2 style=\"color:#1a1a2e;\">📊 Weekly smenso Project Report</h2>\n<p style=\"color:#666;\">${date}</p>\n<p>You have <strong>${projects.length} active project(s)</strong> in your smenso workspace.</p>\n<table style=\"border-collapse:collapse;width:100%;margin-top:16px;\">\n  <thead>\n    <tr style=\"background:#f0f0f0;\">\n      <th style=\"padding:8px;border:1px solid #ddd;text-align:left;\">Project</th>\n      <th style=\"padding:8px;border:1px solid #ddd;\">Start Date</th>\n      <th style=\"padding:8px;border:1px solid #ddd;\">End Date</th>\n    </tr>\n  </thead>\n  <tbody>${rows}</tbody>\n</table>\n<p style=\"margin-top:24px;color:#999;font-size:12px;\">This report was automatically generated by n8n + smenso.</p>\n</body></html>\n`;\n\nreturn [{ json: { html, projectCount: projects.length, date } }];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "c1d2e3f4-0004-0004-0004-000000000004",
+        "name": "Send Email",
+        "type": "n8n-nodes-base.gmail",
+        "notes": "Replace YOUR_EMAIL@company.com with the recipient email address.\nYou can also replace this node with Microsoft Outlook or SMTP.",
+        "position": [
+          832,
+          208
+        ],
+        "parameters": {
+          "sendTo": "user@example.com",
+          "message": "={{ $json.html }}",
+          "options": {},
+          "subject": "=📊 Weekly smenso Project Report – {{ $json.date }}",
+          "emailType": "html"
+        },
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "credential-id",
+            "name": "Gmail"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "c1d2e3f4-0005-0005-0005-000000000005",
+        "name": "README",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          160,
+          420
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 620,
+          "height": 340,
+          "content": "## 📊 Weekly smenso Project Status Report via Email\n\n**What this workflow does:**\nEvery Monday at 8:00 AM, it fetches all active projects from your smenso workspace and sends a formatted HTML status report via email — perfect for management reporting and weekly standups.\n\n**Setup:**\n1. Set your **smenso API** credentials\n2. Set your **Gmail** credentials (or replace with Outlook / SMTP node)\n3. Replace `YOUR_EMAIL@company.com` in the **Send Email** node with the recipient address\n\n**Customize:**\n- Change the schedule in **Every Monday at 8am** (cron: `0 8 * * 1`)\n- Add more project fields in **Build HTML Report** (e.g. status, budget)\n- Replace Gmail with **Microsoft Outlook** or **Send Email (SMTP)** node\n\n**Tip:** Run smenso → Project → Get Many manually first to see which fields are available in your workspace."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1",
+    "staticData": null,
+    "connections": {
+      "Get All Projects": {
+        "main": [
+          [
+            {
+              "node": "Build HTML Report",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build HTML Report": {
+        "main": [
+          [
+            {
+              "node": "Send Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Every Monday at 8am": {
+        "main": [
+          [
+            {
+              "node": "Get All Projects",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "triggerCount": 0
+  },
+  "categories": [
+    {
+      "id": 46,
+      "name": "Project Management"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15269",
+  "fetched_at": "2026-09-12T13:15:21Z"
+}

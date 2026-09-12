@@ -1,0 +1,312 @@
+{
+  "id": 4502,
+  "name": "Starred Slack messages to Notion database with AI auto-tagging",
+  "description": "# Who is this for?\nTeams that want to capture important Slack messages in Notion with smart categorization.\nPerfect for knowledge workers, community managers, or any team that needs to preserve valuable conversations from Slack and organize them automatically in a Notion database.\n\n# What problem does this solve?\nImportant Slack messages get buried in chat history and are hard to find later.\nThis workflow monitors your Slack channel and automatically saves starred messages to Notion with AI-generated titles and smart tags. No more manually copying messages or losing track of important discussions.\n\n# How it works\n**Trigger** - Schedule Trigger fires every 10 minutes to check for new messages.\n\n**Get Slack Messages** - fetches recent messages from your specified Slack channel within the last 10 minutes.\n\n**Star Filter** - only processes messages that have been reacted to with a ⭐ emoji (configurable to any emoji).\n\n**Get Message Link** - retrieves the permanent link to the starred Slack message.\n\n**Choose Notion DB** - connects to your target Notion database and loads available tag options.\n\n**Set Tags** - prepares the available tags from your Notion database for AI processing.\n\n**AI Processing** - uses OpenAI GPT-4o-mini to:\n  - Generate a concise title (under 50 characters)\n  - Automatically categorize the message with existing tags (90%+ confidence threshold)\n\n**Create Notion Page** - saves the message to Notion with:\n  - AI-generated title\n  - Auto-selected tags\n  - Original message content\n  - Permanent link back to Slack\n\n# Setup steps\n\n### 1. Import and connect credentials\n- Import this template into n8n\n- Connect your **Slack API** credentials ([Slack Bot Setup Guide](https://api.slack.com/bot-users))\n- Connect your **Notion API** token ([Notion Integration Guide](https://developers.notion.com/docs/create-a-notion-integration))\n- Connect your **OpenAI API** credentials\n\n### 2. Configure Slack integration\n- Create a Slack bot and add it to your target channel\n- Update the **channelId** in \"Get Slack Messages\" node with your channel ID\n- Ensure your bot has these permissions:\n  - `channels:history` - to read channel messages\n  - `reactions:read` - to detect star reactions\n  - `chat:write.public` - to get message permalinks\n\n**Slack Bot Setup Resources:**\n- [Creating a Slack App](https://api.slack.com/authentication/basics#creating)\n- [Bot Token Scopes](https://api.slack.com/scopes)\n- [Adding Apps to Channels](https://slack.com/help/articles/202035138-Add-apps-to-your-Slack-workspace)\n\n### 3. Set up Notion database\n- Create or use existing Notion database with required properties:\n  - **Tags** (Multi-select) - add tag options with descriptions for better AI accuracy\n  - **Link** (URL) - for storing Slack permalink\n  - **Title** (Title) - will be auto-populated by AI\n- Update the **databaseId** in \"Choose Notion DB\" and \"Create Notion Page\" nodes\n\n### 4. Customize the workflow\n- **Change trigger emoji**: Edit the IF condition to use a different emoji (e.g., `bookmark`, `pushpin`)\n- **Adjust timing**: Modify the Schedule Trigger interval (remember to update the \"oldest\" filter in Get Slack Messages to match)\n- **Improve AI prompts**: Edit the prompt in \"Write Title & Tag\" node for better categorization\n\n### 5. Test the setup\n- Star a message in your Slack channel\n- Wait for the next 10-minute trigger or manually execute the workflow\n- Check your Notion database for the new entry\n\n# Example output\n\n**Slack message:**\n&gt; \"Hey team, just found this amazing tool for automating our design workflow. We should definitely consider it for next sprint: https://example.com/design-tool\"\n\n**Generated Notion page:**\n- **Title:** \"Design Tool Recommendation for Next Sprint\"\n- **Tags:** \"Tools\", \"Design\", \"Sprint Planning\"\n- **Content:** Full message text with Slack permalink\n- **Link:** Direct link back to original Slack message\n\n# Extending the flow\n\n**Multi-channel support** - duplicate the \"Get Slack Messages\" node for different channels and merge the outputs.\n\n**Enhanced AI processing** - modify the prompt to extract additional metadata like:\n- Priority levels\n- Action items\n- Mentioned team members\n- Due dates\n\n**Rich content preservation** - add logic to handle Slack attachments, images, or threaded replies.\n\n**Notification system** - add nodes to notify team members when important messages are archived.\n\n**Sentiment analysis** - incorporate additional AI processing to categorize message sentiment or urgency.\n\nThis template provides a lean setup for intelligent Slack-to-Notion archiving. Star important messages, let AI handle the organization, and never lose track of valuable conversations again.",
+  "workflow": {
+    "id": "y1V3XxzVnhP0R4eC",
+    "meta": {
+      "instanceId": "78cd535d8c280c9f391d1c1efae71bb3b005620d19729d7bf9cd5c4e1509eeb2",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Slack Msg Added to Notion",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "8a15efc1-1a7b-402f-baff-33e116dcefab",
+        "name": "IF reaction == star",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -520,
+          720
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "84388e75-f188-42da-9421-41f44c0dbed8",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -940,
+          720
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "481c67c2-7e45-4d44-9b3d-3e19f315ae2d",
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          380,
+          940
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "016b3bf6-5053-4068-b086-371ce651ce6e",
+        "name": "Structured Output Parser",
+        "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "position": [
+          560,
+          940
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "d04bb2c2-9e30-452e-82d4-973c7c066979",
+        "name": "Get Slack Messages",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          -740,
+          720
+        ],
+        "webhookId": "ac0522b0-23da-467b-81fc-b93e5b2056ab",
+        "parameters": {},
+        "typeVersion": 2.3
+      },
+      {
+        "id": "f1e57f6e-3b26-4b63-b768-5f3c04d620c0",
+        "name": "Set Tags",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          160,
+          720
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "884acd20-9098-4ef5-bb4c-e32484a0a275",
+        "name": "Write Title & Tag",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          380,
+          720
+        ],
+        "parameters": {},
+        "typeVersion": 1.9
+      },
+      {
+        "id": "56722187-13ad-418a-b4b6-b3918498ba30",
+        "name": "Create Notion Page",
+        "type": "n8n-nodes-base.notion",
+        "position": [
+          760,
+          720
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "eb5bfe7a-f8e7-425d-8855-5a1b9d214921",
+        "name": "Get Message Link",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          -280,
+          720
+        ],
+        "webhookId": "9588fbfc-5aa6-4af2-b2b3-d2040c9dded5",
+        "parameters": {},
+        "typeVersion": 2.3
+      },
+      {
+        "id": "c42361dc-61e6-42fe-af56-51720a45e7f3",
+        "name": "Choose Notion DB",
+        "type": "n8n-nodes-base.notion",
+        "position": [
+          -60,
+          720
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "0bb1935e-9cfc-483a-b83e-43e5bff5cc56",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1060,
+          480
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "96d07e0d-15b8-444b-96fc-031400b147bf",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -540,
+          480
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e9467339-9245-4546-9a6f-46c64567e013",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -100,
+          480
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c7f22217-c598-4e96-9770-61330b0e7cb0",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          320,
+          480
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8e74b014-a44f-46f5-95f9-379ccfe4831f",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1640,
+          480
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "cc6e4f9c-94dc-42fa-936a-b6472bfbc01e",
+    "connections": {
+      "Set Tags": {
+        "main": [
+          [
+            {
+              "node": "Write Title & Tag",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Choose Notion DB": {
+        "main": [
+          [
+            {
+              "node": "Set Tags",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Message Link": {
+        "main": [
+          [
+            {
+              "node": "Choose Notion DB",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Get Slack Messages",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Write Title & Tag",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Write Title & Tag": {
+        "main": [
+          [
+            {
+              "node": "Create Notion Page",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Slack Messages": {
+        "main": [
+          [
+            {
+              "node": "IF reaction == star",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF reaction == star": {
+        "main": [
+          [
+            {
+              "node": "Get Message Link",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Structured Output Parser": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "Write Title & Tag",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 42,
+      "name": "Internal Wiki"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/4502",
+  "fetched_at": "2026-09-12T13:10:15Z"
+}

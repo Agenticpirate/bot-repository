@@ -1,0 +1,437 @@
+{
+  "id": 7044,
+  "name": "Track student arrival with iOS automation, Google Sheets & email alerts",
+  "description": "This workflow automates **real-time student tracking** using **iOS Shortcuts and geolocation data**, notifying both **teachers and parents** based on geofenced logic.\n\n\n## 🎯 What This Workflow Does\n\n* Receives student **location updates via webhook** (iOS Shortcuts)\n* Detects if the student has **arrived at school**\n* Logs arrival data to Google Sheets\n* **Sends email alerts** to teacher and/or parent based on location\n\n\n## 🔄 Workflow Steps\n\n| Step                        | Description                                              |\n| --------------------------- | -------------------------------------------------------- |\n| **Location Update Webhook** | Triggered via iOS Shortcut when student location updates |\n| **Process Location Data**   | Extracts coordinates and metadata                        |\n| **Student Arrived?**        | Checks if student entered school zone                    |\n| **Log School Arrival**      | Adds arrival data to Google Sheet                        |\n| **At School?**              | Double-checks geofence condition before notifying        |\n| **Notify Teacher**          | Sends email if student is confirmed at school            |\n| **Notify Parent**           | Sends email to parent (can vary based on geofence logic) |\n| **Success Response**        | Returns a 200 response to the triggering device          |\n\n\n## 🧠 How the Logic Works\n\n1. The student’s phone runs a shortcut when near school.\n2. Sends coordinates to webhook.\n3. Workflow compares coordinates with predefined geofence (e.g., radius around school).\n4. If inside school zone:\n   * Log arrival\n   * Notify teacher and/or parent\n5. Else:\n   * Optionally notify parent only\n\n\n## 📱 iOS Shortcut Sample (Trigger Setup)\n\n* **Automation Trigger**: Arrive at Location (e.g., School)\n* **Action**: Run Shortcut → Make Web Request (POST)\n\n**POST URL:**\n\n```\nhttps://your-n8n-instance.com/webhook/location-update\n```\n\n**Body Example:**\n\n```json\n{\n  \"student_id\": \"STU042\",\n  \"student_name\": \"Anaya Joshi\",\n  \"lat\": 19.0760,\n  \"lng\": 72.8777,\n  \"timestamp\": \"2025-08-06T08:05:00\"\n}\n```\n\n\n## 📊 Google Sheets Logging\n\n| Student ID | Name        | Date       | Time  | Status  |\n| ---------- | ----------- | ---------- | ----- | ------- |\n| STU042     | Anaya Joshi | 2025-08-06 | 08:05 | Arrived |\n\n\n## ⚙️ Setup Requirements\n\n* **n8n Instance** with webhook support\n* **Google Sheet** with appropriate columns\n* **iOS Shortcut** setup on student device\n* **Teacher and Parent Email Addresses** configured in workflow",
+  "workflow": {
+    "id": "88ia1RcNZ7aDAGZP",
+    "meta": {
+      "instanceId": "dd69efaf8212c74ad206700d104739d3329588a6f3f8381a46a481f34c9cc281",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Geofenced Student Activity Tracker via iOS Automation",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "28447b9c-fdd0-4588-82e0-54d4d65c8ca9",
+        "name": "Location Update Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -1600,
+          -120
+        ],
+        "webhookId": "a2fdee89-88b4-4031-aec9-367de8d16ea7",
+        "parameters": {
+          "path": "student-location",
+          "options": {},
+          "httpMethod": "POST",
+          "responseMode": "responseNode"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a88c48d7-d3f5-4413-9ff6-b461cdbe1152",
+        "name": "Process Location Data",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -1380,
+          -120
+        ],
+        "parameters": {
+          "values": {
+            "string": [
+              {
+                "name": "student_name",
+                "value": "={{ $json.body.student_name }}"
+              },
+              {
+                "name": "student_id",
+                "value": "={{ $json.body.student_id }}"
+              },
+              {
+                "name": "location_name",
+                "value": "={{ $json.body.location_name }}"
+              },
+              {
+                "name": "activity_type",
+                "value": "={{ $json.body.activity_type }}"
+              },
+              {
+                "name": "latitude",
+                "value": "={{ $json.body.latitude }}"
+              },
+              {
+                "name": "longitude",
+                "value": "={{ $json.body.longitude }}"
+              },
+              {
+                "name": "timestamp",
+                "value": "={{ $now.format('yyyy-MM-dd HH:mm:ss') }}"
+              },
+              {
+                "name": "date",
+                "value": "={{ $now.format('yyyy-MM-dd') }}"
+              },
+              {
+                "name": "time",
+                "value": "={{ $now.format('HH:mm') }}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1f15187f-8602-4ba2-a3fb-7b5a8828c4cb",
+        "name": "Student Arrived?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -1160,
+          -120
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "caseSensitive": false
+            },
+            "conditions": [
+              {
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.activity_type }}",
+                "rightValue": "arrived"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "856b5882-61c2-451c-ab3f-8d2750ecc564",
+        "name": "Log School Arrival",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -940,
+          -120
+        ],
+        "parameters": {
+          "url": "https://sheets.googleapis.com/v4/spreadsheets/YOUR_SHEET_ID/values/Activities:append?valueInputOption=RAW",
+          "options": {},
+          "sendBody": true,
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "googleSheetsOAuth2Api"
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleSheetsOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "30800230-2d9c-47c6-b972-13328eef51ff",
+        "name": "At School?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -720,
+          -120
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "caseSensitive": false
+            },
+            "conditions": [
+              {
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.location_name }}",
+                "rightValue": "School Campus"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "be6abf64-49da-496d-9e83-132b4aafd92c",
+        "name": "Notify Teacher",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          -500,
+          -220
+        ],
+        "webhookId": "a1e93108-3bdc-4d9c-8143-9f75c6991d17",
+        "parameters": {
+          "options": {},
+          "subject": "Student Arrival Alert",
+          "toEmail": "user@example.com",
+          "fromEmail": "user@example.com"
+        },
+        "credentials": {
+          "smtp": {
+            "id": "credential-id",
+            "name": "smtp Credential"
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "a9e2767f-fd26-40d2-8b01-d6b6dd07dd53",
+        "name": "Notify Parent",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          -500,
+          -20
+        ],
+        "webhookId": "3b0dd9a5-a06a-434d-9971-b246acdd5f2f",
+        "parameters": {
+          "options": {},
+          "subject": "Your Child's Location Update",
+          "toEmail": "user@example.com",
+          "fromEmail": "user@example.com"
+        },
+        "credentials": {
+          "smtp": {
+            "id": "credential-id",
+            "name": "smtp Credential"
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "8bf469fa-cb45-46f5-93e8-a31cec898dc8",
+        "name": "Success Response",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          -280,
+          -120
+        ],
+        "parameters": {
+          "options": {},
+          "respondWith": "json",
+          "responseBody": "={\n  \"success\": true,\n  \"message\": \"Location updated for {{ $('Process Location Data').item.json.student_name }}\",\n  \"location\": \"{{ $('Process Location Data').item.json.location_name }}\",\n  \"time\": \"{{ $('Process Location Data').item.json.time }}\"\n}"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "11654022-f76a-4c16-9572-83890d5feb53",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1640,
+          -260
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 180,
+          "height": 320,
+          "content": "Triggered via iOS Shortcut when student location updates\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "cb2c8940-f1d1-493e-949c-a98ffd13b723",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1400,
+          -260
+        ],
+        "parameters": {
+          "width": 180,
+          "height": 320,
+          "content": "Extracts coordinates and metadata\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5aff6f9d-a92a-4f9e-803b-4d948a848b50",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1180,
+          -260
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 180,
+          "height": 320,
+          "content": "Checks if student entered school zone\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8d738c70-8bf6-4989-b18b-34c333a54d19",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -980,
+          -260
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 180,
+          "height": 320,
+          "content": "Adds arrival data to Google Sheet\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "efea3574-c4fc-44cd-a0bc-42d1bfc2c297",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -760,
+          -260
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 180,
+          "height": 320,
+          "content": "Double-checks geofence condition before notifying\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2bc11c73-917f-4764-8838-f2f5747642bd",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -320,
+          -260
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 180,
+          "height": 320,
+          "content": "Returns a 200 response to the triggering device\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "220a1498-beea-48b8-adc7-58b84b7e811a",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -540,
+          -400
+        ],
+        "parameters": {
+          "width": 180,
+          "height": 540,
+          "content": "Sends email if student is confirmed at school\n"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "73bbead3-571c-45fb-87e8-19ed76748150",
+    "connections": {
+      "At School?": {
+        "main": [
+          [
+            {
+              "node": "Notify Teacher",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Notify Parent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Notify Parent": {
+        "main": [
+          [
+            {
+              "node": "Success Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Notify Teacher": {
+        "main": [
+          [
+            {
+              "node": "Success Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Student Arrived?": {
+        "main": [
+          [
+            {
+              "node": "Log School Arrival",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      },
+      "Log School Arrival": {
+        "main": [
+          [
+            {
+              "node": "At School?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Process Location Data": {
+        "main": [
+          [
+            {
+              "node": "Student Arrived?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Location Update Webhook": {
+        "main": [
+          [
+            {
+              "node": "Process Location Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 45,
+      "name": "Miscellaneous"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7044",
+  "fetched_at": "2026-09-12T13:11:41Z"
+}

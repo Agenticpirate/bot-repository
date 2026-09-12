@@ -1,0 +1,617 @@
+{
+  "id": 15887,
+  "name": "Detect pricing anomalies in Google Sheets with Groq AI and Slack alerts",
+  "description": "# Data Quality Checker\n\nThis workflow automatically monitors pricing data in Google Sheets, detects anomalies such as missing values or sudden spikes/drops, generates AI-based short explanations for flagged rows, updates the sheet with status and reason and sends Slack alerts for critical issues.\n\n**Quick Implementation Steps:**\n\n1. Prepare your Google Sheet with columns: `price`, `previous_price`, `status`, `reason`, `row_number`.\n2. Connect n8n with your **Google Sheets**, **Slack** and **Groq AI** credentials.\n3. Trigger the workflow manually or via webhook.\n4. Each row is processed to detect anomalies and generate a reason using AI.\n5. Flagged rows are updated in Google Sheets and a Slack alert is sent automatically.\n\n\n## What It Does\n\nThe **Data Quality Checker** workflow is designed to help you maintain accurate pricing data effortlessly. It fetches data from Google Sheets, evaluates each row for anomalies and ensures that unusual changes in prices do not go unnoticed.\n\nIt automatically flags rows with missing values, sudden spikes or sudden drops in price. The workflow uses a Groq AI model to generate concise explanations for any anomalies found, providing actionable insights directly in your sheet.\n\nFor rows without issues, it marks the status as `OK` with a standard reason. A Slack alert is sent for flagged data to keep teams informed in real-time, preventing unnoticed errors and enabling faster corrective actions.\n\n\n## Who It's For\n\n- Data analysts monitoring pricing or inventory data.\n- E-commerce managers tracking product price fluctuations.\n- Finance teams validating large datasets for inconsistencies.\n- Operations teams needing automated anomaly detection with alerts.\n\nThis workflow suits anyone who relies on timely, accurate data and wants automated anomaly detection and reporting.\n\n\n## Requirements to Use This Workflow\n\n- [**n8n account** (cloud or self-hosted)](https://n8n.partnerlinks.io/om1efg2qgvwi).\n- **Google Sheets account** with read/write access to the target sheet.\n- **Slack workspace** with a channel for alerts.\n- **Groq AI account** for anomaly explanation generation.\n- Sheet structure: columns `price`, `previous_price`, `status`, `reason`, `row_number`.\n\n\n## How It Works & Setup Guide\n\n1. **Prepare Google Sheet**\n\n   - Ensure your sheet has `price`, `previous_price`, `status`, `reason`, `row_number`.\n   - Populate initial pricing data.\n\n2. **Connect Credentials in n8n**\n\n   - Add **Google Sheets OAuth2** for reading and updating the sheet.\n   - Add **Slack** API credentials to send alerts.\n   - Add **Groq AI** credentials for AI reasoning.\n\n3. **Trigger the Workflow**\n\n   - Use a **manual trigger** or configure a webhook to run automatically.\n\n4. **Process Data**\n\n   - The workflow fetches data from Google Sheets.\n   - `SplitInBatches` node ensures each row is processed individually.\n   - `Check Price Issues` node checks for missing values or sudden changes.\n\n5. **Anomaly Handling**\n\n   - `If` node determines whether an anomaly exists.\n   - For flagged rows, AI generates a short reason (`Generate Issue Reason`).\n   - `Prepare Flag Data` formats data for updating the sheet.\n\n6. **Update & Alert**\n\n   - `Update Flagged Row` writes flagged status and reason back to Google Sheets.\n   - `Update Normal Row` writes `OK` status for rows with no issues.\n   - `Send Slack Alert` sends real-time notifications for flagged anomalies.\n\n\n## How To Customize Nodes\n\n- **Google Sheets nodes:** update `documentId` and `sheetName` to match your own sheets.\n- **Slack node:** change `channelId` and alert text to match your workspace and notification style.\n- **AI node:** adjust the prompt in `Generate Issue Reason` to change explanation style or length.\n- **Code node:** modify the logic in `Check Price Issues` to define what constitutes a spike or drop.\n\n\n## Add-ons\n\n- Connect to **email notifications** instead of Slack.\n- Extend AI logic to suggest corrective actions.\n- Include **historical trend analysis** in Google Sheets for better insights.\n- Integrate with **other data sources** like CSV or databases.\n\n\n## Use Case Examples\n\n1. **E-commerce pricing validation:** Automatically detect and explain unusual price changes for hundreds of products.\n\n2. **Inventory data verification:** Ensure stock values and price adjustments are accurate daily.\n\n3. **Finance anomaly detection:** Detect sudden cost or rate fluctuations in financial datasets.\n\n4. **Market monitoring:** Track competitor pricing changes with automated alerts.\n\n5. **General data quality assurance:** Any dataset requiring automated checks for missing or inconsistent values.\n\nThis workflow is flexible and can be adapted to other types of tabular data beyond pricing.\n\n\n## Troubleshooting Guide\n\n| Issue                    | Possible Cause                          | Solution                                                  |\n| ------------------------ | --------------------------------------- | --------------------------------------------------------- |\n| Workflow not triggering  | Trigger node not active                 | Enable the manual or webhook trigger                      |\n| Data not fetched         | Wrong `documentId` or `sheetName`       | Verify Google Sheets node settings and credentials        |\n| Slack alert not sent     | Invalid channel ID or credentials       | Update Slack credentials and ensure channel ID is correct |\n| AI reasoning fails       | Groq API issues or prompt misconfigured | Check Groq AI credentials and review the prompt text      |\n| Wrong anomaly detection  | Code logic in `Check Price Issues`      | Adjust thresholds or conditions in the code node          |\n| Sheet updates not saving | Google Sheets permission issue          | Ensure OAuth2 account has write access to the sheet       |\n\n\n## Need Help?\n\nIf you face issues setting up this workflow, customizing nodes or integrating add-ons, our [n8n automation team](https://www.weblineglobal.com/hire/n8n-developers/) can help. We specialize in building and optimizing n8n workflows for automation, data quality and alerting. \n\n[Contact us to implement this workflow, enhance it or create custom automation solutions tailored to your business needs](https://www.weblineindia.com/contact-us.html).\n",
+  "workflow": {
+    "id": "t7c5EWQNzBVrEayH",
+    "meta": {
+      "instanceId": "9f24379abd1ca05a3f590fdaa874ca82fbc5e1188798d609d51d2a8f6bacb662",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Data quality checker",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "07c0c9f5-4958-470b-8df6-9920a9a39190",
+        "name": "Groq Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+        "position": [
+          1296,
+          -64
+        ],
+        "parameters": {
+          "model": "openai/gpt-oss-safeguard-20b",
+          "options": {}
+        },
+        "credentials": {
+          "groqApi": {
+            "id": "FJbt7z46IUiBBIR1",
+            "name": "neha-Groq account"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "80ec759f-3af8-41fb-99cd-7b5400daf1a9",
+        "name": "Start Data Check",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          0,
+          -224
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "6604b97e-6b47-46bb-ad0d-61230b7440c0",
+        "name": "Get Pricing Data",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          208,
+          -224
+        ],
+        "parameters": {
+          "options": {},
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D6mxmcUrhNKZwD2bH_OKe3IZmqYOm8x9d6EAXs_kQBY/edit#gid=0",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1D6mxmcUrhNKZwD2bH_OKe3IZmqYOm8x9d6EAXs_kQBY",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D6mxmcUrhNKZwD2bH_OKe3IZmqYOm8x9d6EAXs_kQBY/edit?usp=drivesdk",
+            "cachedResultName": "Data quality checker"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "x91xlKRJP9xKA9IM",
+            "name": "Google Sheets account 9"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "2417d119-4ce6-4605-b033-6e962b86de14",
+        "name": "Process Each Row",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          400,
+          -208
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "2c77d75e-616f-4107-b1f1-97dfa33d0a52",
+        "name": "Check Price Issues",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          608,
+          -160
+        ],
+        "parameters": {
+          "jsCode": "const price = Number($json.price);\nconst prev = Number($json.previous_price);\n\nlet anomaly = \"\";\nlet status = \"OK\"; // default\n\nif (!price) {\n  anomaly = \"Missing Value\";\n  status = \"FLAGGED\";\n} else if (prev && prev !== 0) {\n  const change = (price - prev) / prev;\n\n  if (change > 0.2) {\n    anomaly = \"Sudden Spike\";\n    status = \"FLAGGED\";\n  } else if (change < -0.2) {\n    anomaly = \"Sudden Drop\";\n    status = \"FLAGGED\";\n  }\n}\n\nreturn [{ ...$json, anomaly, status }];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "462bf36c-14cd-4893-9b6b-228861bd9dd8",
+        "name": "Is Issue Found?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          832,
+          -240
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 3,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "d8b332bf-1a5e-484c-a126-14294de01208",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty",
+                  "singleValue": true
+                },
+                "leftValue": "={{ $json.anomaly }}",
+                "rightValue": ""
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "b3f249b0-0448-43cd-a3fe-8dd4e3375f13",
+        "name": "Generate Issue Reason",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          1264,
+          -256
+        ],
+        "parameters": {
+          "text": "=Anomaly: {{$json.anomaly}}\nPrice:{{ $json.price }}\n\nGive short reason in 3-4 lines",
+          "options": {},
+          "promptType": "define"
+        },
+        "typeVersion": 3.1
+      },
+      {
+        "id": "e7805735-cce8-467e-b9fe-799c21289add",
+        "name": "Prepare Flag Data",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1664,
+          -192
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "fd821e8a-fc38-48d9-a898-d80cfad36a36",
+                "name": "reason ",
+                "type": "string",
+                "value": "={{ $json.output }}"
+              },
+              {
+                "id": "b48c5a91-6149-477d-9145-7a135ee8e13a",
+                "name": "status",
+                "type": "string",
+                "value": "={{ $('Check Price Issues').item.json.status }}"
+              }
+            ]
+          },
+          "includeOtherFields": true
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "30053d26-5476-453b-a9ea-e8447420a287",
+        "name": "Update Flagged Row",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1888,
+          -96
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "reason": "={{ $json['reason '] }}",
+              "status": "={{ $json.status }}",
+              "row_number": "={{ $('Check Price Issues').item.json.row_number }}"
+            },
+            "schema": [
+              {
+                "id": "price",
+                "type": "string",
+                "display": true,
+                "removed": true,
+                "required": false,
+                "displayName": "price",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "previous_price",
+                "type": "string",
+                "display": true,
+                "removed": true,
+                "required": false,
+                "displayName": "previous_price",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "status",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "status",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "reason",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "reason",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "row_number",
+                "type": "number",
+                "display": true,
+                "removed": false,
+                "readOnly": true,
+                "required": false,
+                "displayName": "row_number",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [
+              "row_number"
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "update",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D6mxmcUrhNKZwD2bH_OKe3IZmqYOm8x9d6EAXs_kQBY/edit#gid=0",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1D6mxmcUrhNKZwD2bH_OKe3IZmqYOm8x9d6EAXs_kQBY",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D6mxmcUrhNKZwD2bH_OKe3IZmqYOm8x9d6EAXs_kQBY/edit?usp=drivesdk",
+            "cachedResultName": "Data quality checker"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "x91xlKRJP9xKA9IM",
+            "name": "Google Sheets account 9"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "8b709dda-0a0e-46cb-a89d-8a81dfe88a50",
+        "name": "Update Normal Row",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1040,
+          -144
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "reason": "Price change is within normal range. No anomaly detected.",
+              "status": "={{ $json.status }}",
+              "row_number": "={{ $json.row_number }}"
+            },
+            "schema": [
+              {
+                "id": "price",
+                "type": "string",
+                "display": true,
+                "removed": true,
+                "required": false,
+                "displayName": "price",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "previous_price",
+                "type": "string",
+                "display": true,
+                "removed": true,
+                "required": false,
+                "displayName": "previous_price",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "status",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "status",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "reason",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "reason",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "row_number",
+                "type": "number",
+                "display": true,
+                "removed": false,
+                "readOnly": true,
+                "required": false,
+                "displayName": "row_number",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [
+              "row_number"
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "update",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D6mxmcUrhNKZwD2bH_OKe3IZmqYOm8x9d6EAXs_kQBY/edit#gid=0",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1D6mxmcUrhNKZwD2bH_OKe3IZmqYOm8x9d6EAXs_kQBY",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D6mxmcUrhNKZwD2bH_OKe3IZmqYOm8x9d6EAXs_kQBY/edit?usp=drivesdk",
+            "cachedResultName": "Data quality checker"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "x91xlKRJP9xKA9IM",
+            "name": "Google Sheets account 9"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "2856c0b5-f249-4254-9c20-04f636f904e8",
+        "name": "Send Slack Alert",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          2080,
+          -240
+        ],
+        "webhookId": "137a6279-ea78-4f82-81c1-623f09054a24",
+        "parameters": {
+          "text": "= Anomaly Detected!  Price: {{ $('Get Pricing Data').item.json.price }} Previous Price: {{ $('Get Pricing Data').item.json.previous_price }}  Issue: {{ $('Check Price Issues').item.json.anomaly }}  Reason: {{$json.reason}}",
+          "select": "channel",
+          "channelId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "C0AQLRM87RS",
+            "cachedResultName": "data-quality-checker"
+          },
+          "otherOptions": {}
+        },
+        "credentials": {
+          "slackApi": {
+            "id": "PtAqTRINXfUn6wSD",
+            "name": "heet-p-slack"
+          }
+        },
+        "typeVersion": 2.4
+      },
+      {
+        "id": "27c34aca-24ab-4518-9d68-7df7874e79c6",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -432,
+          -672
+        ],
+        "parameters": {
+          "width": 352,
+          "height": 944,
+          "content": "# Data Quality Checker\n# How It Works\n\nThis workflow monitors pricing data from Google Sheets and detects anomalies automatically. It reads each row, checks for missing values or sudden price changes and marks them as “FLAGGED” if an issue is found. An AI model generates a short explanation for the anomaly. Flagged rows are updated in the sheet with status and reason and a Slack alert is sent. If no issue is detected, the row is marked “OK” with a normal status message.\n \n# Setup Steps\n## Prepare Google Sheet\nEnsure columns: price, previous_price, status, reason, row_number.\n\n## Connect Accounts in n8n\nAdd Google Sheets, Slack and Groq AI credentials.\n\n## Start Workflow\nUse trigger (manual/webhook).\n\n## Process Data\nCheck anomalies and generate AI reason.\n\n## Update & Alert\nUpdate sheet and send Slack alert for flagged rows."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "da9c0c7e-ece0-4e3a-9606-b8a554291e45",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -32,
+          -384
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 784,
+          "height": 512,
+          "content": "## Data Fetch & Validation\n\nThe workflow starts by triggering the process, fetches price data from the sheet, processes each row individually and checks for issues like missing values or sudden price changes. This ensures all data is ready for further anomaly detection."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9cd0c525-6cc7-4db3-bc44-6a9fb3165a6d",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          784,
+          -384
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 784,
+          "height": 512,
+          "content": "## Anomaly Handling & Updates\n\nThe workflow checks each price for anomalies using the “If” node. Detected issues are sent to the AI node to generate a short reason and if the value is ok then the Google Sheet is updated with the status ok. "
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "bff886f0-cd45-46bd-a881-db932e6963be",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1616,
+          -384
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 656,
+          "height": 528,
+          "content": "## Flagging & Alerts\n\nThis part of the workflow prepares flagged data with reasons, updates the corresponding rows in the Google Sheet and sends a Slack alert for any anomalies. It ensures all issues are recorded."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "availableInMCP": false,
+      "executionOrder": "v1"
+    },
+    "versionId": "435934de-b0e3-4d0b-ba4f-217c29186d9b",
+    "connections": {
+      "Groq Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Generate Issue Reason",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is Issue Found?": {
+        "main": [
+          [
+            {
+              "node": "Generate Issue Reason",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Update Normal Row",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Pricing Data": {
+        "main": [
+          [
+            {
+              "node": "Process Each Row",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Process Each Row": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Check Price Issues",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Start Data Check": {
+        "main": [
+          [
+            {
+              "node": "Get Pricing Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Flag Data": {
+        "main": [
+          [
+            {
+              "node": "Update Flagged Row",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update Normal Row": {
+        "main": [
+          [
+            {
+              "node": "Process Each Row",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Price Issues": {
+        "main": [
+          [
+            {
+              "node": "Is Issue Found?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update Flagged Row": {
+        "main": [
+          [
+            {
+              "node": "Process Each Row",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Send Slack Alert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Issue Reason": {
+        "main": [
+          [
+            {
+              "node": "Prepare Flag Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 35,
+      "name": "Document Extraction"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15887",
+  "fetched_at": "2026-09-12T13:15:39Z"
+}

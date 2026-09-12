@@ -1,0 +1,294 @@
+{
+  "id": 8098,
+  "name": "Automated Instagram Reels posting from Airtable content calendar",
+  "description": "\n*A guide to understand, operate, and extend the workflow.*\n\n---\n\n## 1) What this workflow does (and why it’s useful)\n\n**Goal:** Turn a simple Airtable sheet into a **content calendar** that automatically publishes **Instagram Reels** via the **Instagram Graph API**, on a schedule you control in n8n.\n\n**Why this matters:**\n- Your team plans everything in **Airtable** (user-friendly, collaborative).\n- **n8n** posts for you at the right time, every time.\n- You keep full control (no third-party SaaS lock-in, no manual uploads).\n- Later, you can reuse the same queue to post **YouTube Shorts** / **TikTok** (omnichannel).\n\n**Core flow (one row = one post):**\n1. **Cron** starts the workflow at a set time.\n2. **Airtable – Search** grabs due rows: `status = \"To Post\" AND scheduled_at &lt;= NOW() AND platform = \"IG\"`.\n3. **Split Out** processes each row individually.\n4. **Set (Map fields)** normalizes Airtable fields → `video_url`, `caption`, `recordId`.\n5. **IG: Create Media Container** registers your video as **REEL**.\n6. **Wait 90s** lets IG process the video.\n7. **IG: Publish Reel** publishes the container.\n8. **Airtable – Update** marks the row as **Posted**, stores `ig_media_id`, and timestamp.\n\n---\n\n## 2) Architecture at a glance\n\n```\n[Cron] \n  → [Airtable: Search records]\n    → [Split Out: records]\n      → [Set: Map fields]\n        → [IG: Create Media Container]\n          → [Wait 90s]\n            → [IG: Publish Reel]\n              → [Airtable: Update record]\n```\n\nSticky Notes inside the workflow explain each step (they’re rendered from `parameters.content` with Markdown).\n\n---\n\n## 3) Airtable schema (recommended)\n\nCreate a table (e.g., `Posts`) with these fields:\n\n| Field         | Type            | Purpose                                               |\n|---------------|-----------------|-------------------------------------------------------|\n| `video_url`   | URL or Text     | Directly accessible (public) URL to your MP4          |\n| `caption`     | Long text       | Final caption (hashtags, line breaks, emojis)         |\n| `platform`    | Single select   | Set `IG` for this workflow                            |\n| `status`      | Single select   | `To Post` → will be picked up; `Posted` later         |\n| `scheduled_at`| Date/Time (UTC) | When to post                                          |\n| `ig_media_id` | Text (optional) | Filled by n8n after publishing                        |\n| `posted_at`   | Date/Time       | Filled by n8n after publishing                        |\n\n**Filter used in the Airtable “Search records” node:**\n```\nAND({status}='To Post', {scheduled_at}&lt;=NOW(), {platform}='IG')\n```\n\n&gt; Tip: If you localize/rename fields, update the filter accordingly.\n\n---\n\n## 4) Prerequisites & credentials\n\n- **Instagram Business/Creator** account connected to a **Facebook Page**.\n- **IG User ID** for the connected account.\n- **Long-lived IG Access Token** with permissions to create and publish content.\n- **n8n environment variables** (Settings → Environments):\n  - `IG_API_VERSION` (e.g., `v21.0`)\n  - `IG_USER_ID`\n  - `IG_ACCESS_TOKEN`\n- **Airtable credential** in n8n using a **Personal Access Token** (as in your example).\n- A **publicly accessible** `video_url` (e.g., S3/GCS signed URL, public CDN, Drive/Dropbox direct link). The API pulls from your URL; it cannot fetch files behind logins.\n\n---\n\n## 5) Node-by-node deep dive (what each node expects/returns)\n\n### A) Cron Trigger\n- **What it does:** Starts the workflow on a schedule (daily at 09:00 in the template).\n- **How to use:** Adjust hours/minutes to your cadence (hourly, twice a day, etc.).\n\n### B) Airtable: Search records\n- **Operation:** `search`\n- **Base/Table:** Select from dropdowns (matches your account).\n- **Options → filterByFormula:** `AND({status}='To Post', {scheduled_at}&lt;=NOW(), {platform}='IG')`\n- **Return:** An array under `records[]`. Each `record` has `id` and `fields`.\n\n### C) Split Out: records\n- **What it does:** Turns the `records[]` array into individual items.\n- **Why:** Downstream steps can then act on each post separately.\n\n### D) Set: Map fields\n- **What it does:** Normalizes data to predictable keys and keeps the `recordId`.\n- **Outputs:**  \n  - `recordId` = `{{$json.id}}`  \n  - `video_url` = `{{$json.fields.video_url}}`  \n  - `caption` = `{{$json.fields.caption}}`  \n  - `scheduled_at` = `{{$json.fields.scheduled_at}}`\n\n### E) IG: Create Media Container (REELS)\n- **Endpoint:** `POST https://graph.facebook.com/{v}/{ig-user-id}/media`\n- **Body params:**\n  - `video_url` = `{{$json.video_url}}`\n  - `caption` = `{{$json.caption}}`\n  - `media_type=REELS`\n  - `share_to_feed=true` (optional)\n  - `access_token=${IG_ACCESS_TOKEN}`\n- **Return:** JSON with **container id** under `id` (this is your `creation_id` for publishing).\n\n### F) Wait 90s\n- **Why:** IG needs time to process the video behind `video_url`.\n- **Tip:** If your videos are large or high bitrate, you may increase to `120–180s`.\n\n### G) IG: Publish Reel\n- **Endpoint:** `POST https://graph.facebook.com/{v}/{ig-user-id}/media_publish`\n- **Body params:**\n  - `creation_id = {{$json.id}}` (the container id from step E)\n  - `access_token = ${IG_ACCESS_TOKEN}`\n- **Return:** JSON with **`id` = ig_media_id** (the published media).\n\n### H) Airtable: Update record\n- **What it does:** Writes results back to the same row.\n- **Fields updated (example):**\n  - `status = \"Posted\"`\n  - `ig_media_id = {{$json.id}}`\n  - `posted_at = {{$now}}`\n\n---\n\n## 6) First-run checklist (do this once)\n\n1. In **both Airtable nodes**, pick your **Base** and **Table** (via dropdown).\n2. Confirm **filterByFormula** matches your field names exactly.\n3. Add **one test row** in Airtable:  \n   - `video_url` = a public MP4 URL  \n   - `caption` = a small caption  \n   - `platform` = `IG`  \n   - `status` = `To Post`  \n   - `scheduled_at` = in the past (so it’s due now)\n4. Set **Cron** to run in the next minute (or click *Execute Workflow* manually).\n5. Confirm the flow:\n   - Airtable search → returns 1 record  \n   - Container created → you get an `id`  \n   - After 90s → Publish returns a `media id`  \n   - Airtable updated → row becomes `Posted` with `ig_media_id` and `posted_at`\n\n---\n\n## 7) Daily operations (how to use it day-to-day)\n\n- Your team fills **Airtable** with upcoming posts.\n- Keep `status = To Post`, set accurate `scheduled_at` in **UTC**.\n- n8n’s **Cron** checks regularly and posts due items.\n- After publishing, the row is marked **Posted** (so it won’t re-post).\n\n**Backfilling:**  \nIf you need to post a bunch of older content, set `scheduled_at` in the past for those rows and let Cron pick them up. If needed, run the workflow manually.\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "40f29e455b10b3ef07629363459d0fa6954887d44ddad18e74a5539a487f2eee",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "6d8edd9e-8d16-40d2-bed2-005b4e9bf711",
+        "name": "Sticky: Scheduler",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -576,
+          96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "d1e89409-34bf-42a3-a581-60a177d3107d",
+        "name": "Cron Trigger",
+        "type": "n8n-nodes-base.cron",
+        "position": [
+          -496,
+          320
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "40ac4d25-a949-401f-803a-dde272a7f853",
+        "name": "Sticky: Airtable Search",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -288,
+          96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "7c4f8e46-1585-4470-802d-895bef6f1276",
+        "name": "Airtable: Search records",
+        "type": "n8n-nodes-base.airtable",
+        "position": [
+          -224,
+          320
+        ],
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "d602b0c0-bcc2-4b4d-9036-bc24d82100ff",
+        "name": "Sticky: Split",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          0,
+          96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e0a1f860-8df7-4f2c-931e-f35d38a2a086",
+        "name": "Split Out: records",
+        "type": "n8n-nodes-base.splitOut",
+        "position": [
+          64,
+          320
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "fafb719e-388a-42e5-80a7-8e042d7b4507",
+        "name": "Sticky: Normalize",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          304,
+          96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f7edfbb3-4113-42e3-a6c7-ce02e465a1aa",
+        "name": "Set: Map fields",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          336,
+          320
+        ],
+        "parameters": {},
+        "typeVersion": 3.2
+      },
+      {
+        "id": "f3605bb5-bedd-4150-9591-e9d9f7bd4041",
+        "name": "Sticky: IG Container",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          560,
+          96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2c5416c8-e0de-4d22-b214-cf64414e5cc5",
+        "name": "IG: Create Media Container",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          624,
+          320
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "181c7859-e648-4fd3-9186-00a1d810a59b",
+        "name": "Sticky: Wait",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          816,
+          96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1e1a46c2-6865-4d54-ac9c-653d1ca9f9ba",
+        "name": "Wait 90s",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          848,
+          320
+        ],
+        "webhookId": "f76ab481-a373-4e51-97a1-4c50239eb476",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "1fa30465-500f-4a10-88f1-d82e3927b378",
+        "name": "Sticky: Publish",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1072,
+          96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6a963ed7-e9a3-4ac7-97f0-a1a153ccabe1",
+        "name": "IG: Publish Reel",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1136,
+          320
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "296bb29b-dce5-439b-bf1b-7a57bc2c43c5",
+        "name": "Sticky: Airtable Update",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1344,
+          96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "7a1a8112-d736-4a83-b874-091e29b98a8d",
+        "name": "Airtable: Update record",
+        "type": "n8n-nodes-base.airtable",
+        "position": [
+          1392,
+          320
+        ],
+        "parameters": {},
+        "typeVersion": 2.1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Wait 90s": {
+        "main": [
+          [
+            {
+              "node": "IG: Publish Reel",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Cron Trigger": {
+        "main": [
+          [
+            {
+              "node": "Airtable: Search records",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set: Map fields": {
+        "main": [
+          [
+            {
+              "node": "IG: Create Media Container",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IG: Publish Reel": {
+        "main": [
+          [
+            {
+              "node": "Airtable: Update record",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split Out: records": {
+        "main": [
+          [
+            {
+              "node": "Set: Map fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Airtable: Search records": {
+        "main": [
+          [
+            {
+              "node": "Split Out: records",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IG: Create Media Container": {
+        "main": [
+          [
+            {
+              "node": "Wait 90s",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 33,
+      "name": "Social Media"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8098",
+  "fetched_at": "2026-09-12T13:12:17Z"
+}

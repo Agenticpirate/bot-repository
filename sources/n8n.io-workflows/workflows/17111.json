@@ -1,0 +1,793 @@
+{
+  "id": 17111,
+  "name": "Score Salesforce playbook compliance with Google Sheets, Gemini, and Slack",
+  "description": "## Quick overview\nThis workflow manually runs to review Salesforce opportunities listed in Google Sheets, evaluates each deal against sales playbook rules using Google Gemini, updates compliance fields in Salesforce, alerts in Slack for low scores, and logs results back to Google Sheets.\n\n## How it works\n1. Starts manually and loads a list of opportunities from Google Sheets.\n2. Processes each row in batches and fetches the latest matching Opportunity record from Salesforce.\n3. Adds predefined playbook rules (including a passing score) and combines them with the opportunity data.\n4. Checks whether at least two meetings are completed, and if not, auto-generates a non-compliant evaluation without using AI.\n5. For opportunities that pass the meeting minimum, sends the opportunity details and rules to Google Gemini to produce a compliance decision, missing steps, score, reason, and risk level, then normalizes the response into structured fields.\n6. Updates the Opportunity in Salesforce with compliance status, risk, score, and timestamp, and sends a Slack alert when the compliance score is below 70.\n7. For compliant opportunities, writes the final status and compliance metrics back to a Google Sheets results tab (append or update by opportunity_id).\n\n## Setup\n1. Connect credentials for Google Sheets OAuth2, Salesforce OAuth2, Slack OAuth2, and the Google Gemini (PaLM) API.\n2. Ensure your input Google Sheet includes the required columns (opportunity_id, stage, meetings_done, demo_done, approval_status, rep_name) and update the spreadsheet and sheet IDs if you use a different file.\n3. Verify the Salesforce Opportunity custom fields exist and match the API names used (Compliance_Status__c, Compliance_Risk__c, Compliance_Checked_At__c, Compliance_Score__c).\n4. Set the target Slack channel in the Slack message step and adjust the alert threshold or message text if needed.\n5. Review and edit the playbook rules and passing_score values to match your sales process before activating the workflow.\n\n## Additional info\n##  How To Customize Nodes\n\n### Modify Playbook Rules\n\n- Edit the **“Define Playbook Rules”** node\n- Adjust rules and passing score based on your process\n\n### Change AI Evaluation Logic\n\n- Update the prompt inside **“Evaluate Compliance”**\n- Customize scoring or decision criteria\n\n### Adjust Slack Alerts\n\n- Modify message format in **“Send Slack Alert”**\n- Change channel ID\n\n### Update Salesforce Fields\n\n- Edit field mappings in:\n  - **“Update Salesforce Compliance Fields”**\n\n### Change Risk Threshold\n\n- Modify condition in:\n  - **“Check High Risk Deals”** node\n\n\n##  Add-ons (Extend This Workflow)\n\nYou can enhance this workflow with:\n\n- Email notifications for managers\n- Dashboard integration (e.g., BI tools)\n- Auto-task creation in Salesforce for non-compliant deals\n- Weekly compliance summary reports\n- Integration with CRM notes or activity logs\n\n\n##  Use Case Examples\n\nHere are some practical ways to use this workflow:\n\n1. **Sales Playbook Enforcement**\n   - Ensure reps follow required steps before advancing deals\n\n2. **Deal Risk Identification**\n   - Automatically flag risky opportunities early\n\n3. **Sales Coaching**\n   - Identify gaps like missing demos or meetings\n\n4. **Pipeline Quality Monitoring**\n   - Maintain high-quality opportunities in pipeline\n\n5. **Compliance Reporting**\n   - Track historical compliance trends in Google Sheets\n\nThere can be many more use cases depending on your sales process and business needs.\n\n\n##  Troubleshooting Guide\n\n| Issue | Possible Cause | Solution |\n|------|--------------|---------|\n| No data fetched from Google Sheets | Incorrect Sheet ID or permissions | Reconnect Google Sheets and verify access |\n| Salesforce data not updating | Invalid credentials or field mapping | Check Salesforce API credentials and field IDs |\n| AI response is empty | API issue or incorrect parsing | Verify Gemini API key and response handling |\n| Slack alert not sent | Wrong channel ID or permissions | Confirm Slack bot access and channel ID |\n| Incorrect compliance score | Prompt logic mismatch | Review and update AI prompt logic |\n| Workflow stops mid-way | Node execution error | Check execution logs in n8n |\n\n\n##  Need Help?\n\nIf you need help setting up, customizing or extending this workflow, we’re here to assist.\n\nWhether you want to:\n\n- Tailor this workflow to your sales process\n- Add advanced automations\n- Integrate with more tools\n- Build custom AI-powered workflows\n\n Reach out to **WeblineIndia** to [hire n8n workflow developers](https://www.weblineindia.com/hire-n8n-developers/) for expert support and development services.\n\nWe can help you [turn your business processes into fully automated, intelligent workflows](https://www.weblineindia.com/process-automation-solutions.html).",
+  "workflow": {
+    "id": "mTLImqGSo0Y3x0Oj",
+    "meta": {
+      "instanceId": "aa84569cbf257184f6ad1582da635360f2453e8c11206055470b224c285f5b6a",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "N-0121 AI-Based Sales Playbook Compliance Checker",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "fe3563c9-4bca-4264-8c41-4cf4d0e0f7e7",
+        "name": "Load Opportunities from Sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -5648,
+          5136
+        ],
+        "parameters": {
+          "options": {},
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1M7BZvlzdXDeLGiUygj6Aw1bXa6ekE68Ev5eg-g3UHl8/edit#gid=0",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1M7BZvlzdXDeLGiUygj6Aw1bXa6ekE68Ev5eg-g3UHl8",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1M7BZvlzdXDeLGiUygj6Aw1bXa6ekE68Ev5eg-g3UHl8/edit?usp=drivesdk",
+            "cachedResultName": "Salesforce"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "MYTlJehpXYhsXd8R",
+            "name": "Google Sheets OAuth2 API"
+          }
+        },
+        "typeVersion": 4
+      },
+      {
+        "id": "ea6357c4-5da9-45ad-a130-53d020b30061",
+        "name": "Process Each Opportunity",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          -5424,
+          5136
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "0d604106-0829-4d1e-a50d-c81a9d7aaed8",
+        "name": "Fetch Opportunity from Salesforce",
+        "type": "n8n-nodes-base.salesforce",
+        "position": [
+          -5200,
+          5136
+        ],
+        "parameters": {
+          "resource": "opportunity",
+          "operation": "get",
+          "opportunityId": "={{ $json.opportunity_id }}"
+        },
+        "credentials": {
+          "salesforceOAuth2Api": {
+            "id": "thRmRXWvWPUQOwp7",
+            "name": "Salesforce account"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "76b02a24-8b04-4310-a343-eb07fd99506f",
+        "name": "Define Playbook Rules",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -4960,
+          5008
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "rule-01",
+                "name": "rule_1",
+                "type": "string",
+                "value": "Demo must be completed before Proposal stage"
+              },
+              {
+                "id": "rule-02",
+                "name": "rule_2",
+                "type": "string",
+                "value": "Minimum 2 meetings required before advancing"
+              },
+              {
+                "id": "rule-03",
+                "name": "rule_3",
+                "type": "string",
+                "value": "Approval required before entering Negotiation stage"
+              },
+              {
+                "id": "rule-04",
+                "name": "passing_score",
+                "type": "number",
+                "value": 70
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "5ff67255-405b-40ab-ae5b-f0d4c8ab3b12",
+        "name": "Merge Opportunity and Rules",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          -4752,
+          5136
+        ],
+        "parameters": {
+          "mode": "combine",
+          "options": {},
+          "joinMode": "keepEverything",
+          "fieldsToMatchString": "opportunity_id"
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "59962573-94c2-4cb6-844d-d3e53cc83bc4",
+        "name": "Check Meeting Requirement",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -4528,
+          5136
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 1,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "cond-01",
+                "operator": {
+                  "type": "number",
+                  "operation": "gte"
+                },
+                "leftValue": "={{ $('Load Opportunities from Sheet').item.json.meetings_done }}",
+                "rightValue": 2
+              }
+            ]
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "aeec1949-a2ac-43fb-a84c-e25ea908a91e",
+        "name": "Evaluate Compliance",
+        "type": "@n8n/n8n-nodes-langchain.googleGemini",
+        "position": [
+          -4304,
+          5008
+        ],
+        "parameters": {
+          "modelId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "models/gemini-2.5-flash",
+            "cachedResultName": "models/gemini-2.5-flash"
+          },
+          "options": {},
+          "messages": {
+            "values": [
+              {
+                "content": "=Evaluate this sales opportunity against the playbook rules.\n\nOpportunity Details:\n- Opportunity ID: {{ $('Load Opportunities from Sheet').item.json.opportunity_id }}\n- Stage: {{ $('Load Opportunities from Sheet').item.json.stage }}\n- Meetings Done: {{ $('Load Opportunities from Sheet').item.json.meetings_done }}\n- Demo Done: {{ $('Load Opportunities from Sheet').item.json.demo_done }}\n- Approval Status: {{ $('Load Opportunities from Sheet').item.json.approval_status }}\n- Rep Name: {{ $('Load Opportunities from Sheet').item.json.rep_name }}\n\nPlaybook Rules:\n- Rule 1: {{ $json.rule_1 }}\n- Rule 2: {{ $json.rule_2 }}\n- Rule 3: {{ $json.rule_3 }}\n- Passing Score: {{ $json.passing_score }}\n\nEvaluation:\n- Begin with a score of 100.\n- Subtract 40 when the demo is incomplete in Proposal stage.\n- Subtract 30 when fewer than 2 meetings are complete.\n- Subtract 30 when approval is incomplete before Negotiation stage.\n- Do not return a score below 0.\n- Compliance is Yes when the score meets the passing score; otherwise No.\n- Risk is Low at 80 or above, Medium from 50 through 79, and High below 50.\n\nReturn five plain-text lines in this format:\nCompliance: Yes or No\nMissing Steps: list missing steps or None\nScore: number from 0 through 100\nReason: one short sentence\nRisk Level: Low, Medium, or High"
+              }
+            ]
+          },
+          "builtInTools": {}
+        },
+        "credentials": {
+          "googlePalmApi": {
+            "id": "ZmJ44AfdmkGLdEnE",
+            "name": "Google Gemini(PaLM) Api account"
+          }
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "e1e44912-011a-45f5-835f-649e439cd79c",
+        "name": "Clean AI Response",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -3984,
+          5008
+        ],
+        "parameters": {
+          "jsCode": "const raw = $json;\n\nlet geminiText =\n  raw.text ||\n  raw.output ||\n  raw.message ||\n  raw.response ||\n  '';\n\nif (\n  !geminiText &&\n  Array.isArray(raw.candidates) &&\n  raw.candidates.length > 0 &&\n  raw.candidates[0] &&\n  raw.candidates[0].content &&\n  Array.isArray(raw.candidates[0].content.parts) &&\n  raw.candidates[0].content.parts.length > 0 &&\n  raw.candidates[0].content.parts[0]\n) {\n  geminiText = raw.candidates[0].content.parts[0].text || '';\n}\n\nif (!geminiText && typeof raw.content === 'string') {\n  geminiText = raw.content;\n}\n\nif (typeof geminiText !== 'string') {\n  try {\n    geminiText = JSON.stringify(geminiText);\n  } catch (error) {\n    geminiText = String(geminiText);\n  }\n}\n\ngeminiText = geminiText.trim();\n\nif (!geminiText) {\n  geminiText =\n    'Gemini response was empty. Available fields: ' +\n    Object.keys(raw).join(', ');\n}\n\nconst result = Object.assign({}, raw);\nresult.compliance_response = geminiText;\n\nreturn [\n  {\n    json: result\n  }\n];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "eaed620c-0483-4760-8038-aca38bd6a726",
+        "name": "Auto-Flag Low Meeting Case",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -4304,
+          5264
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "flag-01",
+                "name": "compliance_response",
+                "type": "string",
+                "value": "=Compliance: No\nMissing Steps: Minimum meetings not met (needs at least 2)\nScore: 70\nReason: Sales rep has not completed the minimum required 2 meetings before advancing.\nRisk Level: Medium"
+              },
+              {
+                "id": "flag-02",
+                "name": "auto_flagged",
+                "type": "boolean",
+                "value": true
+              },
+              {
+                "id": "flag-03",
+                "name": "opportunity_id",
+                "type": "string",
+                "value": "={{ $('Load Opportunities from Sheet').item.json.opportunity_id }}"
+              },
+              {
+                "id": "flag-04",
+                "name": "stage",
+                "type": "string",
+                "value": "={{ $('Load Opportunities from Sheet').item.json.stage }}"
+              },
+              {
+                "id": "flag-05",
+                "name": "rep_name",
+                "type": "string",
+                "value": "={{ $('Load Opportunities from Sheet').item.json.rep_name }}"
+              },
+              {
+                "id": "flag-06",
+                "name": "meetings_done",
+                "type": "number",
+                "value": "={{ $('Load Opportunities from Sheet').item.json.meetings_done }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "99655692-f8a8-4c67-b6ab-f4ebd248efe2",
+        "name": "Calculate Final Compliance",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -3728,
+          5136
+        ],
+        "parameters": {
+          "jsCode": "const text = String($json.compliance_response || '').trim();\nconst lines = text.split('\\n');\n\nfunction readValue(label) {\n  for (let index = 0; index < lines.length; index += 1) {\n    const line = lines[index].trim();\n    if (line.toLowerCase().startsWith(label.toLowerCase())) {\n      return line.slice(label.length).trim();\n    }\n  }\n  return '';\n}\n\nlet score = Number.parseInt(readValue('Score:'), 10);\nif (!Number.isFinite(score)) {\n  score = 0;\n}\nscore = Math.min(100, Math.max(0, score));\n\nconst complianceValue = readValue('Compliance:').toLowerCase();\nlet isCompliant;\nif (complianceValue === 'yes') {\n  isCompliant = 'Yes';\n} else if (complianceValue === 'no') {\n  isCompliant = 'No';\n} else {\n  isCompliant = score >= 70 ? 'Yes' : 'No';\n}\n\nconst missingSteps = readValue('Missing Steps:') || 'None';\n\nlet riskLevel = readValue('Risk Level:');\nif (\n  riskLevel !== 'Low' &&\n  riskLevel !== 'Medium' &&\n  riskLevel !== 'High'\n) {\n  if (score >= 80) {\n    riskLevel = 'Low';\n  } else if (score >= 50) {\n    riskLevel = 'Medium';\n  } else {\n    riskLevel = 'High';\n  }\n}\n\nconst reason =\n  readValue('Reason:') ||\n  'Evaluated against playbook rules.';\n\nlet scoreCategory = 'Critical';\nif (score >= 90) {\n  scoreCategory = 'Excellent';\n} else if (score >= 70) {\n  scoreCategory = 'Good';\n} else if (score >= 50) {\n  scoreCategory = 'Needs Improvement';\n}\n\nconst result = Object.assign({}, $json);\nresult.compliance_score = score;\nresult.is_compliant = isCompliant;\nresult.missing_steps = missingSteps;\nresult.risk_level = riskLevel;\nresult.reason = reason;\nresult.score_category = scoreCategory;\nresult.checked_at = new Date().toISOString();\nresult.raw_gemini_response = text;\n\nreturn [\n  {\n    json: result\n  }\n];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "4c10cb69-fc14-4061-9970-7552310bc094",
+        "name": "Update Salesforce Compliance Fields",
+        "type": "n8n-nodes-base.salesforce",
+        "position": [
+          -3504,
+          5136
+        ],
+        "parameters": {
+          "resource": "opportunity",
+          "operation": "update",
+          "updateFields": {
+            "customFieldsUi": {
+              "customFieldsValues": [
+                {
+                  "value": "={{ $json.is_compliant }}",
+                  "fieldId": "=Compliance_Status__c"
+                },
+                {
+                  "value": "={{ $json.risk_level }}",
+                  "fieldId": "=Compliance_Risk__c"
+                },
+                {
+                  "value": "={{ $json.checked_at }}",
+                  "fieldId": "=Compliance_Checked_At__c"
+                },
+                {
+                  "value": "={{ $json.compliance_score }}",
+                  "fieldId": "=Compliance_Score__c"
+                }
+              ]
+            }
+          },
+          "opportunityId": "={{ $('Load Opportunities from Sheet').item.json.opportunity_id }}"
+        },
+        "credentials": {
+          "salesforceOAuth2Api": {
+            "id": "thRmRXWvWPUQOwp7",
+            "name": "Salesforce account"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6d21ad05-ea59-459f-80a3-8046944c6e0d",
+        "name": "Check High Risk Deals",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -3280,
+          5136
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 1,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "cond-02",
+                "operator": {
+                  "type": "number",
+                  "operation": "lt"
+                },
+                "leftValue": "={{ $('Calculate Final Compliance').item.json.compliance_score }}",
+                "rightValue": 70
+              }
+            ]
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "77cb8e3c-d982-42a1-b031-443aad37346a",
+        "name": "Send Slack Alert",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          -3056,
+          5040
+        ],
+        "webhookId": "b0d387b0-14a1-4371-8bd5-c7afe54a9287",
+        "parameters": {
+          "text": "=:warning: *Sales Playbook Compliance Alert*\n\n*Opportunity:* {{ $('Load Opportunities from Sheet').item.json.opportunity_id }}\n*Sales Rep:* {{ $('Load Opportunities from Sheet').item.json.rep_name }}\n*Stage:*{{ $('Load Opportunities from Sheet').item.json.stage }}\n*Compliance Score:* {{ $('Calculate Final Compliance').item.json.compliance_score }}/100 ({{ $('Calculate Final Compliance').item.json.score_category }})\n*Risk Level:* {{ $('Calculate Final Compliance').item.json.risk_level }}\n*Status:* {{ $('Calculate Final Compliance').item.json.is_compliant }}\n\n*Missing Steps:*\n{{ $('Calculate Final Compliance').item.json.missing_steps }}\n\n*Reason:* {{ $('Calculate Final Compliance').item.json.reason }}\n\n*Checked At:* {{ $('Calculate Final Compliance').item.json.checked_at }}\n\nPlease review and take action immediately.",
+          "select": "channel",
+          "channelId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "C0AP6S28KM3",
+            "cachedResultName": "all-aishvarya"
+          },
+          "otherOptions": {
+            "mrkdwn": true
+          },
+          "authentication": "oAuth2"
+        },
+        "credentials": {
+          "slackOAuth2Api": {
+            "id": "8ZJIg7kaqsmsr9M7",
+            "name": "Slack OAuth2 API"
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "c33505c5-7c32-4e84-b953-763d577bd309",
+        "name": "Mark Opportunity as Compliant",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -3056,
+          5232
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "done-01",
+                "name": "final_status",
+                "type": "string",
+                "value": "Compliant"
+              },
+              {
+                "id": "done-02",
+                "name": "message",
+                "type": "string",
+                "value": "={{ 'Opportunity ' + $json.opportunity_id + ' passed compliance check with score ' + $json.compliance_score }}"
+              },
+              {
+                "id": "done-03",
+                "name": "alert_sent",
+                "type": "boolean",
+                "value": false
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "23d1b956-50c7-4e1d-8721-2222c44def41",
+        "name": "Log Results to Sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -2848,
+          5232
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "checked_at": "={{ $('Calculate Final Compliance').item.json.checked_at }}",
+              "risk_level": "={{ $('Calculate Final Compliance').item.json.risk_level }}",
+              "final_status": "={{ $json.final_status }}",
+              "opportunity_id": "={{ $('Load Opportunities from Sheet').item.json.opportunity_id }}",
+              "compliance_score": "={{ $('Calculate Final Compliance').item.json.compliance_score }}"
+            },
+            "schema": [
+              {
+                "id": "opportunity_id",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "opportunity_id",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "final_status",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "final_status",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "compliance_score",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "compliance_score",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "risk_level",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "risk_level",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "checked_at",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "checked_at",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [
+              "opportunity_id"
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "appendOrUpdate",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": 1565431384,
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1M7BZvlzdXDeLGiUygj6Aw1bXa6ekE68Ev5eg-g3UHl8/edit#gid=1565431384",
+            "cachedResultName": "Sheet2"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1M7BZvlzdXDeLGiUygj6Aw1bXa6ekE68Ev5eg-g3UHl8",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1M7BZvlzdXDeLGiUygj6Aw1bXa6ekE68Ev5eg-g3UHl8/edit?usp=drivesdk",
+            "cachedResultName": "Salesforce"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "MYTlJehpXYhsXd8R",
+            "name": "Google Sheets OAuth2 API"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "691a6adf-2ad8-41c8-862a-0a0d5ea6d861",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -5888,
+          4384
+        ],
+        "parameters": {
+          "width": 624,
+          "height": 400,
+          "content": "## AI-Based Sales Playbook Compliance Checker\n\n## How it works:\nThis workflow reads opportunities from Google Sheets, fetches Salesforce data, and evaluates compliance against predefined sales playbook rules. It uses AI + rule-based checks to calculate a compliance score, flags risks, updates Salesforce, and sends alerts for high-risk deals.\n\n## Setup steps:\n1. Connect Google Sheets, Salesforce, and Slack credentials\n2. Update Playbook Rules in “Define Playbook Rules” node\n3. Ensure sheet contains required fields (opportunity_id, stage, meetings_done, etc.)\n4. Configure Slack channel ID\n5. Test with sample data before enabling automation\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2ae0bc61-4b01-4e33-90c9-97410e3be149",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -5696,
+          4928
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 640,
+          "height": 448,
+          "content": "## Data Input & Preparation\nFetches opportunity records from Google Sheets and processes them one-by-one. For each record, it retrieves the latest data from Salesforce to ensure evaluation uses real-time information before applying any rules or checks."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "d67fdfe1-b79d-422d-aaf4-8284db54e23c",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -5008,
+          4848
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 1408,
+          "height": 592,
+          "content": "## Compliance Evaluation Engine\nCentral rules are defined and merged with opportunity data. The workflow checks minimum criteria, then uses AI + rule-based logic to evaluate compliance. It cleans AI output and converts it into structured fields like score, risk level, and missing steps"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "72495930-a616-4f0a-a5c9-1ce65f0686e7",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -3568,
+          4928
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 864,
+          "height": 480,
+          "content": "## Actions & Notifications\nFinal results are pushed back to Salesforce with compliance fields. High-risk opportunities trigger Slack alerts for immediate attention, while compliant ones are marked accordingly. All outcomes are logged into Google Sheets for tracking and reporting."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "28461d0b-3d9e-4c80-aeb5-56815708a15c",
+        "name": "Start Workflow",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          -5904,
+          5136
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "binaryMode": "separate",
+      "executionOrder": "v1"
+    },
+    "versionId": "3e037d0a-85d0-4c99-83dc-ba36ccd2e4c2",
+    "connections": {
+      "Start Workflow": {
+        "main": [
+          [
+            {
+              "node": "Load Opportunities from Sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Clean AI Response": {
+        "main": [
+          [
+            {
+              "node": "Calculate Final Compliance",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Evaluate Compliance": {
+        "main": [
+          [
+            {
+              "node": "Clean AI Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check High Risk Deals": {
+        "main": [
+          [
+            {
+              "node": "Send Slack Alert",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Mark Opportunity as Compliant",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Define Playbook Rules": {
+        "main": [
+          [
+            {
+              "node": "Merge Opportunity and Rules",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Process Each Opportunity": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Fetch Opportunity from Salesforce",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Meeting Requirement": {
+        "main": [
+          [
+            {
+              "node": "Evaluate Compliance",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Auto-Flag Low Meeting Case",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Auto-Flag Low Meeting Case": {
+        "main": [
+          [
+            {
+              "node": "Calculate Final Compliance",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Calculate Final Compliance": {
+        "main": [
+          [
+            {
+              "node": "Update Salesforce Compliance Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge Opportunity and Rules": {
+        "main": [
+          [
+            {
+              "node": "Check Meeting Requirement",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Load Opportunities from Sheet": {
+        "main": [
+          [
+            {
+              "node": "Process Each Opportunity",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mark Opportunity as Compliant": {
+        "main": [
+          [
+            {
+              "node": "Log Results to Sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Opportunity from Salesforce": {
+        "main": [
+          [
+            {
+              "node": "Define Playbook Rules",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Merge Opportunity and Rules",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Update Salesforce Compliance Fields": {
+        "main": [
+          [
+            {
+              "node": "Check High Risk Deals",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 39,
+      "name": "CRM"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/17111",
+  "fetched_at": "2026-09-12T13:16:17Z"
+}

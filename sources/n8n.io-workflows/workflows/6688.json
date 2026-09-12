@@ -1,0 +1,247 @@
+{
+  "id": 6688,
+  "name": "Compare vendor quotations with Grok AI and export to Google Sheets & email",
+  "description": "This workflow automates the process of receiving vendor quotations, extracting and summarizing their contents using **AI**, and logging the results for comparison. The system listens for new file uploads via **webhook**, processes each file using a **summarization engine**, and generates a well-formatted **summary table** that is stored in **Google Sheets** and sent via **email** to stakeholders.\n\n## **Good to Know**\n\n* **Saves hours of manual work** by auto-comparing multiple vendor quotations.\n* **Uses AI summarization** to intelligently identify highlights and differences in each quote.\n* **Supports structured summaries** for quick stakeholder decision-making.\n* **Maintains a Google Sheets log** for historical comparison and auditing.\n* **Email notifications** ensure stakeholders receive real-time updates.\n\n## **How It Works**\n\n### **1. Upload Quotes**\n\n**Webhook trigger** that listens for uploaded vendor quotation files (PDF, Excel, or Docs).\n\n### **2. Extract File Data**\n\n**Parses the uploaded file** and extracts relevant quote data (price, items, vendor name, etc.).\n\n### **3. AI Summarization**\n\n**Sends extracted data to an AI API (Grok)** to generate a human-readable comparison summary.\n\n### **4. Wait For Reply**\n\n**Pauses the workflow** until the AI response is fully received.\n\n### **5. Format Summary**\n\n**Formats the AI-generated content** into a structured summary (e.g., table format or comparison bullets).\n\n### **6. Log to Google Sheets**\n\n**Appends the formatted summary** to a Google Sheet for tracking and reference.\n\n### **7. Send Email**\n\n**Emails the summary** to predefined recipients (procurement, finance, etc.).\n\n## **Data Sources**\n\n* **Uploaded Vendor Quotation Files** – Typically in PDF, DOCX, or Excel format containing vendor proposals.\n* **AI API (Grok)** – Processes the quote data and returns a summarized comparison.\n\n## **How to Use**\n\n1. **Import the workflow** into your n8n instance (self-hosted or cloud).\n2. **Configure the Webhook URL** to receive file uploads.\n3. **Set up file extraction logic** in the “Extract File Data” node to match your file format.\n4. **Configure your Grok API credentials** in the “AI Summarization” node.\n5. **Connect your Google Sheets account** to the “Log to Google Sheets” node.\n6. **Customize the recipient email address** in the “Send Email” node.\n7. **Test with sample quotation files** to validate the entire flow.\n\n## **Requirements**\n\n* **Self-hosted n8n instance** (if using community nodes).\n* **API key for Grok** or another AI summarization service.\n* **Google account access** to log summary data to Sheets.\n* **Mail credentials** for sending automated emails (SMTP setup).\n* **File parsing logic** (for PDFs, DOCX, Excel) depending on your vendor formats.\n\n## **Customizing This Workflow**\n\n* **Modify the Extract File Data node** to support additional quote formats or fields.\n* **Enhance AI Summarization** with custom prompts or models for industry-specific terms.\n* **Format output into a PDF summary** or comparison chart if needed.\n* **Add Slack/Teams integration** for real-time team alerts.\n* **Apply filters** to compare only specific vendors or line items.\n\n\n\n",
+  "workflow": {
+    "id": "I7WH7YAkU7thNKGJ",
+    "meta": {
+      "instanceId": "dd69efaf8212c74ad206700d104739d3329588a6f3f8381a46a481f34c9cc281",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Vendor Quotation Comparator with Smart AI Summary Table",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "f13d14c0-5c12-49dc-8fdc-09374c800045",
+        "name": "Upload Quotes",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -480,
+          -140
+        ],
+        "webhookId": "vendor-quote-upload",
+        "parameters": {
+          "path": "vendor-quote-upload",
+          "options": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3d583a32-3731-4b44-98b0-b90866128a54",
+        "name": "Extract File Data",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          -260,
+          -140
+        ],
+        "parameters": {
+          "functionCode": "return items.map(item => {\n  const file = item.binary['data'];\n  return {\n    json: {\n      fileName: file.fileName,\n      fileData: file.data\n    }\n  };\n});"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "bd191a98-5b73-4732-bffa-1c9d09faadb4",
+        "name": "AI Summarization",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -40,
+          -140
+        ],
+        "parameters": {
+          "url": "https://api.grok.xai.com/summarize",
+          "options": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "616fcc3f-2c98-4816-ad3a-5285e47322f5",
+        "name": "Format Summary",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          400,
+          -140
+        ],
+        "parameters": {
+          "functionCode": "return items.map(item => {\n  const summary = item.json;\n  return {\n    json: {\n      vendor: summary.vendor || 'Unknown',\n      price: summary.price || 0,\n      deliveryTime: summary.deliveryTime || 'N/A',\n      features: summary.features || []\n    }\n  };\n});"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e322b3b3-3b5e-4a2b-b734-6d3c2a8a7a51",
+        "name": "Log to Google Sheets",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          620,
+          -140
+        ],
+        "parameters": {
+          "range": "QuotationSummary!A:D",
+          "options": {},
+          "sheetId": "your-google-sheet-id",
+          "operation": "append"
+        },
+        "credentials": {
+          "googleApi": {
+            "id": "credential-id",
+            "name": "googleApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9e515cef-d701-47d3-b1a8-6b5e235ab5bf",
+        "name": "Wait For Reply",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          180,
+          -140
+        ],
+        "webhookId": "4d3d095b-db33-4a57-a49b-bb0314c6c54b",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "6a812cc2-8d22-4e08-83af-0f0bafe66ac4",
+        "name": "Send email",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          840,
+          -140
+        ],
+        "webhookId": "98e88dd5-5189-4451-bdcc-7e4077b7d221",
+        "parameters": {
+          "text": "json: {\n      vendor: summary.vendor || 'Unknown',\n      price: summary.price || 0,\n      deliveryTime: summary.deliveryTime || 'N/A',\n      features: summary.features || []\n    }",
+          "options": {},
+          "subject": "Vendor Quotation Comparison",
+          "toEmail": "user@example.com",
+          "fromEmail": "user@example.com",
+          "emailFormat": "text"
+        },
+        "credentials": {
+          "smtp": {
+            "id": "credential-id",
+            "name": "smtp Credential"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "54b92d68-e46a-4af9-8fd2-c4cd16c36316",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          300,
+          -560
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 580,
+          "height": 260,
+          "content": "## Minimal Google Sheet Columns (Top 5):\n\n**Vendor Name** – Name of the vendor\n\n**Total Amount** – Final quoted price\n\n**Delivery Timeline** – Estimated delivery time\n\n**AI Summary** – Key points from the quotation\n\n**Status** – e.g., Logged, Reviewed, Selected"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ccf6e6a7-6e08-4cc5-ada8-5e70dd688ef1",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -500,
+          -740
+        ],
+        "parameters": {
+          "width": 680,
+          "height": 560,
+          "content": "### 🧷 **Notes for Each Node:**\n1. **Upload Quotes** (Webhook Trigger)\n   📌 *Triggers the workflow when vendor quote files are uploaded (via webhook).*\n   ➤ Accepts input like PDF, Excel, or other documents.\n\n2. **Extract File Data** (Code/Function Node)\n   📌 *Parses and extracts key data from uploaded quote files.*\n   ➤ Converts file contents to structured text or JSON.\n\n3. **AI Summarization** (HTTP Request to Grok API)\n   📌 *Sends the extracted data to an AI model to generate a comparison summary.*\n   ➤ Uses Grok or another LLM to create a smart summary.\n\n4. **Wait For Reply** (Wait Node)\n   📌 *Waits for the AI response before proceeding.*\n   ➤ Ensures no step runs before the summary is ready.\n\n5. **Format Summary** (Code/Function Node)\n   📌 *Cleans and formats the AI response into a readable comparison table.*\n   ➤ Converts raw AI output into structured rows/columns.\n\n6. **Log to Google Sheets** (Google Sheets Node)\n   📌 *Appends the formatted summary into a Google Sheet.*\n   ➤ Maintains a log of all vendor comparisons for easy tracking.\n\n7. **Send Email** (Email Node)\n   📌 *Emails the formatted summary to stakeholders or procurement team.*\n   ➤ Sends decision-ready content to the right people."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "5b1389b3-0c98-4fb8-8ac1-ba2de9c736c9",
+    "connections": {
+      "Upload Quotes": {
+        "main": [
+          [
+            {
+              "node": "Extract File Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Summary": {
+        "main": [
+          [
+            {
+              "node": "Log to Google Sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait For Reply": {
+        "main": [
+          [
+            {
+              "node": "Format Summary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Summarization": {
+        "main": [
+          [
+            {
+              "node": "Wait For Reply",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract File Data": {
+        "main": [
+          [
+            {
+              "node": "AI Summarization",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log to Google Sheets": {
+        "main": [
+          [
+            {
+              "node": "Send email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 35,
+      "name": "Document Extraction"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6688",
+  "fetched_at": "2026-09-12T13:11:30Z"
+}

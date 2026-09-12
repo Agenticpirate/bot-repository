@@ -1,0 +1,190 @@
+{
+  "id": 8137,
+  "name": "Generate professional changelogs from Git commits with GPT-4 and GitHub",
+  "description": "## AI-Powered Git Changelog Generator for Automated Release Notes\n\nThis workflow transforms your software release process by automatically generating clean, professional changelogs from your Git commit history. It listens for new version tags in your GitHub repository, uses AI to summarize the changes, and publishes a polished release note, saving you hours of manual work.\n\n## Disclaimer\nThis template is designed for self-hosted n8n instances and requires API credentials for GitHub and an AI provider (e.g., OpenAI, Google Gemini).\n\n## 🚀 Key Features\n*   **Fully Automated Process:** Triggers automatically on a `git push --tags` event. Set it up once and forget about it.\n*   **AI-Powered Summarization:** Leverages a Large Language Model (LLM) to intelligently read, categorize, and summarize your commit messages into a human-friendly format.\n*   **Seamless GitHub Integration:** Fetches commit data and creates official GitHub Releases without leaving the n8n environment.\n*   **Smart Categorization:** Automatically groups release notes into sections like \"Features,\" \"Fixes,\" and \"Other Changes\" for clarity.\n*   **Highly Customizable:** Easily adapt the AI prompt, changelog format, and release template to match your project's style.\n*   **Saves Developer Time:** Eliminates the tedious, manual task of writing release notes, freeing up developers to focus on coding.\n\n## ⚙️ How It Works\nThe workflow is a linear process triggered by a webhook from GitHub.\n\n## 1. GitHub Webhook Trigger\n*   A **Webhook node** is configured to listen for `push` events from your specified GitHub repository.\n*   It is filtered to only run when a new tag (e.g., `v1.2.0`) is pushed, which is the standard practice for signaling a new release.\n\n## 2. Fetch Commit History\n*   Once triggered, a **GitHub node** uses the webhook payload to identify the repository and the new tag.\n*   It makes an API call to GitHub to compare the new tag with the most recent previous tag, fetching all the commit messages in between.\n\n## 3. AI Summarization\n*   The list of raw commit messages is passed to an **AI node** (e.g., OpenAI or Google Gemini).\n*   A pre-defined prompt instructs the AI to process the commits. The prompt asks the model to summarize the changes and group them into logical categories.\n*   The AI returns a single, well-formatted markdown text block representing the complete changelog.\n\n## 4. GitHub Release Creation\n*   The final **GitHub node** takes the AI-generated markdown.\n*   It creates a new **GitHub Release**, using the tag from the webhook as the release version and the AI-generated text as the release body/description.\n\n## 🛠️ Setup Steps & Credentials\nTo get this workflow running, you will need to configure the following credentials and settings:\n\n1.  **GitHub:**\n    *   You need a **GitHub Personal Access Token** with `repo` scope to allow n8n to access your repository.\n    *   Create a `GitHub OAuth2 Api` or `GitHub Api` credential in n8n.\n    *   Assign this credential to the `Get Commits` and `Create GitHub Release` nodes.\n    *   In the **Webhook node**, copy the Test URL and add it as a new webhook in your GitHub repository's settings (`Settings &gt; Webhooks`). Set the content type to `application/json` and select \"Just the push event\" or \"Send me everything,\" then filter for tag pushes in the workflow itself.\n2.  **AI Provider (OpenAI / Gemini):**\n    *   Obtain an API Key from your chosen AI provider (e.g., [platform.openai.com](https://platform.openai.com) or [aistudio.google.com](https://aistudio.google.com/)).\n    *   Create the corresponding credential in n8n (e.g., `OpenAI API` or `Google Gemini(PaLM) Api`).\n    *   Assign this credential to the `Generate Changelog with AI` node.\n\n## 💡 Customization & Learning\nThis workflow is a powerful base that you can easily extend:\n\n*   **Refine the AI Prompt:** Modify the prompt in the `Generate Changelog with AI` node to change the tone, language, or structure of your release notes. You could ask it to generate a \"What's New\" section in a different style, for example.\n*   **Add Notifications:** Extend the workflow by adding a `Discord` or `Slack` node after the final step to notify your team or community channel that a new version has been released.\n*   **Support Different Git Providers:** Swap the `GitHub` nodes for `GitLab` or other provider nodes to adapt the workflow to a different platform.\n*   **Experiment with Models:** Try different AI models (e.g., GPT-4 vs. GPT-3.5-Turbo, or different Gemini versions) to see how it affects the quality and cost of your generated changelogs.",
+  "workflow": {
+    "nodes": [
+      {
+        "name": "GitHub Trigger",
+        "type": "n8n-nodes-base.githubTrigger",
+        "position": [
+          -192,
+          96
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Get Commits",
+        "type": "n8n-nodes-base.github",
+        "position": [
+          48,
+          96
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Create GitHub Release",
+        "type": "n8n-nodes-base.github",
+        "position": [
+          592,
+          96
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Note - GitHub Trigger",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -272,
+          -96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Note - Get Commits",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -16,
+          -96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Note - LLM Agent",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          256,
+          -96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Note - GitHub Release",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          528,
+          -96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b6c81a20-b8b9-4a68-a985-8ae4f74ba13b",
+        "name": "AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          272,
+          96
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "05d47c2d-9eb2-45d0-9c62-7247320ce52e",
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          256,
+          304
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "c8289e74-95f1-4d1e-84b5-bdd6466ff0de",
+        "name": "Simple Memory",
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "position": [
+          368,
+          304
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Create GitHub Release",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Commits": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Simple Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GitHub Trigger": {
+        "main": [
+          [
+            {
+              "node": "Get Commits",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 5,
+      "name": "Engineering"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8137",
+  "fetched_at": "2026-09-12T13:12:18Z"
+}

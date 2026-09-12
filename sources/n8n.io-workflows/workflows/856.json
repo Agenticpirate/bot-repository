@@ -1,0 +1,375 @@
+{
+  "id": 856,
+  "name": "Send daily recipe emails automatically",
+  "description": "Not sure what to eat tonight? Have recipes emailed to you daily based on your criterial.\n\nTo run this workflow, you will need to have:\n1. A Recipe Search API key from [Edamam](https://developer.edamam.com/edamam-recipe-api)\n2. An active email account with configured credentials\n\nTo set up your credentials:\n1. Set your Edamam *AppID* and *AppKey* in the *Search Criteria* node\n2. Select (or create) your email credentials in the *Send Recipes* node (and set up the *to:* and *from:* email addresses while you are at it)\n\nTo customize the recipes that you receive, open up the *Search Criteria* node and modify one or more of the following:\n- **RecipeCount** - the numner of recipes you would like to receive\n- **IngredientCount** - the maximum number of ingredients you would like each recipe to have\n- **CaloriesMin** - the minimum number of calories the recipe will have\n- **CaloriesMax** - the maximum number of calories the recipe will have\n- **TimeMin** - the minimum amount of time (in minutes) the recipe will take to prepare\n- **TimeMax** - the maximum amount of time (in minutes) the recipe will take to prepare\n- **Diet** - Select one of the following options:\n\t- *balanced* - Protein/Fat/Carb values in 15/35/50 ratio\n\t- *high-fiber* - More than 5g fiber per serving\n\t- *high-protein* - More than 50% of total calories from proteins\n\t- *low-carb* - Less than 20% of total calories from carbs\n\t- *low-fat* - Less than 15% of total calories from fat\n\t- *low-sodium* - Less than 140mg Na per serving\n\t- *random* - selects a different random diet each day\n- **Health** - Select one of the following options:\n\t- *alcohol-free* - No alcohol used or contained\n\t- *immuno-supportive* - Recipes which fit a science-based approach to eating to strengthen the immune system\n\t- *celery-free* - does not contain celery or derivatives\n\t- *crustacean-free* - does not contain crustaceans (shrimp, lobster etc.) or derivatives\n\t- *dairy-free* - No dairy; no lactose\n\t- *egg-free* - No eggs or products containing eggs\n\t- *fish-free* - No fish or fish derivatives\n\t- *fodmap-free* - Does not contain FODMAP foods\n\t- *gluten-free* - No ingredients containing gluten\n\t- *keto-friendly* - Maximum 7 grams of net carbs per serving\n\t- *kidney-friendly* - per serving – phosphorus less than 250 mg AND potassium less than 500 mg AND sodium: less than 500 mg\n\t- *kosher* - contains only ingredients allowed by the kosher diet. However it does not guarantee kosher preparation of the ingredients themselves\n\t- *low-potassium* - Less than 150mg per serving\n\t- *lupine-free* - does not contain lupine or derivatives\n\t- *mustard-free* - does not contain mustard or derivatives\n\t- *low-fat-abs* - Less than 3g of fat per serving\n\t- *no-oil-added* - No oil added except to what is contained in the basic ingredients\n\t- *low-sugar* - No simple sugars – glucose, dextrose, galactose, fructose, sucrose, lactose, maltose\n\t- *paleo* - Excludes what are perceived to be agricultural products; grains, legumes, dairy products, potatoes, refined salt, refined sugar, and processed oils\n\t- *peanut-free* - No peanuts or products containing peanuts\n\t- *pecatarian* - Does not contain meat or meat based products, can contain dairy and fish\n\t- *pork-free* - does not contain pork or derivatives\n\t- *red-meat-free* - does not contain beef, lamb, pork, duck, goose, game, horse, and other types of red meat or products containing red meat.\n\t- *sesame-free* - does not contain sesame seed or derivatives\n\t- *shellfish-free* - No shellfish or shellfish derivatives\n\t- *soy-free* - No soy or products containing soy\n\t- *sugar-conscious* - Less than 4g of sugar per serving\n\t- *tree-nut-free* - No tree nuts or products containing tree nuts\n\t- *vegan* - No meat, poultry, fish, dairy, eggs or honey\n\t- *vegetarian* - No meat, poultry, or fish\n\t- *wheat-free* - No wheat, can have gluten though\n\t- *random* - selects a different random health option each day\n- **SearchItem** - the general term that you are looking for e.g. *chicken*\n\n",
+  "workflow": {
+    "id": "11",
+    "name": "What To Eat",
+    "nodes": [
+      {
+        "name": "Cron",
+        "type": "n8n-nodes-base.cron",
+        "position": [
+          100,
+          400
+        ],
+        "parameters": {
+          "triggerTimes": {
+            "item": [
+              {
+                "hour": 10
+              }
+            ]
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Search Criteria",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          300,
+          400
+        ],
+        "parameters": {
+          "values": {
+            "number": [
+              {
+                "name": "RecipeCount",
+                "value": 3
+              },
+              {
+                "name": "IngredientCount",
+                "value": 5
+              },
+              {
+                "name": "CaloriesMin"
+              },
+              {
+                "name": "CaloriesMax",
+                "value": 1500
+              },
+              {
+                "name": "TimeMin"
+              },
+              {
+                "name": "TimeMax",
+                "value": 30
+              }
+            ],
+            "string": [
+              {
+                "name": "Diet",
+                "value": "balanced"
+              },
+              {
+                "name": "Health",
+                "value": "random"
+              },
+              {
+                "name": "SearchItem",
+                "value": "chicken"
+              },
+              {
+                "name": "AppID",
+                "value": "Enter Your Edamam AppID Here"
+              },
+              {
+                "name": "AppKey",
+                "value": "Enter Your Edamam AppKey Here"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Set Query Values",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          500,
+          400
+        ],
+        "parameters": {
+          "functionCode": "items[0].json.calories = items[0].json.CaloriesMin + \"-\" + items[0].json.CaloriesMax;\nitems[0].json.time = items[0].json.TimeMin + \"-\" + items[0].json.TimeMax;\n\nif (items[0].json.Diet.toUpperCase() == \"RANDOM\") {\n  arrDiet = [\"balanced\",\"high-fiber\",\"high-protein\",\"low-carb\",\"low-fat\",\"low-sodium\"];\n  intRandomNumber = Math.floor(Math.random() * 6);\n  items[0].json.Diet = arrDiet[intRandomNumber];\n}\n\nif (items[0].json.Health.toUpperCase() == \"RANDOM\") {\n  arrHealth = [\"alcohol-free\",\"immuno-supportive\",\"celery-free\",\"crustacean-free\",\"dairy-free\",\"egg-free\",\"fish-free\",\"fodmap-free\",\"gluten-free\",\"keto-friendly\",\"kidney-friendly\",\"kosher\",\"low-potassium\",\"lupine-free\",\"mustard-free\",\"low-fat-abs\",\"no-oil-added\",\"low-sugar\",\"paleo\",\"peanut-free\",\"pecatarian\",\"pork-free\",\"red-meat-free\",\"sesame-free\",\"shellfish-free\",\"soy-free\",\"sugar-conscious\",\"tree-nut-free\",\"vegan\",\"vegetarian\",\"wheat-free\"];\n  intRandomNumber = Math.floor(Math.random() * 31);\n  items[0].json.Health = arrHealth[intRandomNumber];\n}\n\nreturn items;"
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Set Recipe ID Values",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          1080,
+          400
+        ],
+        "parameters": {
+          "functionCode": "items[0].json.from = Math.floor(Math.random() * items[0].json.RecipeCount) + 1;\nitems[0].json.to = items[0].json.from + items[0].json.ReturnCount;\n\nreturn items;"
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Retrieve Recipe Counts",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          700,
+          400
+        ],
+        "parameters": {
+          "url": "https://api.edamam.com/search",
+          "options": {},
+          "queryParametersUi": {
+            "parameter": [
+              {
+                "name": "q",
+                "value": "={{$node[\"Set Query Values\"].json[\"SearchItem\"]}}"
+              },
+              {
+                "name": "app_id",
+                "value": "={{$node[\"Set Query Values\"].json[\"AppID\"]}}"
+              },
+              {
+                "name": "app_key",
+                "value": "={{$node[\"Set Query Values\"].json[\"AppKey\"]}}"
+              },
+              {
+                "name": "ingr",
+                "value": "={{$node[\"Set Query Values\"].json[\"IngredientCount\"]}}"
+              },
+              {
+                "name": "diet",
+                "value": "={{$node[\"Set Query Values\"].json[\"Diet\"]}}"
+              },
+              {
+                "name": "calories",
+                "value": "={{$node[\"Set Query Values\"].json[\"calories\"]}}"
+              },
+              {
+                "name": "time",
+                "value": "={{$node[\"Set Query Values\"].json[\"time\"]}}"
+              },
+              {
+                "name": "from",
+                "value": "1"
+              },
+              {
+                "name": "to",
+                "value": "2"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Retrieve Recipes",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1260,
+          400
+        ],
+        "parameters": {
+          "url": "https://api.edamam.com/search",
+          "options": {},
+          "queryParametersUi": {
+            "parameter": [
+              {
+                "name": "q",
+                "value": "={{$node[\"Search Criteria\"].json[\"SearchItem\"]}}"
+              },
+              {
+                "name": "app_id",
+                "value": "={{$node[\"Search Criteria\"].json[\"AppID\"]}}"
+              },
+              {
+                "name": "app_key",
+                "value": "={{$node[\"Search Criteria\"].json[\"AppKey\"]}}"
+              },
+              {
+                "name": "from",
+                "value": "={{$node[\"Set Recipe ID Values\"].json[\"from\"]}}"
+              },
+              {
+                "name": "to",
+                "value": "={{$node[\"Set Recipe ID Values\"].json[\"to\"]}}"
+              },
+              {
+                "name": "ingr",
+                "value": "={{$node[\"Search Criteria\"].json[\"IngredientCount\"]}}"
+              },
+              {
+                "name": "diet",
+                "value": "={{$node[\"Search Criteria\"].json[\"Diet\"]}}"
+              },
+              {
+                "name": "calories",
+                "value": "={{$node[\"Set Query Values\"].json[\"calories\"]}}"
+              },
+              {
+                "name": "time",
+                "value": "={{$node[\"Set Query Values\"].json[\"time\"]}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Set Counts",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          880,
+          400
+        ],
+        "parameters": {
+          "values": {
+            "number": [
+              {
+                "name": "RecipeCount",
+                "value": "={{$node[\"Retrieve Recipe Counts\"].json[\"count\"]}}"
+              },
+              {
+                "name": "ReturnCount",
+                "value": "={{$node[\"Search Criteria\"].json[\"RecipeCount\"]}}"
+              }
+            ]
+          },
+          "options": {},
+          "keepOnlySet": true
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Send Recipes",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          1660,
+          400
+        ],
+        "parameters": {
+          "html": "={{$node[\"Create Email Body in HTML\"].json[\"emailBody\"]}}",
+          "options": {},
+          "subject": "={{$node[\"Set Query Values\"].json[\"RecipeCount\"]}} {{$node[\"Set Query Values\"].json[\"Diet\"]}}, {{$node[\"Set Query Values\"].json[\"Health\"]}} {{$node[\"Set Query Values\"].json[\"SearchItem\"]}} recipes under {{$node[\"Set Query Values\"].json[\"CaloriesMax\"]}} calories ready in under {{$node[\"Set Query Values\"].json[\"TimeMax\"]}} minutes",
+          "toEmail": "Enter Your Email Address Here",
+          "fromEmail": "Enter Your Email Address Here"
+        },
+        "credentials": {
+          "smtp": "Gmail Creds"
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Create Email Body in HTML",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          1460,
+          400
+        ],
+        "parameters": {
+          "functionCode": "arrRecipes = items[0].json.hits;\nitems[0].json = {};\n\nstrEmailBody = \"Here are your recipes for today:<br><ul>\";\n\narrRecipes.forEach(createHTML);\n\nfunction createHTML(value, index, array) {\n  strEmailBody = strEmailBody + \"<li><a href=\\\"\"+ value.recipe.shareAs + \"\\\">\" + value.recipe.label + \"</a></li>\";\n}\n\nstrEmailBody = strEmailBody + \"</ul>\";\n\nitems[0].json.emailBody = strEmailBody\n\nreturn items;"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": true,
+    "settings": {},
+    "connections": {
+      "Cron": {
+        "main": [
+          [
+            {
+              "node": "Search Criteria",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Counts": {
+        "main": [
+          [
+            {
+              "node": "Set Recipe ID Values",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Search Criteria": {
+        "main": [
+          [
+            {
+              "node": "Set Query Values",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Retrieve Recipes": {
+        "main": [
+          [
+            {
+              "node": "Create Email Body in HTML",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Query Values": {
+        "main": [
+          [
+            {
+              "node": "Retrieve Recipe Counts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Recipe ID Values": {
+        "main": [
+          [
+            {
+              "node": "Retrieve Recipes",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Retrieve Recipe Counts": {
+        "main": [
+          [
+            {
+              "node": "Set Counts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create Email Body in HTML": {
+        "main": [
+          [
+            {
+              "node": "Send Recipes",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 43,
+      "name": "Personal Productivity"
+    }
+  ],
+  "url": "https://n8n.io/workflows/856",
+  "fetched_at": "2026-09-12T13:08:50Z"
+}

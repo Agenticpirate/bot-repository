@@ -1,0 +1,223 @@
+{
+  "id": 6826,
+  "name": "Automate YouTube community posts with DeepSeek AI & dynamic image generation using Google Sheets",
+  "description": "**The Ultimate AI Workflow for YouTube Community Posts (with Dynamic Images)**\n\n**Product Description:**\nIs your YouTube Community tab collecting dust? You've probably noticed that while you can schedule videos, there's a massive gap in automation: almost no tools or templates can automatically create content for your YouTube Community Posts.\n![Screenshot 20250801 234635.png](fileId:1931)\n\n***You are leaving a huge amount of engagement, audience connection, and growth on the table.***\n\nThis n8n workflow is engineered to solve this exact problem. It doesn't just create posts for you; it acts as your personal AI content strategist, creating high-quality, engaging Community Posts with perfectly matched images, every single day.\n\n**✨ Next-Level Automation:** Dynamic Image Generation\nWhat makes this workflow truly unique? It doesn't just use a generic, pre-written prompt for your images. It features a two-step AI process:\n\nFirst, the AI writes the text for your Community Post based on the day's theme.\n\nThen, it reads its own writing to generate a brand new, highly specific image prompt that perfectly matches the post's content.\n\nThis means you get unique, incredibly relevant images for every single post, not just generic visuals. It's the difference between custom-tailored content and off-the-shelf templates.\n\n**🚀 Core Features & Benefits**\nDynamic AI Image Generation: Creates a unique, perfectly matched image for every post by analyzing the generated text first.\n\n**AI-Powered Copywriting:** Automatically writes high-quality text in a customizable voice (pre-configured for a direct, \"Alex Hormozi\" style) that gets your audience talking.\n\n**Built-in 7-Day Content Strategy:** Never run out of ideas. The workflow uses daily themes like 'How-to Tutorials', 'Audience Q&A', and 'Industry News' to keep your content calendar full and engaging.\n\n**Automated Content Dashboard:** Organizes every generated post—including text, the dynamic image prompt, the final image URL, and character count—into a Google Sheet for easy review and management.\n\n**Set-and-Forget Scheduling:** Runs on a fully automated daily schedule, ensuring you maintain rock-solid consistency without any manual effort.\n\n**💡 Why Is This a Game-Changer?**\nMost creators ignore the Community tab because it's too much work. By automating it intelligently, you will:\n\n**Save Hours of Creative Work:** Stop the daily grind of brainstorming, writing, and designing posts.\n\n**Dramatically Boost Engagement:** Keep your audience hooked between video uploads with fresh, interactive content.\n\n**Build a Stronger Community:** Use the tab for its intended purpose—building a loyal following that feels connected to your brand.\n\n***Stop neglecting the most powerful engagement tool on YouTube. Get this workflow and put your community growth on true autopilot.***\n\n**Part 2: Configuration Guide**\n⚙️ Configuration Guide: YouTube Community Post Automation\nFollow these steps to get your powerful new content engine set up and running.\n\n**1. Prerequisites**\nBefore you start, make sure you have accounts and API keys for the following services:\n\nAn active n8n instance (Cloud or self-hosted).\n\nA Google account.\n\nOpenRouter (for text generation).\n\nTogether AI (for image generation).\n\n**2. Set Up Your Credentials in n8n**\nThis workflow requires three credentials. Add them in your n8n dashboard under Credentials &gt; Add credential.\n\nGoogle Sheets: Search for the Google Sheets credential and follow the steps to connect your Google account.\n\nOpenRouter API Key:\n\nSelect credential type: Header Auth.\n\nCredential Name: OpenRouter API Key\n\nHeader Name: Authorization\n\nHeader Value: Bearer YOUR_OPENROUTER_API_KEY\n\nTogether AI API Key:\n\nSelect credential type: Header Auth.\n\nCredential Name: Together AI API Key\n\nHeader Name: Authorization\n\nHeader Value: Bearer YOUR_TOGETHER_AI_API_KEY\n\n**3. Configure the Workflow Nodes**\nOpen the workflow and connect your accounts.\n\nNode: \"Add to Google Sheets\"\n\nSelect your Google Sheets Credential.\n\nPaste in your Spreadsheet ID (from the sheet's URL).\n\nEnter the Sheet Name (the name of the tab).\n\nNodes: \"DeepSeek R1 Model\" & \"Generate Image - Together AI\"\n\nOn the \"DeepSeek R1 Model\" node, select your \"OpenRouter API Key\" credential.\n\nOn the \"Generate Image - Together AI\" node, select your \"Together AI API Key\" credential.\n\n**4. Customize Your Content (Optional but Recommended)\nEdit Daily Themes:**\n\nOpen the \"Set Day Variables\" node.\n\nIn the contentMap, you can edit the type and theme for each day of the week. (You no longer need to set an image prompt here!)\n\nChange the AI's Writing Style:\n\nOpen the \"Generate Content - LLM Chain\" node.\n\nEdit the System Message to change the personality, tone, and rules the AI follows when writing your posts.\n\nRefine the Image Prompting Style:\n\nOpen the \"Generate Dynamic Image Prompt\" node.\n\nYou can edit the prompt here to change how the AI creates the image prompts. For example, you could add \"in a photorealistic style\" or \"as a vector illustration\" to influence the final images.\n\n**5. Set Your Schedule**\nOpen the \"Daily 10AM EST Trigger\" node.\n\nAdjust the Cron Expression to change the time or frequency. Use crontab.guru to help create your desired schedule.\n\nNote: The schedule runs based on your n8n instance's timezone, which can be set in your main n8n Settings.\n\n**6. Activate Your Workflow! ✅**\nOnce configured, click the \"Active\" toggle at the top right. Congratulations, your automated content engine is now live!",
+  "workflow": {
+    "id": "CWIghCfQ1tvZF1ii",
+    "name": "YouTube Community Post Automation with Dynamic Images",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "e04beb3b-3e79-4ea4-b489-ee73f82dc3aa",
+        "name": "Daily 10AM EST Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -700,
+          -240
+        ],
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "e504e32f-ec5e-49aa-a280-0a68d5cc288a",
+        "name": "Set Day Variables",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -540,
+          -240
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "7178ff88-f18a-45a3-b7c4-c6a968f09892",
+        "name": "Generate Content - LLM Chain",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "position": [
+          -340,
+          -240
+        ],
+        "parameters": {},
+        "typeVersion": 1.7
+      },
+      {
+        "id": "a7bd46d6-393a-4a7e-a4a5-06541f040f91",
+        "name": "DeepSeek R1 Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+        "position": [
+          -120,
+          -100
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "9df29d6c-7e62-4d0d-8409-26b21ee95617",
+        "name": "Extract Content Details",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -40,
+          -240
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "fab233ee-4bc2-4fd2-b441-5ea590758361",
+        "name": "Process Image Response",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          680,
+          -240
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "5457cf41-7283-4a94-a059-b1cc70110ff7",
+        "name": "Add to Google Sheets",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          840,
+          -240
+        ],
+        "parameters": {},
+        "typeVersion": 4
+      },
+      {
+        "id": "98b288f1-a519-4f04-a966-14910b58cc6a",
+        "name": "Generate Image - Together AI",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          440,
+          -240
+        ],
+        "parameters": {},
+        "typeVersion": 4.1
+      },
+      {
+        "id": "d36f1ca7-d835-4a00-85a8-ceb02c339027",
+        "name": "Generate Dynamic Image Prompt",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "position": [
+          120,
+          -240
+        ],
+        "parameters": {},
+        "typeVersion": 1.7
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "connections": {
+      "DeepSeek R1 Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Generate Content - LLM Chain",
+              "type": "ai_languageModel",
+              "index": 0
+            },
+            {
+              "node": "Generate Dynamic Image Prompt",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Day Variables": {
+        "main": [
+          [
+            {
+              "node": "Generate Content - LLM Chain",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Daily 10AM EST Trigger": {
+        "main": [
+          [
+            {
+              "node": "Set Day Variables",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Process Image Response": {
+        "main": [
+          [
+            {
+              "node": "Add to Google Sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Content Details": {
+        "main": [
+          [
+            {
+              "node": "Generate Dynamic Image Prompt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Content - LLM Chain": {
+        "main": [
+          [
+            {
+              "node": "Extract Content Details",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Image - Together AI": {
+        "main": [
+          [
+            {
+              "node": "Process Image Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Dynamic Image Prompt": {
+        "main": [
+          [
+            {
+              "node": "Generate Image - Together AI",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 33,
+      "name": "Social Media"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6826",
+  "fetched_at": "2026-09-12T13:11:34Z"
+}

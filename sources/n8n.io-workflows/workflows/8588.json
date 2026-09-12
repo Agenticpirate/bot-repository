@@ -1,0 +1,163 @@
+{
+  "id": 8588,
+  "name": "Automate digital product delivery & sales tracking with Stripe, Email, Notion & Telegram",
+  "description": "Overview\n\nThis workflow automates the end-to-end delivery of digital products after a successful Stripe checkout. It eliminates manual fulfillment, keeps a structured sales log in Notion, and optionally notifies you in Telegram.\n\nIt’s designed for template sellers, coaches, course creators, and micro-SaaS owners who want to professionalize their delivery process without custom code.\n\nWorkflow Logic\n\nWebhook Trigger (Stripe)\n\nListens for the checkout.session.completed event.\n\nPath: /stripe-webhook\n\nMethod: POST\n\nResponse Mode: onReceived\n\nHTTP Request – Get Checkout Session\n\nFetches full session details from Stripe API.\n\nURL: https://api.stripe.com/v1/checkout/sessions/{{$json.body.data.object.id}}\n\nAuthentication: Header Auth (Authorization: Bearer YOUR_STRIPE_SECRET_KEY)\n\nIF Node – Check Product\n\nEvaluates line_items.data[0].description from Stripe response.\n\nRoutes flow depending on which product was purchased (e.g., Notion Template A vs Notion Template B).\n\nEmail Send Nodes\n\nSends product delivery emails with personalized greeting and download link.\n\nTo: {{$json.customer_details.email}}\n\nSubject: Your Elegant Template is Ready ✨\n\nBody text includes product-specific link.\n\nNotion Node – Log Sale\n\nCreates a page in your Sales Log database.\n\nProperties:\n\nName → {{$json.customer_details.name}}\n\nEmail → {{$json.customer_details.email}}\n\nProduct → {{$json.line_items.data[0].description}}\n\nDate → {{$now}}\n\nStatus → Delivered\n\nTelegram Notify Node (Optional)\n\nSends you a private message:\n\n💸 New Sale!  \nProduct: {{ $json.line_items.data[0].description }}  \nBuyer: {{ $json.customer_details.name }}  \n\n\nRequires YOUR_TELEGRAM_CHAT_ID and bot token.\n\nNode List\n\nWebhook (Stripe)\n\nHTTP Request (Stripe API)\n\nIF (Check Product)\n\nEmail Send (Product Delivery)\n\nNotion (Create Page)\n\nTelegram (Send Message)\n\nSetup Instructions\n\nStripe:\n\nCreate a webhook endpoint in your Stripe dashboard.\n\nSubscribe to checkout.session.completed.\n\nAdd your secret key into the HTTP Request node (YOUR_STRIPE_SECRET_KEY).\n\nNotion:\n\nCreate a Sales Log database.\n\nShare with your Notion API integration.\n\nReplace YOUR_NOTION_DATABASE_ID with the correct ID.\n\nEmail:\n\nConfigure SMTP credentials or Gmail OAuth in the Email Send node.\n\nUpdate sender email (fromEmail).\n\nTelegram (Optional):\n\nCreate a bot with BotFather.\n\nGet your chat ID.\n\nAdd your token and YOUR_TELEGRAM_CHAT_ID in the node.\n\nWhy It’s Gallery-Ready\n\n✅ Clear business use case (digital delivery, sales tracking).\n\n✅ Proper variable usage ($json syntax, no hardcoded customer data).\n\n✅ No exposed API keys (placeholders provided).\n\n✅ Markdown-based documentation with H2 headings.\n\n✅ Broad but specific: works for any digital seller (Notion, PDFs, Canva, courses).\n\nExample Use Cases\n\nAuto-deliver Notion templates or digital kits after Stripe checkout.\n\nLog all sales in a Notion database for tracking/reporting.\n\nSend instant Telegram notifications so you never miss a new customer.\n\nReplace manual fulfillment with a professional automation pipeline.\n\n✨ With this workflow, you’ll never have to manually email files again. Customers are delighted with instant delivery, your sales records stay organized, and you gain real-time visibility on every transaction.",
+  "workflow": {
+    "nodes": [
+      {
+        "name": "Stripe Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          200,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Get Stripe Session",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          420,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Check Product",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          650,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Send Email - Product A",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          900,
+          150
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Send Email - Product B",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          900,
+          450
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Log to Notion",
+        "type": "n8n-nodes-base.notion",
+        "position": [
+          1150,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Telegram Notify",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          1400,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Check Product": {
+        "main": [
+          [
+            {
+              "node": "Send Email - Product A",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Send Email - Product B",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log to Notion": {
+        "main": [
+          [
+            {
+              "node": "Telegram Notify",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Stripe Webhook": {
+        "main": [
+          [
+            {
+              "node": "Get Stripe Session",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Stripe Session": {
+        "main": [
+          [
+            {
+              "node": "Check Product",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Email - Product A": {
+        "main": [
+          [
+            {
+              "node": "Log to Notion",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Email - Product B": {
+        "main": [
+          [
+            {
+              "node": "Log to Notion",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 39,
+      "name": "CRM"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8588",
+  "fetched_at": "2026-09-12T13:12:32Z"
+}

@@ -1,0 +1,500 @@
+{
+  "id": 15753,
+  "name": "Send a daily AI news digest using Google News, GPT-4o-mini, Sheets and Gmail",
+  "description": "### Description\n\nAdd your news topics to a Google Sheet once — with keywords, article limits, and an Active toggle — and every morning at 7AM a personalized news digest lands in your inbox automatically. The workflow fetches fresh articles from Google News for each active topic, parses the RSS feed to extract titles, sources, and timestamps, and uses GPT-4o-mini to write a clear 3-sentence summary per article. All summaries are grouped by topic, assembled into a styled HTML email with dark section headers and article cards, sent to your inbox via Gmail, and logged to a Digest Log sheet with topic count, article count, and sent time. Built for anyone who wants a personalized daily news briefing without manually visiting news sites or curating articles each morning.\n\n---\n\n## What This Workflow Does\n\n- **Reads active topics from Google Sheets and skips paused ones** — You control which topics appear in your digest by setting Active to TRUE or FALSE — no need to delete rows to pause a topic\n- **Fetches fresh articles from Google News RSS per topic** — Each topic's keywords are used to build a live Google News RSS query so you always get today's articles\n- **Respects per-topic article limits** — Each row in your Topics sheet has a Max Articles column so you can get 5 articles for important topics and 2 for lower-priority ones\n- **Skips topics with no results today** — If Google News returns nothing for a topic on a given day, that topic is silently skipped rather than breaking the workflow\n- **Summarizes each article in 3 plain sentences** — GPT-4o-mini reads the article title and description and writes a factual, no-bullet summary so you can scan the digest quickly\n- **Groups all summaries into one styled HTML email** — Articles are organized by topic with dark headers, article cards, source attribution, and time-ago labels — all ready to read in any email client\n- **Logs every digest run to Google Sheets** — Date, topics count, articles found, and sent time are saved in a Digest Log tab so you can track your daily coverage\n\n---\n\n## Setup Requirements\n\n### Tools Needed\n- n8n instance (self-hosted or cloud)\n- Google Sheets (two tabs: **Topics** and **Digest Log**)\n- OpenAI account with GPT-4o-mini API access\n- Gmail account\n\n### Credentials Required\n- Google Sheets OAuth2 (used in **2. Google Sheets — Read Topics** and **12. Google Sheets — Log Digest**)\n- OpenAI API key\n- Gmail OAuth2\n\n&gt; ⚠️ **Two separate Google Sheet IDs are used** — replace `YOUR_GOOGLE_SHEET_ID` in **2. Google Sheets — Read Topics** and `YOUR_LOG_SHEET_ID` in **12. Google Sheets — Log Digest**. These can be the same spreadsheet or different ones — just make sure each uses the correct Sheet ID.\n\n&gt; ⚠️ **Your email address** — replace `YOUR_EMAIL_ADDRESS` in **11. Gmail — Send Digest Email** with the inbox where you want to receive your daily digest.\n\n**Estimated Setup Time: 20–25 minutes**\n\n---\n\n## Step-by-Step Setup\n\n1. **Import the workflow** — Open n8n → Workflows → Import from JSON → paste the workflow JSON → click Import\n\n2. **Create your Topics tab** — Open your Google Sheet → add a tab named **Topics** → add these 4 column headers in row 1: `Topic`, `Search Keywords`, `Max Articles`, `Active` → add your first topics with Active set to `TRUE`\n\n   Example rows:\n   | Topic | Search Keywords | Max Articles | Active |\n   |---|---|---|---|\n   | AI News | artificial intelligence 2025 | 3 | TRUE |\n   | Cricket | india cricket latest | 2 | TRUE |\n\n3. **Create your Digest Log tab** — In the same spreadsheet or a new one → add a tab named **Digest Log** → add these 5 column headers: `Date`, `Topics Count`, `Articles Found`, `Email Sent`, `Sent At`\n\n4. **Get your Google Sheet ID for Topics** — Open the spreadsheet containing the Topics tab in a browser → copy the string between `/d/` and `/edit` in the URL\n\n5. **Connect Google Sheets for reading topics** — Open node **2. Google Sheets — Read Topics** → replace `YOUR_GOOGLE_SHEET_ID` with your actual Sheet ID → click the credential dropdown → add Google Sheets OAuth2 → authorize access\n\n6. **Get your Digest Log Sheet ID** — If the Digest Log tab is in the same spreadsheet, use the same Sheet ID; if it is a different spreadsheet, open it and copy that Sheet ID\n\n7. **Connect Google Sheets for logging** — Open node **12. Google Sheets — Log Digest** → replace `YOUR_LOG_SHEET_ID` with the correct Sheet ID → confirm Google Sheets OAuth2 is selected\n\n8. **Connect OpenAI** — Open node **9. OpenAI — GPT-4o-mini Model** → click the credential dropdown → add your OpenAI API key → test the connection\n\n9. **Set your email address** — Open node **11. Gmail — Send Digest Email** → replace `YOUR_EMAIL_ADDRESS` in the Send To field with your actual email address\n\n10. **Connect Gmail** — Open the same node **11. Gmail — Send Digest Email** → click the credential dropdown → add Gmail OAuth2 → complete the Google authorization flow\n\n11. **Activate the workflow** — Toggle the workflow to Active — it will run automatically every day at 7AM. To test immediately, click on node **1. Schedule — Every Day 7AM** and use the manual Execute option.\n\n---\n\n## How It Works (Step by Step)\n\n**Step 1 — Schedule: Every Day 7AM**\nThe workflow fires automatically every day at 7AM using the cron expression `0 7 * * *`. It can also be triggered manually using the Execute option in n8n.\n\n**Step 2 — Google Sheets: Read Topics**\nAll rows from your Topics tab are read. Each row contains a topic name, search keywords, max articles limit, and Active status.\n\n**Step 3 — IF: Active Topics Only**\nThis filter checks the Active column for each row. If it equals `TRUE` (YES path), the topic is included and passes forward to the RSS fetch. If it is `FALSE` or blank (NO path), the topic is silently skipped — no error is thrown. This lets you pause any topic without deleting it from the sheet.\n\n**Step 4 — HTTP: Fetch Google News RSS**\nFor each active topic, the Search Keywords value is used to build a Google News RSS URL — for example `https://news.google.com/rss/search?q=artificial+intelligence+2025&hl=en-US`. The RSS feed is fetched as plain text.\n\n**Step 5 — Code: Parse RSS + Extract Articles**\nThe RSS XML text is parsed using regex to extract individual article items. For each item, the title, link, description, source name, and publication date are extracted. HTML tags are stripped from the description. A time-ago label is calculated (e.g. \"3 hours ago\") from the publication date. Only up to the Max Articles limit for that topic are kept. The output is one object containing the topic name and the articles array.\n\n**Step 6 — IF: Has Articles?**\nThis check confirms whether any articles were found for this topic today. If the articles array has results (YES path), the topic proceeds to splitting and summarizing. If no articles were returned (NO path), the topic is silently skipped — the rest of the workflow continues normally with other topics.\n\n**Step 7 — Code: Split Into Individual Articles**\nThe articles array is split into individual rows — one per article — each carrying the topic name, article title, link, description, source, time-ago, and publication date. Every article then flows through GPT separately.\n\n**Step 8 — AI Agent: Summarize Article**\nGPT-4o-mini receives the article title, description, and source for each article. The system prompt instructs GPT to write exactly 3 sentences in plain English — factual and specific, no bullet points, no formatting, maximum 60 words total. The 3 sentences are returned as plain text separated by line breaks.\n\n**Step 9 — OpenAI: GPT-4o-mini Model**\nThis is the language model powering the article summaries.\n\n**Step 10 — Code: Build HTML Email**\nAll summarized articles from all topics are collected together. They are grouped by topic name. For each topic, an emoji is assigned from a built-in map (🤖 for AI News, 🏏 for Cricket, ₿ for Bitcoin, ⚙️ for n8n, 🚀 for Startup India, 📰 for everything else). The HTML email is assembled with a dark header showing today's date, a blue stats bar with topic and article counts, topic sections with dark header blocks, and article cards with the article title as a link, source and time-ago, the 3-sentence summary, and a \"Read full article →\" link. The email is truncated to 4000 characters if needed. Total topic and article counts are also returned for the log step.\n\n**Step 11 — Gmail: Send Digest Email**\nThe formatted HTML email is sent to your address via Gmail. The subject line is automatically set to `☀️ Your Daily News Digest — [Date]`. The sender name is set to \"Daily News Digest\".\n\n**Step 12 — Google Sheets: Log Digest**\nOne row is appended to your Digest Log tab with today's date, the number of topics that had articles, the total article count, Email Sent set to Yes, and the time the email was sent.\n\n---\n\n## Key Features\n\n✅ **Active toggle per topic** — Set Active to FALSE in the sheet to pause any topic without deleting it — it is excluded from that day's digest and re-included when you set it back to TRUE\n✅ **Per-topic article limits** — Each topic has its own Max Articles setting so you can get more coverage on high-priority topics and less on lower-priority ones\n✅ **Topics with no results are silently skipped** — If Google News has nothing for a topic on a given day, it is skipped without breaking the workflow or generating an empty section in the email\n✅ **Emoji auto-assigned per topic** — Topics like AI News, Cricket, and Bitcoin get recognizable emojis in the email header — making sections instantly scannable\n✅ **Time-ago labels on every article** — Each article card shows how recently it was published (e.g. \"2 hours ago\") so you can tell at a glance which news is freshest\n✅ **Styled HTML email — no setup required** — The email uses inline CSS with dark headers, article cards, and a footer — readable in Gmail, Outlook, and Apple Mail without any template configuration\n✅ **Daily run logged to Google Sheets** — Every digest run is recorded with topic and article counts so you can track coverage trends over time\n\n---\n\n## Customisation Options\n\n**Add a new topic** — In your Topics tab, add a new row with the topic name, search keywords (any words or phrase you would search on Google News), your preferred article limit, and Active set to TRUE — it will appear in the next morning's digest.\n\n**Change the digest delivery time** — In node **1. Schedule — Every Day 7AM**, edit the cron expression from `0 7 * * *` to a different time — for example `0 6 * * *` for 6AM or `0 8 * * 1-5` for weekdays only at 8AM.\n\n**Add more topic emojis** — In node **10. Code — Build HTML Email**, add entries to the `topicEmojis` object — for example `'Finance': '💰'` or `'Sports': '⚽'` — so your new topics get a matching icon.\n\n**Add a Slack notification alongside the email** — After node **11. Gmail — Send Digest Email**, add a Slack step that posts the topic count, article count, and a note that the digest has been sent to a `#news-digest` channel.\n\n**Target a specific country in RSS results** — In node **4. HTTP — Fetch Google News RSS**, edit the URL to change `&hl=en-US&gl=US&ceid=US:en` to a different locale — for example `&hl=en-IN&gl=IN&ceid=IN:en` for India-specific news results.\n\n---\n\n## Troubleshooting\n\n**Workflow not triggering at 7AM:**\n- Confirm the workflow is Active — inactive workflows do not run on a schedule\n- Check that your n8n instance is running at 7AM — self-hosted instances that are off will not fire scheduled workflows\n- Check your n8n server's timezone setting — the cron expression runs based on server time, which may differ from your local timezone\n- To test immediately, click on node **1. Schedule — Every Day 7AM** and use the manual Execute option\n\n**No topics appearing in the email (digest sent with no articles):**\n- Confirm your Topics tab has at least one row with Active set to exactly `TRUE` (not `true` or `True`) — the filter check is case-insensitive but the value must be present\n- Confirm `YOUR_GOOGLE_SHEET_ID` in node **2. Google Sheets — Read Topics** is replaced with your actual Sheet ID\n- Open the execution log of step 3 to check how many rows passed the active filter\n\n**Articles not loading for a specific topic:**\n- The Search Keywords for that topic may be too specific or produce no results on Google News — try broader keywords or check the topic's keywords work in a direct Google News search\n- Open the execution log of node **4. HTTP — Fetch Google News RSS** and check the raw RSS response — if it is empty or returns an error, the keywords or URL format may be incorrect\n- Some topics may simply have no new articles on a given day — the workflow skips them silently; this is expected behavior\n\n**Gmail failing to send:**\n- Confirm the Gmail OAuth2 credential in node **11. Gmail — Send Digest Email** is connected and not expired — re-authorize if needed\n- Confirm `YOUR_EMAIL_ADDRESS` in the Send To field is replaced with a valid email address\n- Check your Gmail account's daily sending limit — if you send many test runs, you may approach Gmail's limit\n\n**Google Sheets log not saving rows:**\n- Confirm `YOUR_LOG_SHEET_ID` in node **12. Google Sheets — Log Digest** is replaced with your actual Sheet ID — note this may differ from the Topics Sheet ID\n- Confirm the tab is named **Digest Log** exactly and all 5 column headers in row 1 match exactly\n- Check that the Google Sheets OAuth2 credential is connected in node 12 — it is easy to authorize in node 2 but forget in node 12\n\n---\n\n## Support\n\nNeed help setting this up or want a custom version built for your team or agency?\n\n📧 Email: [info@incrementors.com](info@incrementors.com)\n🌐 Website: [https://www.incrementors.com/](https://www.incrementors.com/)",
+  "workflow": {
+    "meta": {
+      "instanceId": "bc8ca75c203589705ae2e446cad7181d6f2a7cc1766f958ef9f34810e53b8cb2",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "a6cc1a6e-81d7-44d8-875a-7a76c049416b",
+        "name": "Overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -864,
+          -384
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 572,
+          "height": 1076,
+          "content": "## Daily Personalized News Digest Email — Google News RSS + GPT-4o-mini + Gmail + Sheets\n\nFor anyone who wants a personalized daily news briefing delivered to their inbox every morning — without manual curation. Every day at 7AM this workflow reads all active topics from your Google Sheet, fetches the latest articles from Google News RSS for each topic, parses the XML with regex, filters to active topics only, and splits each article into an individual item. GPT-4o-mini writes a 3-sentence plain-English summary per article. A Code node groups all summarized articles by topic, builds a clean HTML email with topic sections and inline styles, and sends it via Gmail. Google Sheets logs the run with article count, topic count, and sent time.\n\n## How it works\n- **1. Schedule — Every Day 7AM** triggers the pipeline automatically each morning\n- **2. Google Sheets — Read Topics** reads all rows from the Topics tab\n- **3. IF — Active Topics Only** filters rows where Active column equals TRUE — skips paused topics\n- **4. HTTP — Fetch Google News RSS** fetches the RSS feed for each topic using the Search Keywords field\n- **5. Code — Parse RSS + Extract Articles** parses the RSS XML with regex, extracts title, link, description, source, and timeAgo — respects the Max Articles limit per topic\n- **6. IF — Has Articles?** skips topics where no articles were found today\n- **7. Code — Split Into Individual Articles** splits the articles array into one item per article for individual AI processing\n- **8. AI Agent — Summarize Article** uses GPT-4o-mini to write a 3-line factual plain-English summary per article (max 60 words)\n- **9. OpenAI — GPT-4o-mini Model** language model attached to the AI Agent\n- **10. Code — Build HTML Email** collects all summarized items, groups by topic, builds a full HTML email with topic sections and styled article cards\n- **11. Gmail — Send Digest Email** sends the HTML email to your address\n- **12. Google Sheets — Log Digest** appends one row to the Digest Log tab with topic count, article count, and sent time\n\n## Set up steps\n1. In **2. Google Sheets — Read Topics** — connect your Google Sheets OAuth2 credential and replace `YOUR_GOOGLE_SHEET_ID`\n2. In **9. OpenAI — GPT-4o-mini Model** — connect your OpenAI credential\n3. In **11. Gmail — Send Digest Email** — connect your Gmail OAuth2 credential and replace `YOUR_EMAIL_ADDRESS`\n4. In **12. Google Sheets — Log Digest** — connect your Google Sheets OAuth2 credential and replace `YOUR_LOG_SHEET_ID`\n5. Create a Google Sheet with two tabs — Topics (columns: Topic, Search Keywords, Max Articles, Active) and Digest Log (columns: Date, Topics Count, Articles Found, Email Sent, Sent At)\n6. Add your topics to the Topics tab with Active set to TRUE. Set Active to FALSE to pause a topic without deleting it"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e563e930-518f-42b4-bab5-f79e7f9ade07",
+        "name": "Section — Schedule Trigger",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -240,
+          -96
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 292,
+          "height": 388,
+          "content": "## Schedule Trigger\nFires every day at 7AM automatically. Change the cron expression to adjust time — 0 7 * * * means 7:00 AM daily. Can also be triggered manually."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "47b0ef1e-6c64-46f1-b41d-23727c488159",
+        "name": "Section — Topics Sheet Read and Active Filter",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          80,
+          -64
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 468,
+          "height": 292,
+          "content": "## Topics Sheet Read and Active Filter\nReads all rows from the Topics tab. IF filters only rows where the Active column equals TRUE — rows set to FALSE are skipped without being deleted."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a9aca568-85f5-4314-ba1f-205ce3ca029d",
+        "name": "Section — Google News RSS Fetch and Article Parse",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          592,
+          -128
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 500,
+          "height": 388,
+          "content": "## Google News RSS Fetch and Article Parse\nFetches RSS feed for each topic using the Search Keywords field. Code node parses XML with regex, extracts title, link, description, source, and time ago. Respects the Max Articles limit per topic."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1e75970a-7445-4330-83c7-f8204ae438fd",
+        "name": "Section — Article Filter, Split, and AI Summary",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1152,
+          -208
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 804,
+          "height": 596,
+          "content": "## Article Filter, Split, and AI Summary\nIF skips topics with no articles found today. Code splits the articles array into individual items. GPT-4o-mini writes a 3-line factual plain-English summary per article (max 60 words, no bullets)."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "d738ab7a-c004-447e-9860-e50b61912e7e",
+        "name": "Section — HTML Email Build, Gmail Send, and Digest Log",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2048,
+          -144
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 708,
+          "height": 372,
+          "content": "## HTML Email Build, Gmail Send, and Digest Log\nGroups all summarized articles by topic and builds a full HTML email with styled topic sections. Gmail sends the digest. Google Sheets logs the run with topic count, article count, and sent time."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "80a8de16-8234-49bf-897a-16d6bd4c5bda",
+        "name": "1. Schedule — Every Day 7AM",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -144,
+          48
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 7 * * *"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "a8b94852-741c-431a-9f91-8bc44a3981b4",
+        "name": "2. Google Sheets — Read Topics",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          128,
+          48
+        ],
+        "parameters": {
+          "operation": "getAll",
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "YOUR_GOOGLE_SHEET_ID"
+          }
+        },
+        "typeVersion": 4.5
+      },
+      {
+        "id": "ee923df4-a962-4dde-8160-e38defd4be61",
+        "name": "3. IF — Active Topics Only",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          352,
+          48
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 3,
+              "leftValue": "",
+              "caseSensitive": false,
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "active-check",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json['Active'] }}",
+                "rightValue": "TRUE"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "6a75ba6c-b667-4553-9cb6-2a1add4ec711",
+        "name": "4. HTTP — Fetch Google News RSS",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          656,
+          32
+        ],
+        "parameters": {
+          "url": "=https://news.google.com/rss/search?q={{ encodeURIComponent($json['Search Keywords']) }}&hl=en-US&gl=US&ceid=US:en",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "text"
+              }
+            }
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "7f420497-3bbc-4ccf-833a-07664b36bfea",
+        "name": "5. Code — Parse RSS + Extract Articles",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          896,
+          32
+        ],
+        "parameters": {
+          "jsCode": "// Parse RSS XML and extract articles for this topic\nconst rssText = $json.data || $json.body || '';\nconst topicName = $('3. IF — Active Topics Only').item.json['Topic'];\nconst maxArticles = parseInt($('3. IF — Active Topics Only').item.json['Max Articles']) || 3;\n\nif (!rssText || rssText.trim().length === 0) {\n  return [{ json: { topic: topicName, articles: [], hasArticles: false } }];\n}\n\n// Extract items from RSS XML using regex\nconst itemMatches = rssText.match(/<item>([\\s\\S]*?)<\\/item>/g) || [];\n\nconst articles = [];\n\nfor (const item of itemMatches) {\n  if (articles.length >= maxArticles) break;\n\n  const titleMatch = item.match(/<title><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/title>/) ||\n                     item.match(/<title>([^<]*)<\\/title>/);\n  const title = titleMatch ? titleMatch[1].trim() : 'No Title';\n\n  const linkMatch = item.match(/<link>([^<]*)<\\/link>/) ||\n                    item.match(/<link\\/>([^<]+)/);\n  const link = linkMatch ? linkMatch[1].trim() : '';\n\n  const descMatch = item.match(/<description><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/description>/) ||\n                    item.match(/<description>([^<]*)<\\/description>/);\n  const rawDesc = descMatch ? descMatch[1].trim() : '';\n  const description = rawDesc.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim();\n\n  const sourceMatch = item.match(/<source[^>]*>([^<]*)<\\/source>/);\n  const source = sourceMatch ? sourceMatch[1].trim() : 'Google News';\n\n  const dateMatch = item.match(/<pubDate>([^<]*)<\\/pubDate>/);\n  const pubDateStr = dateMatch ? dateMatch[1].trim() : '';\n  const pubDate = pubDateStr ? new Date(pubDateStr) : new Date();\n\n  const timeAgo = getTimeAgo(pubDate);\n\n  if (title && title !== 'No Title') {\n    articles.push({\n      title,\n      link,\n      description: description.substring(0, 300),\n      source,\n      pubDate: pubDate.toISOString(),\n      timeAgo\n    });\n  }\n}\n\nfunction getTimeAgo(date) {\n  const now = new Date();\n  const diffMs = now - date;\n  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));\n  const diffMins = Math.floor(diffMs / (1000 * 60));\n  if (diffMins < 60) return `${diffMins} minutes ago`;\n  if (diffHours < 24) return `${diffHours} hours ago`;\n  return `${Math.floor(diffHours / 24)} days ago`;\n}\n\nreturn [{\n  json: {\n    topic: topicName,\n    articles,\n    hasArticles: articles.length > 0,\n    articleCount: articles.length\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "bfe6f2a8-b339-4199-8e75-151693a6fc28",
+        "name": "6. IF — Has Articles?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1200,
+          32
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 3,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "has-articles",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                },
+                "leftValue": "={{ $json.hasArticles }}",
+                "rightValue": true
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "f32d472b-777e-4d0b-9a14-2ab775fc1809",
+        "name": "7. Code — Split Into Individual Articles",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1440,
+          16
+        ],
+        "parameters": {
+          "jsCode": "// Split articles array into individual items for AI processing\nconst topicData = $json;\nconst articles = topicData.articles || [];\n\nreturn articles.map(article => ({\n  json: {\n    topic: topicData.topic,\n    title: article.title,\n    link: article.link,\n    description: article.description,\n    source: article.source,\n    timeAgo: article.timeAgo,\n    pubDate: article.pubDate\n  }\n}));"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "8c7c2d35-33e9-40b3-819e-59bc638c615f",
+        "name": "8. AI Agent — Summarize Article",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          1680,
+          16
+        ],
+        "parameters": {
+          "text": "=Article Title: {{ $json.title }}\n\nArticle Description: {{ $json.description }}\n\nSource: {{ $json.source }}\n\nWrite a 3-line plain English summary of this news article. Be specific and factual. No fluff. Each line should be one clear sentence. Do not use bullet points or numbers — just 3 plain sentences separated by line breaks.",
+          "options": {
+            "systemMessage": "You are a news summarizer. Read the article title and description provided and write a clear 3-line summary in plain simple English. Each line is one sentence. Be factual and specific. Maximum 60 words total. Never use bullet points or numbers."
+          },
+          "promptType": "define"
+        },
+        "typeVersion": 3.1
+      },
+      {
+        "id": "db32b991-e526-40cb-8ed3-6e3cc29f2dd1",
+        "name": "9. OpenAI — GPT-4o-mini Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          1680,
+          240
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4o-mini"
+          },
+          "options": {},
+          "builtInTools": {}
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "fa703e5b-aa40-42c6-a2d3-2ceae152cb66",
+        "name": "10. Code — Build HTML Email",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2096,
+          16
+        ],
+        "parameters": {
+          "jsCode": "// Collect all summarized articles and build HTML email\nconst allItems = $input.all();\n\nif (allItems.length === 0) {\n  return [{ json: { htmlEmail: '<p>No news found today.</p>', articleCount: 0, topicCount: 0 } }];\n}\n\n// Group articles by topic\nconst groupedByTopic = {};\nfor (const item of allItems) {\n  const topic = item.json.topic || 'General';\n  if (!groupedByTopic[topic]) {\n    groupedByTopic[topic] = [];\n  }\n  groupedByTopic[topic].push({\n    title: item.json.title || '',\n    link: item.json.link || '#',\n    summary: item.json.output || item.json.summary || 'Summary not available.',\n    source: item.json.source || 'News',\n    timeAgo: item.json.timeAgo || 'Recently'\n  });\n}\n\nconst today = new Date().toLocaleDateString('en-US', {\n  weekday: 'long',\n  year: 'numeric',\n  month: 'long',\n  day: 'numeric'\n});\n\nconst totalTopics = Object.keys(groupedByTopic).length;\nconst totalArticles = allItems.length;\n\n// Topic emoji map\nconst topicEmojis = {\n  'AI News': '🤖',\n  'Cricket': '🏏',\n  'Bitcoin': '₿',\n  'n8n': '⚙️',\n  'Startup India': '🚀',\n  'default': '📰'\n};\n\n// Build HTML sections per topic\nlet topicSectionsHtml = '';\nfor (const [topic, articles] of Object.entries(groupedByTopic)) {\n  const emoji = topicEmojis[topic] || topicEmojis['default'];\n\n  let articlesHtml = '';\n  for (const article of articles) {\n    const summaryLines = article.summary\n      .split('\\n')\n      .map(l => l.trim())\n      .filter(l => l.length > 0)\n      .slice(0, 3);\n    const summaryHtml = summaryLines.map(line => `<p style=\"margin:4px 0;font-size:14px;color:#444;line-height:1.6;\">${line}</p>`).join('');\n\n    articlesHtml += `\n      <div style=\"padding:16px;margin-bottom:12px;background:#ffffff;border-radius:8px;border-left:3px solid #4A90E2;\">\n        <h3 style=\"margin:0 0 6px;font-size:15px;font-weight:600;color:#1a1a1a;line-height:1.4;\">\n          <a href=\"${article.link}\" style=\"color:#1a1a1a;text-decoration:none;\">${article.title}</a>\n        </h3>\n        <p style=\"margin:0 0 8px;font-size:12px;color:#888;\">📌 ${article.source} &nbsp;•&nbsp; ${article.timeAgo}</p>\n        ${summaryHtml}\n        <a href=\"${article.link}\" style=\"display:inline-block;margin-top:10px;font-size:12px;color:#4A90E2;text-decoration:none;font-weight:500;\">Read full article →</a>\n      </div>`;\n  }\n\n  topicSectionsHtml += `\n    <div style=\"margin-bottom:28px;\">\n      <div style=\"background:#1a1a1a;padding:12px 20px;border-radius:6px;margin-bottom:12px;\">\n        <h2 style=\"margin:0;font-size:16px;color:#ffffff;font-weight:700;letter-spacing:0.5px;\">\n          ${emoji} ${topic.toUpperCase()}\n        </h2>\n      </div>\n      ${articlesHtml}\n    </div>`;\n}\n\nconst htmlEmail = `\n<!DOCTYPE html>\n<html>\n<head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head>\n<body style=\"margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;\">\n  <div style=\"max-width:620px;margin:0 auto;background:#f4f4f4;padding:20px 0;\">\n    <div style=\"background:#1a1a1a;padding:28px 32px;text-align:center;border-radius:8px 8px 0 0;\">\n      <h1 style=\"margin:0;color:#ffffff;font-size:22px;font-weight:700;\">☀️ Your Daily News Digest</h1>\n      <p style=\"margin:8px 0 0;color:#aaaaaa;font-size:13px;\">${today}</p>\n    </div>\n    <div style=\"background:#4A90E2;padding:10px 32px;\">\n      <p style=\"margin:0;color:#ffffff;font-size:13px;text-align:center;\">\n        📊 ${totalTopics} topics &nbsp;•&nbsp; ${totalArticles} articles &nbsp;•&nbsp; All summaries powered by AI\n      </p>\n    </div>\n    <div style=\"background:#f4f4f4;padding:24px 20px;\">\n      ${topicSectionsHtml}\n    </div>\n    <div style=\"background:#1a1a1a;padding:16px 32px;text-align:center;border-radius:0 0 8px 8px;\">\n      <p style=\"margin:0;color:#888888;font-size:11px;\">Your personalized news digest • Powered by n8n + GPT-4o-mini</p>\n      <p style=\"margin:6px 0 0;color:#888888;font-size:11px;\">To add or remove topics, update your Google Sheet</p>\n    </div>\n  </div>\n</body>\n</html>`;\n\nreturn [{\n  json: {\n    htmlEmail,\n    articleCount: totalArticles,\n    topicCount: totalTopics,\n    digestDate: today\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "0ce8a8d8-b41a-4d12-86b3-df9dfd084eef",
+        "name": "11. Gmail — Send Digest Email",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          2336,
+          16
+        ],
+        "webhookId": "fdbaf0c4-5423-4ed5-a983-34cc796d1390",
+        "parameters": {
+          "sendTo": "YOUR_EMAIL_ADDRESS",
+          "message": "={{ $json.htmlEmail }}",
+          "options": {
+            "senderName": "Daily News Digest"
+          },
+          "subject": "=☀️ Your Daily News Digest — {{ $now.toFormat('MMMM d, yyyy') }}"
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "336ddd95-4d38-4e05-afd4-009566d85c9e",
+        "name": "12. Google Sheets — Log Digest",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          2576,
+          16
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "Date": "={{ $now.toFormat('dd MMMM yyyy') }}",
+              "Sent At": "={{ $now.toFormat('HH:mm') }}",
+              "Email Sent": "Yes",
+              "Topics Count": "={{ $('10. Code — Build HTML Email').item.json.topicCount }}",
+              "Articles Found": "={{ $('10. Code — Build HTML Email').item.json.articleCount }}"
+            },
+            "schema": [],
+            "mappingMode": "defineBelow",
+            "matchingColumns": []
+          },
+          "options": {},
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "Digest Log"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "YOUR_LOG_SHEET_ID"
+          }
+        },
+        "typeVersion": 4.5
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "6. IF — Has Articles?": {
+        "main": [
+          [
+            {
+              "node": "7. Code — Split Into Individual Articles",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "3. IF — Active Topics Only": {
+        "main": [
+          [
+            {
+              "node": "4. HTTP — Fetch Google News RSS",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "1. Schedule — Every Day 7AM": {
+        "main": [
+          [
+            {
+              "node": "2. Google Sheets — Read Topics",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "10. Code — Build HTML Email": {
+        "main": [
+          [
+            {
+              "node": "11. Gmail — Send Digest Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "11. Gmail — Send Digest Email": {
+        "main": [
+          [
+            {
+              "node": "12. Google Sheets — Log Digest",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "9. OpenAI — GPT-4o-mini Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "8. AI Agent — Summarize Article",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2. Google Sheets — Read Topics": {
+        "main": [
+          [
+            {
+              "node": "3. IF — Active Topics Only",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "4. HTTP — Fetch Google News RSS": {
+        "main": [
+          [
+            {
+              "node": "5. Code — Parse RSS + Extract Articles",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "8. AI Agent — Summarize Article": {
+        "main": [
+          [
+            {
+              "node": "10. Code — Build HTML Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "5. Code — Parse RSS + Extract Articles": {
+        "main": [
+          [
+            {
+              "node": "6. IF — Has Articles?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "7. Code — Split Into Individual Articles": {
+        "main": [
+          [
+            {
+              "node": "8. AI Agent — Summarize Article",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 33,
+      "name": "Social Media"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15753",
+  "fetched_at": "2026-09-12T13:15:35Z"
+}

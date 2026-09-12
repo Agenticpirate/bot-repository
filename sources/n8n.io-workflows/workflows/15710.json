@@ -1,0 +1,717 @@
+{
+  "id": 15710,
+  "name": "Generate YouTube SEO descriptions, chapters, and tags with WayinVideo and GPT-4o-mini",
+  "description": "### Description\n\nSubmit any YouTube video URL along with your video title, channel name, niche, focus keyword, and a section query for timestamps and the workflow runs two AI processes simultaneously. WayinVideo's Summarization API and Find Moments API both start at the same time — one generating a structured video summary and the other finding chapter transition moments — each with its own independent polling loop. Once both complete, a merge step combines everything and GPT-4o-mini writes a complete YouTube SEO package in one call: an 800–1000 character description with chapters embedded, a standalone chapter list, 15 keyword tags, 6 hashtags, the above-the-fold hook, and SEO notes. Everything is saved to Google Sheets as one row — Status set to Ready — ready to paste directly into YouTube Studio. Built for YouTube creators, video agencies, and content managers who publish regularly and want a complete SEO package generated automatically without writing descriptions manually after every upload.\n\n---\n\n## What This Workflow Does\n\n- **Runs Summarization and Find Moments APIs simultaneously** — Both [WayinVideo](https://wayin.ai/api/) APIs start at the same time from the form submission — not sequentially — so the total processing time is the same as running one\n- **Uses two independent polling loops** — Each API has its own 90-second initial wait and 30-second retry loop — neither blocks the other if one takes longer to complete\n- **Sorts chapters chronologically and prepends 0:00 Introduction** — All found moments are sorted by start time and a 0:00 Introduction line is added automatically if the first moment does not start at the beginning\n- **Generates a full YouTube description with chapters embedded** — The description follows YouTube best practices: focus keyword in the first 100 characters, hook above the fold, bullet points of what viewers will learn, chapters embedded in the body\n- **Produces exactly 15 keyword tags and 6 hashtags** — The tag list mixes exact keyword, broad niche, long-tail, and channel-related terms; hashtags include the focus keyword, niche, and discovery hashtags\n- **Saves the above-the-fold hook separately** — The first two lines of the description are extracted and saved in their own column so you can check the preview without opening the full description\n- **Tracks description character count and tag count** — Both are logged in the sheet so you can verify against YouTube's limits before publishing\n\n---\n\n## Setup Requirements\n\n### Tools Needed\n- n8n instance (self-hosted or cloud)\n- WayinVideo account with API access\n- OpenAI account with GPT-4o-mini API access\n- Google Sheets (one sheet with a tab named **YouTube SEO**)\n\n### Credentials Required\n- WayinVideo API key (pasted into **2a. WayinVideo — Submit Summarization**, **2b. WayinVideo — Submit Find Moments**, **4a. WayinVideo — Get Summary Results**, and **4b. WayinVideo — Get Moments Results**)\n- OpenAI API key\n- Google Sheets OAuth2\n\n&gt; ⚠️ **WayinVideo API key appears in 4 steps** — replace `YOUR_WAYINVIDEO_API_KEY` in all four: **2a. WayinVideo — Submit Summarization**, **2b. WayinVideo — Submit Find Moments**, **4a. WayinVideo — Get Summary Results**, and **4b. WayinVideo — Get Moments Results**. Missing any one will cause that branch to fail.\n\n**Estimated Setup Time: 20–25 minutes**\n\n---\n\n## Step-by-Step Setup\n\n1. **Import the workflow** — Open n8n → Workflows → Import from JSON → paste the workflow JSON → click Import\n\n2. **Get your WayinVideo API key** — Log in to your WayinVideo account → go to Account Settings → copy your API key\n\n3. **Add your WayinVideo API key to node 2a** — Open node **2a. WayinVideo — Submit Summarization** → find the `Authorization` header value `Bearer YOUR_WAYINVIDEO_API_KEY` → replace the placeholder with your actual key\n\n4. **Add your WayinVideo API key to node 2b** — Open node **2b. WayinVideo — Submit Find Moments** → find the same `Authorization` header → replace the placeholder with the same key\n\n5. **Add your WayinVideo API key to node 4a** — Open node **4a. WayinVideo — Get Summary Results** → find the `Authorization` header → replace the placeholder with your key\n\n6. **Add your WayinVideo API key to node 4b** — Open node **4b. WayinVideo — Get Moments Results** → find the same `Authorization` header → replace the placeholder with your key\n\n7. **Connect OpenAI** — Open node **8. OpenAI — GPT-4o-mini Model** → click the credential dropdown → add your OpenAI API key → test the connection\n\n8. **Create your Google Sheet tab** — Open your Google Sheet → add a tab named exactly **YouTube SEO** → add these 16 column headers in row 1: `Video URL`, `Video Title`, `Channel`, `Niche`, `Focus Keyword`, `Description Hook`, `YouTube Description`, `Description Char Count`, `Chapter Timestamps`, `Total Chapters`, `YouTube Tags`, `Tag Count`, `Hashtags`, `SEO Notes`, `Generated On`, `Status`\n\n9. **Get your Google Sheet ID** — Open your Google Sheet in a browser → copy the string between `/d/` and `/edit` in the URL\n\n10. **Connect Google Sheets** — Open node **10. Google Sheets — Save YouTube SEO Package** → click the document field → replace `YOUR_GOOGLE_SHEET_ID` by selecting your spreadsheet or entering the Sheet ID manually → click the credential dropdown → add Google Sheets OAuth2 → authorize access\n\n11. **Activate the workflow** — Toggle the workflow to Active → copy the Form URL from node **1. Form — Video URL + SEO Details** → open it in a browser to submit your first video\n\n---\n\n## How It Works (Step by Step)\n\n**Step 1 — Form: Video URL + SEO Details**\nYou open the form URL and fill in seven fields: the YouTube video URL, the video title, the channel name, the content niche, the focus keyword (e.g. \"SEO tutorial for beginners\"), the section query for timestamps (4–6 descriptive words like \"step by step tutorial section transition\"), and an optional channel or website link. Submitting the form triggers both API submissions simultaneously.\n\n**Steps 2a and 2b — HTTP: WayinVideo Parallel Submissions**\nThe form submission triggers two separate API calls at the same time. **2a. WayinVideo — Submit Summarization** sends the video URL to WayinVideo's Summarization API and receives a task ID. **2b. WayinVideo — Submit Find Moments** sends the same URL along with your section query to WayinVideo's Find Moments API with a limit of 12 moments, and receives a separate task ID. Both run independently from this point forward.\n\n**Steps 3a and 3b — Wait: 90 Seconds (Independent)**\nEach branch pauses for 90 seconds independently. **3a. Wait — 90 Seconds (Summary)** waits for the summarization branch. **3b. Wait — 90 Seconds (Moments)** waits for the moments branch. Neither branch waits for the other.\n\n**Steps 4a and 4b — HTTP: WayinVideo Results Polling**\n**4a. WayinVideo — Get Summary Results** checks the summarization results endpoint using the task ID from step 2a. **4b. WayinVideo — Get Moments Results** checks the find-moments results endpoint using the task ID from step 2b. Each returns its own status and data independently.\n\n**Steps 5a and 5b — IF: Status Checks**\nEach branch has its own polling gate. **5a. IF — Summary Complete?** checks whether the summarization status equals `SUCCEEDED`. If YES, the summary branch passes its data to the merge step. If NO, it routes to **5c. Wait — 30 Seconds Retry (Summary)** which pauses 30 seconds then loops back to step 4a. **5b. IF — Moments Complete?** works identically for the moments branch — YES passes to merge, NO routes to **5d. Wait — 30 Seconds Retry (Moments)** which loops back to step 4b. Both loops run independently — if one API finishes before the other, that branch waits at the merge step until the other arrives.\n\n**Steps 5c and 5d — Wait: 30 Seconds Retry (Independent)**\n**5c. Wait — 30 Seconds Retry (Summary)** is the summary branch retry. **5d. Wait — 30 Seconds Retry (Moments)** is the moments branch retry. Each loops back only to its own polling step.\n\n**Step 6 — Code: Merge + Format API Results**\nThis step reads from both completed branches — the summarization data from step 4a and the moments clips array from step 4b — and combines them. The moments clips are sorted chronologically by start time. If the first moment does not start at 0:00, a `0:00 Introduction` line is prepended. All form inputs are also packaged. The combined output is one clean object ready for GPT: the video summary, numbered highlights, WayinVideo tags, formatted chapter list with total count, and all form metadata.\n\n**Step 7 — AI Agent: Write YouTube SEO Package**\nGPT-4o-mini receives the summary, highlights, chapter timestamps, and WayinVideo tags as the main input, and the full video context in the system prompt. It generates six labeled sections: YOUTUBE_DESCRIPTION (800–1000 characters with chapters embedded and hashtags at the end, focus keyword in the first 100 characters), CHAPTERS_STANDALONE (clean chapter list for copy-paste), YOUTUBE_TAGS (exactly 15 comma-separated lowercase tags), HASHTAGS (exactly 6 hashtags), DESCRIPTION_HOOK (just the first two lines), and SEO_NOTES (2–3 specific tips for this video's niche).\n\n**Step 8 — OpenAI: GPT-4o-mini Model**\nThis is the language model powering the SEO package generation.\n\n**Step 9 — Code: Parse SEO Output**\nAll six labeled sections are extracted from the GPT output using regex. The tag count is calculated by splitting the tags string on commas. The description character count is measured. If the YouTube description or tags are missing, the step throws a clear error. All metadata from the merge step is also packaged for the sheet row.\n\n**Step 10 — Google Sheets: Save YouTube SEO Package**\nOne row is appended to your YouTube SEO tab with all 16 columns: video URL, video title, channel, niche, focus keyword, description hook, full YouTube description, character count, chapter timestamps, total chapters, YouTube tags, tag count, hashtags, SEO notes, generation timestamp, and Status set to Ready.\n\n---\n\n## Key Features\n\n✅ **Two WayinVideo APIs run simultaneously** — Summarization and Find Moments both start from the form submission at the same time — saving time compared to running them sequentially\n✅ **Two fully independent polling loops** — Each API has its own retry loop so if one takes longer than the other, they never block each other\n✅ **0:00 Introduction auto-prepended** — The merge step checks whether the first found moment is at the very start — if not, a 0:00 Introduction line is added automatically\n✅ **YouTube description character count tracked** — The sheet logs the exact character length of the description so you can verify it falls within YouTube's recommended range before publishing\n✅ **Above-the-fold hook saved separately** — The first two lines of the description are extracted into their own column so you can quickly check what viewers see before clicking \"more\"\n✅ **Exactly 15 tags and 6 hashtags enforced** — GPT is instructed to generate exactly these counts per YouTube SEO best practice — not a variable number\n✅ **SEO notes specific to the niche** — The SEO_NOTES section gives 2–3 actionable tips tailored to the video's specific topic and niche — not generic YouTube advice\n\n---\n\n## Customisation Options\n\n**Increase the number of chapter moments returned** — In node **2b. WayinVideo — Submit Find Moments**, change `\"limit\": 12` to a higher number such as `15` to find more chapter transitions — useful for longer videos with many distinct sections.\n\n**Add a retry limit to stop infinite loops on either branch** — Before nodes **5c. Wait — 30 Seconds Retry (Summary)** and **5d. Wait — 30 Seconds Retry (Moments)**, add Set steps that increment separate poll counters, then add second IF checks on each to stop after 15 polls and send a Gmail error notification rather than looping indefinitely.\n\n**Send the SEO package to Gmail for review** — After node **10. Google Sheets — Save YouTube SEO Package**, add a Gmail step that sends the video title, description hook, all 15 tags, and a link to the YouTube SEO sheet so you can review the package in your inbox without opening the sheet.\n\n**Add a Slack notification when the package is ready** — After node **10. Google Sheets — Save YouTube SEO Package**, add a Slack step that posts the video title, focus keyword, total chapters, and a sheet link to a `#youtube-content` channel so your team knows a new package is ready.\n\n**Change the chapter query for different video styles** — The Section Query for Timestamps field in the form directly drives what moments WayinVideo finds — try \"main topic introduction and explanation\" for educational videos or \"demonstration and example section\" for tutorial-style content.\n\n---\n\n## Troubleshooting\n\n**Form submission not starting the workflow:**\n- Confirm the workflow is Active — inactive workflows do not receive form submissions\n- Copy the Form URL fresh from node **1. Form — Video URL + SEO Details** after activating\n- Make sure all six required fields are filled in — the Channel / Website Link field is optional\n\n**WayinVideo API key errors on either branch:**\n- Confirm `YOUR_WAYINVIDEO_API_KEY` is replaced in all four steps: **2a. WayinVideo — Submit Summarization**, **2b. WayinVideo — Submit Find Moments**, **4a. WayinVideo — Get Summary Results**, and **4b. WayinVideo — Get Moments Results** — each branch has two steps and missing either one on that branch causes it to fail independently\n- Check the execution log of whichever step failed — a 401 means wrong key, a 422 means invalid URL or request format\n- Confirm your WayinVideo account is active and the key has not expired\n\n**Either polling loop stuck and not completing:**\n- Check that the YouTube video URL is publicly accessible — private videos, unlisted videos requiring login, or unavailable videos will cause WayinVideo to fail on that branch\n- Open the execution log of the failing step (**4a** or **4b**) and check the raw response — WayinVideo may have returned FAILED with a specific reason\n- The two branches are independent — if only one gets stuck, the other will complete and wait at the merge step; identify which branch failed and fix it specifically\n\n**GPT not generating all six sections:**\n- Confirm the API key is connected in node **8. OpenAI — GPT-4o-mini Model** and your account has available credits\n- Check the execution log of node **7. AI Agent — Write YouTube SEO Package** for the raw output — if the YOUTUBE_DESCRIPTION or YOUTUBE_TAGS sections are missing, node **9. Code — Parse SEO Output** throws a clear error\n- If the video summary is very short or the moments list is empty, GPT may produce a thinner output — confirm that both APIs returned data in step 6's execution log\n\n**Google Sheets not saving the row:**\n- Confirm `YOUR_GOOGLE_SHEET_ID` in node **10. Google Sheets — Save YouTube SEO Package** is replaced with your actual Sheet ID\n- Confirm the tab is named **YouTube SEO** exactly and all 16 column headers in row 1 match exactly\n- Check that the Google Sheets OAuth2 credential is connected and not expired — re-authorize if needed\n\n---\n\n## Support\n\nNeed help setting this up or want a custom version built for your team or agency?\n\n📧 Email: [info@isawow.com](info@isawow.com)\n🌐 Website: [https://isawow.com](https://isawow.com)",
+  "workflow": {
+    "meta": {
+      "instanceId": "bc8ca75c203589705ae2e446cad7181d6f2a7cc1766f958ef9f34810e53b8cb2",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "8204c264-2fbd-45ba-a6c3-8d0c576ddfe6",
+        "name": "Overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1408,
+          -96
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 524,
+          "height": 1156,
+          "content": "## YouTube Video to SEO Description + Tags + Chapters Generator — WayinVideo Summarization + Find Moments + GPT-4o-mini + Sheets\n\nFor YouTube creators, video agencies, and content managers who publish regularly and want to automatically generate a fully SEO-optimized video description with timestamps, tags, and hashtags — without writing it manually after each upload. Submit any YouTube video URL via the form. Two WayinVideo APIs run in parallel — the Summarization API generates a structured summary with highlights and tags, and the Find Moments API finds all key section transitions. Both APIs have independent 90-second waits and 30-second retry loops. GPT-4o-mini reads both outputs and generates six labeled sections: a full 800–1000 character YouTube description with chapters embedded, a standalone chapter list, 15 keyword tags, 6 hashtags, the above-the-fold description hook, and SEO notes. Everything is saved to Google Sheets as one row with 16 columns — ready to paste into YouTube Studio.\n\n## How it works\n- **1. Form — Video URL + SEO Details** collects the video URL, title, channel, niche, focus keyword, section query, and channel link\n- **2a. WayinVideo — Submit Summarization** and **2b. WayinVideo — Submit Find Moments** both submit simultaneously from the Form node — the workflow runs two API jobs in parallel\n- **3a/3b. Wait — 90 Seconds** gives each API initial processing time independently\n- **4a/4b. WayinVideo — Get Results** polls each API on its own branch\n- **5a. IF — Summary Complete?** and **5b. IF — Moments Complete?** check each status independently — FALSE branches loop back via 30-second retry waits (5c above, 5d below)\n- **6. Code — Merge + Format API Results** reads from both 4a and 4b, sorts chapters chronologically, prepends 0:00 Introduction if missing, and assembles the combined prompt for GPT\n- **7. AI Agent — Write YouTube SEO Package** uses GPT-4o-mini to write all 6 labeled output sections\n- **8. OpenAI — GPT-4o-mini Model** language model attached to the AI Agent\n- **9. Code — Parse SEO Output** extracts all 6 sections via regex and counts tags and description characters\n- **10. Google Sheets — Save YouTube SEO Package** appends one row with 16 fields and Status set to Ready\n\n## Set up steps\n1. In **2a**, **2b**, **4a**, **4b** — replace `YOUR_WAYINVIDEO_API_KEY`\n2. In **8. OpenAI — GPT-4o-mini Model** — connect your OpenAI credential\n3. In **10. Google Sheets — Save YouTube SEO Package** — connect your Google Sheets OAuth2 credential and replace `YOUR_GOOGLE_SHEET_ID`\n4. Create a Google Sheet tab named YouTube SEO with columns: Video URL, Video Title, Channel, Niche, Focus Keyword, Description Hook, YouTube Description, Description Char Count, Chapter Timestamps, Total Chapters, YouTube Tags, Tag Count, Hashtags, SEO Notes, Generated On, Status"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a03d2b45-7670-4ea5-9927-02c4e89c5d20",
+        "name": "Section — Form Input",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -800,
+          112
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 280,
+          "height": 452,
+          "content": "## Form Input\nCreator submits video URL, title, channel name, niche, focus keyword, section query for timestamps, and optional channel link. The section query drives the Find Moments API — use 4–6 descriptive words matching your video style."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "93e370e1-a209-4df6-b60b-08ef3f8bbd4b",
+        "name": "Section — Parallel API Submission",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -496,
+          -32
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 292,
+          "height": 724,
+          "content": "## Parallel API Submission\nBoth WayinVideo APIs are submitted simultaneously from the Form node. Branch A submits to the Summarization API. Branch B submits to the Find Moments API. Each returns a task ID for independent polling."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "96b32843-d826-47f6-ad05-04b41abd0202",
+        "name": "Section — Independent Wait, Poll, and Retry Loops",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -128,
+          -128
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 740,
+          "height": 964,
+          "content": "## Independent Wait, Poll, and Retry Loops\nBoth branches wait 90 seconds independently. Each polls its own results endpoint. IF SUCCEEDED — proceeds to merge. IF not ready — 30-second retry loops back. Branch A retry (5c) sits above the main row. Branch B retry (5d) sits below."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "d4ef53a3-7a75-451c-80a2-d7da17928751",
+        "name": "Section — Merge, Format, and AI SEO Writing",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          656,
+          192
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 612,
+          "height": 468,
+          "content": "## Merge, Format, and AI SEO Writing\nCode node reads from both 4a and 4b, sorts chapters chronologically, prepends 0:00 Introduction if missing. GPT-4o-mini writes all 6 labeled SEO sections in one call."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1eca8a5a-6f2f-46cd-bd05-e9064bebf899",
+        "name": "Section — SEO Parse and Google Sheets Save",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1312,
+          192
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 484,
+          "height": 356,
+          "content": "## SEO Parse and Google Sheets Save\nRegex extracts all 6 labeled sections. Counts tags and description characters. Appends one row to Google Sheets with 16 fields and Status set to Ready."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b187aa07-64a5-4104-a2d9-454a5f2cb4a1",
+        "name": "1. Form — Video URL + SEO Details",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          -720,
+          320
+        ],
+        "webhookId": "4374002d-9fc2-4a19-bd73-dcb56504e3ca",
+        "parameters": {
+          "options": {},
+          "formTitle": "YouTube SEO Description Generator",
+          "formFields": {
+            "values": [
+              {
+                "fieldLabel": "YouTube Video URL",
+                "placeholder": "https://www.youtube.com/watch?v=xxxxxxx",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Video Title",
+                "placeholder": "e.g. Complete SEO Tutorial for Beginners 2025 — Step by Step",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Channel Name",
+                "placeholder": "e.g. Incrementors, Ali Abdaal, TechWithTim",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Content Niche",
+                "placeholder": "e.g. SEO, Python Programming, Personal Finance, Fitness",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Focus Keyword",
+                "placeholder": "e.g. SEO tutorial for beginners, Python functions explained",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Section Query for Timestamps",
+                "placeholder": "e.g. step by step tutorial section transition",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Channel / Website Link",
+                "placeholder": "e.g. https://yourwebsite.com"
+              }
+            ]
+          },
+          "formDescription": "Paste your YouTube video URL. AI will generate a complete SEO-optimized description with chapter timestamps, keyword tags, and hashtags — ready to paste into YouTube Studio."
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "0a92cad4-4780-4c5f-8104-0f1daeb86fbf",
+        "name": "2a. WayinVideo — Submit Summarization",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -400,
+          176
+        ],
+        "parameters": {
+          "url": "https://wayinvideo-api.wayin.ai/api/v2/summaries",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n  \"video_url\": \"{{ $json['YouTube Video URL'] }}\",\n  \"target_lang\": \"en\"\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              },
+              {
+                "name": "x-wayinvideo-api-version",
+                "value": "v2"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "f075bba5-d282-4f14-9e13-02c6e8a6d983",
+        "name": "2b. WayinVideo — Submit Find Moments",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -400,
+          448
+        ],
+        "parameters": {
+          "url": "https://wayinvideo-api.wayin.ai/api/v2/clips/find-moments",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n  \"video_url\": \"{{ $('1. Form — Video URL + SEO Details').item.json['YouTube Video URL'] }}\",\n  \"query\": \"{{ $('1. Form — Video URL + SEO Details').item.json['Section Query for Timestamps'] }}\",\n  \"project_name\": \"Chapters — {{ $('1. Form — Video URL + SEO Details').item.json['Video Title'] }}\",\n  \"limit\": 12,\n  \"enable_export\": false,\n  \"target_lang\": \"en\"\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              },
+              {
+                "name": "x-wayinvideo-api-version",
+                "value": "v2"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "f0653386-1970-4a18-91c8-d9543e7960b8",
+        "name": "3a. Wait — 90 Seconds (Summary)",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          -64,
+          176
+        ],
+        "webhookId": "wait-ytseo-summary-90s",
+        "parameters": {
+          "amount": 90
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "e625ad76-2e57-4842-b15a-9519dfe420c0",
+        "name": "3b. Wait — 90 Seconds (Moments)",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          -64,
+          448
+        ],
+        "webhookId": "wait-ytseo-moments-90s",
+        "parameters": {
+          "amount": 90
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "80643e4b-aa20-45de-8d45-c72ecb9c7bce",
+        "name": "4a. WayinVideo — Get Summary Results",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          192,
+          176
+        ],
+        "parameters": {
+          "url": "=https://wayinvideo-api.wayin.ai/api/v2/summaries/results/{{ $('2a. WayinVideo — Submit Summarization').item.json.data.id }}",
+          "options": {},
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              },
+              {
+                "name": "x-wayinvideo-api-version",
+                "value": "v2"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "5d41e73c-9a05-43bf-9bc6-542ce7531eb1",
+        "name": "4b. WayinVideo — Get Moments Results",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          192,
+          448
+        ],
+        "parameters": {
+          "url": "=https://wayinvideo-api.wayin.ai/api/v2/clips/find-moments/results/{{ $('2b. WayinVideo — Submit Find Moments').item.json.data.id }}",
+          "options": {},
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              },
+              {
+                "name": "x-wayinvideo-api-version",
+                "value": "v2"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "97963e56-e569-4bed-b3b7-6c72512e4fa3",
+        "name": "5a. IF — Summary Complete?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          432,
+          176
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 3,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "s-status",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.data.status }}",
+                "rightValue": "SUCCEEDED"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "069738e1-7fc3-4814-b1c1-ca65496a32f3",
+        "name": "5b. IF — Moments Complete?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          432,
+          448
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 3,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "m-status",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.data.status }}",
+                "rightValue": "SUCCEEDED"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "8eaa9cef-0794-42bf-ba1c-f5b98ad6222c",
+        "name": "5c. Wait — 30 Seconds Retry (Summary)",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          432,
+          16
+        ],
+        "webhookId": "wait-ytseo-retry-a",
+        "parameters": {
+          "amount": 30
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "26c2c59d-a08c-4d9e-afd5-d354b7eb0a10",
+        "name": "5d. Wait — 30 Seconds Retry (Moments)",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          432,
+          608
+        ],
+        "webhookId": "wait-ytseo-retry-b",
+        "parameters": {
+          "amount": 30
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "d882c46b-9a18-49b1-8469-d0fc73a747e1",
+        "name": "6. Code — Merge + Format API Results",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          704,
+          320
+        ],
+        "parameters": {
+          "jsCode": "// Extract and format both API results for GPT\n\n// --- SUMMARY DATA ---\nconst summaryData = $('4a. WayinVideo — Get Summary Results').item.json.data;\nconst summary = summaryData.summary || '';\nconst highlights = Array.isArray(summaryData.highlights)\n  ? summaryData.highlights.map((h, i) => `${i + 1}. ${h.desc}`).join('\\n')\n  : '';\nconst apiTags = Array.isArray(summaryData.tags) ? summaryData.tags : [];\n\n// --- MOMENTS / CHAPTERS DATA ---\nconst clips = $('4b. WayinVideo — Get Moments Results').item.json.data?.clips || [];\n\n// Sort chapters chronologically by start time\nconst sortedClips = clips.sort((a, b) => (a.begin_ms || 0) - (b.begin_ms || 0));\n\n// Build formatted chapters list\nconst chapters = sortedClips.map((clip, index) => {\n  const startMs = clip.begin_ms || 0;\n  const mm = Math.floor(startMs / 60000);\n  const ss = String(Math.floor((startMs % 60000) / 1000)).padStart(2, '0');\n  const timestamp = `${mm}:${ss}`;\n  return `${timestamp} ${clip.title || `Section ${index + 1}`}`;\n});\n\n// Make sure 0:00 Introduction is first\nif (chapters.length > 0 && !chapters[0].startsWith('0:00')) {\n  chapters.unshift('0:00 Introduction');\n}\n\nconst chaptersText = chapters.join('\\n');\nconst totalChapters = chapters.length;\n\n// --- FORM DATA ---\nconst videoTitle = $('1. Form — Video URL + SEO Details').item.json['Video Title'];\nconst channelName = $('1. Form — Video URL + SEO Details').item.json['Channel Name'];\nconst niche = $('1. Form — Video URL + SEO Details').item.json['Content Niche'];\nconst focusKeyword = $('1. Form — Video URL + SEO Details').item.json['Focus Keyword'];\nconst channelLink = $('1. Form — Video URL + SEO Details').item.json['Channel / Website Link'] || '';\nconst videoUrl = $('1. Form — Video URL + SEO Details').item.json['YouTube Video URL'];\n\nreturn [{\n  json: {\n    summary,\n    highlights,\n    apiTags,\n    apiTagsText: apiTags.join(', '),\n    chaptersText,\n    totalChapters,\n    videoTitle,\n    channelName,\n    niche,\n    focusKeyword,\n    channelLink,\n    videoUrl\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "df15ca04-7242-48f7-ac70-bab06628b866",
+        "name": "7. AI Agent — Write YouTube SEO Package",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          944,
+          320
+        ],
+        "parameters": {
+          "text": "=Video Summary:\n{{ $json.summary }}\n\nKey Highlights:\n{{ $json.highlights }}\n\nChapter Timestamps (already sorted chronologically):\n{{ $json.chaptersText }}\n\nAPI Tags from WayinVideo:\n{{ $json.apiTagsText }}",
+          "options": {
+            "systemMessage": "=You are an expert YouTube SEO strategist who writes high-performing video descriptions that rank well in YouTube search and drive clicks.\n\nRead the video summary, highlights, and chapter timestamps provided and write a complete YouTube SEO package.\n\n---\n\n## VIDEO DETAILS\n- Video Title: {{ $json.videoTitle }}\n- Channel: {{ $json.channelName }}\n- Niche: {{ $json.niche }}\n- Focus Keyword: {{ $json.focusKeyword }}\n- Channel Link: {{ $json.channelLink }}\n- Video URL: {{ $json.videoUrl }}\n- Total Chapters: {{ $json.totalChapters }}\n\n---\n\n## YOUTUBE DESCRIPTION RULES\n1. Total description length: 800-1000 characters (YouTube shows ~157 chars above the fold)\n2. First 2 lines must be the strongest hook — include the focus keyword naturally\n3. Structure: Hook (2 lines) → What you will learn (3-4 bullet points) → Chapter timestamps → Channel/links section → Hashtags\n4. Use the exact chapter timestamps provided — do NOT change MM:SS values\n5. Include focus keyword in first 100 characters\n6. Write naturally — not keyword stuffed\n7. End with 5-7 hashtags on the last line\n\n## YOUTUBE TAGS RULES\n- Generate exactly 15 tags\n- Mix of: exact focus keyword, broad niche keywords, long-tail variations, channel-related tags\n- All lowercase\n- No hashtags — plain text tags only\n- 2-5 words per tag maximum\n\n## HASHTAGS RULES\n- Generate exactly 6 hashtags\n- Include focus keyword hashtag, niche hashtag, 4 discovery hashtags\n- Lowercase, no spaces\n\n---\n\n## OUTPUT FORMAT\nReturn in this exact structure:\n\nYOUTUBE_DESCRIPTION:\n[Full YouTube description — 800-1000 characters — with chapters embedded — hashtags at end]\n\nCHAPTERS_STANDALONE:\n[Clean chapter list for copy-paste — one per line — MM:SS Title format]\n\nYOUTUBE_TAGS:\n[15 tags — comma separated — lowercase — no hashtags]\n\nHASHTAGS:\n[6 hashtags — space separated]\n\nDESCRIPTION_HOOK:\n[First 2 lines of the description — the above-the-fold preview]\n\nSEO_NOTES:\n[2-3 bullet points of SEO tips specific to this video's topic and niche]\n\n---\n\nNow write the complete YouTube SEO package:"
+          },
+          "promptType": "define"
+        },
+        "typeVersion": 3.1
+      },
+      {
+        "id": "39b23edb-2dd1-4836-a44a-d1c725b8d3fc",
+        "name": "8. OpenAI — GPT-4o-mini Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          944,
+          512
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4o-mini"
+          },
+          "options": {},
+          "builtInTools": {}
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "51a62971-9a83-494d-b1db-93aab484f5f5",
+        "name": "9. Code — Parse SEO Output",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1376,
+          320
+        ],
+        "parameters": {
+          "jsCode": "// Parse AI YouTube SEO output\nconst output = $input.first().json.output || '';\n\n// Extract each section\nconst descMatch = output.match(/YOUTUBE_DESCRIPTION:\\s*([\\s\\S]*?)(?=\\nCHAPTERS_STANDALONE:|$)/);\nconst chaptersMatch = output.match(/CHAPTERS_STANDALONE:\\s*([\\s\\S]*?)(?=\\nYOUTUBE_TAGS:|$)/);\nconst tagsMatch = output.match(/YOUTUBE_TAGS:\\s*([\\s\\S]*?)(?=\\nHASHTAGS:|$)/);\nconst hashtagsMatch = output.match(/HASHTAGS:\\s*([\\s\\S]*?)(?=\\nDESCRIPTION_HOOK:|$)/);\nconst hookMatch = output.match(/DESCRIPTION_HOOK:\\s*([\\s\\S]*?)(?=\\nSEO_NOTES:|$)/);\nconst seoNotesMatch = output.match(/SEO_NOTES:\\s*([\\s\\S]*)$/);\n\nconst youtubeDescription = descMatch ? descMatch[1].trim() : '';\nconst chaptersStandalone = chaptersMatch ? chaptersMatch[1].trim() : '';\nconst youtubeTags = tagsMatch ? tagsMatch[1].trim() : '';\nconst hashtags = hashtagsMatch ? hashtagsMatch[1].trim() : '';\nconst descriptionHook = hookMatch ? hookMatch[1].trim() : '';\nconst seoNotes = seoNotesMatch ? seoNotesMatch[1].trim() : '';\n\nif (!youtubeDescription || !youtubeTags) {\n  throw new Error('Could not parse YouTube SEO output. Check AI prompt format.');\n}\n\n// Count tags\nconst tagCount = youtubeTags.split(',').map(t => t.trim()).filter(Boolean).length;\nconst descCharCount = youtubeDescription.length;\n\n// Get metadata\nconst metaData = $('6. Code — Merge + Format API Results').item.json;\n\nreturn [{\n  json: {\n    youtubeDescription,\n    chaptersStandalone,\n    youtubeTags,\n    hashtags,\n    descriptionHook,\n    seoNotes,\n    tagCount,\n    descCharCount,\n    focusKeyword: metaData.focusKeyword,\n    videoTitle: metaData.videoTitle,\n    channelName: metaData.channelName,\n    niche: metaData.niche,\n    videoUrl: metaData.videoUrl,\n    totalChapters: metaData.totalChapters\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "213d53a1-0e37-4135-b85f-b2af0d8fbf4d",
+        "name": "10. Google Sheets — Save YouTube SEO Package",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1616,
+          320
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "Niche": "={{ $json.niche }}",
+              "Status": "Ready",
+              "Channel": "={{ $json.channelName }}",
+              "Hashtags": "={{ $json.hashtags }}",
+              "SEO Notes": "={{ $json.seoNotes }}",
+              "Tag Count": "={{ $json.tagCount }}",
+              "Video URL": "={{ $json.videoUrl }}",
+              "Video Title": "={{ $json.videoTitle }}",
+              "Generated On": "={{ $now.toFormat('dd MMMM yyyy HH:mm') }}",
+              "YouTube Tags": "={{ $json.youtubeTags }}",
+              "Focus Keyword": "={{ $json.focusKeyword }}",
+              "Total Chapters": "={{ $json.totalChapters }}",
+              "Description Hook": "={{ $json.descriptionHook }}",
+              "Chapter Timestamps": "={{ $json.chaptersStandalone }}",
+              "YouTube Description": "={{ $json.youtubeDescription }}",
+              "Description Char Count": "={{ $json.descCharCount }}"
+            },
+            "schema": [],
+            "mappingMode": "defineBelow",
+            "matchingColumns": []
+          },
+          "options": {},
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "YouTube SEO"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "YOUR_GOOGLE_SHEET_ID"
+          }
+        },
+        "typeVersion": 4.5
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "5a. IF — Summary Complete?": {
+        "main": [
+          [
+            {
+              "node": "6. Code — Merge + Format API Results",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "5c. Wait — 30 Seconds Retry (Summary)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "5b. IF — Moments Complete?": {
+        "main": [
+          [
+            {
+              "node": "6. Code — Merge + Format API Results",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "5d. Wait — 30 Seconds Retry (Moments)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "9. Code — Parse SEO Output": {
+        "main": [
+          [
+            {
+              "node": "10. Google Sheets — Save YouTube SEO Package",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "8. OpenAI — GPT-4o-mini Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "7. AI Agent — Write YouTube SEO Package",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "3a. Wait — 90 Seconds (Summary)": {
+        "main": [
+          [
+            {
+              "node": "4a. WayinVideo — Get Summary Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "3b. Wait — 90 Seconds (Moments)": {
+        "main": [
+          [
+            {
+              "node": "4b. WayinVideo — Get Moments Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "1. Form — Video URL + SEO Details": {
+        "main": [
+          [
+            {
+              "node": "2a. WayinVideo — Submit Summarization",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "2b. WayinVideo — Submit Find Moments",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2b. WayinVideo — Submit Find Moments": {
+        "main": [
+          [
+            {
+              "node": "3b. Wait — 90 Seconds (Moments)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "4a. WayinVideo — Get Summary Results": {
+        "main": [
+          [
+            {
+              "node": "5a. IF — Summary Complete?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "4b. WayinVideo — Get Moments Results": {
+        "main": [
+          [
+            {
+              "node": "5b. IF — Moments Complete?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "6. Code — Merge + Format API Results": {
+        "main": [
+          [
+            {
+              "node": "7. AI Agent — Write YouTube SEO Package",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2a. WayinVideo — Submit Summarization": {
+        "main": [
+          [
+            {
+              "node": "3a. Wait — 90 Seconds (Summary)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "5c. Wait — 30 Seconds Retry (Summary)": {
+        "main": [
+          [
+            {
+              "node": "4a. WayinVideo — Get Summary Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "5d. Wait — 30 Seconds Retry (Moments)": {
+        "main": [
+          [
+            {
+              "node": "4b. WayinVideo — Get Moments Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "7. AI Agent — Write YouTube SEO Package": {
+        "main": [
+          [
+            {
+              "node": "9. Code — Parse SEO Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 31,
+      "name": "Content Creation"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15710",
+  "fetched_at": "2026-09-12T13:15:33Z"
+}

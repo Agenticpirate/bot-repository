@@ -1,0 +1,230 @@
+{
+  "id": 7628,
+  "name": "Extract YouTube Video Metadata and Save to Google Docs using RapidAPI",
+  "description": "## 📺 Automated YouTube Video Metadata Extraction Workflow\n\n**Description:**\nThis workflow leverages the [**YouTube Metadata API**](https://rapidapi.com/PrineshPatel/api/youtube-metadata1) to automatically extract detailed video information from any YouTube URL. It uses [**n8n**](https://n8n.io) to automate the entire process and stores the metadata in a neatly formatted **Google Docs** document.\n\nPerfect for content creators, marketers, and researchers who need quick, organized YouTube video insights at scale.\n\n---\n\n## ⚙️ Node-by-Node Explanation\n\n### 1. ✅ On Form Submission\n\nThis node acts as the **trigger**. When a user submits a form containing a YouTube video URL, the workflow is activated.\n\n* Input: YouTube Video URL\n* Platform: `Webhook` or `n8n Form Trigger`\n\n---\n\n### 2. 🌐 YouTube Metadata API (HTTP Request)\n\nThis node sends the video URL to the [**YouTube Metadata API**](https://rapidapi.com/PrineshPatel/api/youtube-metadata1) via HTTP request.\n\n* Action: `GET` request\n\n* Headers:\n\n  ```bash\n  -H \"X-RapidAPI-Key: YOUR_API_KEY\"\n  -H \"X-RapidAPI-Host: youtube-metadata1.p.rapidapi.com\"\n  ```\n\n* Endpoint Example:\n\n  ```\n  https://youtube-metadata1.p.rapidapi.com/video?url=YOUTUBE_VIDEO_URL\n  ```\n\n* Output: JSON with metadata like:\n\n  * Title\n  * Description\n  * Views, Likes, Comments\n  * Duration\n  * Upload Date\n  * Channel Info\n  * Thumbnails\n\n---\n\n### 3. 🧠 Reformat Metadata (Code Node)\n\nThis node reformats the raw metadata into a clean, human-readable text block.\n\n* Example Output Format:\n\n  ```\n  🎬 **Title:** How to Build Workflows with n8n  \n  🧾 **Description:** This tutorial explains how to build...  \n  👤 **Channel:** n8n Tutorials  \n  📅 **Published On:** 2023-05-10  \n  ⏱️ **Duration:** 10 minutes, 30 seconds  \n  👁️ **Views:** 45,678  \n  👍 **Likes:** 1,234  \n  💬 **Comments:** 210  \n  🔗 **URL:** https://youtube.com/watch?v=abc123\n  ```\n\n---\n\n### 4. 📝 Append to Google Docs\n\nThis node connects to your Google Docs and appends the formatted metadata into a selected document.\n\n* **Document Format Example:**\n\n  ```markdown\n  ## 📌 Video Entry – [Date]\n\n  🎬 **Title:**  \n  🧾 **Description:**  \n  👤 **Channel:**  \n  📅 **Published On:**  \n  ⏱️ **Duration:**  \n  👁️ **Views:**  \n  👍 **Likes:**  \n  💬 **Comments:**  \n  🔗 **URL:**\n\n  ---\n  ```\n\n---\n\n## 📄 Use Cases\n\n* **Content Creators**: Quickly analyze competitor content or inspirations.\n* **Marketers**: Collect campaign video performance data.\n* **Researchers**: Compile structured metadata across videos.\n* **Social Media Managers**: Create content briefs effortlessly.\n\n---\n\n## ✅ Benefits\n\n* 🚀 **Time-saving**: Automates manual video data extraction\n* 📊 **Accurate**: Uses reliable, updated YouTube API\n* 📁 **Organized**: Formats and stores data in Google Docs\n* 🔁 **Scalable**: Handles unlimited YouTube URLs\n* 🎯 **User-friendly**: Simple setup and clean output\n\n---\n\n## 🔑 How to Get Your API Key for YouTube Metadata API\n\n1. Go to the [**YouTube Metadata API on RapidAPI**](https://rapidapi.com/PrineshPatel/api/youtube-metadata1).\n2. Sign up or log in to your RapidAPI account.\n3. Click **Subscribe to Test** and choose a pricing plan (free or paid).\n4. Copy your **API Key** shown in the **\"X-RapidAPI-Key\"** section.\n5. Use it in your HTTP request headers.\n\n---\n\n## 🧰 Google Docs Integration – Full Setup Instructions\n\n### 🔐 Step 1: Enable Google Docs API\n\n1. Go to the [Google Cloud Console](https://console.cloud.google.com/).\n2. Create a new project or select an existing one.\n3. Navigate to **APIs & Services &gt; Library**.\n4. Search for **Google Docs API** and click **Enable**.\n5. Also enable **Google Drive API** (for document access).\n\n---\n\n### 🛠 Step 2: Create OAuth Credentials\n\n1. Go to **APIs & Services &gt; Credentials**.\n2. Click **Create Credentials &gt; OAuth Client ID**.\n3. Select **Web Application** or **Desktop App**.\n4. Add authorized redirect URIs if needed (e.g., for n8n OAuth).\n5. Save your **Client ID** and **Client Secret**.\n\n---\n\n### 🔗 Step 3: Connect n8n to Google Docs\n\n1. In n8n, go to **Credentials &gt; Google Docs API**.\n2. Add new credentials using the Client ID and Secret from above.\n3. Authenticate with your Google account and allow access.\n\n---\n\n### 📘 Step 4: Create and Format Your Google Document\n\n1. Go to Google Docs and create a new document.\n2. Name it (e.g., `YouTube Metadata Report`).\n3. Optionally, add a title or table of contents.\n4. Copy the **Document ID** from the URL:\n\n   ```\n   https://docs.google.com/document/d/DOCUMENT_ID/edit\n   ```\n\n---\n\n### 🔄 Step 5: Use `Append Content to Document` Node in n8n\n\n* Use the `Google Docs` node in n8n with:\n\n  * Operation: `Append Content`\n  * Document ID: Your copied Google Doc ID\n  * Content: The formatted video summary string\n\n---\n\n## 🎨 Customization Options\n\n* 💡 **Add Tags**: Insert hashtags or categories based on video topics.\n* 📆 **Organize by Date**: Create headers for each day or week’s entries.\n* 📸 **Embed Thumbnails**: Use `thumbnail_url` to embed preview images.\n* 📊 **Spreadsheet Export**: Use Google Sheets instead of Docs if preferred.\n\n---\n\n## 🛠 Troubleshooting Tips\n\n| Issue                          | Solution                                                            |\n| ------------------------------ | ------------------------------------------------------------------- |\n| ❌ **Auth Error (Google Docs)** | Ensure correct OAuth redirect URI and permissions.                  |\n| ❌ **API Request Fails**        | Check API key and request structure; test on RapidAPI's playground. |\n| 📄 **Doc Not Updating**        | Verify Document ID and sharing permissions.                         |\n| 🧾 **Bad Formatting**          | Debug the code node output using logging or console in n8n.         |\n| 🌐 **n8n Timeout**             | Consider using `Wait` or `Split In Batches` for large submissions.  |\n\n---\n\n## 🚀 Ready to Launch?\n\nYou can deploy this workflow in just minutes using **n8n**.\n\n👉 [Start Automating with n8n](https://n8n.partnerlinks.io/7fuarh1e6dz5)\n\n---",
+  "workflow": {
+    "meta": {
+      "instanceId": "60c025075753afcab9f803964b4caaca9402f435deb4efafbb8e3b93b54d8752"
+    },
+    "nodes": [
+      {
+        "id": "2d304223-ef2d-4e03-814d-cac411106f6b",
+        "name": "On form submission",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          -160,
+          220
+        ],
+        "webhookId": "2edc6cbb-9fb2-47c9-8387-8ff412c7838a",
+        "parameters": {
+          "options": {},
+          "formTitle": "YouTube Metadata ",
+          "formFields": {
+            "values": [
+              {
+                "fieldLabel": "url",
+                "requiredField": true
+              }
+            ]
+          },
+          "formDescription": "YouTube Metadata"
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "3ddda565-879e-4685-bde6-e3f1dc62df2e",
+        "name": "YouTube Metadata",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          60,
+          220
+        ],
+        "parameters": {
+          "url": "https://youtube-metadata1.p.rapidapi.com/video_metadata.php",
+          "method": "POST",
+          "options": {},
+          "sendBody": true,
+          "contentType": "multipart-form-data",
+          "sendHeaders": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "url",
+                "value": "={{ $json.url }}"
+              }
+            ]
+          },
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "x-rapidapi-host",
+                "value": "youtube-metadata1.p.rapidapi.com"
+              },
+              {
+                "name": "x-rapidapi-key",
+                "value": "your key"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "9ddd4dd3-3c23-471a-aac9-9222deb584a5",
+        "name": "Reformat",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          300,
+          220
+        ],
+        "parameters": {
+          "jsCode": "const itemsArray = $input.first().json.items;\n\n// Safely access the first video item\nconst video = itemsArray[0];\nconst {\n  id: videoId,\n  snippet,\n  contentDetails,\n  statistics,\n} = video;\n\n// Format tags as a comma-separated string\nconst tags = snippet.tags && snippet.tags.length > 0\n  ? snippet.tags.join(', ')\n  : 'No tags available';\n\n// Format published date\nconst publishedDate = new Date(snippet.publishedAt).toLocaleDateString();\n\n// Format duration (optional: still in ISO 8601 like PT4M16S)\nconst duration = contentDetails.duration;\n\n// Prepare formatted content\nconst formatted = `\n🎬 **${snippet.title}**\n\n🧾 **Description:**\n${snippet.description}\n\n📺 **Channel:** ${snippet.channelTitle}\n📅 **Published At:** ${publishedDate}\n\n📊 **Stats:**\n- Views: ${statistics.viewCount}\n- Likes: ${statistics.likeCount}\n- Comments: ${statistics.commentCount}\n\n🕒 **Duration:** ${duration}\n\n🏷️ **Tags:** ${tags}\n\n🔗 **Video URL:** https://www.youtube.com/watch?v=${videoId}\n🖼️ **Thumbnail:** ${snippet.thumbnails.high.url}\n`;\n\n// Return formatted string for use in Google Docs\nreturn [\n  {\n    json: {\n      docContent: formatted.trim()\n    }\n  }\n];\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "0589461b-0419-4798-9f69-851d7d9fffb3",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -880,
+          -40
+        ],
+        "parameters": {
+          "width": 520,
+          "height": 500,
+          "content": " \nAutomated YouTube Video Metadata Extraction and Documentation Workflow\n\n**Description:**  \nEasily extract detailed YouTube video metadata from any URL and automatically format and save it to Google Docs for streamlined documentation and analysis.\n\n- **On form submission:**  \n  Triggers the workflow when a user submits a YouTube URL via the form.\n\n- **YouTube Metadata (HTTP Request):**  \n  Sends the submitted URL to the RapidAPI YouTube Metadata service to fetch detailed video data.\n\n- **Reformat (Code):**  \n  Extracts and formats key video details like title, description, stats, and thumbnails into a clean, readable string.\n\n- **Append Data in Google Docs:**  \n  Inserts the formatted video metadata into a specified Google Docs document for storage or further use.\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6d94b502-69ea-41a5-a4df-22fe20ee812b",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -260,
+          120
+        ],
+        "parameters": {
+          "height": 240,
+          "content": "**On form submission:**  \n  Triggers the workflow when a user submits a YouTube URL via the form."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "656ff1b1-f872-48d8-80c8-dd8df82d1ebc",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          0,
+          120
+        ],
+        "parameters": {
+          "height": 240,
+          "content": " **YouTube Metadata (HTTP Request):**  \n  Sends the submitted URL to the RapidAPI YouTube Metadata service to fetch detailed video data.\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "73b16e7c-f9ac-46e7-83dc-902ebbd74158",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          260,
+          120
+        ],
+        "parameters": {
+          "height": 240,
+          "content": "**Reformat (Code):**  \n  Extracts and formats key video details like title, description, stats, and thumbnails into a clean, readable string.\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "bccb9237-7414-4976-9b60-5504c4d3cc7d",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          520,
+          120
+        ],
+        "parameters": {
+          "height": 240,
+          "content": "**Append Data In Google Sheet:**  \n  Append Data in Google sheet for the future usages.\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ee750cf2-1839-469d-8a84-dff68f280535",
+        "name": "Append Data in Google Docs",
+        "type": "n8n-nodes-base.googleDocs",
+        "position": [
+          560,
+          220
+        ],
+        "parameters": {
+          "actionsUi": {
+            "actionFields": [
+              {
+                "text": "={{ $json.docContent }}",
+                "action": "insert"
+              }
+            ]
+          },
+          "operation": "update",
+          "authentication": "serviceAccount"
+        },
+        "credentials": {
+          "googleApi": {
+            "id": "credential-id",
+            "name": "googleApi Credential"
+          }
+        },
+        "typeVersion": 2
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Reformat": {
+        "main": [
+          [
+            {
+              "node": "Append Data in Google Docs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "YouTube Metadata": {
+        "main": [
+          [
+            {
+              "node": "Reformat",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "On form submission": {
+        "main": [
+          [
+            {
+              "node": "YouTube Metadata",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7628",
+  "fetched_at": "2026-09-12T13:12:01Z"
+}

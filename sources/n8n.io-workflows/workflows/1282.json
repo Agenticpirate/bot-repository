@@ -1,0 +1,90 @@
+{
+  "id": 1282,
+  "name": "Send a file from S3 to AWS Textract",
+  "description": "This workflow shows how to download an image file from S3 and pass it on to Textract for text extraction.\n\n![](https://docs.n8n.io/assets/img/workflow.51d5f2fc.png)\n\nThe workflow uses two nodes:\n- **AWS S3**: This node will download a receipt file from S3\n- **AWS Textract**: This node connects to Aamazon's Textract service to extract text from the receipt file",
+  "workflow": {
+    "nodes": [
+      {
+        "name": "On clicking 'execute'",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          250,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "AWS Textract",
+        "type": "n8n-nodes-base.awsTextract",
+        "position": [
+          650,
+          300
+        ],
+        "parameters": {},
+        "credentials": {
+          "aws": {
+            "id": "credential-id",
+            "name": "aws Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "AWS S3",
+        "type": "n8n-nodes-base.awsS3",
+        "position": [
+          450,
+          300
+        ],
+        "parameters": {
+          "fileKey": "Rechnung.jpg",
+          "bucketName": "textract-demodata"
+        },
+        "credentials": {
+          "aws": {
+            "id": "credential-id",
+            "name": "aws Credential"
+          }
+        },
+        "typeVersion": 1
+      }
+    ],
+    "connections": {
+      "AWS S3": {
+        "main": [
+          [
+            {
+              "node": "AWS Textract",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "On clicking 'execute'": {
+        "main": [
+          [
+            {
+              "node": "AWS S3",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 35,
+      "name": "Document Extraction"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/1282",
+  "fetched_at": "2026-09-12T13:08:54Z"
+}

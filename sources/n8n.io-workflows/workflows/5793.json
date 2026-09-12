@@ -1,0 +1,436 @@
+{
+  "id": 5793,
+  "name": "Trading journal: log trades into Google Sheets via Telegram & Gemini AI",
+  "description": "# This smart AI-powered trading journal lets you easily log and update your trades using Telegram messages. Just send your trade details by text to your personal telegram bot, and the system will extract key information and save it in a Google Sheets journal for you.\n\nSimply send messages to your personal trade journal assistant (bot) on Telegram, and it will handle the rest. After some time, you can review your journal to reflect, learn, and improve your trading skills.\n\n### The journal can record:\n1. Asset or trading pair\n2. Entry price\n3. Stop loss\n4. Take profit\n5. Trade direction (buy/sell)\n6. Additional trading notes\n\n### It also allows you to update existing trades with:\n1. Profit and loss after closing the trade\n2. Additional notes such as strategy details\n\n## 1. How it works:\n### Trade Entry Example:\n**Send a message like:**\n\"Hey, log my trade on Tesla with entry price 300, stop loss 280, and direction buy.\"\n\n**The AI will extract:**\nAsset or trading pair (e.g., Tesla)\nEntry price\nStop loss (if provided)\nTake profit (if provided)\nDirection (buy/long or sell/short)\nAny additional notes (e.g., \"EMA 20 crossed above EMA 50\")\n\n**Trade ID:**\nAfter logging, you’ll receive a unique trade ID (e.g., \"233hdsf\") to keep for future updates to the trade entry (e.g add profit/loss upon trade close).\n\n### Trade Update Example:\n**To update your trade with profit/loss or notes, send a message like:**\n\"Hey, update my trade with profit of 300+ and add note: trade was closed after 7 days. Trade ID: 233hdsf.\"\n\nThe system will locate your trade by ID and update the details accordingly.\n\n## 2. Who is this for?\nTraders who want a simple, hands-free way to track and manage their trades without manual data entry. Perfect for individual traders, prop firms, or anyone who prefers using Telegram to interact with their trading journal.\n\n## 3. How to use:\n1. Create a Google Sheet with columns (ID (unique trade id auto generated for every trade), Asset/Pair, Entry Price, Stop Loss, Take Profit, Notes, Direction, Profit & Loss).\n2. Send trade details via Telegram message.\n3. Receive confirmation with a unique trade ID.\n4. Use the trade ID for any future updates to the trade entry.\n\nAll trades and updates are saved automatically in Google Sheets selected.\n\n## 4. How to Set Up This Smart AI Trading Journal Workflow\nThis section guides you through setting up the workflow that logs and updates your trades via Telegram messages, using AI to extract trade details and storing them in Google Sheets.\n\n1. Telegram Bot Setup\n**Create a Telegram bot using @BotFather:**\nSend /newbot command.\nChoose a bot name and username.\nCopy the API token provided.\n**In n8n, create Telegram credentials:**\nGo to Credentials → Create new → Telegram API.\nPaste your bot API token.\nUse https://api.telegram.org as the base URL.\nSave the credentials.\n\n2. Google Sheets Setup\nCreate a Google Sheet to store your trade journal with columns (ID (unique trade id auto generated for every trade), Asset/Pair, Entry Price, Stop Loss, Take Profit, Notes, Direction, Profit & Loss).\nNote the Spreadsheet ID from the URL (e.g., 1DeKt3teOs3R8Js9Go4rdhJCLKisLByMkO6LSPd5Be4c).\nMake sure your sheet has columns like:\nID, Asset/Pair, Entry Price, Stop Loss, Take Profit, Direction, Notes, Profit & Loss.\n**In n8n, create Google Sheets OAuth2 credentials:**\nFollow n8n Google Sheets docs to set up OAuth2 (https://docs.n8n.io/integrations/builtin/credentials/google/).\nSave the credentials.\n\n3. AI Model Setup\n**Use Google Gemini (PaLM) or Groq AI models for NLP:**\nSign up at Google AI Studio (https://aistudio.google.com/) or Groq Console (https://console.groq.com/).\nCreate API credentials and get your API keys.\n**In n8n, create credentials for any of the one AI model:**\nGoogle Gemini API credentials.\nGroq API credentials.\n\nThe workflow uses these AI nodes to parse Telegram messages and extract structured trade data.\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "d04643ba872bb0fb252ed2c8197858d58cc47dd3c15ff6d08b19addd679e927b",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "323e6adb-5692-4a54-ba6e-8b1709094837",
+        "name": "Telegram Trigger",
+        "type": "n8n-nodes-base.telegramTrigger",
+        "position": [
+          -740,
+          -80
+        ],
+        "webhookId": "05fd794a-5b7e-4388-b091-eba87c8cce87",
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "992528a7-11e0-4ab2-82ef-622fee127597",
+        "name": "Google Gemini Chat Model1",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "position": [
+          780,
+          780
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "7819c8ac-14bc-4415-bd0f-de48307da67f",
+        "name": "Generate Unique Trade ID",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          840,
+          -20
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "a1f8fb0c-c6d5-416e-9b1d-8159645d9259",
+        "name": "Update the Sheet With Profit & Loss",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1160,
+          -440
+        ],
+        "parameters": {},
+        "typeVersion": 4.5
+      },
+      {
+        "id": "ad5a1fc1-5f4d-4e1a-beb0-e0d88de366b5",
+        "name": "Log The Trade In Google Sheets Journal",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1180,
+          -20
+        ],
+        "parameters": {},
+        "typeVersion": 4.5
+      },
+      {
+        "id": "cc013e2d-c767-4a13-b631-447aa50e5597",
+        "name": "Structured Output Parser",
+        "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "position": [
+          -80,
+          360
+        ],
+        "parameters": {},
+        "notesInFlow": false,
+        "typeVersion": 1.2
+      },
+      {
+        "id": "c43a29b7-bf84-401f-8b6d-e32e4ecc5d0b",
+        "name": "Groq Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+        "position": [
+          -400,
+          380
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "e88f40f2-d772-443b-b269-0e742fa78078",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1280,
+          -400
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "72d1855e-0618-42d6-ac41-23137e8c2dd2",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -900,
+          -400
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "7587987d-a8b1-4f3d-b9e3-fe1bec5a59da",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -540,
+          180
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2b9fbcc0-dd8a-49aa-add3-dc7d7f4d65fd",
+        "name": "Extract Journal Entry Fields",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          20,
+          -80
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "9ab1a158-30eb-4a55-8eb5-2a80275f1b27",
+        "name": "If (Trade Found => True)",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          240,
+          -80
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "bcbf30ee-5042-4c48-8f68-13deff37fbdc",
+        "name": "Existing Entry Update OR New Entry",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          480,
+          -280
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "6ef1ea61-9e00-42fe-a58c-00a5f6303368",
+        "name": "Send Response Back",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          1600,
+          -440
+        ],
+        "webhookId": "00fd2581-2a81-42bd-891a-d806f88f82a3",
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "d133cb4b-84ba-4362-a2dc-f4cbd9888de9",
+        "name": "Send Trade ID to Telegram For Further Updates",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          1600,
+          -20
+        ],
+        "webhookId": "00fd2581-2a81-42bd-891a-d806f88f82a3",
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "f65eb562-e133-4062-8b13-d4f8f408b34f",
+        "name": "Agent Handles (If Trade Is Not Found)",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          840,
+          340
+        ],
+        "parameters": {},
+        "typeVersion": 1.9
+      },
+      {
+        "id": "54cd0864-fdbf-4823-baac-7ee42e72a431",
+        "name": "Sends Response Back To Telegram",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          1600,
+          340
+        ],
+        "webhookId": "00fd2581-2a81-42bd-891a-d806f88f82a3",
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "6c647990-5a82-4fe9-9887-0b91c24eff9c",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1460,
+          -800
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "dbf18695-9ee5-4d04-b174-f3d8a8d4fe44",
+        "name": "AI Agent (Extracts the Journal Entry)",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          -360,
+          -80
+        ],
+        "parameters": {},
+        "retryOnFail": false,
+        "typeVersion": 1.9
+      },
+      {
+        "id": "98a146e5-3af8-4b0a-9ec6-28b34144a52e",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1040,
+          -600
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3079fb79-026c-45c6-9a12-96d6c94e3b5d",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1060,
+          -180
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "50f32072-45e2-49e7-88f6-a3d5e7f0dc9e",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          640,
+          580
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Groq Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent (Extracts the Journal Entry)",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Telegram Trigger": {
+        "main": [
+          [
+            {
+              "node": "AI Agent (Extracts the Journal Entry)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Unique Trade ID": {
+        "main": [
+          [
+            {
+              "node": "Log The Trade In Google Sheets Journal",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If (Trade Found => True)": {
+        "main": [
+          [
+            {
+              "node": "Existing Entry Update OR New Entry",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Agent Handles (If Trade Is Not Found)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Structured Output Parser": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "AI Agent (Extracts the Journal Entry)",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Gemini Chat Model1": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Agent Handles (If Trade Is Not Found)",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Journal Entry Fields": {
+        "main": [
+          [
+            {
+              "node": "If (Trade Found => True)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Existing Entry Update OR New Entry": {
+        "main": [
+          [
+            {
+              "node": "Update the Sheet With Profit & Loss",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Generate Unique Trade ID",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update the Sheet With Profit & Loss": {
+        "main": [
+          [
+            {
+              "node": "Send Response Back",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Agent (Extracts the Journal Entry)": {
+        "main": [
+          [
+            {
+              "node": "Extract Journal Entry Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Agent Handles (If Trade Is Not Found)": {
+        "main": [
+          [
+            {
+              "node": "Sends Response Back To Telegram",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log The Trade In Google Sheets Journal": {
+        "main": [
+          [
+            {
+              "node": "Send Trade ID to Telegram For Further Updates",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 44,
+      "name": "Crypto Trading"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/5793",
+  "fetched_at": "2026-09-12T13:10:57Z"
+}

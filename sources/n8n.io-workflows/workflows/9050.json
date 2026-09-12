@@ -1,0 +1,442 @@
+{
+  "id": 9050,
+  "name": "Build a document QA system with Google Drive, Pinecone, and OpenAI RAG",
+  "description": "## Title\n\n**RAG AI Agent for Documents in Google Drive → Pinecone → OpenAI Chat (n8n workflow)**\n\n---\n\n## Short Description\n\nThis n8n workflow implements a **Retrieval-Augmented Generation (RAG)** pipeline + AI agent, allowing users to drop documents into a Google Drive folder and then ask questions about them via a chatbot. New files are indexed automatically to a Pinecone vector store using OpenAI embeddings; the AI agent loads relevant chunks at query time and answers using context plus memory.\n\n---\n\n## Why this workflow matters / what problem it solves\n\n* Large language models (LLMs) are powerful, but they lack up-to-date, domain-specific knowledge.\n* RAG augments the LLM with relevant external documents, reducing hallucination and enabling precise answers. ([Pinecone][1])\n* This workflow automates the ingestion, embedding, storage, retrieval, and chat logic — with minimal manual work.\n* It’s modular: you can swap data sources, vector DBs, or LLMs (with some adjustments).\n* It leverages the built-in **AI Agent** node in n8n to tie all the parts together. ([n8n][2])\n\n---\n\n## How to get the required credentials\n\n| Service                   | Purpose in Workflow                         | Setup Link                                                                                                                                               | What you need / steps                                                                                                               |\n| ------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |\n| **Google Drive (OAuth2)** | Trigger new file events & download the file | [https://docs.n8n.io/integrations/builtin/credentials/google/oauth-generic/](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-generic/) | Create a Google Cloud OAuth app, grant it Drive scopes, get client ID & secret, configure redirect URI, paste into n8n credentials. |\n| **Pinecone**              | Vector database for embeddings              | [https://docs.n8n.io/integrations/builtin/credentials/pinecone/](https://docs.n8n.io/integrations/builtin/credentials/pinecone/)                         | Sign up at Pinecone, in dashboard create an index, get API key + environment, paste into n8n credential.                            |\n| **OpenAI**                | Embeddings + chat model                     | [https://docs.n8n.io/integrations/builtin/credentials/openai/](https://docs.n8n.io/integrations/builtin/credentials/openai/)                             | Log in to OpenAI, generate a secret API key, paste into n8n credentials.                                                            |\n\nYou’ll configure these under **n8n → Credentials → New Credential**, matching credential names referenced in your workflow nodes.\n\n---\n\n## Detailed Walkthrough: How the Workflow Works\n\nHere’s a step-by-step of what happens inside your workflow (matching your JSON):\n\n### 1. **Google Drive Trigger**\n\n* Watches a specified folder in Google Drive. Whenever a new file appears (fileCreated event), the workflow is triggered (polling every minute).\n* You must set the *folder ID* (in “folderToWatch”) to the Drive folder you want to monitor.\n\n### 2. **Download File**\n\n* Takes the file ID from the trigger and downloads the file content (binary).\n\n### 3. **Indexing Path: Embeddings + Storage**\n\n(This path only runs when new files arrive)\n\n* The file is sent to the **Default Data Loader** node (via the **Recursive Character Text Splitter**) to break it into chunks with overlap (so context is preserved).\n* Each chunk is fed into **Embeddings OpenAI** to convert text into embedding vectors.\n* Then **Pinecone Vector Store** (insert mode) ingests the vector + text metadata into your Pinecone index.\n* This ensures your vector store stays up-to-date with files you drop into Drive.\n\n### 4. **Chat / Query Path**\n\n(Triggered by user chat via webhook)\n\n* When a chat message arrives via **When Chat Message Received**, it gets passed into the **AI Agent** node.\n* Before generation, the AI Agent calls the **Pinecone Vector Store1** set in “retrieve-as-tool” mode, which runs a vector-based retrieval using the user query embedding. The relevant text chunks are pulled as tools/context.\n* The **OpenAI Chat Model** node is linked as the language model for the agent.\n* **Simple Memory** node provides conversational memory (keeping history across messages).\n* The agent combines retrieved context + memory + user input and instructs the model to produce a response.\n\n### 5. **Connections / Flow Logic**\n\n* The **Embeddings OpenAI** node’s output is wired into **Pinecone Vector Store** (insert) and also into **Pinecone Vector Store1** (so the same embeddings can be used for retrieval).\n* The **AI Agent** has tool access to Pinecone retrieval and memory.\n* The **Download File** node triggers the insert path.\n* The **When chat message** triggers the agent path.\n\n---\n\n## Similar Workflows / Inspirations & Comparisons\n\nTo help understand how your workflow fits into what’s already out there, here are a few analogues:\n\n* **n8n Blog: “Build a custom knowledge RAG chatbot”** — they show a workflow that ingests documents from external sources, indexes them in Pinecone, and responds to queries via n8n + LLM. ([n8n Blog][3])\n* **Index Documents from Google Drive to Pinecone** — this is nearly identical for the ingestion part: trigger on Drive, split, embed, upload. ([n8n][4])\n* **Build & Query RAG System with Google Drive, OpenAI, Pinecone** — shows the full RAG + chat logic, same pattern. ([n8n][5])\n* **Chat with GitHub API Documentation (RAG)** — demonstrates converting API spec into chunks, embedding, retrieving, and chatting. ([n8n][6])\n* **Community tutorials & forums** talk about using the AI Agent node with tools like Pinecone, and how the RAG part is often built as a sub-workflow feeding an agent. ([n8n Community][7])\n\nWhat sets your workflow apart is your explicit combination: **Google Drive → automatic ingestion → chat agent with tool integration + memory**. Many templates show either ingestion or chat, but fewer show them combined cleanly with n8n’s AI Agent.\n\n---\n\n## Suggested Published Description (you can paste/adjust)\n\n&gt; **RAG AI Agent for Google Drive Documents (n8n workflow)**\n&gt;\n&gt; This workflow turns a Google Drive folder into a live, queryable knowledge base. Drop PDF, docx, or text files into the folder → new documents are automatically indexed into a Pinecone vector store using OpenAI embeddings → you can ask questions via a webhook chat interface and the AI agent will retrieve relevant text, combine it with memory, and answer in context.\n&gt;\n&gt; **Credentials needed**\n&gt;\n&gt; * Google Drive OAuth2 (see: [https://docs.n8n.io/integrations/builtin/credentials/google/oauth-generic/](https://docs.n8n.io/integrations/builtin/credentials/google/oauth-generic/))\n&gt; * Pinecone (see: [https://docs.n8n.io/integrations/builtin/credentials/pinecone/](https://docs.n8n.io/integrations/builtin/credentials/pinecone/))\n&gt; * OpenAI (see: [https://docs.n8n.io/integrations/builtin/credentials/openai/](https://docs.n8n.io/integrations/builtin/credentials/openai/))\n&gt;\n&gt; **How it works**\n&gt;\n&gt; 1. Drive trigger picks up new files\n&gt; 2. Download, split, embed, insert into Pinecone\n&gt; 3. Chat webhook triggers AI Agent\n&gt; 4. Agent retrieves relevant chunks + memory\n&gt; 5. Agent uses OpenAI model to craft answer\n&gt;\n&gt; This is built on the core RAG pattern (ingest → retrieve → generate) and enhanced by n8n’s AI Agent node for clean tool integration.\n&gt;\n&gt; **Inspiration & context**\n&gt; This approach follows best practices from existing n8n RAG tutorials and templates, such as the “Index Documents from Google Drive to Pinecone” ingestion workflow and “Build & Query RAG System” templates. ([n8n][4])\n&gt;\n&gt; You're free to swap out the data source (e.g. Dropbox, S3) or vector DB (e.g. Qdrant) as long as you adjust the relevant nodes.\n\n---\n\nIf you like, I can generate a polished Markdown README for you (with badges, diagrams, instructions) ready for GitHub/n8n community publishing. Do you want me to build that?\n\n[1]: https://www.pinecone.io/learn/retrieval-augmented-generation/?utm_source=chatgpt.com \"Retrieval-Augmented Generation (RAG) - Pinecone\"\n[2]: https://n8n.io/integrations/agent/?utm_source=chatgpt.com \"AI Agent integrations | Workflow automation with n8n\"\n[3]: https://blog.n8n.io/rag-chatbot/?utm_source=chatgpt.com \"Build a Custom Knowledge RAG Chatbot using n8n\"\n[4]: https://n8n.io/workflows/4552-index-documents-from-google-drive-to-pinecone-with-openai-embeddings-for-rag/?utm_source=chatgpt.com \"Index Documents from Google Drive to Pinecone with OpenAI ... - N8N\"\n[5]: https://n8n.io/workflows/4501-build-and-query-rag-system-with-google-drive-openai-gpt-4o-mini-and-pinecone/?utm_source=chatgpt.com \"Build & Query RAG System with Google Drive, OpenAI GPT-4o-mini ...\"\n[6]: https://n8n.io/workflows/2705-chat-with-github-api-documentation-rag-powered-chatbot-with-pinecone-and-openai/?utm_source=chatgpt.com \"Chat with GitHub API Documentation: RAG-Powered Chatbot ... - N8N\"\n[7]: https://community.n8n.io/t/step-by-step-tutorial-create-a-rag-chatbot-with-n8n-ai-agents-in-minutes/55244?utm_source=chatgpt.com \"Step-by-Step Tutorial: Create a RAG Chatbot with n8n AI Agents in ...\"",
+  "workflow": {
+    "meta": {
+      "instanceId": "79fe07f045222b356cf5ca430fe39cdf11b9fe024467e3b6b3e1a64d1a92c94f"
+    },
+    "nodes": [
+      {
+        "id": "56745855-bde9-45f2-bb9a-37c8a5544056",
+        "name": "Google Drive Trigger",
+        "type": "n8n-nodes-base.googleDriveTrigger",
+        "position": [
+          -112,
+          592
+        ],
+        "parameters": {
+          "event": "fileCreated",
+          "options": {},
+          "pollTimes": {
+            "item": [
+              {
+                "mode": "everyMinute"
+              }
+            ]
+          },
+          "triggerOn": "specificFolder",
+          "folderToWatch": {
+            "__rl": true,
+            "mode": "id",
+            "value": "=Choose your folder"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "31b61802-30e6-4898-8a3b-881ddc96c127",
+        "name": "Download file",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          160,
+          592
+        ],
+        "parameters": {
+          "fileId": {
+            "__rl": true,
+            "mode": "url",
+            "value": "=Choose your folder"
+          },
+          "options": {},
+          "operation": "download"
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "4d6b1ba5-38eb-4db1-a43c-e508ad192ff3",
+        "name": "Pinecone Vector Store",
+        "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+        "position": [
+          432,
+          592
+        ],
+        "parameters": {
+          "mode": "insert",
+          "options": {},
+          "pineconeIndex": {
+            "__rl": true,
+            "mode": "id",
+            "value": "=Choose you index"
+          }
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "3b3adc2c-f566-4c6d-8dad-2bff56fdc83d",
+        "name": "Embeddings OpenAI",
+        "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+        "position": [
+          160,
+          1024
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "3b3b0ebc-7972-4d4b-88fd-a7d9df5a30d8",
+        "name": "Default Data Loader",
+        "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+        "position": [
+          608,
+          848
+        ],
+        "parameters": {
+          "options": {},
+          "textSplittingMode": "custom"
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "a95ab7b7-8624-4fb7-8238-45147bf8acd3",
+        "name": "Recursive Character Text Splitter",
+        "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+        "position": [
+          464,
+          1056
+        ],
+        "parameters": {
+          "options": {},
+          "chunkOverlap": 100
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "fd460847-a8aa-4c2d-946f-7deddfc2c64e",
+        "name": "When chat message received",
+        "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+        "position": [
+          1040,
+          672
+        ],
+        "webhookId": "9be55aab-2133-42ad-ab75-2c43888786b7",
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "f796fa38-a472-4c68-81b7-78874d6b47fa",
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          1264,
+          896
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4.1-mini"
+          },
+          "options": {}
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "7f2d4746-be6c-4dc3-bbf8-979a0e2cf2b5",
+        "name": "Simple Memory",
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "position": [
+          1392,
+          896
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "677e0550-9d7f-4d55-a18e-694ca2d9ae55",
+        "name": "Pinecone Vector Store1",
+        "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+        "position": [
+          1520,
+          896
+        ],
+        "parameters": {
+          "mode": "retrieve-as-tool",
+          "options": {},
+          "pineconeIndex": {
+            "__rl": true,
+            "mode": "list",
+            "value": "databases",
+            "cachedResultName": "databases"
+          },
+          "toolDescription": "Use this as a knowledge base to answer the user message"
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "22033102-58b8-4ec5-899c-8fc4ba290782",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -192,
+          528
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 1056,
+          "height": 688,
+          "content": "## Document inserting"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4a3f3dc6-e6f7-4357-b0ce-538ad5c4af7b",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          96,
+          960
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 208,
+          "height": 208,
+          "content": "## Embeddings"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ef37ed33-f7b8-412c-b534-0c949d48a0e1",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          384,
+          544
+        ],
+        "parameters": {
+          "width": 320,
+          "height": 176,
+          "content": "## Storing"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "69048fc8-1479-4efe-980d-5a40b71c2fc2",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          880,
+          528
+        ],
+        "parameters": {
+          "width": 992,
+          "height": 560,
+          "content": "## Test here\n\n* you can change the trigger as you need."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "843bcd47-d995-4a77-b6ac-7e81dd35b0d8",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1504,
+          832
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 288,
+          "height": 192,
+          "content": "## Get the Database"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b5fbdc8b-c696-417f-8e51-f03e0b65bbd8",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -640,
+          528
+        ],
+        "parameters": {
+          "width": 432,
+          "height": 704,
+          "content": "## Credential Setup (Critical)\n\nYou'll need to create credentials for the following services. Click the link next to each one for the full setup guide from the n8n documentation:\n\nGoogle Drive OAuth2 API (Used by: Google Drive Trigger, Download file):\n\nLink: https://docs.n8n.io/integrations/builtin/credentials/google/oauth-generic/\n\nAction: You need to set up an OAuth application in the Google Cloud Console to grant n8n access to your Google Drive files.\n\nPinecone API (Used by: Pinecone Vector Store, Pinecone Vector Store1):\n\nLink: https://docs.n8n.io/integrations/builtin/credentials/pinecone/\n\nAction: You'll need to get your API Key and Environment from your Pinecone account dashboard and enter them into the n8n credential setup.\n\nOpenAI API (Used by: Embeddings OpenAI, OpenAI Chat Model):\n\nLink: https://docs.n8n.io/integrations/builtin/credentials/openai/\n\nAction: You'll need to generate a Secret API Key from your OpenAI account to use for embeddings and the chat model.\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "aafc6b73-18de-4934-b61b-e55556f12cd6",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -640,
+          176
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 672,
+          "height": 336,
+          "content": "### **RAG system**\n\n### **How It Works**\n\n* **Summarize the Flow:** Distill the function of your entire workflow into a few high-level, easy-to-understand steps.\n\n### **Set Up Steps**\n\n* **Set Expectations:** Give users a clear idea of how long the setup will take.\n* **Keep It Concise:** Don't describe every minute detail in the main setup guide.\n* **Use Sticky Notes:** Place all detailed descriptions and complex instructions within **sticky notes** directly inside the n8n workflow itself, keeping the main documentation clean and brief."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b99dc201-c075-4b5c-9433-2a8e69c86404",
+        "name": "Sticky Note7",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -640,
+          80
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 224,
+          "height": 80,
+          "content": "## workflow builder [Abdullah Ahmed](https://www.youtube.com/@gureyosman06)"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "56750d09-170d-4bcb-9831-7ee9e2f8d61b",
+        "name": "AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          1328,
+          672
+        ],
+        "parameters": {
+          "options": {
+            "systemMessage": "You are a helpful assistant"
+          },
+          "hasOutputParser": true
+        },
+        "typeVersion": 2.2
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Download file": {
+        "main": [
+          [
+            {
+              "node": "Pinecone Vector Store",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Simple Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Embeddings OpenAI": {
+        "ai_embedding": [
+          [
+            {
+              "node": "Pinecone Vector Store",
+              "type": "ai_embedding",
+              "index": 0
+            },
+            {
+              "node": "Pinecone Vector Store1",
+              "type": "ai_embedding",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Default Data Loader": {
+        "ai_document": [
+          [
+            {
+              "node": "Pinecone Vector Store",
+              "type": "ai_document",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Drive Trigger": {
+        "main": [
+          [
+            {
+              "node": "Download file",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Pinecone Vector Store1": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When chat message received": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Recursive Character Text Splitter": {
+        "ai_textSplitter": [
+          [
+            {
+              "node": "Default Data Loader",
+              "type": "ai_textSplitter",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 42,
+      "name": "Internal Wiki"
+    },
+    {
+      "id": 48,
+      "name": "AI RAG"
+    }
+  ],
+  "url": "https://n8n.io/workflows/9050",
+  "fetched_at": "2026-09-12T13:12:45Z"
+}

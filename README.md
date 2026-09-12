@@ -265,6 +265,28 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | gumloop.com | 1 |
 | activepieces.com | 1 |
 | pipedream.com | 1 |
+| marketplace.crewai.com | 2 |
+| zapier.com-templates | 3 |
+| make.com-templates | 1 (403) |
+| workflows.so | 2 |
+| automationflows.io | 2 |
+| n8ntemplates.me | 2 |
+| theautomation.directory | 2 |
+| automationscookbook.com | 2 |
+| arahi.ai-marketplace | 2 |
+| beam.ai-agents | 2 |
+| diflowy.com | 1 (NXDOMAIN) |
+| github/crewAIInc-crewAI-examples | 77 |
+| github/crewAIInc-awesome-crewai | 3 |
+| github/zapier-community-skills | 8 |
+| github/green-dalii-diflowy | 31 |
+| github/svcvit-Awesome-Dify-Workflow | 52 |
+| github/scrapernode-awesome-n8n-templates | 17679 |
+| github/zie619-n8n-workflows | 2119 |
+| github/Empreiteiro-langflow-templates | 158 |
+| github/fenggeliaoai-cozeworkflows | 2 |
+| github/botpress-solutions | 173 |
+| n8n.io-workflows | 12326 |
 
 ## Fetch notes
 
@@ -277,7 +299,10 @@ Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/A
 - **cursor.com/marketplace** — index HTML plus per-listing metadata; full listing HTML discarded (duplicate ~1.4 MiB Next.js shells).
 - **n8nworkflows.xyz** — Cloudflare 403 on retry; 0 workflow JSON files.
 - **cursor.directory** — HTTP 429 (including Chrome TLS impersonation).
-- **make.com** `/api/v2/templates/public` — 401 not logged in; templates HTML 403.
+- **make.com** `/api/v2/templates/public` — 401 not logged in; `/en/templates` HTML 403.
+- **diflowy.com** — NXDOMAIN; GitHub pack archived.
+- **ClaudSkills.com** — llms.txt claims ~191k skills; no public JSON dump.
+- **n8n.io official** — search index 12,325; **12,268** workflow JSON files; **57** detail HTTP 404s (listed but unpublished). Resume via `scripts/download_n8n_official.py`.
 - **claude-plugins.dev / skillselion / agentskill.sh / clawhub / openagentskill / agensi** — see each ERRORS.md for list-API caps.
 - **agentgigs.io** — no unauthenticated job dump.
 - **crewform.tech** — no public catalog/API.

@@ -1,0 +1,749 @@
+{
+  "id": 8409,
+  "name": "Automated LinkedIn lead enrichment pipeline using Apollo.io & Google Sheets",
+  "description": "## LinkedIn to Apollo.io Lead Enrichment System with Google Sheets\n\nAutomatically capture company and store details from LinkedIn posts, enrich them with domain names and key decision-maker (KDM) data from Apollo.io, and store everything neatly in Google Sheets.  \nThis workflow turns LinkedIn post data into a complete, structured lead database — fully automated from detection to enrichment.\n\n---\n\n## 🧾 Summary\n\nThis workflow reads LinkedIn post data (in JSON format) received via a webhook, extracts company and location information using an AI agent, and progressively enriches the data in three stages:  \n1. **Find Company Domain** using Apollo.io  \n2. **Fetch Key Decision Makers (KDMs)** using the company domain  \n3. **Find Corporate Emails** for those KDMs  \n\nAll results are automatically updated in **Google Sheets**, ensuring your lead list remains fresh, structured, and actionable.\n\n---\n\n## ⚙️ Prerequisites\n\nBefore running the workflow, make sure you have:\n- An **Apollo.io API Key** with company and people search access  \n- A connected **Google Sheets** account (OAuth2)  \n- A **Webhook URL or LinkedIn scraper** that feeds JSON-formatted post data  \n- (Optional) An **OpenAI / AI Agent node** to extract company names and store locations from post text\n\n---\n\n## 🧩 Example Input (Webhook JSON)\n\nEach LinkedIn post is received as a JSON object containing key clues:\n\n```json\n{\n  \"index\": 1,\n  \"text\": \"Excited to announce the opening of our new KFC store at Sky City Mall, Borivali East 🎉🍗\\n\\nLooking forward to welcoming you all to experience the Finger Lickin’ Good taste at our newest location!\\n\\n#KFCIndia #NewStoreOpening #Borivali #SkyCityMall #Sapphirefoods\",\n  \"CompanyName\": \"MockCompany\",\n  \"NewStoreLocation\": \"optional\",\n  \"PersonPosted\": \"https://linkedin.com/in/mockperson\",\n  \"PostImage\": null,\n  \"PostLink\": \"https://www.linkedin.com/search/results/all/?keywords=%23kfcindia&origin=HASH_TAG_FROM_FEED\",\n  \"extracted_at\": \"2025-09-08T12:05:40.044101\"\n}\n\n```\n## 🧠 Workflow Overview\n\nThis workflow runs in three main stages, moving from **LinkedIn data → company domain → people → emails**.\n\n---\n\n## **Stage 1: Company Name to Company Domain 🌐**\n\n**Goal:** Convert each company name into its website domain using Apollo.io.\n\n### **Nodes & Flow**\n- **Schedule Trigger** — Runs automatically (e.g., once a week) to check your Google Sheet for companies missing a domain.  \n- **IF Node (Check for Missing Domain)** — Filters only companies without a website.  \n- **Loop Over Items** — Iterates through each company record.  \n- **HTTP Request – Find Domain** — Calls the Apollo.io Company API to find the company’s domain (e.g., `kfc.com`).  \n- **Update Row in Google Sheets** — Writes the found domain back into the corresponding company row.  \n- **Wait Node – Delay Between API Calls** — Adds a small pause to avoid hitting rate limits.\n\n---\n\n## **Stage 2: Domain to Top 10 KDMs 👥**\n\n**Goal:** Fetch key decision-makers (KDMs) from each company using Apollo.io.\n\n### **Nodes & Flow**\n- **Schedule Trigger** — Runs on a weekly cadence to check for companies with a domain but no KDMs.  \n- **Get Rows from Google Sheets** — Pulls company records ready for enrichment.  \n- **IF Node (Check for Missing KDMs)** — Ensures only companies without people data are processed.  \n- **Loop Over Items** — Processes one company at a time.  \n- **HTTP Request – Find KDMs** — Searches Apollo.io People API for top roles such as *Founder, CEO, Head of Retail*, etc.  \n- **Update Row in Google Sheets** — Saves the top 10 names and their LinkedIn profiles into your sheet.  \n- **Wait Node** — Adds a delay to manage rate limits safely.\n\n---\n\n## **Stage 3: KDM Profile to Email Enricher 📧**\n\n**Goal:** Find and store verified corporate email addresses for each KDM.\n\n### **Nodes & Flow**\n- **Schedule Trigger** — Weekly automation trigger.  \n- **Get Rows from Google Sheets** — Pulls KDMs that have LinkedIn profiles but no email yet.  \n- **IF Node (Check for Missing Emails)** — Ensures only valid records are processed.  \n- **Code Node – Prepare Data** — Organizes LinkedIn profile and domain information.  \n- **HTTP Request – Find Email** — Queries Apollo.io’s email enrichment endpoint using the LinkedIn URL and domain.  \n- **Code Node – Format Response** — Cleans and formats the email result.  \n- **Wait Node** — Adds delay to avoid request bursts.  \n- **Update Row in Google Sheets** — Writes the verified email address back to the corresponding KDM entry and marks it as “Updated – email search.” 🎉\n\n---\n\n## 🧰 Setup Instructions\n\n### **1. Connect APIs & Credentials**\n- Add your **Apollo.io API Key** under HTTP Request credentials.  \n- Connect your **Google Sheets** account (OAuth2).  \n\n### **2. Customize Sheet Structure**\nAdd columns for:  \n`CompanyName`, `Domain`, `KDMs`, `LinkedInProfile`, `Email`, `Status`\n\n### **3. Set Schedule Frequency**\nEach **Schedule Trigger** can be configured separately (e.g., Stage 1 every Monday, Stage 2 every Wednesday).\n\n### **4. Optional: AI Extraction Node**\nUse an AI model (like OpenAI or Gemini) to extract **company name and location** from LinkedIn post text before enrichment.\n\n---\n\n## 🧰 Custom Node Names (Recommended for Clarity)\n\n| Node Type | Recommended Name | Description |\n|------------|------------------|-------------|\n| HTTP Request (Company) | **Find Company Domain (Apollo.io)** | Searches for the company’s official domain |\n| HTTP Request (People) | **Find Key Decision Makers (Apollo.io)** | Retrieves top company contacts |\n| HTTP Request (Emails) | **Find Corporate Emails (Apollo.io)** | Gets verified email addresses for each contact |\n| Wait Node | **API Delay (Rate Limit Buffer)** | Adds delay to avoid hitting API rate limits |\n| Code Node | **Prepare KDM Data** | Organizes input data for API calls |\n\n---\n\n## ⚙️ Customization Tips\n\n- **Multiple Campaigns:** Duplicate the workflow for different industries or store categories, updating parameters as needed.  \n- **Batch Size:** Adjust API request limits (e.g., 100 per batch) based on your Apollo.io plan.  \n- **Filtering:** Add IF conditions to skip records already marked as “Completed.”  \n- **Dashboards:** Build visual analytics directly in Google Sheets or connect to **Looker Studio**.  \n- **Enrichment:** Combine with CRM systems (like **HubSpot** or **Close**) using company domain or lead email as the linking key.\n\n---\n\n## 🔐 Security and Publishing Notes\n\n- 🔒 **Never hardcode API keys** in workflow exports. Use **n8n credentials** or environment variables instead.  \n- 🚫 Replace sensitive values (like API keys or Sheet IDs) with placeholders before sharing.  \n- 🔐 Keep your **Google Sheet** private unless intentionally shared.\n\n---\n\n## 🧩 Troubleshooting\n\n- **No Data in Sheets:** Check API response for `data[]` and verify Split Out configuration.  \n- **Duplicate Rows:** Ensure the “Matching Column” in Google Sheets is correctly set (e.g., `CompanyName` or `LinkedInProfile`).  \n- **Rate Limits:** Add **Wait Nodes** or reduce batch size.  \n- **Mapping Errors:** Confirm Google Sheet headers exactly match node field mappings.  \n- **Timezone Adjustments:** Apollo.io timestamps are in UTC — convert to local time if needed.\n\n---\n\n## 🎯 Example Use Case\n\nEvery week, this workflow scans new **LinkedIn store-opening posts**.  \nIt extracts company names (like *KFC India*), finds their domains and top executives through **Apollo.io**, retrieves their emails, and logs everything in a **Google Sheet** — ready for your sales team to reach out.\n\n---\n\n**Tags:**  \n`LinkedIn` `Apollo` `Automation` `LeadGeneration` `GoogleSheets` `MarketingOps` `DataEnrichment`\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "67dd1445921862780ac74448aef33eb969db12b9a6ce95248c7ae86a887cb653",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "ee7ba99a-a412-4389-af47-e12a8070a9a1",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          2032,
+          1296
+        ],
+        "webhookId": "4584ccbb-4256-4da7-a8df-bee1f3b27084",
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "d913c122-3f4a-4fa3-aab3-79c6319ac12e",
+        "name": "Split Out",
+        "type": "n8n-nodes-base.splitOut",
+        "position": [
+          2240,
+          1296
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "41a6dc80-fe9e-4cde-b47b-b03ae98feb7f",
+        "name": "Structured Output Parser",
+        "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "position": [
+          2832,
+          1504
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "0bda86e3-84ab-4b9f-9c74-b871a658bdc6",
+        "name": "Google Gemini Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "position": [
+          2512,
+          1504
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "65af8ed4-cec3-4937-963e-4623473f5b57",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          2448,
+          1296
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "54c6c70e-59f6-4320-9d6a-5bdd94e8e6ed",
+        "name": "Get row(s) in sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          2224,
+          2016
+        ],
+        "parameters": {},
+        "typeVersion": 4.7
+      },
+      {
+        "id": "ea21290c-588d-443b-b401-d7329063e9bb",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          2048,
+          2016
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "748e2b43-e51a-417d-92ff-df0704cef2a9",
+        "name": "Loop Over Items1",
+        "type": "n8n-nodes-base.splitInBatches",
+        "onError": "continueErrorOutput",
+        "position": [
+          2720,
+          2016
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "2e9a8548-a8bf-47e3-8fe1-93072276cd9d",
+        "name": "Update row in sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          3440,
+          2032
+        ],
+        "parameters": {},
+        "typeVersion": 4.7
+      },
+      {
+        "id": "ed8a4414-e31d-46d7-9ad6-836faee1a3ac",
+        "name": "Schedule Trigger1",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          2064,
+          2672
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "6951d857-278a-4633-be22-f06937dacb98",
+        "name": "Loop Over Items2",
+        "type": "n8n-nodes-base.splitInBatches",
+        "onError": "continueErrorOutput",
+        "position": [
+          2752,
+          2656
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "bb781af1-7246-4bf7-9f77-1f7eb17637ef",
+        "name": "Wait",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          3648,
+          2032
+        ],
+        "webhookId": "e5a3db76-aa67-42c7-8ad1-e916509b7c13",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "5127d065-bc43-454c-bc64-02402c23143a",
+        "name": "Wait1",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          3440,
+          2656
+        ],
+        "webhookId": "69d23d48-e9fd-4f7d-bc70-fa2400658e62",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "65efcc77-b567-4fff-a2e8-31b8e0e29f4e",
+        "name": "Get row(s) in sheet1",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          2288,
+          2672
+        ],
+        "parameters": {},
+        "typeVersion": 4.7
+      },
+      {
+        "id": "71fb0b9d-d8b2-490b-8a55-a515c56fe10e",
+        "name": "Update row in sheet1",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          3648,
+          2656
+        ],
+        "parameters": {},
+        "typeVersion": 4.7
+      },
+      {
+        "id": "5a81a696-1155-4fbb-966c-82baec8219fe",
+        "name": "If",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          2496,
+          2672
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "72c8bccf-37b1-4dc5-9fbd-19fe72b7c1ca",
+        "name": "If1",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          2432,
+          2032
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "bfa61ebd-bdf8-4356-8807-579ea74a06cd",
+        "name": "Schedule Trigger2",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          2064,
+          3136
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "a3dfff36-07c3-49c6-b7fb-718638854507",
+        "name": "Wait2",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          3712,
+          3120
+        ],
+        "webhookId": "69d23d48-e9fd-4f7d-bc70-fa2400658e62",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "59e93cf6-cf15-4a92-b344-bac485607e07",
+        "name": "Update row in sheet2",
+        "type": "n8n-nodes-base.googleSheets",
+        "onError": "continueErrorOutput",
+        "position": [
+          3920,
+          3120
+        ],
+        "parameters": {},
+        "typeVersion": 4.7,
+        "alwaysOutputData": false
+      },
+      {
+        "id": "098cf0b1-6c13-428a-aedf-53f5a4ace309",
+        "name": "If2",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          2464,
+          3136
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "69cc889b-3692-412b-9265-8b6ed4df7a49",
+        "name": "Code",
+        "type": "n8n-nodes-base.code",
+        "onError": "continueErrorOutput",
+        "position": [
+          2928,
+          3120
+        ],
+        "parameters": {},
+        "typeVersion": 2,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "37e8ea98-60d5-413e-922d-e5fed98e96ef",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1776,
+          2528
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1ab50ec4-c5f0-4888-8f2c-0b16c518e6ea",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1792,
+          1856
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9bb1bf69-b5f4-4471-a98e-e4728062391c",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1808,
+          3072
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1b2d40a7-ceef-4b15-9ffd-a9ab4ebce29d",
+        "name": "Code1",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          3456,
+          3120
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "3fdb7f62-3fad-4067-b6c8-d2e07984370f",
+        "name": "Loop Over Items4",
+        "type": "n8n-nodes-base.splitInBatches",
+        "onError": "continueErrorOutput",
+        "position": [
+          2704,
+          3088
+        ],
+        "parameters": {},
+        "typeVersion": 3,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "abf7cc40-ea8a-4c1d-abb5-31f8d4e5a723",
+        "name": "Get row(s) in sheet3",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          2288,
+          3136
+        ],
+        "parameters": {},
+        "typeVersion": 4.7
+      },
+      {
+        "id": "d83f2237-6fe7-4eb4-b2d7-deba7c26e54e",
+        "name": "Linkedin Scraped Formater",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "onError": "continueErrorOutput",
+        "position": [
+          2656,
+          1296
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "3f428a31-7eb0-4e78-b574-bf0b968b652e",
+        "name": "Store values",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          3008,
+          1296
+        ],
+        "parameters": {},
+        "typeVersion": 4.7
+      },
+      {
+        "id": "a3e862b8-9f95-46ad-be2d-a7b06f15a1f0",
+        "name": "Company Name to Domain",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          3232,
+          2032
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "835de11e-aa6d-4e4e-9f2d-7e008155d1db",
+        "name": "People Search",
+        "type": "n8n-nodes-base.httpRequest",
+        "onError": "continueRegularOutput",
+        "position": [
+          3024,
+          2656
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "bfed2a87-6446-4484-aad5-56f4ee3a566e",
+        "name": "Email Finder",
+        "type": "n8n-nodes-base.httpRequest",
+        "onError": "continueErrorOutput",
+        "position": [
+          3184,
+          3120
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "If": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If1": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If2": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items4",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code": {
+        "main": [
+          [
+            {
+              "node": "Email Finder",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code1": {
+        "main": [
+          [
+            {
+              "node": "Wait2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait1": {
+        "main": [
+          [
+            {
+              "node": "Update row in sheet1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait2": {
+        "main": [
+          [
+            {
+              "node": "Update row in sheet2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Split Out",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split Out": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Email Finder": {
+        "main": [
+          [
+            {
+              "node": "Code1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Store values": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "People Search": {
+        "main": [
+          [
+            {
+              "node": "Wait1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Linkedin Scraped Formater",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items1": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Company Name to Domain",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items2": {
+        "main": [
+          [],
+          [
+            {
+              "node": "People Search",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items4": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Code",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Get row(s) in sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger1": {
+        "main": [
+          [
+            {
+              "node": "Get row(s) in sheet1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger2": {
+        "main": [
+          [
+            {
+              "node": "Get row(s) in sheet3",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get row(s) in sheet": {
+        "main": [
+          [
+            {
+              "node": "If1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update row in sheet": {
+        "main": [
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get row(s) in sheet1": {
+        "main": [
+          [
+            {
+              "node": "If",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get row(s) in sheet3": {
+        "main": [
+          [
+            {
+              "node": "If2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update row in sheet1": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update row in sheet2": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items4",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Company Name to Domain": {
+        "main": [
+          [
+            {
+              "node": "Update row in sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Gemini Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Linkedin Scraped Formater",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Structured Output Parser": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "Linkedin Scraped Formater",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Linkedin Scraped Formater": {
+        "main": [
+          [
+            {
+              "node": "Store values",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Store values",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 37,
+      "name": "Lead Generation"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8409",
+  "fetched_at": "2026-09-12T13:12:27Z"
+}

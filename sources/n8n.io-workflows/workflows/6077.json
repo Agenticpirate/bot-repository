@@ -1,0 +1,277 @@
+{
+  "id": 6077,
+  "name": "Transcribe WhatsApp audio messages with Whisper AI via Groq",
+  "description": "# WhatsApp Audio Transcriber Bot\n\n## Overview\nAutomatically transcribe WhatsApp audio messages to text using AI-powered speech recognition. This workflow receives audio messages via webhook, processes them through Groq's Whisper API, and replies with the transcribed text in the same conversation.\n\n## Use Cases\n- **Accessibility**: Help users with hearing impairments access audio content\n- **Workplace Communication**: Quickly scan audio messages in professional settings\n- **Language Learning**: Get text versions of audio for better comprehension\n- **Meeting Notes**: Convert voice messages to searchable text format\n- **Multilingual Support**: Transcribe audio in Portuguese (configurable for other languages)\n\n## How it Works\n1. **Message Reception**: Webhook receives WhatsApp messages in real-time\n2. **Audio Detection**: Filters only audio messages using Switch node\n3. **Format Conversion**: Converts base64 audio to MP3 file format\n4. **AI Transcription**: Processes audio through Groq API with Whisper Large V3 model\n5. **Response Delivery**: Sends transcribed text back to the original conversation\n\n## Key Features\n- ✅ **Real-time Processing**: Instant transcription of incoming audio messages\n- ✅ **High Accuracy**: Uses Whisper Large V3 model for reliable transcription\n- ✅ **Auto-Reply**: Automatically responds in the same WhatsApp conversation\n- ✅ **Message Quoting**: References the original audio message in the reply\n- ✅ **Portuguese Optimized**: Configured for Brazilian Portuguese transcription\n- ✅ **Self-Message Filtering**: Ignores messages sent by the bot itself\n\n## Prerequisites\n### Required Services\n- **Evolution API**: WhatsApp integration service\n- **Groq API**: AI transcription service (Whisper model)\n- **n8n Instance**: Workflow automation platform\n\n### API Keys & Configuration\n- Groq API key (set as environment variable: `GROQ_API_KEY`)\n- Evolution API instance properly configured\n- Webhook URL configured in Evolution API\n\n## Setup Instructions\n1. **Import Workflow**: Import the JSON workflow into your n8n instance\n2. **Configure Environment**: Set `GROQ_API_KEY` environment variable\n3. **Setup Webhook**: Configure Evolution API to send messages to the webhook endpoint\n4. **Test Connection**: Send a test audio message to verify the workflow\n\n## Workflow Nodes\n- **Webhook**: Receives WhatsApp messages from Evolution API\n- **Edit Fields**: Extracts relevant data (number, name, message, audio)\n- **Switch**: Filters only audio messages (`audioMessage` type)\n- **Convert to File**: Transforms base64 audio to MP3 format\n- **HTTP Request**: Sends audio to Groq API for transcription\n- **Evolution API**: Sends transcribed text back to WhatsApp\n\n## Configuration Options\n### Groq API Settings\n- **Model**: `whisper-large-v3`\n- **Language**: `pt` (Portuguese)\n- **Temperature**: `0` (maximum accuracy)\n- **Response Format**: `json`\n\n### Customization Options\n- Change language by modifying the `language` parameter\n- Adjust temperature for different accuracy/creativity balance\n- Modify response format for different output styles\n\n## Response Format\n```\n*Mensagem transcrita automaticamente.*\n[Transcribed text content]\n```\n\n## Technical Specifications\n- **Input**: Base64 encoded audio from WhatsApp\n- **Output**: Plain text transcription\n- **Processing Time**: Typically 2-5 seconds per audio message\n- **Supported Audio**: MP3 format (converted from WhatsApp audio)\n- **Language**: Portuguese (configurable)\n\n## Troubleshooting\n- **No Response**: Check Groq API key and webhook configuration\n- **Poor Transcription**: Ensure audio quality and check language settings\n- **Error Messages**: Monitor n8n execution logs for detailed error information\n\n## Version History\n- **v0.0.1**: Initial release with basic transcription functionality",
+  "workflow": {
+    "id": "OzNqz9EZH75jPYRW",
+    "meta": {
+      "instanceId": "a26accefee85c02f9545df2286a47b35715b55f8295fb43f6205a90c55027cb7"
+    },
+    "name": "Transcriber Bot 0.0.1",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "1b8771ac-adc3-49a6-af4a-dec3de69ba9d",
+        "name": "Webhook1",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -780,
+          -240
+        ],
+        "webhookId": "a6ce1c05-f39a-42df-aa35-7a5beabf182a",
+        "parameters": {
+          "path": "seucaminho/MESSAGES_UPSERT",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "8c8ee493-15bb-4d96-840c-7441cbe2c795",
+        "name": "Edit Fields1",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -560,
+          -240
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "name": "numero",
+                "type": "string",
+                "value": "={{ $json.body.data.key.remoteJid.split(\"@\").first() }}"
+              },
+              {
+                "name": "nome",
+                "type": "string",
+                "value": "={{ $json.body.data.pushName }}"
+              },
+              {
+                "name": "mensagem",
+                "type": "string",
+                "value": "={{ $json.body.data.message.conversation }}"
+              },
+              {
+                "name": "tipo_msg",
+                "type": "string",
+                "value": "={{ $json.body.data.messageType }}"
+              },
+              {
+                "name": "audio",
+                "type": "string",
+                "value": "={{ $json.body.data.message.base64 }}"
+              },
+              {
+                "name": "body.data.key.fromMe",
+                "type": "boolean",
+                "value": "={{ $json.body.data.key.fromMe }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "29f7ed16-aab2-44b3-9e2c-ad02e467e1f5",
+        "name": "Switch1",
+        "type": "n8n-nodes-base.switch",
+        "position": [
+          -340,
+          -240
+        ],
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "leftValue": "={{ $json.tipo_msg }}",
+                      "rightValue": "audioMessage"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "typeVersion": 3.2
+      },
+      {
+        "id": "b0a39ac9-77d4-4ed1-b087-8dd8e8a43474",
+        "name": "Convert to File1",
+        "type": "n8n-nodes-base.convertToFile",
+        "position": [
+          -120,
+          -240
+        ],
+        "parameters": {
+          "options": {
+            "fileName": "audio.mp3",
+            "mimeType": "audio/mpeg"
+          },
+          "operation": "toBinary",
+          "sourceProperty": "audio"
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "6df6c4d1-936a-436b-9196-4bb37f4c3c33",
+        "name": "HTTP Request1",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          100,
+          -240
+        ],
+        "parameters": {
+          "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+          "method": "POST",
+          "options": {},
+          "sendBody": true,
+          "contentType": "multipart-form-data",
+          "sendHeaders": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "file",
+                "parameterType": "formBinaryData",
+                "inputDataFieldName": "data"
+              },
+              {
+                "name": "model",
+                "value": "whisper-large-v3"
+              },
+              {
+                "name": "response_format",
+                "value": "json"
+              },
+              {
+                "name": "temperature",
+                "value": "0"
+              },
+              {
+                "name": "language",
+                "value": "pt"
+              }
+            ]
+          },
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{ $env.GROQ_API_KEY }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "af110489-ec08-4c1a-b83f-8cc6dec9d3f4",
+        "name": "Evolution API",
+        "type": "n8n-nodes-evolution-api.evolutionApi",
+        "position": [
+          320,
+          -240
+        ],
+        "parameters": {
+          "resource": "messages-api",
+          "remoteJid": "={{ $('Webhook1').item.json.body.data.key.remoteJid }}",
+          "messageText": "=*Mensagem transcrita automaticamente.*/n{{ $('HTTP Request1').item.json.text }}",
+          "instanceName": "={{ $('Webhook1').item.json.body.instance }}",
+          "options_message": {
+            "quoted": {
+              "messageQuoted": {
+                "messageId": "={{ $('Webhook1').item.json.body.data.key.id }}"
+              }
+            }
+          }
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "3cb67cf9-e9b6-42fb-83f7-830aef49279e",
+    "connections": {
+      "Switch1": {
+        "main": [
+          [
+            {
+              "node": "Convert to File1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook1": {
+        "main": [
+          [
+            {
+              "node": "Edit Fields1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Edit Fields1": {
+        "main": [
+          [
+            {
+              "node": "Switch1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "HTTP Request1": {
+        "main": [
+          [
+            {
+              "node": "Evolution API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Convert to File1": {
+        "main": [
+          [
+            {
+              "node": "HTTP Request1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 35,
+      "name": "Document Extraction"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6077",
+  "fetched_at": "2026-09-12T13:11:08Z"
+}

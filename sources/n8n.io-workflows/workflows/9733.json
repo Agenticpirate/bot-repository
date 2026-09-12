@@ -1,0 +1,554 @@
+{
+  "id": 9733,
+  "name": "Proxmox system monitor - VM status, host resources & temperature alerts via Telegram",
+  "description": "# Setup Instructions\n\n## Overview\n\nThis n8n workflow monitors your Proxmox VE server and sends automated reports to Telegram every 15 minutes. It tracks VM status, host resource usage, temperature sensors, and detects recently stopped VMs.\n\n## Prerequisites\n\n### Required Software\n- n8n instance (self-hosted or cloud)\n- Proxmox VE server with API access\n- Telegram account with bot created via BotFather\n- lm-sensors package installed on Proxmox host\n\n### Required Access\n- Proxmox admin credentials (username and password)\n- SSH access to Proxmox server\n- Telegram Bot API token\n- Telegram Chat ID\n\n## Installation Steps\n\n### Step 1: Install Temperature Sensors on Proxmox\n\nSSH into your Proxmox server and run:\n\n```bash\napt-get update\napt-get install -y lm-sensors\nsensors-detect\n```\n\nPress ENTER to accept default answers during sensors-detect setup.\n\nTest that sensors work:\n```bash\nsensors | grep -E 'Package|Core'\n```\n\n### Step 2: Create Telegram Bot\n\n1. Open Telegram and search for BotFather\n2. Send `/newbot` command\n3. Follow prompts to create your bot\n4. Save the API token provided\n5. Get your Chat ID by sending a message to your bot, then visiting:\n   ```\n   https://api.telegram.org/bot&lt;YOUR_TOKEN&gt;/getUpdates\n   ```\n6. Look for \"chat\":{\"id\": YOUR_CHAT_ID in the response\n\n### Step 3: Configure n8n Credentials\n\n#### SSH Password Credential\n1. In n8n, go to Credentials menu\n2. Create new credential: SSH Password\n3. Enter:\n   - Host: Your Proxmox IP address\n   - Port: 22\n   - Username: root (or your admin user)\n   - Password: Your Proxmox password\n\n#### Telegram API Credential\n1. Create new credential: Telegram API\n2. Enter the Bot Token from BotFather\n\n### Step 4: Import and Configure Workflow\n\n1. Import the JSON workflow into n8n\n2. Open the \"Set Variables\" node\n3. Update the following values:\n   - PROXMOX_IP: Your Proxmox server IP address\n   - PROXMOX_PORT: API port (default: 8006)\n   - PROXMOX_NODE: Node name (default: pve)\n   - TELEGRAM_CHAT_ID: Your Telegram chat ID\n   - PROXMOX_USER: Proxmox username with realm (e.g., root@pam)\n   - PROXMOX_PASSWORD: Proxmox password\n\n4. Connect credentials:\n   - SSH - Get Sensors node: Select your SSH credential\n   - Send Telegram Report node: Select your Telegram credential\n\n5. Save the workflow\n6. Activate the workflow\n\n## Configuration Options\n\n### Adjust Monitoring Interval\n\nEdit the \"Schedule Every 15min\" node:\n- Change `minutesInterval` value to desired interval (in minutes)\n- Recommended: 5-30 minutes\n\n### Adjust Recently Stopped VM Detection Window\n\nEdit the \"Process Data\" node:\n- Find line: `const fifteenMinutesAgo = now - 900;`\n- Change 900 to desired seconds (900 = 15 minutes)\n\n### Modify Temperature Warning Threshold\n\nThe workflow uses the \"high\" threshold defined by sensors.\nTo manually set threshold, edit \"Process Data\" node:\n- Modify the temperature parsing logic\n- Change comparison: `if (current &gt;= high)` to use custom value\n\n## Testing\n\n### Test Individual Components\n\n1. Execute \"Set Variables\" node manually - verify output\n2. Execute \"Proxmox Login\" node - check for valid ticket\n3. Execute \"API - VM List\" - confirm VM data received\n4. Execute complete workflow - check Telegram for message\n\n### Troubleshooting\n\n**Login fails:**\n- Verify PROXMOX_USER format includes realm (e.g., root@pam)\n- Check password is correct\n- Ensure allowUnauthorizedCerts is enabled for self-signed certificates\n\n**No temperature data:**\n- Verify lm-sensors is installed on Proxmox\n- Run `sensors` command manually via SSH\n- Check SSH credentials are correct\n\n**Recently stopped VMs not detected:**\n- Check task log API endpoint returns data\n- Verify VM was stopped within detection window\n- Ensure task types qmstop or qmshutdown are logged\n\n**Telegram not receiving messages:**\n- Verify bot token is correct\n- Confirm chat ID is accurate\n- Check bot was started (send /start to bot)\n- Verify parse_mode is set to HTML in Telegram node\n\n---\n\n# How It Works\n\n## Workflow Architecture\n\nThe workflow executes in a sequential chain of nodes that gather data from multiple sources, process it, and deliver a formatted report.\n\n### Execution Flow\n\n```\nSchedule Trigger (15min)\n  - Set Variables\n  - Proxmox Login (get authentication ticket)\n  - Prepare Auth (prepare credentials for API calls)\n  - API - VM List (get all VMs and their status)\n  - API - Node Tasks (get recent task log)\n  - API - Node Status (get host CPU, memory, uptime)\n  - SSH - Get Sensors (get temperature data)\n  - Process Data (analyze and structure all data)\n  - Generate Formatted Message (create Telegram message)\n  - Send Telegram Report (deliver via Telegram)\n```\n\n## Data Collection\n\n### VM Information (Proxmox API)\n\nEndpoint: `/api2/json/nodes/{node}/qemu`\n\nRetrieves:\n- Total VM count\n- Running VM count\n- Stopped VM count\n- VM names and IDs\n\n### Task Log (Proxmox API)\n\nEndpoint: `/api2/json/nodes/{node}/tasks?limit=100`\n\nRetrieves recent tasks to detect:\n- qmstop operations (VM stop commands)\n- qmshutdown operations (VM shutdown commands)\n- Task timestamps\n- Task status\n\n### Host Status (Proxmox API)\n\nEndpoint: `/api2/json/nodes/{node}/status`\n\nRetrieves:\n- CPU usage percentage\n- Memory total and used (in GB)\n- System uptime (in seconds)\n\n### Temperature Data (SSH)\n\nCommand: `sensors | grep -E 'Package|Core'`\n\nRetrieves:\n- CPU package temperature\n- Individual core temperatures\n- High and critical thresholds\n\n## Data Processing\n\n### VM Status Analysis\n\n1. Counts total, running, and stopped VMs\n2. Queries task log for stop/shutdown operations\n3. Filters tasks within 15-minute window\n4. Extracts VM ID from task UPID string\n5. Matches VM ID to VM name from VM list\n6. Calculates time elapsed since stop operation\n\n### Temperature Intelligence\n\nThe workflow implements smart temperature reporting:\n\n**Normal Operation (all temps below high threshold):**\n- Calculates average temperature across all cores\n- Displays min, max, and average values\n- Example: \"Average: 47.5 C (Min: 44.0 C, Max: 52.0 C)\"\n\n**Warning State (any temp at or above high threshold):**\n- Displays all temperature readings in detail\n- Shows full sensor output with thresholds\n- Changes section title to \"Temperature Warning\"\n- Adds fire emoji indicator\n\n### Resource Calculation\n\n**CPU Usage:**\n- API returns decimal (0.0 to 1.0)\n- Converted to percentage: `cpu * 100`\n\n**Memory:**\n- API returns bytes\n- Converted to GB: `bytes / (1024^3)`\n- Calculates percentage: `(used / total) * 100`\n\n**Uptime:**\n- API returns seconds\n- Converted to days and hours: `days = seconds / 86400`, `hours = (seconds % 86400) / 3600`\n\n## Report Generation\n\n### Message Structure\n\nThe Telegram message uses HTML formatting for structure:\n\n1. **Header Section**\n   - Report title\n   - Generation timestamp\n\n2. **Virtual Machines Section**\n   - Total VM count\n   - Running VMs with checkmark\n   - Stopped VMs with stop sign\n   - Recently stopped count with warning\n   - Detailed list if VMs stopped in last 15 minutes\n\n3. **Host Resources Section**\n   - CPU usage percentage\n   - Memory used/total with percentage\n   - Host uptime in days and hours\n\n4. **Temperature Section**\n   - Smart display (summary or detailed)\n   - Warning indicator if thresholds exceeded\n   - Monospace formatting for sensor output\n\n### HTML Formatting Features\n\n- Bold tags for headers and labels\n- Italic for timestamps\n- Code blocks for temperature data\n- Unicode separators for visual structure\n- Emoji indicators for status (checkmark, stop, warning, fire)\n\n## Security Considerations\n\n### Credential Storage\n\n- Passwords stored in n8n Set node (encrypted in database)\n- Alternative: Use n8n environment variables\n- Recommendation: Use Proxmox API tokens instead of passwords\n\n### API Communication\n\n- HTTPS with self-signed certificate acceptance\n- Authentication via session tickets (15-minute validity)\n- CSRF token validation for API requests\n\n### SSH Access\n\n- Password-based authentication (can use key-based)\n- Commands limited to read-only operations\n- No privilege escalation required\n\n## Performance Impact\n\n### API Load\n\n- 3 API calls per execution (VM list, tasks, status)\n- Lightweight endpoints with minimal data\n- 15-minute interval reduces server load\n\n### Execution Time\n\nTypical workflow execution: 5-10 seconds\n- Login: 1-2 seconds\n- API calls: 2-3 seconds\n- SSH command: 1-2 seconds\n- Processing: less than 1 second\n\n### Resource Usage\n\n- Minimal CPU impact on Proxmox\n- Small memory footprint\n- Negligible network bandwidth\n\n## Extensibility\n\n### Adding Additional Metrics\n\nTo monitor additional data points:\n\n1. Add new API call node after \"Prepare Auth\"\n2. Update \"Process Data\" node to include new data\n3. Modify \"Generate Formatted Message\" for display\n\n### Integration with Other Services\n\nThe workflow can be extended to:\n- Send to Discord, Slack, or email\n- Write to database or log file\n- Trigger alerts based on thresholds\n- Generate charts or graphs\n\n### Multi-Node Monitoring\n\nTo monitor multiple Proxmox nodes:\n1. Duplicate API call nodes\n2. Update node names in URLs\n3. Merge data in processing step\n4. Generate combined report",
+  "workflow": {
+    "id": "EyPTvUFPOkBXeelq",
+    "meta": {
+      "instanceId": "5c7ce220523e8664f49208a8be668a8dc6fab5f747ce4de865fa1309727919f1"
+    },
+    "name": "Proxmox Monitoring Report - VM Status, Host Resource Usage, Temperature Control - Sheduled with Telegram Export",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "62234df5-c87e-40f7-8fca-0b2cb4346d31",
+        "name": "Schedule Every 15min",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -896,
+          224
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 15
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "698e55da-cdf3-475f-b009-34e075274dca",
+        "name": "Set Variables",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -672,
+          224
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "var1",
+                "name": "PROXMOX_IP",
+                "type": "string",
+                "value": "0.0.0.0"
+              },
+              {
+                "id": "var2",
+                "name": "PROXMOX_PORT",
+                "type": "string",
+                "value": "8006"
+              },
+              {
+                "id": "var3",
+                "name": "PROXMOX_NODE",
+                "type": "string",
+                "value": "pve"
+              },
+              {
+                "id": "var4",
+                "name": "TELEGRAM_CHAT_ID",
+                "type": "string",
+                "value": "YOUR_CHAT_ID"
+              },
+              {
+                "id": "var5",
+                "name": "PROXMOX_USER",
+                "type": "string",
+                "value": "root@pam"
+              },
+              {
+                "id": "var6",
+                "name": "PROXMOX_PASSWORD",
+                "type": "string",
+                "value": "your_password"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.3
+      },
+      {
+        "id": "b25669c5-a50b-4d0d-9b1b-fb763661bd4a",
+        "name": "Proxmox Login",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -448,
+          224
+        ],
+        "parameters": {
+          "url": "=https://{{ $json.PROXMOX_IP }}:{{ $json.PROXMOX_PORT }}/api2/json/access/ticket",
+          "method": "POST",
+          "options": {
+            "allowUnauthorizedCerts": true
+          },
+          "sendBody": true,
+          "contentType": "form-urlencoded",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "username",
+                "value": "={{ $json.PROXMOX_USER }}"
+              },
+              {
+                "name": "password",
+                "value": "={{ $json.PROXMOX_PASSWORD }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "25af5d5f-3a23-45cf-8387-c00d756cfcb6",
+        "name": "Prepare Auth",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -224,
+          224
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "ticket",
+                "name": "ticket",
+                "type": "string",
+                "value": "={{ $json.data.ticket }}"
+              },
+              {
+                "id": "csrf",
+                "name": "csrf",
+                "type": "string",
+                "value": "={{ $json.data.CSRFPreventionToken }}"
+              },
+              {
+                "id": "ip",
+                "name": "PROXMOX_IP",
+                "type": "string",
+                "value": "={{ $('Set Variables').item.json.PROXMOX_IP }}"
+              },
+              {
+                "id": "port",
+                "name": "PROXMOX_PORT",
+                "type": "string",
+                "value": "={{ $('Set Variables').item.json.PROXMOX_PORT }}"
+              },
+              {
+                "id": "node",
+                "name": "PROXMOX_NODE",
+                "type": "string",
+                "value": "={{ $('Set Variables').item.json.PROXMOX_NODE }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.3
+      },
+      {
+        "id": "43ffeb7f-396a-4e69-a8cc-dc17b506321c",
+        "name": "API - VM List",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "url": "=https://{{ $json.PROXMOX_IP }}:{{ $json.PROXMOX_PORT }}/api2/json/nodes/{{ $json.PROXMOX_NODE }}/qemu",
+          "options": {
+            "allowUnauthorizedCerts": true
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Cookie",
+                "value": "=PVEAuthCookie={{ $json.ticket }}"
+              },
+              {
+                "name": "CSRFPreventionToken",
+                "value": "={{ $json.csrf }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "66371dcf-84e5-4467-a104-a466517ee645",
+        "name": "API - Node Tasks",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          0,
+          224
+        ],
+        "parameters": {
+          "url": "=https://{{ $('Set Variables').item.json.PROXMOX_IP }}:{{ $('Set Variables').item.json.PROXMOX_PORT }}/api2/json/nodes/{{ $('Set Variables').item.json.PROXMOX_NODE }}/tasks?limit=100",
+          "options": {
+            "allowUnauthorizedCerts": true
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Cookie",
+                "value": "=PVEAuthCookie={{ $('Prepare Auth').item.json.ticket }}"
+              },
+              {
+                "name": "CSRFPreventionToken",
+                "value": "={{ $json.csrf }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "fe91fc19-09e6-44c9-a0d2-403494e5273e",
+        "name": "API - Node Status",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          0,
+          448
+        ],
+        "parameters": {
+          "url": "=https://{{ $('Set Variables').item.json.PROXMOX_IP }}:{{ $('Set Variables').item.json.PROXMOX_PORT }}/api2/json/nodes/{{ $('Set Variables').item.json.PROXMOX_NODE }}/status",
+          "options": {
+            "allowUnauthorizedCerts": true
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Cookie",
+                "value": "=PVEAuthCookie={{ $('Prepare Auth').item.json.ticket }}"
+              },
+              {
+                "name": "CSRFPreventionToken",
+                "value": "={{ $json.csrf }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "958b184a-aade-42c1-aa6b-26f4bc3d0aa1",
+        "name": "SSH - Get Sensors",
+        "type": "n8n-nodes-base.ssh",
+        "position": [
+          304,
+          224
+        ],
+        "parameters": {
+          "command": "=# Temperature sensors\nsensors 2>/dev/null | grep -E 'Package|Core' || echo 'No temperature data available'\n\n# Detailed uptime\nuptime"
+        },
+        "credentials": {
+          "sshPassword": {
+            "id": "credential-id",
+            "name": "sshPassword Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5d2150c2-34b8-4cbc-8b08-263dc9a2b583",
+        "name": "Process Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          528,
+          112
+        ],
+        "parameters": {
+          "jsCode": "// Get data from previous nodes by name\nconst sshData = $input.first().json.stdout;\nconst vmData = $('API - VM List').first().json.data;\nconst nodeData = $('API - Node Status').first().json.data;\nconst tasksData = $('API - Node Tasks').first().json.data;\n\nif (!vmData) {\n  throw new Error('VM data not received from API - VM List node');\n}\nif (!nodeData) {\n  throw new Error('Node status data not received from API - Node Status node');\n}\nif (!tasksData) {\n  throw new Error('Tasks data not received from API - Node Tasks node');\n}\n\n// Parse SSH output for temperature\nconst sshLines = (sshData || '').split('\\n');\nconst tempLines = sshLines.filter(l => l.includes('Package') || l.includes('Core'));\n\nlet temperatureDisplay = 'No temperature data available';\nlet hasTempWarning = false;\n\nif (tempLines.length > 0) {\n  const tempData = [];\n  let hasHighTemp = false;\n  \n  for (const line of tempLines) {\n    const currentMatch = line.match(/([+\\-]?[0-9.]+)°C/);\n    const highMatch = line.match(/high\\s*=\\s*([+\\-]?[0-9.]+)°C/);\n    \n    if (currentMatch && highMatch) {\n      const current = parseFloat(currentMatch[1]);\n      const high = parseFloat(highMatch[1]);\n      const label = line.split(':')[0].trim();\n      \n      tempData.push({ label, current, high, line: line.trim() });\n      \n      if (current >= high) {\n        hasHighTemp = true;\n        hasTempWarning = true;\n      }\n    }\n  }\n  \n  if (hasHighTemp) {\n    temperatureDisplay = tempData.map(t => t.line).join('\\n');\n  } else {\n    const avgTemp = (tempData.reduce((sum, t) => sum + t.current, 0) / tempData.length).toFixed(1);\n    const maxTemp = Math.max(...tempData.map(t => t.current)).toFixed(1);\n    const minTemp = Math.min(...tempData.map(t => t.current)).toFixed(1);\n    temperatureDisplay = `Average: ${avgTemp}°C (Min: ${minTemp}°C, Max: ${maxTemp}°C)`;\n  }\n}\n\n// Parse uptime from SSH\nlet uptimeString = 'N/A';\nconst uptimeLine = sshLines.find(l => l.includes('up'));\nif (uptimeLine) {\n  uptimeString = uptimeLine.trim();\n}\n\n// VM statistics\nconst totalVMs = vmData.length;\nconst runningVMs = vmData.filter(vm => vm.status === 'running').length;\nconst stoppedVMs = totalVMs - runningVMs;\n\n// Find recently stopped VMs from task log\nconst now = Math.floor(Date.now() / 1000);\nconst fifteenMinutesAgo = now - 900;\n\nconst recentStopTasks = tasksData.filter(task => {\n  const isStopTask = task.type === 'qmstop' || task.type === 'qmshutdown';\n  const taskTime = task.starttime || task.endtime || 0;\n  return isStopTask && taskTime >= fifteenMinutesAgo;\n});\n\nconst recentlyStoppedVMs = recentStopTasks.map(task => {\n  let vmid = 'N/A';\n  vmid = task.id;\n  \n  const vm = vmData.find(v => String(v.vmid) === String(vmid));\n  const vmName = vm ? vm.name : 'Unknown';\n  \n  const taskTime = task.starttime || task.endtime || now;\n  const minutesAgo = Math.floor((now - taskTime) / 60);\n  \n  return {\n    id: vmid,\n    name: vmName,\n    minutesAgo: minutesAgo,\n    status: task.status || 'stopped'\n  };\n});\n\nconst recentlyStopped = recentlyStoppedVMs.length;\n\n// Node statistics from API\nconst cpuUsage = nodeData.cpu ? (nodeData.cpu * 100).toFixed(2) + '%' : 'N/A';\nconst memTotal = nodeData.memory ? (nodeData.memory.total / (1024**3)).toFixed(2) + ' GB' : 'N/A';\nconst memUsed = nodeData.memory ? (nodeData.memory.used / (1024**3)).toFixed(2) + ' GB' : 'N/A';\nconst memPercent = nodeData.memory ? ((nodeData.memory.used / nodeData.memory.total) * 100).toFixed(2) + '%' : 'N/A';\nconst uptimeSeconds = nodeData.uptime || 0;\nconst uptimeDays = Math.floor(uptimeSeconds / 86400);\nconst uptimeHours = Math.floor((uptimeSeconds % 86400) / 3600);\nconst uptimeFormatted = `${uptimeDays}d ${uptimeHours}h`;\n\nreturn {\n  timestamp: new Date().toISOString(),\n  vms: {\n    total: totalVMs,\n    running: runningVMs,\n    stopped: stoppedVMs,\n    recentlyStopped: recentlyStopped,\n    recentlyStoppedDetails: recentlyStoppedVMs\n  },\n  host: {\n    cpu: cpuUsage,\n    memoryUsed: memUsed,\n    memoryTotal: memTotal,\n    memoryPercent: memPercent,\n    uptime: uptimeFormatted,\n    uptimeDetailed: uptimeString,\n    temperature: temperatureDisplay,\n    tempWarning: hasTempWarning\n  }\n};"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "3396072a-4d74-4b52-a8a4-55ba02f75bc2",
+        "name": "Generate Formatted Message",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          528,
+          352
+        ],
+        "parameters": {
+          "jsCode": "const data = $input.first().json;\n\nconst tempWarningEmoji = data.host.tempWarning ? '🔥 ' : '';\nconst tempTitle = data.host.tempWarning ? 'Temperature Warning' : 'Temperature Data';\n\nlet recentlyStoppedSection = '';\nif (data.vms.recentlyStopped > 0 && data.vms.recentlyStoppedDetails && data.vms.recentlyStoppedDetails.length > 0) {\n  const vmList = data.vms.recentlyStoppedDetails\n    .map(vm => `  • VM ${vm.id} - ${vm.name} (${vm.minutesAgo} min ago)`)\n    .join('\\n');\n  recentlyStoppedSection = `\\n\\n<b>Recently Stopped VMs Details:</b>\\n${vmList}`;\n}\n\nconst message = `<b>Proxmox Monitoring Report</b>\n<i>Generated: ${new Date(data.timestamp).toLocaleString('en-US')}</i>\n\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n<b>Virtual Machines</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n<b>Total VMs:</b> ${data.vms.total}\n<b>Running:</b> ${data.vms.running} ✅\n<b>Stopped:</b> ${data.vms.stopped} ⛔\n<b>Recently Stopped:</b> ${data.vms.recentlyStopped} ⚠️${recentlyStoppedSection}\n\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n<b>Host Resources</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n<b>CPU Usage:</b> ${data.host.cpu}\n<b>Memory:</b> ${data.host.memoryUsed} / ${data.host.memoryTotal}\n           (${data.host.memoryPercent})\n<b>Uptime:</b> ${data.host.uptime}\n\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n<b>${tempWarningEmoji}${tempTitle}</b>\n<b>━━━━━━━━━━━━━━━━━━━━</b>\n\n<code>${data.host.temperature}</code>`;\n\nreturn { message };"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "81a4878f-35a2-44d1-81a2-ca209d6e70e3",
+        "name": "Send Telegram Report",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          816,
+          224
+        ],
+        "webhookId": "0a44bae4-6570-4b87-8080-4328fe78a753",
+        "parameters": {
+          "text": "={{ $json.message }}",
+          "chatId": "={{ $('Set Variables').first().json.TELEGRAM_CHAT_ID }}",
+          "additionalFields": {
+            "parse_mode": "HTML",
+            "appendAttribution": false
+          }
+        },
+        "credentials": {
+          "telegramApi": {
+            "id": "credential-id",
+            "name": "telegramApi Credential"
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "31ae9494-5e80-40be-8aea-4ca982960dbc",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1184,
+          16
+        ],
+        "parameters": {
+          "width": 380,
+          "height": 180,
+          "content": "## Proxmox Monitoring Workflow\n\nMonitors your Proxmox VE server every 15 minutes and sends automated reports via Telegram.\n\nTracks VM status, host resources, temperature sensors, and recently stopped VMs."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "467412ef-997f-4666-81e2-01c3fb23202f",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -784,
+          400
+        ],
+        "parameters": {
+          "width": 320,
+          "height": 292,
+          "content": "## CONFIGURATION REQUIRED\n\n1. Set your Proxmox IP, port, and node name\n2. Enter Proxmox username (with realm, e.g. root@pam)\n3. Add your Proxmox password\n4. Set your Telegram Chat ID\n\nRequires: lm-sensors installed on Proxmox host"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9f4196b9-741d-4536-b487-89be23dfa9e3",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -432,
+          -16
+        ],
+        "parameters": {
+          "width": 300,
+          "height": 204,
+          "content": "## Authentication Flow\n\nLogs into Proxmox API to obtain:\n- Session ticket (valid 15 minutes)\n- CSRF prevention token\n\nBoth are required for subsequent API calls"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "23393f4f-3ba3-4900-aec5-7952f9b64586",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -96,
+          608
+        ],
+        "parameters": {
+          "width": 300,
+          "height": 272,
+          "content": "## Data Collection\n\nGathers data from Proxmox API:\n- VM list and status\n- Recent task log (stop/shutdown events)\n- Node resources (CPU, memory, uptime)\n\nRuns sequentially to ensure authenticated requests"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "7be5a2e6-d39a-4b4f-9cfd-888eab5261ce",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          176,
+          -16
+        ],
+        "parameters": {
+          "width": 300,
+          "height": 220,
+          "content": "## SSH Temperature Check\n\nConnects via SSH to read temperature sensors using the sensors command.\n\nRequires SSH Password credential configured with your Proxmox host details."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "af79ac1a-e92a-47aa-b541-4d038175f28e",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          640,
+          -128
+        ],
+        "parameters": {
+          "width": 320,
+          "height": 264,
+          "content": "## Data Processing\n\nAnalyzes all collected data:\n- Counts running/stopped VMs\n- Detects VMs stopped in last 15 minutes\n- Calculates resource usage percentages\n- Evaluates temperature thresholds\n- Formats uptime statistics\n\nGenerates structured report with HTML formatting for Telegram"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e4bc84d3-85ba-4cbe-bb21-8832642ddf82",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          816,
+          384
+        ],
+        "parameters": {
+          "width": 300,
+          "height": 256,
+          "content": "## TELEGRAM CONFIGURATION\n\n1. Create bot via @BotFather\n2. Get bot token and add as credential\n3. Chat ID already set in Set Variables node\n\nMessages use HTML parse mode for formatting"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "2c9715a6-bb36-4d9d-8476-cd3c18a1fac0",
+    "connections": {
+      "Prepare Auth": {
+        "main": [
+          [
+            {
+              "node": "API - VM List",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Process Data": {
+        "main": [
+          [
+            {
+              "node": "Generate Formatted Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "API - VM List": {
+        "main": [
+          [
+            {
+              "node": "API - Node Tasks",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Proxmox Login": {
+        "main": [
+          [
+            {
+              "node": "Prepare Auth",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Variables": {
+        "main": [
+          [
+            {
+              "node": "Proxmox Login",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "API - Node Tasks": {
+        "main": [
+          [
+            {
+              "node": "API - Node Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "API - Node Status": {
+        "main": [
+          [
+            {
+              "node": "SSH - Get Sensors",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "SSH - Get Sensors": {
+        "main": [
+          [
+            {
+              "node": "Process Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Every 15min": {
+        "main": [
+          [
+            {
+              "node": "Set Variables",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Formatted Message": {
+        "main": [
+          [
+            {
+              "node": "Send Telegram Report",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 16,
+      "name": "DevOps"
+    }
+  ],
+  "url": "https://n8n.io/workflows/9733",
+  "fetched_at": "2026-09-12T13:13:03Z"
+}

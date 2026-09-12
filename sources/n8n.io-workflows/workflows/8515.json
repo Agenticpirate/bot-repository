@@ -1,0 +1,336 @@
+{
+  "id": 8515,
+  "name": "Automate candidate rejections with GPT-4o-mini, Gmail & ClickUp task tracking",
+  "description": "## Description\nStreamline interview feedback handling with this rejection-focused workflow. It processes raw interview feedback, applies an AI-powered scoring model, checks against a threshold, and automatically sends polite rejection emails while logging tasks in ClickUp—ensuring consistent, hands-free candidate management.\n\n**What This Template Does**\n\n📋 Pulls raw feedback data from Google Sheets\n 🧠 Uses GPT-4o-mini to structure and score candidate profiles\n ⚖️ Applies threshold check (average score &gt; 3.1 = pass, else reject)\n 🔀 Routes candidates via decision branch (pass = no action, fail = rejection)\n 📩 Sends templated rejection email via Gmail\n 🗂 Creates ClickUp task for rejection tracking (7-day due date)\n\n**Prerequisites**\n\n- Google Sheets with interview feedback data\n- n8n instance (self-hosted or cloud)\n- Azure OpenAI (GPT-4o-mini) API key for AI-powered analysis\n- Gmail API credentials (for sending rejection emails)\n- ClickUp API credentials (for rejection task logging)\n\n**Step-by-Step Setup**\n\n- Connect Google Sheets node to fetch feedback data.\n- Configure LangChain LLM node with GPT-4o-mini to structure and score feedback.\n- Add Code node to apply rejection threshold (&gt; 3.1).\n- Route candidates via If node (TRUE = pass, FALSE = rejection).\n- For failed candidates:\n- Use Code node to prepare structured data.\n- Send rejection email with Gmail node.\n- Log decision with ClickUp task creation node.\n\n**Customization Ideas**\n\n- Replace templated rejection with AI-personalized feedback.\n- Store candidate profiles in Notion or Airtable for future reference.\n- Send recruiter alerts in Slack/Teams for visibility.\n- Adjust scoring threshold per role or interview stage.\n\n**Key Benefits**\n\n ✅ Automates rejection handling with no manual effort\n ✅ Ensures fair and consistent candidate scoring\n ✅ Maintains candidate experience with polite communication\n ✅ Provides recruiters visibility with ClickUp tracking\n ✅ Simple, lightweight workflow for fast hiring pipelines\n\n**Perfect For**\n\n- HR teams handling high interview volumes\n- Companies seeking automated rejection handling\n- Startups needing lightweight ATS alternatives\n- Recruiters wanting to save time while staying consistent\n",
+  "workflow": {
+    "id": "FulwU5u7Hx1FETOE",
+    "meta": {
+      "instanceId": "8443f10082278c46aa5cf3acf8ff0f70061a2c58bce76efac814b16290845177",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Structured Interview Feedback Capture",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "4fda932e-4730-482d-952e-7ac16e2e53f2",
+        "name": "Send Rejection Email",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          208,
+          352
+        ],
+        "webhookId": "86f9bdab-5560-4c7e-bbdd-85291f22843d",
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "169eb781-745d-464b-9200-36e8f717049b",
+        "name": "Get row(s) in sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -1296,
+          64
+        ],
+        "parameters": {},
+        "typeVersion": 4
+      },
+      {
+        "id": "9a34ce1c-e471-4137-99b2-3b667fafb717",
+        "name": "When clicking ‘Execute workflow’",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          -1568,
+          64
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "cb16c914-5913-4e39-9d19-810f0bc54e34",
+        "name": "Code",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -608,
+          64
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "6e34b7f2-b75d-481c-9a8f-915441f33b9c",
+        "name": "If",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -352,
+          64
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "5e1800cc-efc8-45a1-96ce-8952c8ecdf41",
+        "name": "Create a task",
+        "type": "n8n-nodes-base.clickUp",
+        "position": [
+          224,
+          160
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "aa4d3b97-ca6b-4dc1-b956-4c7c4d70f373",
+        "name": "Code1",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -32,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "c3943233-b5c8-43b9-9d05-a2131896cc4b",
+        "name": "Basic LLM Chain",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "position": [
+          -1040,
+          64
+        ],
+        "parameters": {},
+        "typeVersion": 1.7
+      },
+      {
+        "id": "620afca3-0cf8-44a8-90b2-00a71291ad8a",
+        "name": "Azure OpenAI Chat Model1",
+        "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+        "position": [
+          -1088,
+          272
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "772ae5a5-0f38-463f-910e-d0c9ba8c351d",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -688,
+          208
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "831f088d-4d12-4e5f-ba0d-b8568bce1f9e",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          352,
+          0
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a6dfd803-b53d-4403-87b8-f0808266fbf3",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          160,
+          544
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f262a965-363e-4be4-befa-e8a187b186ca",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -96,
+          -192
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c2497022-256a-4e83-b14a-127d1d63153f",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -384,
+          208
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "d350ebe5-e6e7-49b7-bbc4-2da9247e8c40",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1168,
+          416
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c3824f6f-ce1e-4f1c-b075-fd51c7f19717",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1040,
+          -208
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ecde2db4-72db-470e-904b-2736ccbb1682",
+        "name": "Sticky Note7",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1376,
+          -224
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5f49e379-01c6-4824-85a9-811e2cceda85",
+        "name": "Sticky Note8",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1648,
+          240
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "28bbbc97-14b9-45f9-aa37-4a77129670d5",
+    "connections": {
+      "If": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Code1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code": {
+        "main": [
+          [
+            {
+              "node": "If",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code1": {
+        "main": [
+          [
+            {
+              "node": "Send Rejection Email",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Create a task",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Basic LLM Chain": {
+        "main": [
+          [
+            {
+              "node": "Code",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get row(s) in sheet": {
+        "main": [
+          [
+            {
+              "node": "Basic LLM Chain",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Azure OpenAI Chat Model1": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Basic LLM Chain",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When clicking ‘Execute workflow’": {
+        "main": [
+          [
+            {
+              "node": "Get row(s) in sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 17,
+      "name": "HR"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8515",
+  "fetched_at": "2026-09-12T13:12:30Z"
+}

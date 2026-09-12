@@ -1,0 +1,94 @@
+{
+  "id": 346,
+  "name": "Get weather forecast via Telegram",
+  "description": "![workflow-screenshot](fileId:32)\n\nA workflow to receive weather updates on demand using a Telegram bot. The workflow is triggered using the Telegram Trigger node by issuing a message to the Telegram bot. The OpenWeatherMap node queries the weather API and returns the result using the Telegram node.\n\n![Screenshot 20200407 at 12.01.14.png](fileId:31)",
+  "workflow": {
+    "id": "2",
+    "name": "Telegram Weather Workflow",
+    "nodes": [
+      {
+        "name": "Telegram Trigger",
+        "type": "n8n-nodes-base.telegramTrigger",
+        "position": [
+          270,
+          220
+        ],
+        "parameters": {
+          "updates": [
+            "message"
+          ]
+        },
+        "credentials": {
+          "telegramApi": "Telegram"
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "OpenWeatherMap",
+        "type": "n8n-nodes-base.openWeatherMap",
+        "position": [
+          480,
+          220
+        ],
+        "parameters": {
+          "cityName": "berlin,de"
+        },
+        "credentials": {
+          "openWeatherMapApi": "OpenWeatherMap"
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Telegram",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          670,
+          220
+        ],
+        "parameters": {
+          "text": "=Right now, we have {{$node[\"OpenWeatherMap\"].json[\"weather\"][0][\"description\"]}}. The temperature is {{$node[\"OpenWeatherMap\"].json[\"main\"][\"temp\"]}}°C but it really feels like {{$node[\"OpenWeatherMap\"].json[\"main\"][\"feels_like\"]}}°C 🙂",
+          "chatId": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"chat\"][\"id\"]}}",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "telegramApi": "Telegram"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": true,
+    "settings": {},
+    "connections": {
+      "OpenWeatherMap": {
+        "main": [
+          [
+            {
+              "node": "Telegram",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Telegram Trigger": {
+        "main": [
+          [
+            {
+              "node": "OpenWeatherMap",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 43,
+      "name": "Personal Productivity"
+    }
+  ],
+  "url": "https://n8n.io/workflows/346",
+  "fetched_at": "2026-09-12T13:08:39Z"
+}

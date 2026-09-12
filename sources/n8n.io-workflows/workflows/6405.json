@@ -1,0 +1,749 @@
+{
+  "id": 6405,
+  "name": "Scrape Twitter profiles with Bright Data API and export to Google Sheets",
+  "description": "# 🐦 Twitter Profile Scraper via Bright Data API with Google Sheets Output\n\nA comprehensive n8n automation that scrapes Twitter profile data using Bright Data's Twitter dataset and stores comprehensive tweet analytics, user metrics, and engagement data directly into Google Sheets.\n\n## 📋 Overview\n\nThis workflow provides an automated Twitter data collection solution that extracts profile information and tweet data from specified Twitter accounts within custom date ranges. Perfect for social media analytics, competitor research, brand monitoring, and content strategy analysis.\n\n## ✨ Key Features\n\n🔗 **Form-Based Input**: Easy-to-use form for Twitter URL and date range selection  \n🐦 **Twitter Integration**: Uses Bright Data's Twitter dataset for accurate data extraction  \n📊 **Comprehensive Data**: Captures tweets, engagement metrics, and profile information  \n📈 **Google Sheets Storage**: Automatically stores all data in organized spreadsheet format  \n🔄 **Progress Monitoring**: Real-time status tracking with automatic retry mechanisms  \n⚡ **Fast & Reliable**: Professional scraping with built-in error handling  \n📅 **Date Range Control**: Flexible time period selection for targeted data collection  \n🎯 **Customizable Fields**: Advanced data field selection and mapping\n\n## 🎯 What This Workflow Does\n\n### Input\n- **Twitter Profile URL**: Target Twitter account for data scraping\n- **Date Range**: Start and end dates for tweet collection period\n- **Custom Fields**: Configurable data points to extract\n\n### Processing\n1. **Form Trigger**: Collects Twitter URL and date range from user input\n2. **API Request**: Sends scraping request to Bright Data with specified parameters\n3. **Progress Monitoring**: Continuously checks scraping job status until completion\n4. **Data Retrieval**: Downloads complete dataset when scraping is finished\n5. **Data Processing**: Formats and structures extracted information\n6. **Sheet Integration**: Automatically populates Google Sheets with organized data\n\n### Output Data Points\n\n| Field | Description | Example |\n|-------|-------------|---------|\n| user_posted | Username who posted the tweet | @elonmusk |\n| name | Display name of the user | Elon Musk |\n| description | Tweet content/text | \"Exciting updates coming soon...\" |\n| date_posted | When the tweet was posted | 2025-01-15T10:30:00Z |\n| likes | Number of likes on the tweet | 1,234 |\n| reposts | Number of retweets | 567 |\n| replies | Number of replies | 89 |\n| views | Total view count | 12,345 |\n| followers | User's follower count | 50M |\n| following | Users they follow | 123 |\n| is_verified | Verification status | true/false |\n| hashtags | Hashtags used in tweet | #AI #Technology |\n| photos | Image URLs in tweet | image1.jpg, image2.jpg |\n| videos | Video content URLs | video1.mp4 |\n| user_id | Unique user identifier | 12345678 |\n| timestamp | Data extraction timestamp | 2025-01-15T11:00:00Z |\n\n## 🚀 Setup Instructions\n\n### Prerequisites\n- n8n instance (self-hosted or cloud)\n- Bright Data account with Twitter dataset access\n- Google account with Sheets access\n- Valid Twitter profile URLs to scrape\n- 10-15 minutes for setup\n\n### Step 1: Import the Workflow\n1. Copy the JSON workflow code from the provided file\n2. In n8n: Workflows → + Add workflow → Import from JSON\n3. Paste JSON and click Import\n\n### Step 2: Configure Bright Data\n1. Set up Bright Data credentials:\n   - In n8n: Credentials → + Add credential → HTTP Header Auth\n   - Enter your Bright Data API credentials\n   - Test the connection\n2. Configure dataset:\n   - Ensure you have access to Twitter dataset (`gd_lwxkxvnf1cynvib9co`)\n   - Verify dataset permissions in Bright Data dashboard\n\n### Step 3: Configure Google Sheets Integration\n1. Create a Google Sheet:\n   - Go to Google Sheets\n   - Create a new spreadsheet named \"Twitter Data\" or similar\n   - Copy the Sheet ID from URL: `https://docs.google.com/spreadsheets/d/SHEET_ID_HERE/edit`\n2. Set up Google Sheets credentials:\n   - In n8n: Credentials → + Add credential → Google Sheets OAuth2 API\n   - Complete OAuth setup and test connection\n3. Prepare your data sheet with columns:\n   - Use the column headers from the data points table above\n   - The workflow will automatically populate these fields\n\n### Step 4: Update Workflow Settings\n1. Update Bright Data nodes:\n   - Open \"🚀 Trigger Twitter Scraping\" node\n   - Replace `BRIGHT_DATA_API_KEY` with your actual API token\n   - Verify dataset ID is correct\n2. Update Google Sheets node:\n   - Open \"📊 Store Twitter Data in Google Sheet\" node\n   - Replace `YOUR_GOOGLE_SHEET_ID` with your Sheet ID\n   - Select your Google Sheets credential\n   - Choose the correct sheet/tab name\n\n### Step 5: Test & Activate\n1. Add test data:\n   - Use the form trigger to input a Twitter profile URL\n   - Set a small date range for testing (e.g., last 7 days)\n2. Test the workflow:\n   - Submit the form to trigger the workflow\n   - Monitor progress in n8n execution logs\n   - Verify data appears in Google Sheet\n   - Check all expected columns are populated\n\n## 📖 Usage Guide\n\n### Running the Workflow\n1. Access the workflow form trigger URL (available when workflow is active)\n2. Enter the Twitter profile URL you want to scrape\n3. Set the start and end dates for tweet collection\n4. Submit the form to initiate scraping\n5. Monitor progress - the workflow will automatically check status every minute\n6. Once complete, data will appear in your Google Sheet\n\n### Understanding the Data\nYour Google Sheet will show:\n- **Real-time tweet data** for the specified date range\n- **User engagement metrics** (likes, replies, retweets, views)\n- **Profile information** (followers, following, verification status)\n- **Content details** (hashtags, media URLs, quoted tweets)\n- **Timestamps** for each tweet and data extraction\n\n### Customizing Date Ranges\n- **Recent data**: Use last 7-30 days for current activity analysis\n- **Historical analysis**: Select specific months or quarters for trend analysis\n- **Event tracking**: Focus on specific date ranges around events or campaigns\n- **Comparative studies**: Use consistent time periods across different profiles\n\n## 🔧 Customization Options\n\n### Modifying Data Fields\nEdit the `custom_output_fields` array in the \"🚀 Trigger Twitter Scraping\" node to add or remove data points:\n\n```json\n\"custom_output_fields\": [\n  \"id\", \"user_posted\", \"name\", \"description\", \n  \"date_posted\", \"likes\", \"reposts\", \"replies\",\n  \"views\", \"hashtags\", \"followers\", \"is_verified\"\n]\n```\n\n### Changing Google Sheet Structure\nModify the column mapping in the \"📊 Store Twitter Data in Google Sheet\" node to match your preferred sheet layout and add custom formulas or calculations.\n\n### Adding Multiple Recipients\nTo process multiple Twitter profiles:\n1. Modify the form to accept multiple URLs\n2. Add a loop node to process each URL separately\n3. Implement delays between requests to respect rate limits\n\n## 🚨 Troubleshooting\n\n### Common Issues & Solutions\n\n1. **\"Bright Data connection failed\"**\n   - **Cause**: Invalid API credentials or dataset access\n   - **Solution**: Verify credentials in Bright Data dashboard, check dataset permissions\n\n2. **\"No data extracted\"**\n   - **Cause**: Invalid Twitter URLs or private/protected accounts\n   - **Solution**: Verify URLs are valid public Twitter profiles, test with different accounts\n\n3. **\"Google Sheets permission denied\"**\n   - **Cause**: Incorrect credentials or sheet permissions\n   - **Solution**: Re-authenticate Google Sheets, check sheet sharing settings\n\n4. **\"Workflow timeout\"**\n   - **Cause**: Large date ranges or high-volume accounts\n   - **Solution**: Use smaller date ranges, implement pagination for high-volume accounts\n\n5. **\"Progress monitoring stuck\"**\n   - **Cause**: Scraping job failed or API issues\n   - **Solution**: Check Bright Data dashboard for job status, restart workflow if needed\n\n### Advanced Troubleshooting\n- Check execution logs in n8n for detailed error messages\n- Test individual nodes by running them separately\n- Verify data formats and ensure consistent field mapping\n- Monitor rate limits if scraping multiple profiles consecutively\n- Add error handling and implement retry logic for robust operation\n\n## 📊 Use Cases & Examples\n\n### 1. Social Media Analytics\n**Goal**: Track engagement metrics and content performance\n- Monitor tweet engagement rates over time\n- Analyze hashtag effectiveness and reach\n- Track follower growth and audience interaction\n- Generate weekly/monthly performance reports\n\n### 2. Competitor Research\n**Goal**: Monitor competitor social media activity\n- Track competitor posting frequency and timing\n- Analyze competitor content themes and strategies\n- Monitor competitor engagement and audience response\n- Identify trending topics and hashtags in your industry\n\n### 3. Brand Monitoring\n**Goal**: Track brand mentions and sentiment analysis\n- Monitor specific Twitter accounts for brand mentions\n- Track hashtag campaigns and user-generated content\n- Analyze sentiment trends and audience feedback\n- Identify influencers and brand advocates\n\n### 4. Content Strategy Development\n**Goal**: Analyze successful content patterns\n- Identify high-performing tweet formats and topics\n- Track optimal posting times and frequencies\n- Analyze hashtag performance and reach\n- Study audience engagement patterns\n\n### 5. Market Research\n**Goal**: Collect social media data for market analysis\n- Gather consumer opinions and feedback\n- Track industry trends and discussions\n- Monitor product launches and market reactions\n- Support product development with social insights\n\n## ⚙ Advanced Configuration\n\n### Batch Processing Multiple Profiles\nTo monitor multiple Twitter accounts efficiently:\n1. Create a master sheet with profile URLs and date ranges\n2. Add a loop node to process each profile separately\n3. Implement delays between requests to respect rate limits\n4. Use separate sheets or tabs for different profiles\n\n### Adding Data Analysis\nEnhance the workflow with analytical capabilities:\n1. Create additional sheets for processed data and insights\n2. Add formulas to calculate engagement rates and trends\n3. Implement data visualization with charts and graphs\n4. Generate automated reports and summaries\n\n### Integration with Business Tools\nConnect the workflow to your existing systems:\n- **CRM Integration**: Update customer records with social media data\n- **Slack Notifications**: Send alerts when data collection is complete\n- **Database Storage**: Store data in PostgreSQL/MySQL for advanced analysis\n- **BI Tools**: Connect to Tableau/Power BI for comprehensive visualization\n\n## 📈 Performance & Limits\n\n### Expected Performance\n- **Single profile**: 30 seconds to 5 minutes (depending on date range)\n- **Data accuracy**: 95%+ for public Twitter profiles\n- **Success rate**: 90%+ for accessible accounts\n- **Daily capacity**: 10-50 profiles (depends on rate limits and data volume)\n\n### Resource Usage\n- **Memory**: ~200MB per execution\n- **Storage**: Minimal (data stored in Google Sheets)\n- **API calls**: 1 Bright Data call + multiple Google Sheets calls per profile\n- **Bandwidth**: ~5-10MB per profile scraped\n- **Execution time**: 2-10 minutes for typical date ranges\n\n### Scaling Considerations\n- **Rate limiting**: Add delays for high-volume scraping\n- **Error handling**: Implement retry logic for failed requests\n- **Data validation**: Add checks for malformed or missing data\n- **Monitoring**: Track success/failure rates over time\n- **Cost optimization**: Monitor API usage to control costs\n\n## 🤝 Support & Community\n\n### Getting Help\n- **n8n Community Forum**: community.n8n.io\n- **Documentation**: docs.n8n.io\n- **Bright Data Support**: Contact through your dashboard\n- **GitHub Issues**: Report bugs and feature requests\n\n### Contributing\n- Share improvements with the community\n- Report issues and suggest enhancements\n- Create variations for specific use cases\n- Document best practices and lessons learned\n\n## 📋 Quick Setup Checklist\n\n### Before You Start\n☐ n8n instance running (self-hosted or cloud)  \n☐ Bright Data account with Twitter dataset access  \n☐ Google account with Sheets access  \n☐ Valid Twitter profile URLs ready for scraping  \n☐ 10-15 minutes available for setup\n\n### Setup Steps\n☐ **Import Workflow** - Copy JSON and import to n8n  \n☐ **Configure Bright Data** - Set up API credentials and test  \n☐ **Create Google Sheet** - New sheet with proper column structure  \n☐ **Set up Google Sheets credentials** - OAuth setup and test  \n☐ **Update workflow settings** - Replace API keys and sheet IDs  \n☐ **Test with sample data** - Add 1 Twitter URL and small date range  \n☐ **Verify data flow** - Check data appears in Google Sheet correctly  \n☐ **Activate workflow** - Enable form trigger for production use\n\n## Ready to Use! 🎉\n\n**Your workflow URL**: Access form trigger when workflow is active\n\n🎯 **Happy Twitter Scraping!** This workflow provides a solid foundation for automated Twitter data collection. Customize it to fit your specific social media analytics and research needs.\n\n\n\nFor any questions or support, please contact:  \n[info@incrementors.com](mailto:info@incrementors.com)  \nor fill out this form: [https://www.incrementors.com/contact-us/](https://www.incrementors.com/contact-us/)\n",
+  "workflow": {
+    "id": "aklI9zFDCmfAo9hA",
+    "meta": {
+      "instanceId": "bc8ca75c203589705ae2e446cad7181d6f2a7cc1766f958ef9f34810e53b8cb2"
+    },
+    "name": "Twitter Profile Scraper via Bright Data API with Google Sheets Output",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "ac0410b2-4a26-4b4b-a4fe-b676754337df",
+        "name": "📥 User Input Trigger",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          -1312,
+          16
+        ],
+        "webhookId": "279eebd7-d383-47d3-a912-b3a60afbd003",
+        "parameters": {
+          "options": {},
+          "formTitle": "Twitter profile url",
+          "formFields": {
+            "values": [
+              {
+                "fieldLabel": "Twitter Profile url"
+              },
+              {
+                "fieldType": "date",
+                "fieldLabel": "start date"
+              },
+              {
+                "fieldType": "date",
+                "fieldLabel": "end date"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "4541f9d3-7c19-44e1-935b-56fce3e52317",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1376,
+          -48
+        ],
+        "parameters": {
+          "width": 224,
+          "height": 208,
+          "content": "→ Starts flow with Twitter URL & date range from form\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4c03a5bd-3121-4c13-ade9-33c8eaed1043",
+        "name": "🚀 Trigger Twitter Scraping",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -1040,
+          16
+        ],
+        "parameters": {
+          "url": "https://api.brightdata.com/datasets/v3/trigger",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "{\n  \"input\": [\n    {\n      \"url\": \"{{ $json['Twitter Profile url'] }}\",\n      \"start_date\": \"{{ $json['start date'] }}\",\n      \"end_date\": \"{{ $json['end date'] }}\"\n    }\n  ],\n  \"custom_output_fields\": [\n    \"id\",\n    \"user_posted\",\n    \"name\",\n    \"description\",\n    \"date_posted\",\n    \"photos\",\n    \"url\",\n    \"quoted_post\",\n    \"tagged_users\",\n    \"replies\",\n    \"reposts\",\n    \"likes\",\n    \"views\",\n    \"external_url\",\n    \"hashtags\",\n    \"followers\",\n    \"posts_count\",\n    \"profile_image_link\",\n    \"following\",\n    \"is_verified\",\n    \"quotes\",\n    \"parent_post_details\",\n    \"external_image_urls\",\n    \"videos\",\n    \"external_video_urls\",\n    \"user_id\",\n    \"timestamp\"\n  ]\n}",
+          "sendBody": true,
+          "sendQuery": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "dataset_id",
+                "value": "gd_lwxkxvnf1cynvib9co"
+              },
+              {
+                "name": "include_errors",
+                "value": "true"
+              },
+              {
+                "name": "type",
+                "value": "discover_new"
+              },
+              {
+                "name": "discover_by",
+                "value": "profile_url"
+              }
+            ]
+          },
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "9fa82381-8c38-4704-8cb0-e8aa4e469d5a",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1120,
+          -48
+        ],
+        "parameters": {
+          "color": 2,
+          "height": 208,
+          "content": "→ Sends scrape request to BrightData with user input\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4f544be2-c578-4de3-8cdf-db3f9e443530",
+        "name": "🔄 Monitor Scraping Progress",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -784,
+          16
+        ],
+        "parameters": {
+          "url": "=https://api.brightdata.com/datasets/v3/progress/{{ $json.snapshot_id }}",
+          "options": {},
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "701e0ed1-3658-48cf-aebf-cefac22a94e3",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -848,
+          -48
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 224,
+          "height": 208,
+          "content": "→ Checks if scraping is still running or ready\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "88cfbb92-c12f-45ba-bdab-c48476d33676",
+        "name": "⏱️ Delay Before Recheck",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          -544,
+          16
+        ],
+        "webhookId": "10b45556-5e91-4387-abd0-f9078b220286",
+        "parameters": {
+          "unit": "minutes",
+          "amount": 1
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "c976c82b-6e1d-4f51-8224-e314bfc703c7",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -608,
+          -48
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 224,
+          "height": 208,
+          "content": "→ Waits 1 minute before checking status again\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "d107f520-3621-4d2d-9887-07a860461b95",
+        "name": "✅ Is Scraping Ready?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -304,
+          16
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "or",
+            "conditions": [
+              {
+                "id": "35ed620d-b5d5-4e97-bcc5-52b283d85616",
+                "operator": {
+                  "name": "filter.operator.equals",
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.status }}",
+                "rightValue": "ready"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "8ee62b09-4073-424d-b051-381134548eb9",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -352,
+          -48
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 224,
+          "height": 208,
+          "content": "→ If ready, fetch data; if not, repeat check loop\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e53c14eb-e7cb-443a-bfeb-1a6842d839a6",
+        "name": "📦 Fetch Twitter Data",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -48,
+          0
+        ],
+        "parameters": {
+          "url": "=https://api.brightdata.com/datasets/v3/snapshot/{{ $json.snapshot_id }}",
+          "options": {},
+          "sendQuery": true,
+          "sendHeaders": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "format",
+                "value": "json"
+              }
+            ]
+          },
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "9b713be8-53f8-42e9-8c70-ae158ffee142",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -112,
+          -48
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 224,
+          "height": 208,
+          "content": "→ Downloads scraped tweet data using snapshot ID\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1182993d-0cf0-4a65-99d0-7cd65bfe56c2",
+        "name": "📊 Store Twitter Data in Google Sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          176,
+          0
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "id": "={{ $json.id }}",
+              "name": "={{ $json.name }}",
+              "likes": "={{ $json.likes }}",
+              "views": "={{ $json.views }}",
+              "photos": "={{ $json.photos }}",
+              "quotes": "={{ $json.quotes }}",
+              "videos": "={{ $json.videos }}",
+              "replies": "={{ $json.replies }}",
+              "reposts": "={{ $json.reposts }}",
+              "user_id": "={{ $json.user_id }}",
+              "hashtags": "={{ $json.hashtags }}",
+              "followers": "={{ $json.followers }}",
+              "following": "={{ $json.following }}",
+              "timestamp": "={{ $json.timestamp }}",
+              "date_posted": "={{ $json.date_posted }}",
+              "description": "={{ $json.description }}",
+              "is_verified": "={{ $json.is_verified }}",
+              "posts_count": "={{ $json.posts_count }}",
+              "quoted_post": "={{ $json.quoted_post }}",
+              "user_posted": "={{ $json.user_posted }}",
+              "tagged_users": "={{ $json.tagged_users }}",
+              "profile_image_link": "={{ $json.profile_image_link }}",
+              "external_image_urls": "={{ $json.external_image_urls }}",
+              "external_video_urls": "={{ $json.external_video_urls }}"
+            },
+            "schema": [
+              {
+                "id": "id",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "id",
+                "defaultMatch": true,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "user_posted",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "user_posted",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "name",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "name",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "description",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "description",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "date_posted",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "date_posted",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "photos",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "photos",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "url",
+                "type": "string",
+                "display": true,
+                "removed": true,
+                "required": false,
+                "displayName": "url",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "quoted_post",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "quoted_post",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "tagged_users",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "tagged_users",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "replies",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "replies",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "reposts",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "reposts",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "likes",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "likes",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "views",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "views",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "external_url",
+                "type": "string",
+                "display": true,
+                "removed": true,
+                "required": false,
+                "displayName": "external_url",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "hashtags",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "hashtags",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "followers",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "followers",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "posts_count",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "posts_count",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "profile_image_link",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "profile_image_link",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "following",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "following",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "is_verified",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "is_verified",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "quotes",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "quotes",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "parent_post_details",
+                "type": "string",
+                "display": true,
+                "removed": true,
+                "required": false,
+                "displayName": "parent_post_details",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "external_image_urls",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "external_image_urls",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "videos",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "videos",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "external_video_urls",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "external_video_urls",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "user_id",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "user_id",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "timestamp",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "timestamp",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [
+              "id"
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "url",
+            "value": "YOUR_GOOGLE_SHEET_ID"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleSheetsOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 4.6
+      },
+      {
+        "id": "eda5f904-6e95-4ffa-b894-e13915991745",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          128,
+          -64
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 256,
+          "height": 240,
+          "content": "→ Saves post data (likes, replies, user, etc.) into Sheet\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1681773c-b304-4a73-a4a2-0406ae9090e5",
+        "name": "Sticky Note8",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1328,
+          -272
+        ],
+        "parameters": {
+          "content": "Create a Google Sheet with the following columns:\nid | user_posted | name | description | date_posted | photos | quoted_post | tagged_users | replies | reposts | likes | views | hashtags | followers | posts_count | profile_image_link | following | is_verified | quotes | external_image_urls | videos | external_video_urls | user_id | timestamp"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "0e65c515-c16f-4470-85ee-1a3a64017e80",
+    "connections": {
+      "✅ Is Scraping Ready?": {
+        "main": [
+          [
+            {
+              "node": "📦 Fetch Twitter Data",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "🔄 Monitor Scraping Progress",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "📥 User Input Trigger": {
+        "main": [
+          [
+            {
+              "node": "🚀 Trigger Twitter Scraping",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "📦 Fetch Twitter Data": {
+        "main": [
+          [
+            {
+              "node": "📊 Store Twitter Data in Google Sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "⏱️ Delay Before Recheck": {
+        "main": [
+          [
+            {
+              "node": "✅ Is Scraping Ready?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "🚀 Trigger Twitter Scraping": {
+        "main": [
+          [
+            {
+              "node": "🔄 Monitor Scraping Progress",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "🔄 Monitor Scraping Progress": {
+        "main": [
+          [
+            {
+              "node": "⏱️ Delay Before Recheck",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6405",
+  "fetched_at": "2026-09-12T13:11:19Z"
+}

@@ -1,0 +1,492 @@
+{
+  "id": 6720,
+  "name": "Automated lead capture & AI-personalized audio follow-up with OpenAI & ElevenLabs",
+  "description": "---\n\n## How It Works: The Four-Part Automated Lead Flow\n\nThis system meticulously guides each lead through a fully automated journey, from initial contact to a personalized follow-up and CRM integration.\n\n### 1. Automated Lead Capture & Cleaning\n\nThis is the system's entry point, designed to automatically bring new leads into your pipeline and prepare their data for processing.\n\n* **Function:** The system actively listens for new lead submissions, typically originating from web forms or other lead generation platforms, via a **Webhook**.\n* **Process:** As soon as lead data is received, essential information like the lead's name, email, phone number, and initial message is **extracted and cleaned**. This ensures the data is standardized and ready for the next stages, forming the foundation for all subsequent actions.\n\n### 2. Smart AI Qualification & Personalized Audio Creation\n\nHere's where the intelligence and unique personalization of this system shine. Leads are automatically analyzed, and a custom audio message is prepared for those deemed highly promising.\n\n* **Function:** This stage adds significant value by using AI to intelligently assess incoming leads and prepares a unique, engaging communication.\n* **Process:** The lead's message is sent to **OpenAI** for AI-driven analysis. The AI **summarizes the inquiry** and **qualifies the lead's intent** (e.g., \"High Potential,\" \"Information Seeking,\" \"Support Request\"). If the AI identifies the lead as a **qualified prospect**, the system dynamically crafts a short, personalized text script for that specific lead, incorporating their name and the AI's summary. This script is then passed to **Eleven Labs** to generate a realistic, human-like MP3 audio message. The finished audio file is automatically uploaded to **Google Drive** for secure storage, and a shareable link is generated.\n\n### 3. CRM Integration & Automated Initial Communication\n\nThis part ensures your leads are efficiently managed within your Customer Relationship Management (CRM) system and receive an immediate, impactful, and personalized initial follow-up.\n\n* **Function:** This stage focuses on seamless data management and high-impact communication to nurture qualified leads.\n* **Process:** The system first queries your **CRM** to check for any duplicate leads (using HTTP Requests for broad compatibility). If it's a new lead, a contact entry is created; if a duplicate, the existing record is updated with new information. Subsequently, a **personalized follow-up email** is sent via **Gmail** to the qualified lead. This email prominently features the link to their unique audio message, making your communication stand out. Simultaneously, your sales team receives an **immediate notification on Slack**, providing key lead details, the AI qualification, and a direct link to the personalized audio message for quick context.\n\n### 4. Comprehensive Logging & Robust Error Handling\n\nThe final and crucial part of the system guarantees complete transparency, detailed record-keeping, and continuous operational reliability.\n\n* **Function:** This stage ensures all lead activities are meticulously recorded, and that any potential issues are identified and communicated promptly.\n* **Process:** All lead data—regardless of qualification status—is automatically logged into **Google Sheets**, creating a centralized, accessible database for tracking and analysis. Critically, the entire workflow is protected by a **Try/Catch** mechanism. If any step within the process encounters an error, the execution immediately shifts to the \"Catch\" branch, triggering an **immediate error notification to Slack**. This proactive alerting system allows you to rapidly identify and resolve issues, ensuring your lead pipeline remains uninterrupted and effective.\n\n---\n\n## Setup Steps\n\nTo deploy this powerful automated lead system within your n8n instance, follow these steps meticulously:\n\n### 1. Prepare Your Cloud Services & API Credentials\n\nBefore building the workflow, ensure all necessary accounts are set up and credentials are ready for n8n.\n\n* **OpenAI:** Obtain your **API Key** from your OpenAI account. This is essential for AI qualification.\n* **Eleven Labs:** Secure your **API Key** from your Eleven Labs account. This powers the personalized audio generation.\n* **Google Drive:** You'll need a Google account. In n8n, set up a **Google Drive credential**. Crucially, create a dedicated folder in your Google Drive specifically for your personalized audio files and note its **Folder ID** (found in the URL when you open the folder in your browser).\n* **Google Sheets:** Set up a **Google Sheets credential** in n8n. Create a new Google Sheet (e.g., \"Lead Log\") with these exact column headers in the first row: `Timestamp`, `Lead Name`, `Lead Email`, `Lead Phone`, `Lead Message`, `AI Qualification`, `AI Summary`, `Is Qualified`, `Personalized Audio URL`, `CRM Status`, `Follow-up Sent`, `Status (Success/Error)`.\n* **Gmail / SMTP:** Configure your **Gmail credential** or a generic **Email credential** in n8n for sending out follow-up emails.\n* **Slack:** Set up your **Slack credential** in n8n. Identify the **Channel IDs** for both your sales team's new lead notifications (e.g., `#new-leads`) and a dedicated channel for workflow error alerts (e.g., `#n8n-errors`).\n* **CRM (Your Choice):** You'll need access to your CRM's API documentation. Prepare any necessary API keys, access tokens, or OAuth credentials. Be ready to configure `HTTP Request` nodes to interact with your specific CRM.\n\n### 2. Identify Your Lead Capture Source\n\nDetermine how new leads will initially enter your n8n workflow.\n\n* The most versatile and recommended method is a **Webhook**. Configure your existing website forms (e.g., WordPress forms, custom HTML forms, landing page builders) to send **HTTP POST requests** containing lead data (name, email, message, etc.) to the unique Webhook URL that n8n will provide.\n\n### 3. Build the n8n Workflow\n\nNow, let's assemble the workflow step-by-step in your n8n instance.\n\n* **Start a New Workflow:** In n8n, create a **new, blank workflow**.\n* **Add & Connect Nodes:** Systematically add and connect the nodes as described in the \"How It Works\" section above, following the provided flow diagram.\n* **Configure Each Node's Parameters Meticulously:**\n    * **Webhook:** Activate it and copy the unique URL. This is the endpoint for your lead forms.\n    * **Set (Extract & Clean Lead Data):** Map incoming webhook fields (e.g., `$json.body.name`) to intuitive n8n variables like `leadName`. Provide fallback values like 'N/A' if a field might be empty.\n    * **OpenAI (AI Qualification & Summary):** Select your credential. Choose a suitable model (e.g., `gpt-4o` for accuracy). Crucially, craft your system and user prompts to instruct the AI to output qualification and summary data in a **strict JSON format** (e.g., `{\"summary\": \"...\", \"qualification\": \"...\", \"is_qualified\": true/false}`).\n    * **Set (Parse AI Qualification):** Use `JSON.parse($json.choices[0].message.content)` to extract values from the OpenAI's JSON response into separate n8n variables like `aiSummary`, `aiIsQualified`.\n    * **If (Is Lead Qualified?):** Set the condition to check if `aiIsQualified` is `true`.\n    * **Code (Craft Personalized Audio Text):** Write a small JavaScript snippet that combines variables like `leadName` and `aiSummary` into a natural-sounding sentence for the audio.\n    * **ElevenLabs (Generate Personalized Audio):** Select your credential, input your chosen `Voice ID` (you'll find this in your Eleven Labs dashboard), and point the `Text` field to your crafted personalized audio text.\n    * **Google Drive (Upload Personalized Audio):** Select your credential, input the specific `Folder ID` for your audio files, and ensure `Allow Anyone to Read` is set to `True` to make the link public.\n    * **Set (Store Personalized Audio Link):** Create a new variable, e.g., `personalizedAudioUrl`, and assign it the `webViewLink` from the Google Drive node's output.\n    * **HTTP Request (CRM Interaction - Check/Create/Update):** This is highly dependent on your specific CRM.\n        * For checking duplicates (GET request): Configure URL (e.g., `/contacts?email=...`) and authentication based on your CRM's API.\n        * For creating (POST request): Configure URL (e.g., `/contacts`) and the JSON body with lead fields matching your CRM's requirements.\n        * For updating (PUT/PATCH request): Configure URL (e.g., `/contacts/{id}`) and the JSON body with fields to update.\n    * **If (Is Lead a Duplicate?):** Configure the condition to check the response from your CRM's duplicate check (e.g., if the count of results is `&gt; 0`).\n    * **Merge (CRM Result):** Use `Merge By Position` to combine the paths after creating or updating CRM records.\n    * **Gmail (Send Personalized Follow-up):** Select your credential. Set the `To` field to `{{ $json.leadEmail }}`. Craft a compelling subject line and email body, explicitly including `{{ $json.personalizedAudioUrl }}` where you want the audio link to appear.\n    * **Slack (Notify Sales Team):** Select your credential. Set the `Chat ID` to your sales channel. Compose a clear message summarizing the lead, AI insights, and the `personalizedAudioUrl`.\n    * **Google Sheets (Log Lead Data):** Select your credential. Input your Spreadsheet ID and Sheet Name. Map all relevant lead data variables (e.g., `leadName`, `aiQualification`, `personalizedAudioUrl`) to their corresponding column headers in your Google Sheet.\n    * **Set (Mark Lead as Unqualified - for 'If' False branch):** In this branch, ensure variables like `aiIsQualified` are explicitly set to `false`, and `personalizedAudioUrl` is set to `N/A`, before going to the Google Sheets logger.\n    * **Try/Catch & Error Slack:** Wrap your entire main workflow with a `Try/Catch` node (connect `Try` to your Webhook). Connect the `Catch` branch to a `Slack` node for error notifications. Configure this Slack message to provide immediate, actionable error details (e.g., `{{ $json.error.message }}`).\n\n### 4. Test and Activate\n\nThorough testing is crucial to ensure your automation runs flawlessly.\n\n* **Simulate a Lead:** Before activating the workflow, manually send a test lead to your n8n Webhook URL. You can use your actual website form, or tools like Postman, Insomnia, or even a simple `curl` command.\n* **Monitor Execution:** In n8n's workflow editor, observe the execution details for each node during the test run. Check the input and output data of every node to ensure information is flowing and being processed as expected.\n* **Verify External Outputs:** After a successful test run, meticulously check all external services:\n    * Confirm the audio file is in your Google Drive folder and the generated public link works.\n    * Verify the lead (or its update) appears correctly in your CRM with all relevant data.\n    * Check your test lead's email inbox for the personalized follow-up email, ensuring the audio link is clickable and functional.\n    * Confirm your sales team's Slack channel received the correct notification.\n    * Validate that the Google Sheet log is accurate and complete, reflecting both qualified and unqualified leads.\n* **Activate:** Once all tests pass and you are completely confident in the workflow's operation, activate it in n8n. It will then automatically process every new lead!\n\n---",
+  "workflow": {
+    "id": "WW0Ek1PPPTDbvHVb",
+    "meta": {
+      "instanceId": "a287613f1596da776459594685fbf4e2b4a12124f80ab8c8772f5e37bff103ae",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Automated Lead Capture, AI Qualification & Personalized Audio Follow-up with ElevenLabs",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "d3ffb26d-fcec-465a-88dc-aaf442edd83a",
+        "name": "New Lead Captured",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          0,
+          -448
+        ],
+        "webhookId": "be1f820f-69db-4a5d-9c33-9dacb8129671",
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "38020ecd-c026-4d92-9f8c-810beb66a894",
+        "name": "Extract & Clean Lead Data",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          224,
+          -448
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "80cfc05f-7bd0-4de2-a3c3-4895a7f2b87d",
+        "name": "AI Qualification & Summary",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "position": [
+          448,
+          -448
+        ],
+        "parameters": {},
+        "typeVersion": 1.8
+      },
+      {
+        "id": "4ab5b06f-09f5-4323-8732-a4fe73c4b425",
+        "name": "Parse AI Qualification",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          848,
+          -448
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "c2739e93-f38d-4e27-8b9f-e1e6b9bbb00e",
+        "name": "Is Lead Qualified?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1072,
+          -448
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "96712f66-e70b-4c5d-9472-c9c566ff9948",
+        "name": "Craft Personalized Audio Text",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          0,
+          -80
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "cf55d67e-5a32-4c14-a875-1108b881443a",
+        "name": "Generate Personalized Audio",
+        "type": "@elevenlabs/n8n-nodes-elevenlabs.elevenLabs",
+        "position": [
+          224,
+          -80
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "1c05fba7-f0f4-4aa3-8d88-abd96952399d",
+        "name": "Upload Personalized Audio",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          448,
+          -80
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "3eb45ab7-88c2-4f15-94f8-dca9e265f2a9",
+        "name": "Store Personalized Audio Link",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          672,
+          -80
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "a49e712d-b7af-463c-a377-7e16ea723493",
+        "name": "Check CRM for Duplicate Lead",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          896,
+          -80
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "d6377fde-0146-4cd7-94a0-672810309355",
+        "name": "Is Lead a Duplicate?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          0,
+          400
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "d8525203-5676-4b35-b226-3889c0fbc1e5",
+        "name": "Create Lead in CRM",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          224,
+          496
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "8200d6a8-3ee2-4ecd-866c-409403c9fc22",
+        "name": "Update Lead in CRM",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          224,
+          304
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "5b63917c-18a6-4d9d-a5fa-037e4e8cc913",
+        "name": "CRM Result",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          448,
+          400
+        ],
+        "parameters": {},
+        "typeVersion": 3.2
+      },
+      {
+        "id": "415196ec-9115-48e5-a765-ad2c515b33da",
+        "name": "Send Personalized Follow-up",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          672,
+          400
+        ],
+        "webhookId": "d6cd8df6-c0cf-46fa-b0e4-f02db05febe5",
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "ad952780-3fb0-476c-a5d8-9ab10de95f61",
+        "name": "Notify Sales Team",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          896,
+          400
+        ],
+        "webhookId": "1d3ce7a7-d611-4dca-a611-69a8c3e5c7e2",
+        "parameters": {},
+        "typeVersion": 2.3
+      },
+      {
+        "id": "a5fd37ee-e111-4892-800f-38a1152702d3",
+        "name": "Log Lead Data",
+        "type": "n8n-nodes-base.googleSheets",
+        "notes": "Values: \n\nTimestamp: ={{ new Date().toISOString() }}\n\nLead Name: ={{ $json.leadName }}\n\nLead Email: ={{ $json.leadEmail }}\n\nLead Phone: ={{ $json.leadPhone }}\n\nLead Message: ={{ $json.leadMessage }}\n\nAI Qualification: ={{ $json.aiQualification }}\n\nAI Summary: ={{ $json.aiSummary }}\n\nIs Qualified: ={{ $json.aiIsQualified }}\n\nPersonalized Audio URL: ={{ $json.personalizedAudioUrl || 'N/A' }} (Will be N/A for unqualified leads)\n\nCRM Status: ={{ $json.crmStatus || 'Not Processed' }} (You can set this after CRM integration)\n\nFollow-up Sent: ={{ $json.emailSent || 'No' }} (You can set a flag after email node)\n\nStatus (Success/Error): Success",
+        "position": [
+          1120,
+          496
+        ],
+        "parameters": {},
+        "notesInFlow": true,
+        "typeVersion": 4.6
+      },
+      {
+        "id": "9eccd3fc-ea8c-4b3c-b80f-e02a53066e44",
+        "name": "Mark Lead as Unqualified",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          896,
+          672
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "b1899956-cfa7-4112-a4c0-5a7b442ef90d",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -80,
+          -560
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ff4bf564-afea-4e2a-a5d0-5899e1b99e17",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -80,
+          -176
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "28f12b65-955f-40ad-8843-fada4b7c8de6",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -80,
+          240
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4eccaac1-5cab-4be6-8802-001e1e66d37e",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1360,
+          -560
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "83add16c-af22-4592-b925-0380c68604fc",
+    "connections": {
+      "CRM Result": {
+        "main": [
+          [
+            {
+              "node": "Send Personalized Follow-up",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "New Lead Captured": {
+        "main": [
+          [
+            {
+              "node": "Extract & Clean Lead Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Notify Sales Team": {
+        "main": [
+          [
+            {
+              "node": "Log Lead Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create Lead in CRM": {
+        "main": [
+          [
+            {
+              "node": "CRM Result",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Is Lead Qualified?": {
+        "main": [
+          [
+            {
+              "node": "Craft Personalized Audio Text",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Mark Lead as Unqualified",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update Lead in CRM": {
+        "main": [
+          [
+            {
+              "node": "CRM Result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is Lead a Duplicate?": {
+        "main": [
+          [
+            {
+              "node": "Update Lead in CRM",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Create Lead in CRM",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse AI Qualification": {
+        "main": [
+          [
+            {
+              "node": "Is Lead Qualified?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mark Lead as Unqualified": {
+        "main": [
+          [
+            {
+              "node": "Log Lead Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract & Clean Lead Data": {
+        "main": [
+          [
+            {
+              "node": "AI Qualification & Summary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Upload Personalized Audio": {
+        "main": [
+          [
+            {
+              "node": "Store Personalized Audio Link",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Qualification & Summary": {
+        "main": [
+          [
+            {
+              "node": "Parse AI Qualification",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Personalized Audio": {
+        "main": [
+          [
+            {
+              "node": "Upload Personalized Audio",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Personalized Follow-up": {
+        "main": [
+          [
+            {
+              "node": "Notify Sales Team",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check CRM for Duplicate Lead": {
+        "main": [
+          [
+            {
+              "node": "Is Lead a Duplicate?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Craft Personalized Audio Text": {
+        "main": [
+          [
+            {
+              "node": "Generate Personalized Audio",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Store Personalized Audio Link": {
+        "main": [
+          [
+            {
+              "node": "Check CRM for Duplicate Lead",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 38,
+      "name": "Lead Nurturing"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6720",
+  "fetched_at": "2026-09-12T13:11:31Z"
+}

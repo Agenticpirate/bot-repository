@@ -1,0 +1,1054 @@
+{
+  "id": 6762,
+  "name": "Auto-like LinkedIn posts with GPT-4o, Phantombuster and SharePoint",
+  "description": "## Who’s it for  \nRecruiters, B2B marketers, and thought-leadership builders who want to boost their LinkedIn engagement by automatically liking fresh, relevant posts—while staying under LinkedIn’s daily limits.\n\n## How it works / What it does  \n1. **Schedule Trigger** runs hourly at a specified minute.  \n2. **Select Cookie** chooses a rotating LinkedIn session-cookie (time-slice logic).  \n3. **Generate Random Search Term** (GPT-4o) outputs a realistic AI/BPA keyword.  \n4. **Phantombuster LinkedIn Content Search Agent** scrapes recent posts → **Get Posts**.  \n5. **Get Random Post** selects one post, checks it isn’t already liked (SharePoint CSV) and appends the company-ID query param. If a personal LinkedIn Account is used, no company-ID is needed.\n6. Creates `linkedin_posts_to_like.csv`, uploads to SharePoint, and provides the URL to **Autolike Agent** which likes the post.  \n7. The post URL is added to `linkedin_posts_already_liked.csv` to avoid duplicates.  \n8. **Wait** nodes throttle launches to ≈400 likes/day.\n\n## How to set up  \n1. Add credentials: Phantombuster API, SharePoint OAuth2, OpenAI API key.  \n2. In SharePoint › “Phantombuster” folder create:  \n   • `linkedin_session_cookies.txt` – one cookie per line.  \n   • `linkedin_posts_already_liked.csv` with header `postUrl`.  \n3. Update **Set ENV Variables** with your LinkedIn company ID (`ENV_COMPANY_ID_LINKEDIN`).  \n4. Adjust schedule or likes-per-launch as needed.  \n5. Activate the workflow; it will run hourly and like one new post per launch.\n\n## Requirements  \n- n8n 1.33 +  \n- Phantombuster Growth plan (API access)  \n- OpenAI account (GPT-4o)  \n- Microsoft 365 SharePoint tenant\n\n## How to customize  \n- Change niche: edit the prompt in **Generate Random Search Term**.  \n- Like more posts: raise `numberOfLinesPerLaunch` and schedule frequency.  \n- Swap SharePoint for Google Drive/Dropbox: replace the upload/download nodes.",
+  "workflow": {
+    "id": "5F2ghIwUuYdcyg3v",
+    "meta": {
+      "instanceId": "2cf742429c2e3ee4e5a20069d3d8a75208519303b864f026a79464efa726bd95",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "LinkedIn Auto Liking - Creators Hub",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "43b77427-b90b-4651-b2a1-af2ee71dcab8",
+        "name": "Wait",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          -1104,
+          -1216
+        ],
+        "webhookId": "ef035fbb-28ca-4ce0-920b-1b8db6b21b6d",
+        "parameters": {
+          "amount": 45
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "ef496e3c-aeca-4c05-848e-e42b135a4273",
+        "name": "Wait1",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          -96,
+          -848
+        ],
+        "webhookId": "93338f0f-fb2c-4c4c-b550-5eb8c7d18e8e",
+        "parameters": {
+          "amount": 15
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "db260ac6-8c86-4920-8463-a9629ad4c42f",
+        "name": "Get Random Post",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -2304,
+          -832
+        ],
+        "parameters": {
+          "jsCode": "const data = $input.all().map(item => item.json);\n\nif (!data || data.length === 0) {\n  throw new Error('No Instagram posts data found');\n}\n\n// Get a random post\nconst randomPost = data[Math.floor(Math.random() * data.length)];\n\n// Return only postUrl and description\nreturn {\n  json: {\n    postUrl: randomPost.postUrl\n  }\n};"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "5c111af1-2bfc-41a2-8926-e99a9a6cf78f",
+        "name": "Create CSV Binary",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1008,
+          -832
+        ],
+        "parameters": {
+          "jsCode": "// Extract correct values\nconst postUrl = $('Get Random Post').first().json.postUrl  + \"/?&actorCompanyId=\" + $('Set ENV Variables').first().json.ENV_COMPANY_ID_LINKEDIN;\n\n// Clean utility\nconst clean = str => String(str || \"\").replace(/[\\u200B-\\u200D\\uFEFF]/g, \"\").trim();\n\n// Escape and quote single data row\nconst row = [\n  `\"${clean(postUrl).replace(/\"/g, '\"\"')}\"`\n];\n\n// Convert to buffer without header or BOM\nconst csvBuffer = Buffer.from(row.join(\",\") + \"\\n\", \"utf8\");\n\n// Return binary file\nreturn [\n  {\n    binary: {\n      data: {\n        data: csvBuffer,\n        mimeType: \"text/csv\",\n        fileName: \"phantombuster_clean.csv\"\n      }\n    }\n  }\n];\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "add54404-c3c5-4cd2-a791-929f27562a84",
+        "name": "Upload CSV",
+        "type": "n8n-nodes-base.microsoftSharePoint",
+        "position": [
+          -848,
+          -832
+        ],
+        "parameters": {
+          "site": {
+            "__rl": true,
+            "mode": "list",
+            "value": "plemeo.sharepoint.com,f304c34c-1252-4b99-a852-059c2036c718,c3bf26ab-bf44-4334-8e5b-e8b680bb9e1d",
+            "cachedResultName": "plemeo"
+          },
+          "folder": {
+            "__rl": true,
+            "mode": "list",
+            "value": "01M45PWAY4RSXX7PGSC5CL27V2Y7XYSNQZ",
+            "cachedResultName": "Phantombuster"
+          },
+          "fileName": "linkedin_posts_to_like.csv",
+          "operation": "upload",
+          "fileContents": "data",
+          "requestOptions": {}
+        },
+        "credentials": {
+          "microsoftSharePointOAuth2Api": {
+            "id": "jZkLTQXyVEzxtmp3",
+            "name": "Microsoft SharePoint account"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6c9e23dc-e44e-4ac5-abae-4ca3b6a13d8d",
+        "name": "Get Posts",
+        "type": "n8n-nodes-base.phantombuster",
+        "position": [
+          -912,
+          -1216
+        ],
+        "parameters": {
+          "agentId": "1609454338224846",
+          "operation": "getOutput",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "phantombusterApi": {
+            "id": "Zf0AAqqdjBFfyW4W",
+            "name": "Phantombuster account"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "89cbfaab-0c7b-4258-8088-ecfa7733f3c2",
+        "name": "Get Response",
+        "type": "n8n-nodes-base.phantombuster",
+        "position": [
+          128,
+          -848
+        ],
+        "parameters": {
+          "agentId": "7281446865767808",
+          "operation": "getOutput",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "phantombusterApi": {
+            "id": "Zf0AAqqdjBFfyW4W",
+            "name": "Phantombuster account"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1e17cb4f-2a8f-4eb8-a6d5-6c1c7a33dc2e",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2096,
+          -1360
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 1400,
+          "height": 400,
+          "content": "## Get Posts By LinkedIn Content Search\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ee175397-d976-4d19-91ec-d52a0e904e8c",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2528,
+          -944
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 1832,
+          "height": 316,
+          "content": "## Get Random Post and Upload to SharePoint\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "26bea35f-55d6-4d55-8a72-14172735aaa2",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -672,
+          -944
+        ],
+        "parameters": {
+          "width": 1040,
+          "height": 316,
+          "content": "## Launch Autoliking Agent to Like Post\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a1effc60-7aad-4b8b-baab-346c38afe2d9",
+        "name": "Get Autoliking Agent",
+        "type": "n8n-nodes-base.phantombuster",
+        "position": [
+          -576,
+          -848
+        ],
+        "parameters": {
+          "agentId": "7281446865767808",
+          "operation": "get"
+        },
+        "credentials": {
+          "phantombusterApi": {
+            "id": "Zf0AAqqdjBFfyW4W",
+            "name": "Phantombuster account"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "92195642-44f0-41f3-8f20-12de9ffd3250",
+        "name": "Launch AL Agent",
+        "type": "n8n-nodes-base.phantombuster",
+        "position": [
+          -336,
+          -848
+        ],
+        "parameters": {
+          "agentId": "7281446865767808",
+          "jsonParameters": true,
+          "additionalFields": {
+            "argumentsJson": "={\n  \"spreadsheetUrl\": \"{{$('Upload CSV').item.json['@content.downloadUrl']}}\",\n  \"columnName\": \"postUrl\",\n  \"sessionCookie\": \"{{ $('Set ENV Variables').first().json.ENV_SESSION_COOKIE }}\",\n  \"articleType\": \"all\",\n  \"reactionType\": \"like\",\n  \"numberOfLikesPerProfile\": 1,\n  \"numberOfLinesPerLaunch\": 1\n}"
+          }
+        },
+        "credentials": {
+          "phantombusterApi": {
+            "id": "Zf0AAqqdjBFfyW4W",
+            "name": "Phantombuster account"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "0d4eece6-38c7-4ace-b520-024b3ff94aeb",
+        "name": "Set ENV Variables",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -1648,
+          -1216
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "e24e8c1a-c6c9-4ae2-a0ef-e0e7369dc262",
+                "name": "ENV_SEARCH_TERM",
+                "type": "string",
+                "value": "={{ $json.output.parseJson().search_term }}"
+              },
+              {
+                "id": "cf050595-8ad9-4f78-bca4-f463e8b9982e",
+                "name": "ENV_SESSION_COOKIE",
+                "type": "string",
+                "value": "={{ $('Select Cookie').first().json.output.parseJson().session_cookie }}"
+              },
+              {
+                "id": "baa300a5-2ac0-4294-965b-3a6e7e848bf6",
+                "name": "ENV_SEARCH_RESULTS_PER_LAUNCH",
+                "type": "string",
+                "value": "10"
+              },
+              {
+                "id": "265d0c13-870b-48e6-9dcd-d6b4377fb219",
+                "name": "ENV_COMPANY_ID_LINKEDIN",
+                "type": "string",
+                "value": "78274663"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "c9eebe30-301b-48c6-9f91-97a076e50f81",
+        "name": "Launch Agent",
+        "type": "n8n-nodes-base.phantombuster",
+        "position": [
+          -1296,
+          -1216
+        ],
+        "parameters": {
+          "agentId": "={{ $json.id }}",
+          "jsonParameters": true,
+          "additionalFields": {
+            "argumentsJson": "={\n  \"category\": \"Content\",\n\"connectionDegreesToScrape\": [\"2\", \"3+\"],\n  \"numberOfLinesPerLaunch\": {{$('Set ENV Variables').item.json.ENV_SEARCH_RESULTS_PER_LAUNCH}},\n\"numberOfResultsPerLaunch\": {{$('Set ENV Variables').item.json.ENV_SEARCH_RESULTS_PER_LAUNCH}},\n\"numberOfResultsPerSearch\": {{$('Set ENV Variables').item.json.ENV_SEARCH_RESULTS_PER_LAUNCH}},\n  \"searchType\": \"keywords\",\n\"enrichLeadsWithAdditionalInformation\": true,\n  \"linkedInSearchUrl\": \"https://www.linkedin.com/search/results/all/\",\n  \"identityId\": \"8677906884862411\",\n  \"sessionCookie\": \"{{$('Set ENV Variables').item.json.ENV_SESSION_COOKIE}}\",\n  \"keywords\": \"{{$('Set ENV Variables').item.json.ENV_SEARCH_TERM}}\",\n  \"relaunch\": true\n}"
+          }
+        },
+        "credentials": {
+          "phantombusterApi": {
+            "id": "Zf0AAqqdjBFfyW4W",
+            "name": "Phantombuster account"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "da268cda-4710-40e0-bc04-96d3e0ce75a0",
+        "name": "Get Search Agent",
+        "type": "n8n-nodes-base.phantombuster",
+        "position": [
+          -1472,
+          -1216
+        ],
+        "parameters": {
+          "agentId": "1609454338224846",
+          "operation": "get"
+        },
+        "credentials": {
+          "phantombusterApi": {
+            "id": "Zf0AAqqdjBFfyW4W",
+            "name": "Phantombuster account"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "73573842-0a30-4e09-846d-c46d78534faf",
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          -2016,
+          -1056
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "chatgpt-4o-latest",
+            "cachedResultName": "chatgpt-4o-latest"
+          },
+          "options": {}
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "E4PFATctY0kV00hl",
+            "name": "OpenAi account"
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "7d495f43-fea3-4f9c-9e3d-3eb402379e3e",
+        "name": "Generate Random Search Term",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          -2016,
+          -1216
+        ],
+        "parameters": {
+          "text": "=Can you create a single random search term related to Artificial Intelligence and Business Process Automation, suitable for fetching LinkedIn posts?\nThe search term should be human like. Something like \"AIBizAutomation\" is not realistic. The hashtag should not be a combination of multiple words, for example \"smartautomation\" or \"intelligentworkflows\".\nYou can be very vague and also use IT companies as search terms.\nTry to be as random as possible because I can't track with search terms you already generated and I can use a search term only once.\n\nPlease respond only with a **valid, raw JSON object**, like this:\n{\n  \"search_term\": \"Automation\"\n}",
+          "options": {},
+          "promptType": "define"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "b1f5d2e1-bd73-41f1-b32d-3e55035c68b6",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -1824,
+          -1648
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "hours",
+                "triggerAtMinute": 54
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "2702b777-cd87-42a0-99cb-3ad584425161",
+        "name": "Update file",
+        "type": "n8n-nodes-base.microsoftSharePoint",
+        "position": [
+          -1168,
+          -832
+        ],
+        "parameters": {
+          "file": {
+            "__rl": true,
+            "mode": "list",
+            "value": "01M45PWA5AVVXHFPQONFA3KSTQVK23DOAY",
+            "cachedResultName": "linkedin_posts_already_liked.csv"
+          },
+          "site": {
+            "__rl": true,
+            "mode": "list",
+            "value": "plemeo.sharepoint.com,f304c34c-1252-4b99-a852-059c2036c718,c3bf26ab-bf44-4334-8e5b-e8b680bb9e1d",
+            "cachedResultName": "plemeo"
+          },
+          "folder": {
+            "__rl": true,
+            "mode": "list",
+            "value": "01M45PWAY4RSXX7PGSC5CL27V2Y7XYSNQZ",
+            "cachedResultName": "Phantombuster"
+          },
+          "fileName": "linkedin_posts_already_liked.csv",
+          "operation": "update",
+          "fileContents": "data",
+          "requestOptions": {},
+          "changeFileContent": true
+        },
+        "credentials": {
+          "microsoftSharePointOAuth2Api": {
+            "id": "jZkLTQXyVEzxtmp3",
+            "name": "Microsoft SharePoint account"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "fda63d27-45cf-4d92-b427-252084f60c32",
+        "name": "Download file",
+        "type": "n8n-nodes-base.microsoftSharePoint",
+        "position": [
+          -2144,
+          -832
+        ],
+        "parameters": {
+          "file": {
+            "__rl": true,
+            "mode": "list",
+            "value": "01M45PWA5AVVXHFPQONFA3KSTQVK23DOAY",
+            "cachedResultName": "linkedin_posts_already_liked.csv"
+          },
+          "site": {
+            "__rl": true,
+            "mode": "list",
+            "value": "plemeo.sharepoint.com,f304c34c-1252-4b99-a852-059c2036c718,c3bf26ab-bf44-4334-8e5b-e8b680bb9e1d",
+            "cachedResultName": "plemeo"
+          },
+          "folder": {
+            "__rl": true,
+            "mode": "list",
+            "value": "01M45PWAY4RSXX7PGSC5CL27V2Y7XYSNQZ",
+            "cachedResultName": "Phantombuster"
+          },
+          "requestOptions": {}
+        },
+        "credentials": {
+          "microsoftSharePointOAuth2Api": {
+            "id": "jZkLTQXyVEzxtmp3",
+            "name": "Microsoft SharePoint account"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "36501209-2a72-4e7a-9f80-ea1b259d7fce",
+        "name": "Check if in List",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1808,
+          -832
+        ],
+        "parameters": {
+          "jsCode": "const randomPost = normalizeUrl($('Get Random Post').first().json.postUrl);\nconst allItems = $('Extract from File').all();\n\nif (!allItems || allItems.length === 0) {\n  return [{ json: { isDuplicate: false } }];\n}\n\nfunction normalizeUrl(url) {\n  if (typeof url !== 'string') {\n    console.log(\"🚨 NOT A STRING:\", url);\n    return '';\n  }\n  return url.trim().toLowerCase().replace(/\\/$/, '');\n}\n\n// Helper function to get postUrl value regardless of BOM\nfunction getPostUrl(item) {\n  const json = item.json;\n  // Try normal field name first\n  if (json.postUrl) return json.postUrl;\n  \n  // Look for any field containing \"postUrl\"\n  const postUrlKey = Object.keys(json).find(key => key.includes('postUrl'));\n  return postUrlKey ? json[postUrlKey] : null;\n}\n\nconsole.log(\"✅ randomPost:\", randomPost);\nconsole.log(\"✅ allItems:\", allItems);\n\nlet isDuplicate = false;\n\nfor (const item of allItems) {\n  const candidateRaw = getPostUrl(item);\n  const candidate = normalizeUrl(candidateRaw);\n\n  console.log(`🟠 Comparing:\\n→ raw: ${candidateRaw}\\n→ normalized: ${candidate}\\n→ target: ${randomPost}`);\n\n  if (candidate === randomPost) {\n    isDuplicate = true;\n    break;\n  }\n}\n\nreturn [{ json: { isDuplicate } }];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "ca81ddd2-4290-47b4-ba0d-6c90a5ab4c6e",
+        "name": "If",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -1664,
+          -832
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "bcef43b3-e773-45ba-b245-19ab3fc1e508",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                },
+                "leftValue": "={{ $('Check if in List').first().json.isDuplicate }}",
+                "rightValue": ""
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "4d4ea43f-3068-4062-85fd-a2ddbb0e9fad",
+        "name": "Wait2",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          -2480,
+          -832
+        ],
+        "webhookId": "ef06e59a-d0ce-4603-8fed-67da926691ef",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "c64c4291-1f0a-42a4-a096-ab56eb1a860b",
+        "name": "Prepare Updated Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1504,
+          -832
+        ],
+        "parameters": {
+          "jsCode": "const existingUrls = $('Extract from File').all().map(item => {\n  // Get the first key (which has the BOM) and use its value\n  const firstKey = Object.keys(item.json)[0];\n  return { postUrl: item.json[firstKey] };\n});\n\nconsole.log(\"existingUrls: \", existingUrls);\n\nconst randomPost = $('Get Random Post').first().json.postUrl;\nconsole.log(\"randomPost: \", randomPost);\n\nreturn [\n  ...existingUrls,\n  { postUrl: randomPost }\n].map(entry => ({ json: entry }));"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "f2e734c5-29dd-4484-83b0-611730bca586",
+        "name": "Extract from File",
+        "type": "n8n-nodes-base.extractFromFile",
+        "position": [
+          -1984,
+          -832
+        ],
+        "parameters": {
+          "options": {
+            "headerRow": true
+          }
+        },
+        "typeVersion": 1,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "fdef54c5-8fe2-40dc-8b2e-75d2fa6ba51e",
+        "name": "Convert to File",
+        "type": "n8n-nodes-base.convertToFile",
+        "position": [
+          -1328,
+          -832
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "3763e82b-ae85-4575-b3f6-fc403b97b64b",
+        "name": "Get Available Session Cookies",
+        "type": "n8n-nodes-base.microsoftSharePoint",
+        "position": [
+          -1616,
+          -1648
+        ],
+        "parameters": {
+          "file": {
+            "__rl": true,
+            "mode": "list",
+            "value": "01M45PWA6IR6PTZ4EFZVH2XP5XGQ2MVXRW",
+            "cachedResultName": "linkedin_session_cookies.txt"
+          },
+          "site": {
+            "__rl": true,
+            "mode": "list",
+            "value": "plemeo.sharepoint.com,f304c34c-1252-4b99-a852-059c2036c718,c3bf26ab-bf44-4334-8e5b-e8b680bb9e1d",
+            "cachedResultName": "plemeo"
+          },
+          "folder": {
+            "__rl": true,
+            "mode": "list",
+            "value": "01M45PWAY4RSXX7PGSC5CL27V2Y7XYSNQZ",
+            "cachedResultName": "Phantombuster"
+          },
+          "requestOptions": {}
+        },
+        "credentials": {
+          "microsoftSharePointOAuth2Api": {
+            "id": "jZkLTQXyVEzxtmp3",
+            "name": "Microsoft SharePoint account"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3811c994-7fca-4414-9fc0-e8b070cd783d",
+        "name": "Extract Cookies",
+        "type": "n8n-nodes-base.extractFromFile",
+        "position": [
+          -1408,
+          -1648
+        ],
+        "parameters": {
+          "options": {},
+          "operation": "text"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1b9d32e0-9b04-4b41-8d9e-be76a68062b4",
+        "name": "Select Cookie",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          -1232,
+          -1648
+        ],
+        "parameters": {
+          "text": "=##################  PROMPT  ##################\n\n**ROLE:**  You are a session-cookie selector.\n\n**CURRENT BERLIN TIME**  \nDate & time : {{ $now.setZone('Europe/Berlin').format('DD HH:mm:ss') }}  \nHour (00-23): {{ $now.setZone('Europe/Berlin').format('HH') }}\n\n**SESSION COOKIES (keep order):**  \n{{ $json.data }}\n\n**SELECTION LOGIC**\n\n1. Let  \n   • N = number of cookies in the list (2 ≤ N ≤ 4).  \n   • H = current hour as an integer (0–23).  \n   • W = 24 ÷ N  (the width of each time slice in hours, always an integer).\n\n2. Determine the slice index:  \n   sliceIndex = floor(H ÷ W)  // 0-based\n\n3. Choose the cookie at position *(sliceIndex + 1)* in the list.  \n   • Example when N = 4 (W = 6):  \n     00-05 → 1st, 06-11 → 2nd, 12-17 → 3rd, 18-23 → 4th  \n   • Example when N = 3 (W = 8):  \n     00-07 → 1st, 08-15 → 2nd, 16-23 → 3rd  \n   • Example when N = 2 (W = 12):  \n     00-11 → 1st, 12-23 → 2nd\n\n**OUTPUT FORMAT**  \nReturn only the selected session cookie value in a valid JSON-Field called \"session_cookie\", nothing else.\n\n##############################################",
+          "options": {},
+          "promptType": "define"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "f564a7e4-76eb-4a64-8434-eb9d5dd0f804",
+        "name": "OpenAI Chat Model1",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          -1232,
+          -1488
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "chatgpt-4o-latest",
+            "cachedResultName": "chatgpt-4o-latest"
+          },
+          "options": {}
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "E4PFATctY0kV00hl",
+            "name": "OpenAi account"
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "93180cc8-a16d-47d9-930a-8d624f3ed4f6",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2096,
+          -1776
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 1400,
+          "height": 400,
+          "content": "## Start Workflow and Retrieve Session Cookie\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f58f767c-0645-4129-b05f-2450370ad6aa",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -672,
+          -1776
+        ],
+        "parameters": {
+          "width": 480,
+          "height": 288,
+          "content": "### 1) Cookie & Search Term Selection  \n**What it does**  \n• Downloads cookie list ➜ **Select Cookie** picks one based on time slice.  \n• **Generate Random Search Term** (GPT-4o) outputs a keyword.\n\n**Credentials**  \nOpenAI + SharePoint OAuth2.\n\n**Tweaks**  \n• Edit the prompt for another industry.  \n• Add/remove cookies in SharePoint file."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "484f3995-1e11-461b-92a7-2c55e49d1ed5",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -672,
+          -1360
+        ],
+        "parameters": {
+          "width": 512,
+          "height": 256,
+          "content": "### 2) Scrape LinkedIn Posts  \n**What it does**  \n• **Phantombuster LinkedIn Search Agent** fetches posts for the keyword.  \n• **Get Posts** gathers raw results for the next branch.\n\n**Credentials**  \nPhantombuster API.\n\n**Tweaks**  \n• Increase `ENV_SEARCH_RESULTS_PER_LAUNCH`.  \n• Adjust search filters inside the agent’s Phantombuster UI."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5642f703-bbc7-4869-bad3-7684c735eb34",
+        "name": "Sticky Note7",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2544,
+          -608
+        ],
+        "parameters": {
+          "width": 512,
+          "height": 272,
+          "content": "### 3) CSV Upload & Auto-like  \n**What it does**  \n• **Get Random Post** picks one post and appends company-ID.  \n• Builds one-row CSV ➜ uploads to SharePoint.  \n• **Autolike Agent** receives the CSV link and likes the post.\n\n**Credentials**  \nSharePoint OAuth2 + Phantombuster API.\n\n**Tweaks**  \n• Change company ID in **Set ENV Variables** if using a LinkedIn-Page.  \n• Modify filename/folder in **Upload CSV** or use another storage service."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "afc3d92b-aff2-4fbe-b266-0f2b9eecad42",
+        "name": "Sticky Note8",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1152,
+          -608
+        ],
+        "parameters": {
+          "width": 448,
+          "height": 288,
+          "content": "### 4) Deduplication  \n**What it does**  \n• Downloads `linkedin_posts_already_liked.csv`.  \n• **Check if in List** prevents liking the same URL twice.  \n• On success, appends the new URL and re-uploads the file.\n\n**Credentials**  \nSharePoint OAuth2.\n\n**Tweaks**  \n• Alter duplicate logic in the Code node if you store extra columns.  \n• Switch to Google Sheets for easier manual review."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c7b3402d-b070-4326-88ff-b0867d48d488",
+        "name": "Sticky Note9",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -336,
+          -608
+        ],
+        "parameters": {
+          "width": 464,
+          "height": 272,
+          "content": "### 5) Rate Limiting & Scheduling  \n**What it does**  \n• Hourly cron + **Wait** nodes keep totals near 400 likes/day (20 launches × 20 posts).\n\n**Credentials**  \nNone\n\n**Tweaks**  \n• Edit cron time or wait durations to match your plan limits.  \n• Increase likes/day by raising limits in both Wait nodes and Phantombuster arguments."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "6d57fcfe-cc32-473f-8c3b-b4ec26a0976f",
+    "connections": {
+      "If": {
+        "main": [
+          [
+            {
+              "node": "Wait2",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Prepare Updated Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait": {
+        "main": [
+          [
+            {
+              "node": "Get Posts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait1": {
+        "main": [
+          [
+            {
+              "node": "Get Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait2": {
+        "main": [
+          [
+            {
+              "node": "Get Random Post",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Posts": {
+        "main": [
+          [
+            {
+              "node": "Wait2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Upload CSV": {
+        "main": [
+          [
+            {
+              "node": "Get Autoliking Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update file": {
+        "main": [
+          [
+            {
+              "node": "Create CSV Binary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Launch Agent": {
+        "main": [
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Download file": {
+        "main": [
+          [
+            {
+              "node": "Extract from File",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Select Cookie": {
+        "main": [
+          [
+            {
+              "node": "Generate Random Search Term",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Convert to File": {
+        "main": [
+          [
+            {
+              "node": "Update file",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Cookies": {
+        "main": [
+          [
+            {
+              "node": "Select Cookie",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Random Post": {
+        "main": [
+          [
+            {
+              "node": "Download file",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Launch AL Agent": {
+        "main": [
+          [
+            {
+              "node": "Wait1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check if in List": {
+        "main": [
+          [
+            {
+              "node": "If",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Search Agent": {
+        "main": [
+          [
+            {
+              "node": "Launch Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Get Available Session Cookies",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create CSV Binary": {
+        "main": [
+          [
+            {
+              "node": "Upload CSV",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract from File": {
+        "main": [
+          [
+            {
+              "node": "Check if in List",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Generate Random Search Term",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set ENV Variables": {
+        "main": [
+          [
+            {
+              "node": "Get Search Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model1": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Select Cookie",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Autoliking Agent": {
+        "main": [
+          [
+            {
+              "node": "Launch AL Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Updated Data": {
+        "main": [
+          [
+            {
+              "node": "Convert to File",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Random Search Term": {
+        "main": [
+          [
+            {
+              "node": "Set ENV Variables",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Available Session Cookies": {
+        "main": [
+          [
+            {
+              "node": "Extract Cookies",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 33,
+      "name": "Social Media"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6762",
+  "fetched_at": "2026-09-12T13:11:33Z"
+}

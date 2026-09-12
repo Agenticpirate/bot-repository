@@ -1,0 +1,113 @@
+{
+  "id": 949,
+  "name": "Create a customer and send the invoice automatically",
+  "description": "This workflows allows you to create a customer and an invoice and send the invoice to the customer.\n\n![workflow-screenshot](fileId:421)\n\n**QuickBooks node:** This node will create a new customer in QuickBooks.\n\n**QuickBooks1 node:** This node will create an invoice for the customer that we created in the previous node.\n\n**QuickBooks2 node:** This node will send the invoice that we created in the previous node.",
+  "workflow": {
+    "nodes": [
+      {
+        "name": "QuickBooks2",
+        "type": "n8n-nodes-base.quickbooks",
+        "position": [
+          870,
+          300
+        ],
+        "parameters": {
+          "email": "",
+          "resource": "invoice",
+          "invoiceId": "={{$json[\"Id\"]}}",
+          "operation": "send"
+        },
+        "credentials": {
+          "quickBooksOAuth2Api": {
+            "id": "credential-id",
+            "name": "quickBooksOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "QuickBooks1",
+        "type": "n8n-nodes-base.quickbooks",
+        "position": [
+          670,
+          300
+        ],
+        "parameters": {
+          "Line": [
+            {
+              "Amount": 100,
+              "itemId": "1",
+              "DetailType": "SalesItemLineDetail",
+              "Description": "Consulting service"
+            }
+          ],
+          "resource": "invoice",
+          "operation": "create",
+          "CustomerRef": "={{$json[\"Id\"]}}",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "quickBooksOAuth2Api": {
+            "id": "credential-id",
+            "name": "quickBooksOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "QuickBooks",
+        "type": "n8n-nodes-base.quickbooks",
+        "position": [
+          470,
+          300
+        ],
+        "parameters": {
+          "operation": "create",
+          "displayName": "Jack Ryan",
+          "additionalFields": {
+            "PrimaryEmailAddr": "user@example.com"
+          }
+        },
+        "credentials": {
+          "quickBooksOAuth2Api": {
+            "id": "credential-id",
+            "name": "quickBooksOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 1
+      }
+    ],
+    "connections": {
+      "QuickBooks": {
+        "main": [
+          [
+            {
+              "node": "QuickBooks1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "QuickBooks1": {
+        "main": [
+          [
+            {
+              "node": "QuickBooks2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 34,
+      "name": "Invoice Processing"
+    }
+  ],
+  "url": "https://n8n.io/workflows/949",
+  "fetched_at": "2026-09-12T13:08:51Z"
+}

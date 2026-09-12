@@ -1,0 +1,319 @@
+{
+  "id": 8313,
+  "name": "Financial reporting AI: concise SEC 10-K/10-Q briefs via OpenRouter + Perplexity",
+  "description": "\n![Screenshot 20250915 at 11.37.26.png](fileId:2631)\n\n**Why skim 10-K/10-Q by hand when AI can extract what matters in minutes?**\n\n### Who is this for?\n\nSales engineers, solution architects, founders, product/strategy teams, analysts, and BD reps who need fast, consistent briefs on public companies—plus a mapping to a chosen vendor’s solutions.\n\n### Use case\n\n- **Problem:** SEC filings are dense. Manually summarizing financials, spotting initiatives, and aligning them to a vendor’s offerings is slow, error-prone, and often missed by busy teams.\n- **Use Case:** An n8n workflow that takes a company name / URL / ticker, analyzes the latest 10-Q/10-K with Perplexity “Deep Research” (via OpenRouter), extracts a concise financial overview and top 4–5 initiatives (tech, cost, revenue), then maps them to one vendor’s solutions (e.g., Microsoft, Google, T-Mobile) and outputs a clean brief.\n\n### What this workflow does\n\n1. **Trigger:** “When chat message received” (or webhook) accepts name / URL / ticker + target vendor.\n\n2. **AI Agent:**\n\n\t- Chat Model (OpenRouter) orchestrates the prompt and formatting.\n\n\t- Tool: Perplexity Deep Research performs retrieval over the latest 10-K/10-Q and recent references.\n\n3. **Output:** Creates a Google Drive document from the generated text (title, summary, initiatives, vendor-solution matches, suggested contacts).\n\n- **(Optional)** Append a row to Google Sheets for tracking companies, initiatives, and match scores.\n\n### Prerequisites\n\n- n8n (Cloud or self-hosted).\n\n- Credentials in n8n:\n\n\t- OpenRouter API key (with access to Perplexity’s Deep Research model).\n\n\t- Google Drive (and Google Sheets, if you add the sheet step).\n\n### Setup\n\n- Import the workflow JSON into n8n.\n\n- Open Credentials → connect OpenRouter and Google Drive.\n\n- In the AI Agent node:\n\n\t-\tSet Chat Model to your OpenRouter model.\n\n\t- Set Tool to Perplexity’s Deep Research endpoint.\n\n\t-\tPaste the provided prompt that(example):\n\n###### Summarize the key financial highlights and list the key strategic initiatives from Office Depot's most recent quarterly report. The company's URL is https://www.officedepot.com and its stock symbol is ODP.\n\n###### After gathering this information, compare Office Depot's initiatives with the solutions offered by T-Mobile for Business (URL: https://www.t-mobile.com/business, stock symbol: TMUS). Finally, provide specific recommendations on T-Mobile solutions that can help Office Depot achieve its initiatives. \n\n###### Explain how each recommended solution would help. Present the final response with clear headings for each section.\n\n\n###  How to customize it for your needs\n\n- **Ticker/Name disambiguation:** Add a guardrail step that confirms the exchange + CIK before analysis.\n\n- **EDGAR fetch (advanced):** Pull the exact 10-K/10-Q document/link and pass it to the model for grounded citations.\n\n- **Multi-vendor mapping:** Loop over a list (e.g., Microsoft, Google Cloud, AWS) and produce a comparison table.\n\n- **Contact enrichment:** Add your preferred enrichment step to suggest roles (IT, Network, Data, Finance).\n\n- **Scoring:** Compute initiative ↔ solution fit scores and prioritize must-explore actions.\n\n- **Alerts:** Send the brief to Slack/Telegram/Email for your team.\n\n### Troubleshooting\n\n- Wrong company matched? Add a pre-check that resolves ticker → legal name and require confirmation.\n\n- Generic web summary? Tighten the prompt: “Use the latest 10-Q/10-K; cite sections; list initiatives with evidence.”\n\n- Empty Drive file? Verify the AI Agent’s {{$json}} mappings flow into the Drive node’s content.\n\n\n\n- No citations? Require bullet-level references; if missing, loop once with a “citations-only” follow-up prompt.\n\n### Why Use This Template?\n\nTurn hours of filing review into a repeatable, shareable brief. You’ll get:\n\n- A clean financial snapshot,\n\n- The company’s top initiatives,\n\n- A vendor-aligned solution map you can act on immediately—great for prospecting, QBRs, and strategic planning.\n\n### Expected Outcome:\n![Screenshot 20250908 at 12.34.15.png](fileId:2324)\n\n\n### Need Assistance?\n\nFor setup guidance, customization, or business inquiries,\nEmail: phoenixaiagentsolutions@gmail.com",
+  "workflow": {
+    "id": "cipxQrfbgVK7Pvdw",
+    "meta": {
+      "instanceId": "cefcb38315aa600a9b9298a1d69e03f5f6428411be38be8dc813965fd2655c84",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "FinancialReportingTool",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "499f0bc1-1b63-4019-b8fb-0904a37029f8",
+        "name": "When chat message received",
+        "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+        "position": [
+          -64,
+          0
+        ],
+        "webhookId": "9cfe5875-f425-4003-bd5e-c75a07c758ba",
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "f96384b2-76b8-4ae0-890c-776bccbd3fcd",
+        "name": "AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          240,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "26e8698d-667e-4a24-85cc-c3bd685b7441",
+        "name": "OpenRouter Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+        "position": [
+          224,
+          176
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "daed325a-c17a-4f96-9cd1-78521d88fa91",
+        "name": "Message a model in Perplexity",
+        "type": "n8n-nodes-base.perplexityTool",
+        "position": [
+          384,
+          176
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "581bb82e-3758-4f05-9da0-8792c7cb3ac1",
+        "name": "Markdown",
+        "type": "n8n-nodes-base.markdown",
+        "position": [
+          560,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "bcd02cff-f74d-45a0-9418-9140e7fbd014",
+        "name": "Edit Fields",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          720,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "316c351d-3ec7-461f-b49a-7249e0037073",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          528,
+          -16
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2a17e2b4-f692-49ee-a526-0eb547e3b6fe",
+        "name": "CreateGoogleDoc",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1008,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "6fc09b48-8cd1-4509-8d81-7221bdcd5480",
+        "name": "Format_HTML",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          864,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "1c9947cf-9166-48b7-a5d0-729678ec577f",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          192,
+          -16
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "91684b1c-623d-4f13-83d2-45f2dfadc6e5",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          192,
+          352
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6e88508d-5293-4e0f-96e5-c6a8d93ea28f",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          528,
+          176
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a9c7d1e8-a2d8-495e-b838-1eef7f6535ad",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          704,
+          -16
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "db5cea46-7562-429c-b79c-46e79cc962d6",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          704,
+          176
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f3132957-ae92-469b-a954-0365caf6c54d",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -112,
+          -16
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c57361ee-3af9-449e-94e2-2dc9604230bd",
+        "name": "Sticky Note7",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -160,
+          -112
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "d7f2a87f-3a02-4ede-94b6-ce6764850fe2",
+        "name": "Sticky Note8",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -144,
+          160
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "13e11ffc-dadd-41d7-8b24-791070d718ff",
+    "connections": {
+      "AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Markdown",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Markdown": {
+        "main": [
+          [
+            {
+              "node": "Edit Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Edit Fields": {
+        "main": [
+          [
+            {
+              "node": "Format_HTML",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format_HTML": {
+        "main": [
+          [
+            {
+              "node": "CreateGoogleDoc",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenRouter Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When chat message received": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Message a model in Perplexity": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 35,
+      "name": "Document Extraction"
+    },
+    {
+      "id": 48,
+      "name": "AI RAG"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8313",
+  "fetched_at": "2026-09-12T13:12:24Z"
+}

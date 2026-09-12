@@ -1,0 +1,89 @@
+{
+  "id": 1005,
+  "name": "Send daily weather updates to a phone number via Plivo",
+  "description": "This workflow allows you to send daily weather updates via an SMS message using the Plivo node.\n\n![workflow-screenshot](fileId:460)\n\n**Cron node:** The Cron node will trigger the workflow daily at 9 AM.\n\n**OpenWeatherMap node:** This node will return data about the current weather in Berlin. To get the weather updates for your city, you can enter the name of your city instead.\n\n**Plivo node:** This node will send an SMS with the weather update, which was sent by the previous node.\n",
+  "workflow": {
+    "nodes": [
+      {
+        "name": "Plivo",
+        "type": "n8n-nodes-base.plivo",
+        "position": [
+          1030,
+          400
+        ],
+        "parameters": {
+          "message": "=Hey! The temperature outside is {{$node[\"OpenWeatherMap\"].json[\"main\"][\"temp\"]}}°C."
+        },
+        "credentials": {
+          "plivoApi": "Plivo API Credentials"
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "OpenWeatherMap",
+        "type": "n8n-nodes-base.openWeatherMap",
+        "position": [
+          830,
+          400
+        ],
+        "parameters": {
+          "cityName": "berlin"
+        },
+        "credentials": {
+          "openWeatherMapApi": "owm"
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Cron",
+        "type": "n8n-nodes-base.cron",
+        "position": [
+          630,
+          400
+        ],
+        "parameters": {
+          "triggerTimes": {
+            "item": [
+              {
+                "hour": 9
+              }
+            ]
+          }
+        },
+        "typeVersion": 1
+      }
+    ],
+    "connections": {
+      "Cron": {
+        "main": [
+          [
+            {
+              "node": "OpenWeatherMap",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenWeatherMap": {
+        "main": [
+          [
+            {
+              "node": "Plivo",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 43,
+      "name": "Personal Productivity"
+    }
+  ],
+  "url": "https://n8n.io/workflows/1005",
+  "fetched_at": "2026-09-12T13:08:52Z"
+}

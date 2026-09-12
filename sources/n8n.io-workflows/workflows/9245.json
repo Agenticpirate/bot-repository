@@ -1,0 +1,520 @@
+{
+  "id": 9245,
+  "name": "Batch ID photo converter & enhancer with Google Drive & Nano Banana API",
+  "description": "## Overview\nThis n8n workflow automatically converts and enhances multiple photos into professional ID-style portraits using Gemini AI (Nano Banana). It processes images in batch from Google Drive, applies professional ID photo standards (proper framing, neutral background, professional attire), and outputs the enhanced photos back to Google Drive.\n\n**Input:** Google Drive folder with photos  \n**Output:** Professional ID-style portraits in Google Drive output folder\n\nThe workflow uses a simple form interface where users provide Google Drive folder URLs and an optional custom prompt. It automatically fetches all images from the input folder, processes each through the Defapi API with Google's **nano-banana** model, monitors generation status, and uploads finished photos to the output folder. Perfect for HR departments, recruitment agencies, or anyone needing professional ID photos in bulk.\n\n## Prerequisites\n- A Defapi account and API key (Bearer token configured in n8n credentials): Sign up at [Defapi.org](https://defapi.org)\n- An active n8n instance with Google Drive integration\n- Google Drive account with two **public** folders:\n  - **Input folder**: Contains photos to be processed (must be set to public/anyone with the link)\n  - **Output folder**: Where enhanced photos will be saved (must be set to public/anyone with the link)\n- Photos with clear faces (headshots or upper body shots work best)\n\n## Setup Instructions\n\n### 1. Prepare Google Drive Folders\n- Create two Google Drive folders:\n  - One for input photos (e.g., `https://drive.google.com/drive/folders/xxxxxxx`)\n  - One for output photos (e.g., `https://drive.google.com/drive/folders/yyyyyy`)\n- **Important**: Make both folders **public** (set sharing to \"Anyone with the link can view\")\n  - Right-click folder → Share → Change \"Restricted\" to \"Anyone with the link\"\n- Upload photos to the input folder (supported formats: `.jpg`, `.jpeg`, `.png`, `.webp`)\n\n### 2. Configure n8n Credentials\n- **Defapi API**: Add HTTP Bearer Auth credential with your Defapi API token (credential name: \"Defapi account\")\n- **Google Drive**: Connect your Google Drive OAuth2 account (credential name: \"Google Drive account\"). See https://docs.n8n.io/integrations/builtin/credentials/google/oauth-generic/\n\n### 3. Run the Workflow\n- Execute the workflow in n8n\n- Access the form submission URL\n- Fill in the form:\n  - **Google Drive - Input Folder URL**: Paste your input folder URL\n  - **Google Drive - Output Folder URL**: Paste your output folder URL  \n  - **Prompt** (optional): Customize the AI generation prompt or leave blank to use the default\n\n### 4. Monitor Progress\nThe workflow will:\n- Fetch all images from the input folder\n- Process each image through the AI model\n- Wait for generation to complete (checks every 10 seconds)\n- Download and upload enhanced photos to the output folder\n\n## Workflow Structure\nThe workflow consists of the following nodes:\n\n1. **On form submission** (Form Trigger) - Collects Google Drive folder URLs and optional prompt\n2. **Search files and folders** (Google Drive) - Retrieves all files from the input folder\n3. **Code in JavaScript** (Code Node) - Prepares image data and prompt for API request\n4. **Send Image Generation Request to Defapi.org API** (HTTP Request) - Submits generation request for each image\n5. **Wait for Image Processing Completion** (Wait Node) - Waits 10 seconds before checking status\n6. **Obtain the generated status** (HTTP Request) - Polls API for completion status\n7. **Check if Image Generation is Complete** (IF Node) - Checks if status is not \"pending\"\n8. **Format and Display Image Results** (Set Node) - Formats result with markdown and image URL\n9. **HTTP Request** (HTTP Request) - Downloads the generated image file\n10. **Upload file** (Google Drive) - Uploads the enhanced photo to the output folder\n\n## Default Prompt\nThe workflow uses this professional ID photo generation prompt by default:\n\n```\nCreate a professional portrait suitable for ID documentation with proper spacing and composition.\n\nFraming: Include the full head, complete shoulder area, and upper torso. Maintain generous margins around the subject without excessive cropping.\n\nOutfit: Transform the existing attire into light business-casual clothing appropriate for the individual's demographics and modern style standards. Ensure the replacement garment appears natural, properly tailored, and complements the subject's overall presentation (such as professional shirt, refined blouse, contemporary blazer, or sophisticated layered separates).\n\nPose & Gaze: Position shoulders square to the camera, maintaining perfect frontal alignment. Direct the gaze straight ahead into the lens at identical eye height, avoiding any angular deviation in vertical or horizontal planes.\n\nExpression: Display a professional neutral demeanor or subtle closed-lip smile that conveys confidence and authenticity.\n\nBackground: Utilize a solid, consistent light gray photographic background (color code: #d9d9d9) without any pattern, texture, or tonal variation.\n\nLighting & Quality: Apply balanced studio-quality illumination eliminating harsh contrast or reflective artifacts. Deliver maximum resolution imagery with precise focus and accurate natural skin color reproduction.\n```\n\n## Customization Tips for Different ID Photo Types\n\nBased on the default prompt structure, here are specific customization points for different use cases:\n\n### 1. **Passport & Visa Photos**\n**Key Requirements**: Most countries require white or light-colored backgrounds, neutral expression, no smile.\n\n**Prompt Modifications**:\n- **Background**: Change to `Plain white background (#ffffff)` or `Light cream background (#f5f5f5)`\n- **Expression**: Change to `Completely neutral expression, no smile, mouth closed, serious but not tense`\n- **Framing**: Add `Head size should be 70-80% of the frame height. Top of head to chin should be prominent`\n- **Outfit**: Change to `Replace with dark formal suit jacket and white collared shirt` or `Navy blue blazer with light shirt`\n- **Additional**: Add `No glasses glare, ears must be visible, no hair covering the face`\n\n\n### 2. **Corporate Employee ID / Work Badge**\n**Key Requirements**: Professional but approachable, company-appropriate attire.\n\n**Prompt Modifications**:\n- **Background**: Use company color or standard `#e6f2ff` (light blue), `#f0f0f0` (light gray)\n- **Expression**: Keep `Soft closed-mouth smile — confident and approachable`\n- **Outfit**: Change to specific dress code:\n  - Corporate: `Dark business suit with tie for men, blazer with blouse for women`\n  - Tech/Startup: `Smart casual polo shirt or button-down shirt without tie`\n  - Creative: `Clean, professional casual clothing that reflects company culture`\n- **Framing**: Use default or add `Upper chest visible with company badge area clear`\n\n### 3. **University/School Student ID**\n**Key Requirements**: Friendly, youthful, appropriate for educational setting.\n\n**Prompt Modifications**:\n- **Background**: Use school colors or `Light blue (#e3f2fd)`, `Soft gray (#f5f5f5)`\n- **Expression**: Change to `Friendly natural smile or pleasant neutral expression`\n- **Outfit**: Change to `Replace with clean casual clothing — collared shirt, polo, or neat sweater. No logos or graphics`\n- **Framing**: Keep default\n- **Additional**: Add `Youthful, fresh appearance suitable for educational environment`\n\n### 4. **Driver's License / Government ID**\n**Key Requirements**: Strict standards, neutral expression, specific background colors.\n\n**Prompt Modifications**:\n- **Background**: Check local requirements — often `White (#ffffff)`, `Light gray (#d9d9d9)`, or `Light blue (#e6f2ff)`\n- **Expression**: Change to `Neutral expression, no smile, mouth closed, eyes fully open`\n- **Outfit**: Use `Replace with everyday casual or business casual clothing — collared shirt or neat top`\n- **Framing**: Add `Head centered, face taking up 70-80% of frame, ears visible`\n- **Additional**: Add `No glasses (or non-reflective lenses), no headwear except religious purposes, natural hair`\n\n### 5. **Professional LinkedIn / Resume Photo**\n**Key Requirements**: Polished, confident, approachable.\n\n**Prompt Modifications**:\n- **Background**: Use `Soft gray (#d9d9d9)` or `Professional blue gradient (#e3f2fd to #bbdefb)`\n- **Expression**: Keep `Confident, warm smile — professional yet approachable`\n- **Outfit**: Change to:\n  - Executive: `Premium business suit, crisp white shirt, tie optional`\n  - Professional: `Tailored blazer over collared shirt or elegant blouse`\n  - Creative: `Smart business casual with modern, well-fitted clothing`\n- **Framing**: Change to `Show head, full shoulders, and upper chest. Slightly more relaxed framing than strict ID photo`\n- **Lighting**: Add `Soft professional lighting with slight catchlight in eyes to appear engaging`\n\n### 6. **Medical/Healthcare Professional Badge**\n**Key Requirements**: Clean, trustworthy, professional medical appearance.\n\n**Prompt Modifications**:\n- **Background**: Use `Clinical white (#ffffff)` or `Soft medical blue (#e3f2fd)`\n- **Expression**: Change to `Calm, reassuring expression with gentle smile`\n- **Outfit**: Change to `Replace with clean white lab coat over professional attire` or `Medical scrubs in appropriate color (navy, ceil blue, or teal)`\n- **Additional**: Add `Hair neatly pulled back if long, clean professional appearance, no flashy jewelry`\n\n### 7. **Gym/Fitness Membership Card**\n**Key Requirements**: Casual, recognizable, suitable for athletic environment.\n\n**Prompt Modifications**:\n- **Background**: Use `Bright white (#ffffff)` or gym brand color\n- **Expression**: Change to `Natural friendly smile or neutral athletic expression`\n- **Outfit**: Change to `Replace with athletic wear — sports polo, performance t-shirt, or athletic jacket in solid colors`\n- **Framing**: Keep default\n- **Additional**: Add `Casual athletic appearance, hair neat`\n\n### General Customization Parameters\n\n**Background Color Options**:\n- White: `#ffffff` (passport, visa, formal government IDs)\n- Light gray: `#d9d9d9` (default, versatile for most purposes)\n- Light blue: `#e6f2ff` (corporate, professional)\n- Cream: `#f5f5dc` (warm professional)\n- Soft blue-gray: `#eceff1` (modern corporate)\n\n**Expression Variations**:\n- **Strict Neutral**: \"Completely neutral expression, no smile, mouth closed, serious but relaxed\"\n- **Soft Smile**: \"Very soft closed-mouth smile — confident and natural\" (default)\n- **Friendly Smile**: \"Warm natural smile with slight teeth showing — approachable and professional\"\n- **Calm Professional**: \"Calm, composed expression with slight pleasant demeanor\"\n\n**Clothing Formality Levels**:\n- **Formal**: \"Dark suit, white dress shirt, tie for men / tailored suit or blazer with professional blouse for women\"\n- **Business Casual** (default): \"Light business-casual outfit — clean shirt/blouse, lightweight blazer, or smart layers\"\n- **Smart Casual**: \"Collared shirt, polo, or neat sweater in solid professional colors\"\n- **Casual**: \"Clean, neat casual top — solid color t-shirt, casual button-down, or simple blouse\"\n\n**Framing Adjustments**:\n- **Tight Crop**: \"Head and shoulders only, face fills 80% of frame\" (passport style)\n- **Standard Crop** (default): \"Entire head, full shoulders, and upper chest with balanced space\"\n- **Relaxed Crop**: \"Head, shoulders, and chest visible, with more background space for professional portraits\"",
+  "workflow": {
+    "id": "1f6e5HSDWrQSzgEt",
+    "meta": {
+      "instanceId": "8dc97f110c3d1c4c1312bf2ee1e5a9845338284bdb271e93c73c8939c0887ef7",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Batch ID Photo Converter & Enhancer With Google Drive & Nano Banana API",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "1b27c0b9-2433-45a5-b303-96809323537d",
+        "name": "Obtain the generated status",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          464,
+          -32
+        ],
+        "parameters": {
+          "url": "https://api.defapi.org/api/task/query",
+          "options": {},
+          "sendQuery": true,
+          "sendHeaders": true,
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpBearerAuth",
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "task_id",
+                "value": "={{$json.data.task_id}}"
+              }
+            ]
+          },
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "credentials": {
+          "httpBearerAuth": {
+            "id": "credential-id",
+            "name": "httpBearerAuth Credential"
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "7b26f227-aaf0-4942-992d-ba03d124ebd7",
+        "name": "Send Image Generation Request to Defapi.org API",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          32,
+          -32
+        ],
+        "parameters": {
+          "url": "https://api.defapi.org/api/image/gen",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n  \"prompt\": \"{{$json.prompt}}\",\n  \"model\": \"google/nano-banana\",\n  \"images\": [\"{{ $json.image }}\"]\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpBearerAuth",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "credentials": {
+          "httpBearerAuth": {
+            "id": "credential-id",
+            "name": "httpBearerAuth Credential"
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "00981a5b-1a3e-49d3-93c5-dd2e204f20e2",
+        "name": "Wait for Image Processing Completion",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          240,
+          -32
+        ],
+        "webhookId": "bb6c2821-9586-44b7-8606-2ee69a77ed75",
+        "parameters": {
+          "amount": 10
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "9d2169f3-20a1-42a5-bb02-c75a061e8c06",
+        "name": "Check if Image Generation is Complete",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          688,
+          -32
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "db9a5dec-997b-4c3f-9582-37c9bbeb19ff",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEquals"
+                },
+                "leftValue": "={{ $json.data.status }}",
+                "rightValue": "=pending"
+              },
+              {
+                "id": "9352ce97-6628-4135-a8e3-35af03688d5d",
+                "operator": {
+                  "name": "filter.operator.equals",
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "",
+                "rightValue": ""
+              }
+            ]
+          },
+          "looseTypeValidation": true
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "1862d1cf-b65e-4839-9947-b70f666bba19",
+        "name": "Format and Display Image Results",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          32,
+          288
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "fa5f375f-cddc-4f7b-a018-67c28015d18b",
+                "name": "markdown_content",
+                "type": "string",
+                "value": "=\n- Generation result: {{$json.data?.status}}\n  \n{{$json.data?.result?.[0]?.text}}  \n{{$json.data?.status_reason?.message}}  \n\n![Example Image]({{$json.data?.result?.[0]?.image}})"
+              },
+              {
+                "id": "1d219e61-a59b-4156-b284-42cc42ce6f6d",
+                "name": "image",
+                "type": "string",
+                "value": "={{$json.data?.result?.[0]?.image}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "6dba5850-1ab2-4ffb-9160-6c780a779dbe",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -192,
+          464
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 528,
+          "height": 336,
+          "content": "## Google Drive Input Dir\n![Image](https://i.imgur.com/7VcUtl6.jpeg)"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "59a4c0ca-baad-4378-8ab6-9817f10ddd20",
+        "name": "Search files and folders",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          256,
+          -384
+        ],
+        "parameters": {
+          "filter": {
+            "folderId": {
+              "__rl": true,
+              "mode": "url",
+              "value": "={{ $json['Google Drive - Input Folder URL'] }}"
+            }
+          },
+          "options": {
+            "fields": "={{ [\"mimeType\",\"name\",\"id\",\"webViewLink\", \"imageMediaMetadata\", \"webContentLink\", \"thumbnailLink\"] }}"
+          },
+          "resource": "fileFolder",
+          "returnAll": true
+        },
+        "credentials": {
+          "googleDriveOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleDriveOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "682a50fc-7d1d-44b2-993f-02c5bd792541",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -400,
+          -544
+        ],
+        "parameters": {
+          "width": 352,
+          "height": 320,
+          "content": "## How to use drive\n- Prepare two folders. \n  - One for input: https://drive.google.com/drive/folders/xxxxxxx\n  - One for output: https://drive.google.com/drive/folders/yyyyyy\n- Maker your folders public"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "cf6a8583-dc11-447c-bcd0-6fe365b973af",
+        "name": "On form submission",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          32,
+          -384
+        ],
+        "webhookId": "d047f428-e1d7-4b23-bef4-50db362f1d67",
+        "parameters": {
+          "options": {},
+          "formTitle": "Set Google Drive",
+          "formFields": {
+            "values": [
+              {
+                "fieldLabel": "Google Drive - Input Folder URL",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Google Drive - Output Folder URL",
+                "requiredField": true
+              },
+              {
+                "fieldType": "textarea",
+                "fieldLabel": "Prompt",
+                "placeholder": "Create a professional portrait suitable for ID documentation with proper spacing and composition.  Framing: Include the full head, complete shoulder area, and upper torso. Maintain generous margins around the subject without excessive cropping.  Outfit: Transform the existing attire into light business-casual clothing appropriate for the individual's demographics and modern style standards. Ensure the replacement garment appears natural, properly tailored, and complements the subject's overall presentation (such as professional shirt, refined blouse, contemporary blazer, or sophisticated layered separates).  Pose & Gaze: Position shoulders square to the camera, maintaining perfect frontal alignment. Direct the gaze straight ahead into the lens at identical eye height, avoiding any angular deviation in vertical or horizontal planes.  Expression: Display a professional neutral demeanor or subtle closed-lip smile that conveys confidence and authenticity.  Background: Utilize a solid, consistent light gray photographic background (color code: #d9d9d9) without any pattern, texture, or tonal variation.  Lighting & Quality: Apply balanced studio-quality illumination eliminating harsh contrast or reflective artifacts. Deliver maximum resolution imagery with precise focus and accurate natural skin color reproduction."
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "0af17c30-f6fa-49f4-a9f1-44ebb337fe9f",
+        "name": "Code in JavaScript",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          480,
+          -384
+        ],
+        "parameters": {
+          "jsCode": "/**\n * Encodes multiple binary files from an n8n input item into Base64 strings.\n *\n * This code assumes it is running in an n8n \"Code\" or \"Function\" node\n * where 'this' refers to the node's context and 'helpers' are available.\n *\n * @returns {object} An object containing an array of file objects,\n * each with a 'path' and 'data' (Base64 string).\n */\nconst results = [];\n\nconsole.log('---- x', $input.all())\n\nfor (const item of $input.all()) {\n  const result = {}\n  result.prompt = $('On form submission').first().json.Prompt || $(\"On form submission\").params.formFields.values[2].placeholder\n  result.image = item.json.webContentLink\n  result.name = item.json.name\n  results.push(result)\n}\n\n\n\n// Return the final object in the expected format for the next node.\nreturn results;\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "84851efc-02db-4557-8aeb-4a5eb01f2fa4",
+        "name": "Upload file",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          480,
+          288
+        ],
+        "parameters": {
+          "driveId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "My Drive"
+          },
+          "options": {},
+          "folderId": {
+            "__rl": true,
+            "mode": "url",
+            "value": "={{ $('On form submission').item.json['Google Drive - Output Folder URL'] }}"
+          }
+        },
+        "credentials": {
+          "googleDriveOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleDriveOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "7d7326d2-f6e9-4b53-b2e9-896fc2fa88a0",
+        "name": "HTTP Request",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          256,
+          288
+        ],
+        "parameters": {
+          "url": "={{ $json.image }}",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "file"
+              }
+            }
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "c758902f-a550-4ba7-a94c-72e7cc798233",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          336,
+          464
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 528,
+          "height": 336,
+          "content": "## Google Drive Output Dir\n![Image](https://i.imgur.com/j5mWcqz.jpeg)"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e66266e6-b49c-43b5-abfa-04fef281d549",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -32,
+          -544
+        ],
+        "parameters": {
+          "width": 672,
+          "height": 320,
+          "content": "## Load Images From Google Drive Input Dir\n\n1. **On form submission** (Form Trigger) - Collects Google Drive folder URLs and optional prompt\n2. **Search files and folders** (Google Drive) - Retrieves all files from the input folder\n3. **Code in JavaScript** (Code Node) - Prepares image data and prompt for API request"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a012c005-137a-4108-86c1-321a12af4a5e",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          0,
+          -176
+        ],
+        "parameters": {
+          "width": 880,
+          "height": 288,
+          "content": "## Send Image to Nano Banana API (Defapi.org)\n4. **Send Image Generation Request to Defapi.org API** (HTTP Request) - Submits generation request for each image\n5. **Wait for Image Processing Completion** (Wait Node) - Waits 10 seconds before checking status\n6. **Obtain the generated status** (HTTP Request) - Polls API for completion status\n7. **Check if Image Generation is Complete** (IF Node) - Checks if status is not \"pending\""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1bf5927f-d8d6-4b61-adac-b3868bccdd84",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          0,
+          160
+        ],
+        "parameters": {
+          "width": 880,
+          "height": 288,
+          "content": "## Download Images And Upload to Google Drive\n8. **Format and Display Image Results** (Set Node) - Formats result with markdown and image URL\n9. **HTTP Request** (HTTP Request) - Downloads the generated image file\n10. **Upload file** (Google Drive) - Uploads the enhanced photo to the output folder"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "92598834-25e9-447c-9eac-6134da030888",
+    "connections": {
+      "HTTP Request": {
+        "main": [
+          [
+            {
+              "node": "Upload file",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code in JavaScript": {
+        "main": [
+          [
+            {
+              "node": "Send Image Generation Request to Defapi.org API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "On form submission": {
+        "main": [
+          [
+            {
+              "node": "Search files and folders",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Search files and folders": {
+        "main": [
+          [
+            {
+              "node": "Code in JavaScript",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Obtain the generated status": {
+        "main": [
+          [
+            {
+              "node": "Check if Image Generation is Complete",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format and Display Image Results": {
+        "main": [
+          [
+            {
+              "node": "HTTP Request",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait for Image Processing Completion": {
+        "main": [
+          [
+            {
+              "node": "Obtain the generated status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check if Image Generation is Complete": {
+        "main": [
+          [
+            {
+              "node": "Format and Display Image Results",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Wait for Image Processing Completion",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Image Generation Request to Defapi.org API": {
+        "main": [
+          [
+            {
+              "node": "Wait for Image Processing Completion",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 36,
+      "name": "File Management"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/9245",
+  "fetched_at": "2026-09-12T13:12:50Z"
+}

@@ -1,0 +1,180 @@
+{
+  "id": 6603,
+  "name": "AI chatbot that queries Baserow database with OpenAI GPT-4 mini",
+  "description": "This workflow creates an intelligent chatbot that uses your Baserow database as a knowledge base. The AI agent can automatically query your Baserow tables to provide accurate, contextual responses based on your stored data.\n\n![AI Chatbot Baserow Database Integration.jpg](fileId:1886)\n\n## Who's it for\n\nThis template is perfect for:\n* Support teams using Baserow for knowledge management\n* Small businesses managing customer data in Baserow\n* Teams looking for an open-source alternative to Airtable-based chatbots\n* Organizations that want to make their Baserow data conversationally accessible\n* Self-hosted solution enthusiasts who prefer controlling their data\n\n## How it works\n\nThe workflow combines OpenAI's language model with Baserow's open-source database capabilities to create a smart chatbot. When users ask questions, the AI agent automatically determines which Baserow records are relevant and uses that data to generate helpful responses. The system maintains conversation history for natural, contextual interactions.\n\n## How to set up\n\n1. **Add your credentials:**\n   - Configure your **Baserow** API credentials in the Baserow Database node\n   - Set up your **OpenAI API** credentials in the OpenAI Chat Model node\n\n2. **Configure your Baserow connection:**\n   - Click the **Baserow Database** node\n   - Select your Baserow table containing your knowledge base data\n   - The AI will automatically determine relevant records - no need to specify individual record IDs\n\n3. **Customize the AI model:**\n   - Open the **OpenAI Chat Model** node\n   - Choose your preferred model (GPT-4, GPT-3.5-turbo, etc.)\n   - Adjust token limits if needed\n\n4. **Test the chatbot:**\n   - Click the **Chat** button to start a conversation\n   - Ask questions related to your Baserow data\n\n5. **Optional - Make it public:**\n   - Enable public access in the Chat Trigger node\n   - Embed the provided code into your website\n\n## Requirements\n\n- n8n instance (cloud or self-hosted)\n- Baserow instance (self-hosted or cloud) with data you want to query\n- OpenAI API key with available credits\n- Baserow API token with appropriate permissions\n\n## How to customize the workflow\n\n**Change the AI Provider:**\nYou can replace the OpenAI Chat Model with other providers like Anthropic Claude, Google Gemini, or local models by swapping the language model node.\n\n**Adjust Context Window:**\nModify the \"Remember Chat History\" node to increase or decrease how many previous messages the AI remembers (default is 10 interactions).\n\n**Update System Instructions:**\nEdit the Smart AI Agent's system message to change how the assistant behaves or add specific instructions for your use case.\n\n**Connect Multiple Tables:**\nAdd additional Baserow Database nodes to give the AI access to multiple tables within your Baserow workspace.\n\n**Add More Tools:**\nExtend the AI agent with additional tools like web search, email sending, or integration with other services.\n\n## Workflow Structure\n\n```\nChat Trigger → Smart AI Agent ← OpenAI Chat Model\n                     ↓\n              Baserow Database\n                     ↑\n           Remember Chat History\n```\n\nThe Smart AI Agent orchestrates the conversation, deciding when to query Baserow and how to use the retrieved data in responses. The memory buffer ensures natural conversation flow by maintaining context across interactions.",
+  "workflow": {
+    "meta": {
+      "instanceId": "cba9e349b601c19a1409b9fd06680aff0a77829be13c8aad9a858d4cea7ff290",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "f9bc9b12-0cbd-4be4-8408-ce69ee0dfc37",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          16,
+          736
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a0cc3e0b-3f9d-4706-b37d-85ad3be5d22a",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          304,
+          736
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "67525380-20cc-4c60-b9eb-6642839e689c",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          656,
+          736
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "bf56dce1-994a-4ed2-9b98-a1ae5d653c03",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          144,
+          96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f97b26e5-704c-48b1-9555-ac4269e663a1",
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          96,
+          576
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "53eabcc1-995e-4c43-8431-cc7b008006e1",
+        "name": "Start Chat Conversation",
+        "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+        "position": [
+          48,
+          352
+        ],
+        "webhookId": "cf1de04f-3e38-426c-89f0-3bdb110a5dcf",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "4c6e4420-ba39-421a-a946-4722e0be7fe3",
+        "name": "Smart AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          304,
+          352
+        ],
+        "parameters": {},
+        "typeVersion": 1.7
+      },
+      {
+        "id": "9e5fdb8d-5b4f-4681-86c1-2bf0c966c3b5",
+        "name": "Remember Chat History",
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "position": [
+          416,
+          576
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "60a454d3-6ab3-4d68-9a02-4c30515233fb",
+        "name": "Baserow Database",
+        "type": "n8n-nodes-base.baserowTool",
+        "position": [
+          752,
+          576
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Baserow Database": {
+        "ai_tool": [
+          [
+            {
+              "node": "Smart AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Smart AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Remember Chat History": {
+        "ai_memory": [
+          [
+            {
+              "node": "Smart AI Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Start Chat Conversation": {
+        "main": [
+          [
+            {
+              "node": "Smart AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 40,
+      "name": "Support Chatbot"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6603",
+  "fetched_at": "2026-09-12T13:11:26Z"
+}

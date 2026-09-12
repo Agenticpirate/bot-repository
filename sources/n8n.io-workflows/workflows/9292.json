@@ -1,0 +1,365 @@
+{
+  "id": 9292,
+  "name": "Send thank-you messages & loyalty coupons via WhatsApp from Shopify using WA",
+  "description": "# Shopify Auto Send WhatsApp Thank-You Messages & Loyalty Coupon Using Rapiwa API\n\n## Who is this for?\nThis workflow is for Shopify store owners, marketers, and support teams who want to automatically message their high-value customers on WhatsApp when new discount codes are created.\n\n## What this workflow does\n- Fetches customer data from Shopify\n- Filters customers where `total_spent &gt; 5000`\n- Cleans phone numbers (removes non-digit characters) and normalizes them to an international format\n- Verifies numbers via the Rapiwa API (`verify-whatsapp` endpoint)\n- Sends coupon or thank-you messages to verified numbers via the Rapiwa `send-message` endpoint\n- Logs each send attempt to Google Sheets with `status` and `validity`\n- Uses batching (SplitInBatches) and Wait nodes to avoid rate limits\n\n## Key features\n- Automated trigger: Shopify webhook (`discounts/create`) or manual trigger\n- Targeted sending to high-value customers\n- Pre-send verification to reduce failed sends\n- Google Sheets logging and status updates\n- Rate-limit protection using Wait node\n\n#How to use?\n## Step-by-step setup\n1) Prepare a Google Sheet\n   - Columns: `name`, `number`, `status`, `validity`, `check` (optional)\n   - Example row: `Abdul Mannan | 8801322827799 | not sent | unverified | check`\n\n2) Configure n8n credentials\n   - Shopify: store access token (X-Shopify-Access-Token)\n   - Rapiwa: Bearer token (HTTP Bearer credential)\n   - Google Sheets: OAuth2 credentials and sheet access\n\n3) Configure the nodes\n   - Webhook/Trigger: Shopify `discounts/create` or Manual Trigger\n   - HTTP Request (Shopify): `/admin/api/&lt;version&gt;/customers.json`\n   - Code node: filter customers `total_spent &gt; 5000` and map fields\n   - SplitInBatches: batching/looping\n   - Code (clean number): `waNoStr.replace(/\\D/g, \"\")`\n   - HTTP Request (Rapiwa verify): POST `https://app.rapiwa.com/api/verify-whatsapp` body `{ number }`\n   - IF node: check `data.exists` to decide branch\n   - HTTP Request (Rapiwa send-message): POST `https://app.rapiwa.com/api/send-message` body `{ number, message_type, message }`\n   - Google Sheets Append/Update: write `status` and `validity`\n   - Wait: add 2–5 seconds delay between sends\n\n4) Test with a small batch\n   - Run manually with 2–5 records first and verify results\n\n## Google Sheet column structure\n**A Google Sheet** formatted like this ➤ [Sample](https://docs.google.com/spreadsheets/d/1q5mO2pRCdO-v51OyUZt-56UprsGpmn0PMGhnglgg2ls/edit?usp=sharing)\n| Name  | Number  | Status   | Validity   |\n| -------------- | ------------- | -------- | ---------- |\n| Abdul Mannan | 8801322827798 | not sent | unverified |\n| Abdul Mannan | 8801322827799 | sent     | verified   |\n\n## Requirements\n- Shopify Admin API access (store access token)\n- Rapiwa account and Bearer token\n- Google account and Google Sheet (OAuth2 setup)\n- n8n instance (nodes used: HTTP Request, Code, SplitInBatches, IF, Google Sheets, Wait)\n\n## Customization ideas\n- Adjust the filter (e.g., order count, customer tags)\n- Use message templates to insert name and coupon code per customer\n- Add an SMS or email fallback for unverified numbers\n- Send a run summary to admin (Slack / email)\n- Store logs in a database for deeper analysis\n\n## Important notes\n- `data.exists` may be a boolean or a string — normalize it in a Code node before using in an IF node\n- Ensure Google Sheets column names match exactly\n- Store Rapiwa and Shopify tokens securely in n8n credentials\n- Start with small batches for testing and scale gradually\n\n## Useful Links\n- **Dashboard:** [https://app.rapiwa.com](https://app.rapiwa.com/login)\n- **Official Website:** [https://rapiwa.com](https://rapiwa.com/)\n- **Documentation:** [https://docs.rapiwa.com](https://docs.rapiwa.com/)\n\n\n## Support & Help\n- **WhatsApp**: [Chat on WhatsApp](https://wa.me/8801322827799)\n- **Discord**: [SpaGreen Community](https://discord.gg/SsCChWEP)\n- **Facebook Group**: [SpaGreen Support](https://www.facebook.com/groups/spagreenbd)\n- **Website**: [https://spagreen.net](https://spagreen.net)\n- **Developer Portfolio**: [Codecanyon SpaGreen](https://codecanyon.net/user/spagreen/portfolio)\n",
+  "workflow": {
+    "id": "TZh5DGrhbMLuufLR",
+    "meta": {
+      "instanceId": "cb9a1e5321767b6316634728341237e564b2587ab15b74ca0a89eb02a53484d6",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Shopify Auto Send WhatsApp Thank-You Messages & Loyalty Coupon Using Rapiwa API",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "b520df6b-3acf-4fb0-929e-77446e6eaefc",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          -448,
+          672
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "652b65b5-f5f0-4d15-99e4-41c0976ad8e2",
+        "name": "If",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          224,
+          928
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "f187821c-cd12-455f-b41e-91a851d62d78",
+        "name": "Clean WhatsApp Number",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -176,
+          800
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "1f5eefb7-8c49-4f53-a621-1f6628856964",
+        "name": "Check valid whatsapp number Using Rapiwa",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          16,
+          800
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "3700e098-7168-4752-99e8-1656d8689ab7",
+        "name": "Append Rows in Sheet Verified & Sent",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          672,
+          800
+        ],
+        "parameters": {},
+        "typeVersion": 4.6
+      },
+      {
+        "id": "1eda2f14-4088-4ced-9304-23868a0763e3",
+        "name": "Append Rows in Sheet Unverified & Not sent",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          464,
+          1024
+        ],
+        "parameters": {},
+        "typeVersion": 4.6
+      },
+      {
+        "id": "4e8f8880-393d-4148-a43a-6b45dedae0fd",
+        "name": "Wait",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          704,
+          1024
+        ],
+        "webhookId": "6c474e54-eb3c-4fcd-b455-948322cd0121",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "e6b244a0-9082-4dd9-979d-123c76b3d2b4",
+        "name": "Send Message Using Rapiwa",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          464,
+          800
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "c964d973-17c1-4da3-903c-2ce26d8074ea",
+        "name": "Get All Customer Data In Store",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -896,
+          608
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "30f9176f-6e91-4990-ac1b-fa8333ef09db",
+        "name": "Clean HTTP Request Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -672,
+          608
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "7616b409-a957-4e18-9247-88b6e8181dfb",
+        "name": "Clicki",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          -1104,
+          608
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "ffe3dd46-960c-42a1-90ea-5bc5b69ae8cb",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1248,
+          208
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "fffcb6eb-2a09-4285-bbf7-a4530ef6949e",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -944,
+          208
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c75fac79-51eb-44f7-8bf5-13ddb622884f",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -528,
+          208
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "13e6b28d-ea71-42ba-a614-1e843dccbb2f",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -256,
+          208
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "bb30d9ea-0826-4aaa-aa95-7d1e1be71a3c",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          176,
+          208
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "53d0c208-8d90-4503-8fd5-49057a65c93d",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2128,
+          208
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "cbabfc7c-e86f-4f5d-a3ab-3eee077691d4",
+    "connections": {
+      "If": {
+        "main": [
+          [
+            {
+              "node": "Send Message Using Rapiwa",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Append Rows in Sheet Unverified & Not sent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Clicki": {
+        "main": [
+          [
+            {
+              "node": "Get All Customer Data In Store",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Clean WhatsApp Number",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Clean WhatsApp Number": {
+        "main": [
+          [
+            {
+              "node": "Check valid whatsapp number Using Rapiwa",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Clean HTTP Request Data": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Message Using Rapiwa": {
+        "main": [
+          [
+            {
+              "node": "Append Rows in Sheet Verified & Sent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get All Customer Data In Store": {
+        "main": [
+          [
+            {
+              "node": "Clean HTTP Request Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Append Rows in Sheet Verified & Sent": {
+        "main": [
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check valid whatsapp number Using Rapiwa": {
+        "main": [
+          [
+            {
+              "node": "If",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Append Rows in Sheet Unverified & Not sent": {
+        "main": [
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 38,
+      "name": "Lead Nurturing"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/9292",
+  "fetched_at": "2026-09-12T13:12:51Z"
+}

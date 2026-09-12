@@ -1,0 +1,635 @@
+{
+  "id": 11232,
+  "name": "Automatically discover and extract reports from websites using GPT and Google Sheets",
+  "description": "## An intelligent AI-powered agent that automatically browses publication websites, analyzes page content with natural language understanding, and identifies the latest downloadable reports, research papers, and data files across multiple sources using advanced structured output parsing.\n\n### **What Makes This Different:**\n- **AI-Powered Content Analysis** - Uses advanced language models (GPT-4/GPT-5.1) to understand page context and identify downloadable reports, even when links aren't explicitly labeled, handling complex page layouts and dynamic content\n- **Structured Output Parsing** - Enforces JSON schema validation ensuring consistent data extraction with required fields (title, link, file_type, description), eliminating parsing errors and data inconsistencies\n- **HTML to Markdown Conversion** - Converts raw HTML to clean Markdown before AI processing, removing noise and improving AI comprehension of page structure and content hierarchy\n- **Intelligent Link Detection** - AI agent identifies direct download URLs, converts relative links to absolute URLs, and prioritizes the most recent reports based on publication dates and page positioning\n- **Comprehensive Validation** - Multi-layer validation checks link format, file type detection, and report relevance before saving, ensuring only valid, downloadable reports enter your library\n- **Flexible Source Management** - Reads publication sources from Google Sheets, enabling easy addition/removal of sources without workflow modification, with support for categories and custom metadata\n\n### **Key Benefits of AI-Powered Report Discovery:**\n- **Automated Discovery** - Eliminates manual browsing and searching across multiple publication sites, saving hours of research time while ensuring you never miss new reports\n- **Context-Aware Extraction** - AI understands page context, distinguishing between actual reports and navigation links, category pages, or promotional content\n- **Prioritized Results** - Automatically selects the most recent and relevant report from each source, focusing on quality over quantity\n- **Structured Data Output** - All discovered reports are saved with consistent metadata (title, link, file type, description, source), making them easy to search, filter, and integrate with other systems\n- **Error Resilience** - Handles missing reports gracefully, logging when no reports are found without failing the entire workflow, ensuring continuous operation\n- **Integration Ready** - Can be called by other workflows (e.g., PDF downloader), enabling end-to-end automation from discovery to storage\n\n---\n\n## Who's it for\n\nThis template is designed for **researchers, market analysts, competitive intelligence teams, academic institutions, industry monitoring services, and anyone who needs to systematically discover and track downloadable reports from multiple publication sources**. It's perfect for organizations that need to **monitor industry publications**, **track competitor research**, **discover new market reports**, **build research libraries**, or **stay updated on latest publications** without **manually visiting dozens of websites daily**.\n\n## How it works / What it does\n\nThis workflow creates an **AI-powered report discovery system** that **reads publication source URLs from Google Sheets, fetches their pages, uses AI to analyze content, and extracts information about downloadable reports**. The system:\n\n1. **Reads Active Sources** - Fetches publication URLs and metadata from Google Sheets \"Report Sources\" sheet, processing each source in sequence\n2. **Loops Through Sources** - Processes sources one at a time using Split in Batches, ensuring proper error isolation and preventing batch failures\n3. **Fetches Publication Pages** - Downloads HTML content from each source URL with proper browser headers (User-Agent, Accept, Accept-Language) to avoid blocking\n4. **Converts HTML to Markdown** - Transforms raw HTML into clean Markdown format, removing styling, scripts, and navigation elements to improve AI comprehension\n5. **AI Analysis** - LangChain agent analyzes the Markdown content using GPT-4/GPT-5.1, identifying downloadable reports based on context, link patterns, and content structure\n6. **Structured Output Parsing** - Enforces JSON schema validation, ensuring the AI returns data in the exact format: source, title, link, file_type, description\n7. **Validates & Normalizes Output** - Validates extracted links are absolute URLs, checks file type indicators, determines report validity, and normalizes all fields\n8. **Routes by Validity** - IF node routes valid reports to save operation, invalid/missing reports to logging\n9. **Saves Discovered Reports** - Appends valid reports to Google Sheets \"Discovered Reports\" sheet with metadata, source URL, category, and discovery timestamp\n10. **Logs No Report Found** - Records sources where no valid reports were found in \"Discovery Log\" sheet for monitoring and troubleshooting\n11. **Tracks Completion** - Generates completion summary with number of sources checked and processing timestamp\n\n**Key Innovation: AI-Powered Context Understanding** - Unlike traditional web scrapers that rely on fixed CSS selectors or regex patterns, this workflow uses AI to understand page context and semantics. The AI can identify reports even when they're embedded in complex layouts, use non-standard naming, or require understanding of surrounding text to determine relevance. This makes it adaptable to any website structure without manual configuration.\n\n## How to set up\n\n### 1. Prepare Google Sheets\n- Create a Google Sheet with three tabs: **\"Report Sources\"**, **\"Discovered Reports\"**, and **\"Discovery Log\"**\n- In **\"Report Sources\"** sheet, create columns: `Source_Name`, `Source_URL`, `Category` (optional)\n- Add publication URLs in the `Source_URL` column (e.g., \"https://example.com/research\" or \"https://publisher.com/reports\")\n- Add descriptive names in `Source_Name` column for easy identification\n- Optionally add `Category` values (e.g., \"Market Research\", \"Industry Reports\", \"Academic Papers\")\n- The **\"Discovered Reports\"** sheet will be automatically populated with columns: `source`, `title`, `link`, `fileType`, `description`, `sourceUrl`, `category`, `discoveredAt`, `status`, `isValid`\n- The **\"Discovery Log\"** sheet will record sources where no reports were found\n- Verify your Google Sheets credentials are set up in n8n (OAuth2 recommended)\n\n### 2. Configure Google Sheets Nodes\n- Open the **\"Read Active Sources\"** node and select your spreadsheet from the document dropdown\n- Set sheet name to **\"Report Sources\"**\n- Configure the **\"Save Discovered Report\"** node: select same spreadsheet, set sheet name to **\"Discovered Reports\"**, operation should be **\"Append or Update\"**\n- Configure the **\"Log No Report Found\"** node: same spreadsheet, **\"Discovery Log\"** sheet, operation **\"Append or Update\"**\n- Test connection by running the \"Read Active Sources\" node manually to verify it can access your sheet\n\n### 3. Set Up OpenAI Credentials\n- Open the **\"OpenAI GPT-5.1\"** node (or configure the model you want to use)\n- Connect your OpenAI API credentials (API key required)\n- The workflow uses GPT-5.1 by default, but you can change to GPT-4, GPT-4 Turbo, or other models\n- Temperature is set to 0.1 for consistent, deterministic output\n- Verify API key has sufficient credits and access to the selected model\n- For cost optimization, GPT-4 Turbo is recommended for similar results at lower cost\n\n### 4. Configure AI Agent & Output Parser\n- The **\"AI Report Discovery Agent\"** node contains a detailed system prompt that instructs the AI on what to look for\n- The prompt is pre-configured but can be customized for your specific needs (e.g., prioritize certain file types, look for specific keywords)\n- The **\"Structured Output Parser\"** enforces the JSON schema - verify the schema matches your needs:\n  ```json\n  {\n    \"source\": \"Publisher Name\",\n    \"title\": \"Report Title\",\n    \"link\": \"https://example.com/report.pdf\",\n    \"file_type\": \"pdf\",\n    \"description\": \"Brief description\"\n  }\n  ```\n- The parser ensures the AI always returns valid JSON with all required fields\n- Test the AI agent by manually running with a sample source URL to verify it correctly identifies reports\n\n### 5. Customize Discovery Rules (Optional)\n- The AI agent's system prompt can be modified in the **\"AI Report Discovery Agent\"** node\n- Current rules prioritize: downloadable files (PDF, Excel, Word, PowerPoint), most recent publications, direct download URLs\n- To customize: Edit the system message to add specific keywords, file types, or discovery patterns\n- Example customization: Add industry-specific terms or prioritize reports with certain keywords in titles\n- The validation code in **\"Validate & Normalize Output\"** can be adjusted to change what's considered \"valid\"\n- Test with your specific sources to ensure discovery rules work as expected\n\n### 6. Set Up Scheduling & Test\n- The workflow includes **Manual Trigger** (for testing), **Schedule Trigger** (runs daily), and **Execute Workflow Trigger** (for calling from other workflows)\n- To customize schedule: Open \"Schedule (Daily)\" node and adjust interval (e.g., twice daily, weekly)\n- For initial testing: Use Manual Trigger, add 2-3 test publication URLs to your \"Report Sources\" sheet\n- Verify execution: Check that pages are fetched, AI analysis completes, and reports are saved to \"Discovered Reports\"\n- Monitor execution logs: Check for API errors, timeout issues, or parsing failures\n- Review Discovery Log: Verify sources with no reports are properly logged\n- Common issues: OpenAI API rate limits (add delays if processing many sources), invalid URLs (check source URLs), timeout errors (increase timeout for slow-loading pages), AI not finding reports (may need to adjust system prompt for specific site structures)\n\n## Requirements\n\n- **OpenAI API Key** - Active OpenAI account with API access and sufficient credits for GPT-4/GPT-5.1 model usage (API key configured in n8n credentials)\n- **Google Sheets Account** - Active Google account with OAuth2 credentials configured in n8n for reading and writing spreadsheet data\n- **Source Spreadsheet** - Google Sheet with \"Report Sources\", \"Discovered Reports\", and \"Discovery Log\" tabs, properly formatted with required columns\n- **Valid Publication URLs** - Direct links to publication pages that contain downloadable reports (not direct PDF links - the workflow discovers those)\n- **n8n Instance** - Self-hosted or cloud n8n instance with access to external websites (HTTP Request node needs internet connectivity) and LangChain nodes enabled\n",
+  "workflow": {
+    "id": "k2Tspf5WURvgp7Xj",
+    "meta": {
+      "instanceId": "50631c03cbd88440965b74e5a58aada5437cbc43e90372b516e36154908ad374",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "AI-Powered Report Discovery Agent",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "0d42d70c-807a-4a8b-9e9d-65fdb38826c9",
+        "name": "Sticky Note - Introduction",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -352,
+          80
+        ],
+        "parameters": {
+          "width": 504,
+          "height": 676,
+          "content": "## AI-Powered Report Discovery Agent\n\nUse AI to browse publication websites and identify the latest relevant downloadable reports.\n\n### How it works  \n- **Trigger Sources**: Initiates from manual trigger, scheduled daily, or another workflow.  \n- **Source Data**: Reads active report sources from Google Sheets (e.g., \"Report Sources\").  \n- **Process Pages**: Loops over sources, fetches HTML publication pages, and converts to Markdown.  \n- **AI Extraction**: Uses AI to identify and extract the most recent, relevant downloadable report (PDF, DOCX, etc.).  \n- **Validation**: Verifies the report's validity (direct download link, correct format, etc.).  \n- **Save/Log**: Saves valid reports to \"Discovered Reports\" in Google Sheets. Logs no report found to \"Discovery Log\".  \n- **Completion Summary**: Records the number of sources processed and the timestamp of completion.\n\n### Setup steps  \n1. **Google Sheets Integration**: Connect your Google Sheets account and provide credentials.  \n2. **Configure Sheets**: Set sheet names for \"Report Sources\", \"Discovered Reports\", and \"Discovery Log\".  \n3. **Configure Trigger**: Choose how to trigger the workflow (manual, scheduled, or from another workflow).  \n4. **Run Workflow**: Activate and monitor the workflow for discovering reports and logging the results.\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b7415f77-8fda-4849-8d1c-2a9331302bdc",
+        "name": "Manual Trigger",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          224,
+          176
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "fa175f95-4bb3-465b-a38a-c51b39077523",
+        "name": "Schedule (Daily)",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          224,
+          368
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {}
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "ef6fd252-30d6-4ece-863f-976aeed79a42",
+        "name": "Called by Another Workflow",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "position": [
+          224,
+          560
+        ],
+        "parameters": {
+          "inputSource": "passthrough"
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "65f6ead5-c16c-44c1-af09-7fc51341fa34",
+        "name": "Read Active Sources",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          544,
+          368
+        ],
+        "parameters": {
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "",
+            "cachedResultUrl": "",
+            "cachedResultName": "Report Sources"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "",
+            "cachedResultUrl": "",
+            "cachedResultName": "YOUR_SPREADSHEET"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleSheetsOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "961d9fa1-2cf5-447a-93c4-676708f6759c",
+        "name": "Loop Over Sources",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          816,
+          368
+        ],
+        "parameters": {
+          "options": {
+            "reset": false
+          }
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "43b9d8cd-3ded-48a8-95a4-511da002cbe7",
+        "name": "Fetch Publication Page",
+        "type": "n8n-nodes-base.httpRequest",
+        "onError": "continueRegularOutput",
+        "position": [
+          1264,
+          384
+        ],
+        "parameters": {
+          "url": "={{ $json.Source_URL }}",
+          "options": {
+            "timeout": 30000
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "User-Agent",
+                "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/0.0.0.0 Safari/537.36"
+              },
+              {
+                "name": "Accept",
+                "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+              },
+              {
+                "name": "Accept-Language",
+                "value": "en-US,en;q=0.5"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "18b5b93b-572a-48c6-9f47-f9ba63fa51e5",
+        "name": "Convert HTML to Markdown",
+        "type": "n8n-nodes-base.markdown",
+        "onError": "continueRegularOutput",
+        "position": [
+          1488,
+          384
+        ],
+        "parameters": {
+          "html": "={{ $json.data }}",
+          "options": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c34ea7e5-ca8d-425d-b233-14d6f1ac229d",
+        "name": "AI Report Discovery Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          1712,
+          256
+        ],
+        "parameters": {
+          "text": "={{ $json.data }}",
+          "options": {
+            "systemMessage": "# 🔍 Report Discovery Agent\n\nYou are a **Report Discovery Agent** operating inside an n8n AI workflow.\nYour role is to analyze publication pages and identify the **latest downloadable reports, research papers, or data files**.\n\n---\n\n## 🎯 OBJECTIVE\n\nAnalyze the provided page content and extract information about the **most recent and relevant downloadable report**.\n\n**You must return exactly ONE report** — the most recent and relevant one on the page.\n\n---\n\n## 📋 EXTRACTION RULES\n\n### 1. **Identify Downloadable Content**\n- Look for links to: PDFs, Excel files, Word documents, PowerPoint presentations\n- Common patterns: \"Download\", \"Report\", \"Research\", \"Analysis\", \"White Paper\", \"Study\"\n- File extensions: `.pdf`, `.xlsx`, `.xls`, `.doc`, `.docx`, `.pptx`\n\n### 2. **Prioritize Recency**\n- Select the **most recently published** report\n- Look for date indicators: publication dates, issue numbers, version numbers\n- If multiple reports exist, choose the one at the top of the list (usually newest)\n\n### 3. **Validate Links**\n- Ensure the link is a **direct download URL** (not a landing page)\n- Convert relative URLs to absolute URLs using the base domain\n- Exclude navigation links, category pages, or signup pages\n\n### 4. **Extract Metadata**\n- **title**: The report's official title or headline\n- **link**: Full absolute URL to download the file\n- **file_type**: The file format (pdf, xlsx, doc, pptx)\n- **description**: Brief 1-2 sentence summary of what the report covers\n\n---\n\n## ⚠️ IMPORTANT RULES\n\n1. **Always return valid JSON** matching the schema\n2. **Never return null for required fields** — use \"Unknown\" if not found\n3. **Links must be absolute URLs** starting with http:// or https://\n4. **Only return ONE report** — the best/newest match\n5. **If no valid report found**, return the schema with \"No report found\" as title\n\n---\n\n## 📖 EXAMPLES\n\n**Good Output:**\n```json\n{\n  \"source\": \"Industry Research Corp\",\n  \"title\": \"Q4 2024 Market Analysis Report\",\n  \"link\": \"https://example.com/reports/q4-2024-analysis.pdf\",\n  \"file_type\": \"pdf\",\n  \"description\": \"Comprehensive analysis of Q4 2024 market trends and forecasts.\"\n}\n```\n\n**If No Report Found:**\n```json\n{\n  \"source\": \"Industry Research Corp\",\n  \"title\": \"No report found\",\n  \"link\": \"\",\n  \"file_type\": \"\",\n  \"description\": \"No downloadable reports were found on this page.\"\n}\n```"
+          },
+          "promptType": "define",
+          "hasOutputParser": true
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "5bb62ec3-d3e9-4523-8d9b-8459680a260b",
+        "name": "Structured Output Parser",
+        "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "position": [
+          1856,
+          480
+        ],
+        "parameters": {
+          "jsonSchemaExample": "{\n  \"source\": \"Publisher Name\",\n  \"title\": \"Report Title\",\n  \"link\": \"https://example.com/report.pdf\",\n  \"file_type\": \"pdf\",\n  \"description\": \"Brief description of the report content\"\n}"
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "d6edbc05-c767-49c3-ab7b-cb93d9116036",
+        "name": "Validate & Normalize Output",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2064,
+          256
+        ],
+        "parameters": {
+          "jsCode": "// Extract and validate AI output\nconst results = [];\n\nfor (const item of items) {\n  const output = item.json.output || item.json;\n  const sourceData = $('Loop Over Sources').item.json;\n  \n  // Get values with fallbacks\n  const source = output.source || sourceData.Source_Name || \"Unknown\";\n  const title = output.title || \"No title\";\n  const link = output.link || \"\";\n  const fileType = output.file_type || \"\";\n  const description = output.description || \"\";\n  \n  // Validate the result\n  const isValid = link && \n                  link.startsWith(\"http\") && \n                  title !== \"No report found\" &&\n                  title !== \"\";\n  \n  // Determine status\n  let status = \"Discovered\";\n  if (!isValid) {\n    status = \"No Report Found\";\n  } else if (!link.includes(\".pdf\") && !link.includes(\".xlsx\") && !link.includes(\".doc\")) {\n    status = \"Link May Not Be Direct Download\";\n  }\n  \n  results.push({\n    json: {\n      source: source,\n      title: title,\n      link: link,\n      fileType: fileType,\n      description: description,\n      sourceUrl: sourceData.Source_URL || \"\",\n      category: sourceData.Category || \"General\",\n      discoveredAt: new Date().toISOString(),\n      status: status,\n      isValid: isValid\n    }\n  });\n}\n\nreturn results;"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "c065a81e-0f3b-49fa-87d5-6a189c3d43af",
+        "name": "Valid Report Found?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          2288,
+          256
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "valid-check",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.isValid }}",
+                "rightValue": true
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "1759a157-62dd-4973-afa8-57547b808457",
+        "name": "Save Discovered Report",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          2768,
+          480
+        ],
+        "parameters": {
+          "operation": "appendOrUpdate",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "",
+            "cachedResultUrl": "",
+            "cachedResultName": "Discovered Reports"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "",
+            "cachedResultUrl": "",
+            "cachedResultName": "YOUR_SPREADSHEET"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleSheetsOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "e6c67ab6-4c8e-4e27-b720-90a33b091c79",
+        "name": "Log No Report Found",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          2528,
+          480
+        ],
+        "parameters": {
+          "operation": "appendOrUpdate",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "",
+            "cachedResultUrl": "",
+            "cachedResultName": "Discovery Log"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "",
+            "cachedResultUrl": "",
+            "cachedResultName": "YOUR_SPREADSHEET"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleSheetsOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "312b3ff5-753a-4f31-aadd-74484b799d0f",
+        "name": "Completion Summary",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1024,
+          256
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "count",
+                "name": "sourcesChecked",
+                "type": "number",
+                "value": "={{ $items().length }}"
+              },
+              {
+                "id": "timestamp",
+                "name": "completedAt",
+                "type": "string",
+                "value": "={{ $now.toISO() }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "5e572710-10e7-43ba-9cd3-acf97cb80c30",
+        "name": "OpenAI GPT-5.1",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          1712,
+          480
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-5.1",
+            "cachedResultName": "gpt-5.1"
+          },
+          "options": {
+            "temperature": 0.1
+          }
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "credential-id",
+            "name": "openAiApi Credential"
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "6ce4884b-3b66-40de-9c4b-cdf858a81b1f",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          448,
+          112
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 272,
+          "height": 560,
+          "content": "## Read the Source URLs"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e96b1aee-6d93-4596-82db-167abfa514ba",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1216,
+          112
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 400,
+          "height": 560,
+          "content": "## Fetch the Publication and Convert to Markdown"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "255ff434-2189-4e76-8cbb-dde9d6d29bf0",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1664,
+          112
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 320,
+          "height": 560,
+          "content": "## Process the Publication using the LLM"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b3495bdd-01ae-47f2-bde4-c64341692c0c",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2016,
+          112
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 432,
+          "height": 560,
+          "content": "## Validate the AI Output\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9e6d8ea9-7de5-4225-bacf-b300611a6eb9",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2480,
+          112
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 448,
+          "height": 560,
+          "content": "## Log the Results in Google Sheets\n"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "f3ec8d20-c4e7-4c50-9f3c-ae87725de7e6",
+    "connections": {
+      "Manual Trigger": {
+        "main": [
+          [
+            {
+              "node": "Read Active Sources",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI GPT-5.1": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Report Discovery Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule (Daily)": {
+        "main": [
+          [
+            {
+              "node": "Read Active Sources",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Sources": {
+        "main": [
+          [
+            {
+              "node": "Completion Summary",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Fetch Publication Page",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log No Report Found": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Sources",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read Active Sources": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Sources",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Valid Report Found?": {
+        "main": [
+          [
+            {
+              "node": "Save Discovered Report",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Log No Report Found",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Publication Page": {
+        "main": [
+          [
+            {
+              "node": "Convert HTML to Markdown",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Save Discovered Report": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Sources",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Convert HTML to Markdown": {
+        "main": [
+          [
+            {
+              "node": "AI Report Discovery Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Structured Output Parser": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "AI Report Discovery Agent",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Report Discovery Agent": {
+        "main": [
+          [
+            {
+              "node": "Validate & Normalize Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Called by Another Workflow": {
+        "main": [
+          [
+            {
+              "node": "Read Active Sources",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validate & Normalize Output": {
+        "main": [
+          [
+            {
+              "node": "Valid Report Found?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    },
+    {
+      "id": 48,
+      "name": "AI RAG"
+    }
+  ],
+  "url": "https://n8n.io/workflows/11232",
+  "fetched_at": "2026-09-12T13:13:42Z"
+}

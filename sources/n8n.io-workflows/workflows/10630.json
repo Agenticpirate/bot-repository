@@ -1,0 +1,467 @@
+{
+  "id": 10630,
+  "name": "Generate AI stock trade recommendations from TwelveData, NewsAPI and Gemini via Telegram",
+  "description": "## Quick overview\nZenTrade is an AI-powered trading assistant that combines multi-timeframe analysis, volume confirmation, and news sentiment to generate Buy, Sell, and Hold recommendations with market bias, risk assessment, and trade setups delivered directly to Telegram.\n\n## How it works\n1. ZenTrade analyzes live market data across multiple timeframes (1-minute, 15-minute, and 1-hour) using TwelveData. The workflow evaluates trend direction, volume activity, and news sentiment, then processes this information through a proprietary market scoring engine. Based on the calculated market bias, Gemini AI generates a concise trade analysis with a recommendation, risk assessment, and trade setup including entry, stop loss, and target levels. Results are automatically delivered to Telegram in real time.\n\n\n## Setup\n1. Import the workflow into n8n and configure your API credentials for TwelveData, NewsAPI, Gemini (or OpenAI), and Telegram. Create a Telegram bot using BotFather and add the bot token to the workflow credentials. Once configured, users can submit stock tickers directly through Telegram. The workflow will fetch market data, analyze sentiment, calculate market bias, and return a complete trading report within seconds.\n\n\n## Requirements\n- n8n Cloud or self-hosted n8n instance\n- TwelveData API key (market data)\n- NewsAPI key (news sentiment)\n- Google Gemini API key or OpenAI API key\n- Telegram Bot Token (via @BotFather)\n\n## Customization\n- Replace Telegram with Slack, Discord, Email, or Notion\n- Connect TradingView, Alpaca, or brokerage APIs\n- Modify scoring weights and trading logic\n- Add portfolio tracking and performance monitoring\n- Extend support to crypto, forex, ETFs, or commodities\n- Create custom trading strategies using the built-in scoring engine",
+  "workflow": {
+    "meta": {
+      "instanceId": "bb1d36a4b9c034f5ada4b0425a451ca871ea9dee2c7b45d75d6a4abf14c34467"
+    },
+    "nodes": [
+      {
+        "id": "3ae387ee-46af-481d-b0aa-74aa133274dc",
+        "name": "Telegram Trigger",
+        "type": "n8n-nodes-base.telegramTrigger",
+        "position": [
+          -528,
+          384
+        ],
+        "webhookId": "74516488-f5be-4c5b-ae40-2b2b631a3bf8",
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "9e20cdd4-fe20-4189-bf74-ac1da843df44",
+        "name": "15 min Interval",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          144,
+          384
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "41dd9d37-4f55-44d9-bec3-0d6570c9f3b8",
+        "name": "1 min Interval",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          144,
+          192
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "82439e96-345c-4ed3-a092-f8ad89a0b143",
+        "name": "1 hour Interval",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          144,
+          592
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "5ac7766a-c714-4e4a-bfd4-de60f69b9d53",
+        "name": "Merge",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          496,
+          368
+        ],
+        "parameters": {},
+        "typeVersion": 3.2
+      },
+      {
+        "id": "6fa66b87-6935-4f68-9373-303e8e4ec4d1",
+        "name": "Aggregate",
+        "type": "n8n-nodes-base.aggregate",
+        "position": [
+          704,
+          384
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "e6fe8a89-9bed-47c3-ba1a-162c7e0c9718",
+        "name": "Code in JavaScript",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          912,
+          384
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "10a46eb6-6a30-4cdf-926f-345d3e1d436f",
+        "name": "News Aggregator",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          144,
+          992
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "cc2bcd96-e12f-48a3-aec1-f880ecba330c",
+        "name": "Message a model",
+        "type": "@n8n/n8n-nodes-langchain.googleGemini",
+        "position": [
+          656,
+          992
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "3730180d-c419-42ec-b2f7-5751f774b3c8",
+        "name": "Merge1",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          1264,
+          400
+        ],
+        "parameters": {},
+        "typeVersion": 3.2
+      },
+      {
+        "id": "c57025d2-d1fc-4aed-842a-664a4cdc31ea",
+        "name": "Aggregate1",
+        "type": "n8n-nodes-base.aggregate",
+        "position": [
+          1472,
+          400
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "b1e56602-fd90-440a-bd84-8f8458ac8f9c",
+        "name": "AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          1680,
+          400
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "2d140c61-a958-4071-87cf-f83c6dab7fd8",
+        "name": "Google Gemini Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "position": [
+          1680,
+          640
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "0275da97-72e4-4e7c-aadb-68d0bc3b9026",
+        "name": "Send a text message",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          2032,
+          400
+        ],
+        "webhookId": "91aacc9c-a732-4ff6-9bf9-3ff9a9008a10",
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "db55d423-7bf7-4067-9713-ca7b36d950c2",
+        "name": "Account Check",
+        "type": "n8n-nodes-base.switch",
+        "position": [
+          -256,
+          384
+        ],
+        "parameters": {},
+        "typeVersion": 3.3
+      },
+      {
+        "id": "cd649e6c-953b-4600-97c1-1dbb01f2b76d",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          448,
+          224
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8c7bc49b-dd4e-4d4e-aed6-3c74cc3366d9",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1184,
+          224
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e14af493-adb4-4104-9d00-5318deb70c61",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4c51fc2a-a369-4654-ab82-10d30569d1b9",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          0,
+          800
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "91063962-bf1a-4565-a1d5-c8d248322818",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -320,
+          80
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "aac304c8-4869-4cf5-854e-cdf4ebe29727",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1984,
+          224
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1a6d5aae-bb5a-428c-a66a-444d199af50f",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1184,
+          16
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "91016355-ac3c-4227-bdcb-3978a5cae54b",
+        "name": "Sticky Note8",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2416,
+          176
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Merge": {
+        "main": [
+          [
+            {
+              "node": "Aggregate",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge1": {
+        "main": [
+          [
+            {
+              "node": "Aggregate1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Send a text message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Aggregate": {
+        "main": [
+          [
+            {
+              "node": "Code in JavaScript",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Aggregate1": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Account Check": {
+        "main": [
+          [
+            {
+              "node": "1 min Interval",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "15 min Interval",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "1 hour Interval",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "News Aggregator",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "1 min Interval": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "1 hour Interval": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 2
+            }
+          ]
+        ]
+      },
+      "15 min Interval": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Message a model": {
+        "main": [
+          [
+            {
+              "node": "Merge1",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "News Aggregator": {
+        "main": [
+          [
+            {
+              "node": "Message a model",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Telegram Trigger": {
+        "main": [
+          [
+            {
+              "node": "Account Check",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code in JavaScript": {
+        "main": [
+          [
+            {
+              "node": "Merge1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Gemini Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 44,
+      "name": "Crypto Trading"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/10630",
+  "fetched_at": "2026-09-12T13:13:28Z"
+}

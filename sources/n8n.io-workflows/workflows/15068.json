@@ -1,0 +1,844 @@
+{
+  "id": 15068,
+  "name": "Track equity sector rotation with Google Sheets, Yahoo Finance, Groq and Gmail",
+  "description": "# Sector Rotation Tracker & Alert System of Equity Market\n\nThis workflow automates the tracking of stock market sector rotation. It fetches a list of active stocks from Google Sheets, pulls their last 5 days of market data from Yahoo Finance and calculates momentum and sector strength using custom code. It then compares this current data against historical data to detect capital rotation signals. Finally, an AI Agent (powered by Groq's Llama-3 model) acts as a financial analyst to interpret the shifts and sends an automated Gmail alert if a high-confidence bullish trend is detected.\n\n### Quick Implementation Steps\n\nDon't want to read the details? Follow these quick steps to get started:\n\n1. **Connect Credentials:** Authenticate your Google Sheets, Gmail and Groq API accounts in n8n.\n2. **Setup Google Sheets:** Create a Google Sheet with two tabs. \"Sheet1\" needs an `active` column set to `true` for stocks you want to track. \"Sheet2\" is used to store daily historic data.\n3. **Update Sector Map:** Open the **Group By Sector** code node and update the `sectorMap` with your specific stock symbols and their corresponding sectors.\n4. **Configure Email:** Open the **Send Email Alert** node and enter your destination email address.\n5. **Test and Run:** Click \"Test Workflow\" to ensure data flows correctly, then activate it to run on your schedule!\n\n\n## What It Does\n\nThe Stock Sector Rotation Tracker acts as your personal automated quantitative analyst. It starts by pulling a predefined watchlist of active stocks from a connected Google Sheet. Using Yahoo Finance's API, it retrieves the daily closing prices and trading volumes over the past 5 days for each stock.\n\nOnce the raw data is gathered, a series of custom JavaScript nodes process the information. It calculates 1-day, 3-day and 5-day returns, assigns momentum scores and evaluates volume ratios. The stocks are then grouped into their respective market sectors (e.g., IT, Banking, Auto) to calculate an aggregate \"Sector Strength Score.\" This score is compared against historical data saved from previous days to determine if money is rotating into or out of a specific sector.\n\nTo add a layer of human-like intelligence, the compiled data is sent to an AI Agent powered by Groq. The AI acts as an institutional equity researcher, providing a concise summary, explaining the possible reasons for the market movement and assigning a trading bias (Bullish, Bearish or Neutral) along with a confidence score out of 10. If the AI identifies a strong bullish signal, a detailed email alert is instantly dispatched via Gmail.\n\n\n## Who It's For\n\n* **Retail Investors & Day Traders** \n\nLooking for automated daily watchlists and momentum alerts without paying for expensive terminal subscriptions.\n\n* **Financial Analysts & Wealth Managers** \n\nNeeding an automated way to track institutional capital flows and sector rotation over time.\n\n* **Quant Enthusiasts** \n\nWanting a foundation to build custom algorithmic trading indicators using n8n and AI.\n\n\n## Requirements to Use This Workflow\n\nTo successfully run this workflow, you will need:\n\n* [An active n8n account (Cloud or Self-Hosted)](https://n8n.partnerlinks.io/om1efg2qgvwi).\n* A Google Account to access Google Sheets (for data storage) and Gmail (for sending alerts).\n* A free Groq API key to power the Llama 3 AI model.\n* A basic understanding of stock symbols (tickers) as used on Yahoo Finance (e.g., `INFY.NS` or `AAPL`).\n\n\n## How It Works & Set Up\n\n### Step 1: Prepare Your Google Sheets\n\nYou need a Google Spreadsheet with two specific tabs.\n\n* **Tab 1 (Watchlist):** Must include columns for stock symbols and an `active` column (set to `true` or `false`).\n* **Tab 2 (Historic Data):** Must include columns for `date`, `sector`, `sector_strength_score`, `trend`, `rotation_signal` and `score_change`. \n\n### Step 2: Configure Credentials in n8n\n\n* **Google Sheets & Gmail:** Set up OAuth2 credentials for your Google account. Connect these to the Google Sheets nodes and the final Gmail node.\n* **Groq API:** Generate an API key from the Groq console and add it to the **Insights from Model** node.\n\n### Step 3: Update Stock and Sector Mappings\n\n* Open the **Group By Sector** code node.\n* Modify the `sectorMap` JavaScript object to match the stock symbols in your Google Sheet. For example, change `\"INFY.NS\": \"IT\"` to match your desired ticker and sector.\n\n### Step 4: Review AI and Email Thresholds\n\n* The workflow uses an **If** node named **Check if Bullish**. By default, it sends an email if the AI Action is exactly `Bullish` OR if the AI Confidence score is greater than `7`. You can adjust these thresholds based on how strict you want your alerts to be.\n\n\n## How To Customize Nodes\n\n* **Modify the Timeframe** \n\nIn the **Get stocks Data** node, the Yahoo Finance URL ends with `?range=5d&interval=1d`. You can change this to `1mo` (1 month) or interval to `1wk` (1 week) to track macro trends instead of short-term momentum.\n\n* **Tweak the Math Formula**\n\nThe **Calculate Stock Returns** code node assigns weights to different days (e.g., 1-day return is weighted at 50%, 3-day at 30%). You can easily adjust these multipliers to fit your personal trading strategy.\n\n* **Change the AI Prompt**\n\nOpen the **Prepare AI Insights Prompt** code node or the **AI Analyzer** agent node to rewrite the AI's instructions. You can ask it to adopt a different persona, like a conservative dividend investor, rather than a momentum trader.\n\n\n## Add-ons\n\nWant to take this workflow to the next level? Here are a few ideas:\n\n* **Slack / Discord Integration**\n\nReplace or supplement the Gmail node with a Slack or Discord node to push alerts directly to a trading community channel.\n\n* **SMS Notifications**\n\nAdd a Twilio node to get instant text messages when a high-confidence rotation signal fires.\n\n* **Multiple AI Perspectives**\n\nAdd a secondary AI node (like OpenAI's GPT-4o or Anthropic's Claude 3.5) to analyze the same data, then use an IF node to only send an alert if *both* models agree on a Bullish trend.\n\n\n## Use Case Examples\n\n1. **Daily Morning Briefing**\n\nSchedule the workflow to run 30 minutes before the market opens to get a fresh perspective on where capital moved the previous day.\n\n2. **Swing Trading Assistant**\n\nUse the automated \"ROTATION_IN\" signals to build a shortlist of swing trade opportunities before the broader market catches on.\n\n3. **Portfolio Rebalancing**\n\nTrack sector strength over weeks or months to decide when to rebalance a long-term retirement portfolio from lagging sectors to leading ones.\n\n4. **Institutional Capital Flow Tracking**\n\nIdentify \"volume boosts\" alongside price momentum to spot hidden institutional buying in specific market sectors.\n\n5. **Educational Paper Trading**\n\nForward the AI insights to a journal or note-taking app (like Notion) to learn how data-driven momentum aligns with actual market performance over time.\n\n\n## Troubleshooting Guide\n\n| Issue | Possible Cause | Solution |\n| :--- | :--- | :--- |\n| **Yahoo Finance HTTP Request Fails** | Rate limits or invalid ticker symbol. | Check that the symbols in your Google Sheet exactly match Yahoo Finance tickers (e.g., adding `.NS` for Indian stocks). Add a longer batching interval in the HTTP node settings. |\n| **No Data Moving Past \"Group By Sector\"** | `sectorMap` doesn't match incoming symbols. | Open the **Group By Sector** node and ensure the ticker names in your code exactly match the tickers coming from the API. |\n| **AI Node Throws JSON Parse Error** | The AI responded with conversational text instead of strict JSON. | The **Parse AI Output** node has a fallback to catch this, but you can improve reliability by emphasizing `Respond ONLY in valid JSON format` in the AI Agent's system prompt. |\n| **Google Sheets Node \"Cannot find sheet\"** | Document ID or Sheet ID mismatch. | Re-select your specific Spreadsheet and Worksheet directly from the dropdown menus inside the Google Sheets nodes. |\n| **Emails Are Not Sending** | The IF node condition is not being met or Gmail authentication expired. | Check the execution logs. If the AI is returning a confidence of 6, it won't send. Re-authenticate your Google account if the node shows an OAuth error. |\n\n\n## Need Help?\n\nBuilding financial automation workflows can be complex and tweaking momentum formulas or AI prompts sometimes requires a bit of trial and error. If you need assistance setting up this workflow, customizing the JavaScript nodes, integrating additional trading APIs or building entirely new automation systems tailored to your business, our [n8n workflow developers](https://www.weblineindia.com/hire-n8n-developers/) are here to help! \n\n[Reach out to **WeblineIndia** for expert n8n consulting, development and support to turn your automation ideas into reality.](https://www.weblineindia.com/contact-us.html)",
+  "workflow": {
+    "id": "GWmIor5rJzUAFyTr",
+    "meta": {
+      "instanceId": "9f24379abd1ca05a3f590fdaa874ca82fbc5e1188798d609d51d2a8f6bacb662"
+    },
+    "name": "Sector Rotation Tracker",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "80fa7144-7a43-4ce9-8873-a35cdf047d1d",
+        "name": "Normalize Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1216,
+          -160
+        ],
+        "parameters": {
+          "jsCode": "const output = [];\n\nfor (const item of items) {\n  const result = item.json.chart.result[0];\n\n  const meta = result.meta;\n  const quote = result.indicators.quote[0];\n\n  // 1. Filter out null values to prevent NaN errors in subsequent nodes\n  const validCloses = quote.close ? quote.close.filter(c => c !== null) : [];\n  const validVolumes = quote.volume ? quote.volume.filter(v => v !== null) : [];\n\n  output.push({\n    json: {\n      sector: item.json.sector, // <--- MOVED HERE (Correct placement)\n      symbol: meta.symbol,\n      stock_name: meta.longName,\n      current_price: meta.regularMarketPrice,\n      previous_close: meta.chartPreviousClose,\n\n      // 2. Dynamically grab from the end of the array using .at()\n      day_1_close: validCloses.at(-5) || validCloses.at(0) || 0,\n      day_2_close: validCloses.at(-4) || 0,\n      day_3_close: validCloses.at(-3) || 0,\n      day_4_close: validCloses.at(-2) || 0,\n      day_5_close: validCloses.at(-1) || 0, // Latest day\n\n      // 3. Apply dynamic logic for volume and safe average calculation\n      latest_volume: validVolumes.at(-1) || 0,\n      avg_5d_volume: validVolumes.length > 0 \n        ? validVolumes.reduce((a, b) => a + b, 0) / validVolumes.length \n        : 0\n    }\n  });\n}\n\nreturn output;"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "a54b8675-5348-45c1-be0c-b667693cf760",
+        "name": "Calculate Stock Returns",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -992,
+          -160
+        ],
+        "parameters": {
+          "jsCode": "const output = [];\n\nfor (const item of items) {\n  const d1 = item.json.day_1_close; // oldest\n  const d3 = item.json.day_3_close;\n  const d4 = item.json.day_4_close;\n  const d5 = item.json.day_5_close; // latest\n\n  const current = item.json.current_price;\n  const prev = item.json.previous_close;\n\n  // Safe return calculation\n  const one_day_return = prev\n    ? ((current - prev) / prev) * 100\n    : 0;\n\n  const three_day_return = d3\n    ? ((current - d3) / d3) * 100\n    : 0;\n\n  const five_day_return = d1\n    ? ((current - d1) / d1) * 100\n    : 0;\n\n  const volume_ratio = item.json.avg_5d_volume\n    ? item.json.latest_volume / item.json.avg_5d_volume\n    : 1;\n\n  let momentum_score =\n    (one_day_return * 0.5) +\n    (three_day_return * 0.3) +\n    (five_day_return * 0.2);\n\n  // Volume boost\n  if (volume_ratio > 1.2) {\n    momentum_score += 1;\n  }\n\n  output.push({\n    json: {\n      ...item.json,\n\n      one_day_return: Number(one_day_return.toFixed(2)),\n      three_day_return: Number(three_day_return.toFixed(2)),\n      five_day_return: Number(five_day_return.toFixed(2)),\n      volume_ratio: Number(volume_ratio.toFixed(2)),\n      momentum_score: Number(momentum_score.toFixed(2))\n    }\n  });\n}\n\nreturn output;"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "32b3e016-93ff-499b-9509-c68da8d3a2e0",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2864,
+          -288
+        ],
+        "parameters": {
+          "width": 608,
+          "height": 592,
+          "content": "# Sector Rotation Tracker & AI Analyzer\n\n## How it works:\nThis workflow fetches active stock symbols from Google Sheets and pulls their 5-day market data via Yahoo Finance. It groups stocks by sector, calculates momentum and scores sector strength. It then compares these scores against historical data to detect rotation signals. Finally, an AI agent analyzes the shift and emails an alert if a high-confidence \"Bullish\" trend is detected.\n\n## Setup steps:\n\n1. Connect your Google Sheets and Gmail credentials.\n2. Authenticate the Groq API for the Llama 3 AI Agent.\n3. Verify your Google Sheet has the correct tabs (Sheet1 for active stocks, Sheet2 for historic data).\n4. Set the target email address in the final Gmail node."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6038e8be-7f0b-49e9-938b-84bfaf4c6446",
+        "name": "Group By Sector",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -768,
+          -160
+        ],
+        "parameters": {
+          "jsCode": "// We need to map the symbols back to their sectors because \n// the HTTP Request node replaced the Google Sheet data.\nconst sectorMap = {\n  \"INFY.NS\": \"IT\",\n  \"TCS.NS\": \"IT\",\n  \"WIPRO.NS\": \"IT\",\n  \"HDFCBANK.NS\": \"BANK\",\n  \"ICICIBANK.NS\": \"BANK\",\n  \"SBIN.NS\": \"BANK\",\n  \"TMPV.NS\": \"AUTO\",\n  \"MARUTI.NS\": \"AUTO\"\n};\n\n// Grouping object to hold sectors\nconst grouped = {};\n\n// Process all incoming stock items\nfor (const item of items) {\n  const stock = item.json;\n  \n  // Look up the sector using the stock symbol, fallback to \"UNKNOWN\"\n  const sector = sectorMap[stock.symbol] || \"UNKNOWN\";\n\n  if (!grouped[sector]) {\n    grouped[sector] = {\n      sector: sector,\n      total_stocks: 0,\n      stocks: []\n    };\n  }\n\n  // Push the stock into its respective sector group\n  grouped[sector].stocks.push(stock);\n  grouped[sector].total_stocks += 1;\n}\n\n// Return grouped sectors as separate items\nreturn Object.values(grouped).map(group => ({\n  json: group\n}));"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "66e98d16-9570-43cb-a111-c1b8e6c08825",
+        "name": "Detect Rotation and Compare Historic Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -96,
+          -64
+        ],
+        "parameters": {
+          "jsCode": "// Split current vs historical data\nconst currentData = [];\nconst historicalData = [];\n\n// FIX: Apply IST timezone offset (5 hours 30 minutes) to avoid the UTC morning gap\nconst offsetMs = 5.5 * 60 * 60 * 1000; \nconst localDate = new Date(Date.now() + offsetMs);\nconst today = localDate.toISOString().split(\"T\")[0];\n\nfor (const item of items) {\n  const row = item.json;\n\n  if (!row.date && row.sector_strength_score !== undefined) {\n    currentData.push(row);\n  }\n\n  if (row.date && row.date !== today) {\n    historicalData.push(row);\n  }\n}\n\n// Get latest historical score per sector\nconst latestHistorical = {};\n\nfor (const row of historicalData) {\n  const sector = row.sector;\n  const date = new Date(row.date);\n\n  if (\n    !latestHistorical[sector] ||\n    date > new Date(latestHistorical[sector].date)\n  ) {\n    latestHistorical[sector] = row;\n  }\n}\n\n// Rotation logic\nfunction getRotationSignal(current, previous) {\n  const diff = current - previous;\n\n  if (diff >= 0.5) return \"ROTATION_IN\";\n  if (diff <= -0.5) return \"ROTATION_OUT\";\n  if (current >= 1.5) return \"LEADING\";\n  if (current <= -1) return \"LAGGING\";\n  return \"STABLE\";\n}\n\n// Final output\nconst output = currentData.map(row => {\n  const sector = row.sector;\n  const currentScore = Number(row.sector_strength_score);\n\n  const historical = latestHistorical[sector];\n  const previousScore = historical\n    ? Number(historical.sector_strength_score)\n    : null;\n\n  const scoreChange =\n    previousScore !== null\n      ? +(currentScore - previousScore).toFixed(2)\n      : null;\n\n  const rotationSignal =\n    previousScore !== null\n      ? getRotationSignal(currentScore, previousScore)\n      : \"NO_HISTORY\";\n\n  return {\n    json: {\n      date: today,\n      sector,\n      sector_strength_score: currentScore,\n      trend: row.trend,\n      previous_score: previousScore,\n      score_change: scoreChange,\n      rotation_signal: rotationSignal\n    }\n  };\n});\n\nreturn output;"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "aff30a68-d574-4fae-b4b7-720dc66cb2d3",
+        "name": "Parse AI Output",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          704,
+          -160
+        ],
+        "parameters": {
+          "jsCode": "// Grab the original data from before the AI Agent wiped it!\n// .all() gets the full array of items, which matches our AI outputs 1:1\nconst originalItems = $('Prepare AI Insights Prompt').all();\n\nreturn items.map((item, index) => {\n    let parsed = {};\n    \n    // Match the current AI output with its original untouched data using the index\n    const originalData = originalItems[index].json;\n    \n    // 1. Strip markdown formatting before parsing to prevent JSON errors\n    try {\n        // Grab output, default to empty JSON string if undefined\n        let cleanOutput = item.json.output || \"{}\"; \n        \n        // Remove ```json and ``` tags\n        cleanOutput = cleanOutput.replace(/```json/gi, '').replace(/```/g, '').trim();\n        \n        parsed = JSON.parse(cleanOutput);\n    } catch (err) {\n        parsed = {\n            insight: \"Could not parse AI output\",\n            reason: \"Parse Error: \" + err.message, \n            action: \"Neutral\",\n            confidence: \"0\"\n        };\n    }\n\n    // 2. We can now safely grab the exact sector and date directly from the ORIGINAL data!\n    const sector = originalData.sector || \"UNKNOWN\";\n    const date = originalData.date;\n\n    // Build the formatted insight\n    const formattedInsight = `\nSECTOR: ${sector}\nDATE: ${date}\n\nAI INSIGHT:\n${parsed.insight}\n\nREASON:\n${parsed.reason}\n\nACTION:\n${parsed.action}\n\nCONFIDENCE:\n${parsed.confidence}/10\n`.trim();\n\n    // 3. Rebuild the final item. \n    // By using \"...originalData\", we bring back all the lost data (trend, score, rotation_signal, etc.)\n    return {\n        json: {\n            ...originalData, \n            ai_insight: parsed.insight,\n            ai_reason: parsed.reason,\n            ai_action: parsed.action,\n            ai_confidence: Number(parsed.confidence) || 0,\n            formatted_ai_insight: formattedInsight\n        }\n    };\n});"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "acd91aca-f2ab-4e2c-8980-dfc38eb70fca",
+        "name": "Insights from Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+        "position": [
+          352,
+          -32
+        ],
+        "parameters": {
+          "model": "llama-3.3-70b-versatile",
+          "options": {}
+        },
+        "credentials": {
+          "groqApi": {
+            "id": "QyoqMLjpMrMq0JV2",
+            "name": "harshal chaudhari groq acc"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9efb05df-25f7-4b99-9117-70a3d4cc4c30",
+        "name": "Prepare AI Insights Prompt",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          144,
+          -144
+        ],
+        "parameters": {
+          "jsCode": "return items.map(item => {\n  const row = item.json;\n\n  const prompt = `\nYou are a professional stock market sector rotation analyst.\n\nAnalyze today's sector movement.\n\nDate: ${row.date}\nSector: ${row.sector}\nCurrent Score: ${row.sector_strength_score}\nPrevious Score: ${row.previous_score}\nScore Change: ${row.score_change}\nTrend: ${row.trend}\nRotation Signal: ${row.rotation_signal}\n\nProvide:\n1. Short institutional insight\n2. Possible reason for movement\n3. Suggested action (Watchlist / Bullish / Bearish / Neutral)\n4. Confidence score out of 10\n\nKeep response concise.\n`;\n\n  return {\n    json: {\n      ...row,\n      ai_prompt: prompt\n    }\n  };\n});"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "e533efce-98c5-4e63-98c0-efa6189ea63b",
+        "name": "Save Today's Market Data",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -128,
+          176
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "date": "={{ $json.date }}",
+              "trend": "={{ $json.trend }}",
+              "sector": "={{ $json.sector }}",
+              "score_change": "={{ $json.score_change }}",
+              "rotation_signal": "={{ $json.rotation_signal }}",
+              "sector_strength_score": "={{ $json.sector_strength_score }}"
+            },
+            "schema": [
+              {
+                "id": "date",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "date",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "sector",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "sector",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "sector_strength_score",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "sector_strength_score",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "trend",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "trend",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "rotation_signal",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "rotation_signal",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "score_change",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "score_change",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": 2121732288,
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1tEkNVDDzXbsgD772VUNPYk0G6F1zwrktJYW82e85Yts/edit#gid=2121732288",
+            "cachedResultName": "Sheet2"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1tEkNVDDzXbsgD772VUNPYk0G6F1zwrktJYW82e85Yts",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1tEkNVDDzXbsgD772VUNPYk0G6F1zwrktJYW82e85Yts/edit?usp=drivesdk",
+            "cachedResultName": "Sector Rotation Config"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "YLNSloXJIWPMHBvp",
+            "name": "harshal chaudhari sheet acc"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "35ab8c90-a812-411d-a72c-0540d2e96f57",
+        "name": "Get stocks Data",
+        "type": "n8n-nodes-base.httpRequest",
+        "maxTries": 2,
+        "position": [
+          -1440,
+          -160
+        ],
+        "parameters": {
+          "url": "={{ $json.yahoo_finance_base_url }}{{ $json.symbol.trim() }}?range=5d&interval=1d",
+          "options": {
+            "batching": {
+              "batch": {
+                "batchSize": 5,
+                "batchInterval": 2000
+              }
+            }
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {}
+            ]
+          }
+        },
+        "retryOnFail": true,
+        "typeVersion": 4.3
+      },
+      {
+        "id": "9e336426-d539-4fbb-868b-d893bf38e5bd",
+        "name": "Generate Daily Rotation",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          -2112,
+          -64
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "f12ed8d5-d1a3-460f-afa9-9213e19ae0f7",
+        "name": "Fetch Active Stocks",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -1888,
+          -160
+        ],
+        "parameters": {
+          "options": {},
+          "filtersUI": {
+            "values": [
+              {
+                "lookupValue": "true",
+                "lookupColumn": "active"
+              }
+            ]
+          },
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1tEkNVDDzXbsgD772VUNPYk0G6F1zwrktJYW82e85Yts/edit#gid=0",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1tEkNVDDzXbsgD772VUNPYk0G6F1zwrktJYW82e85Yts",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1tEkNVDDzXbsgD772VUNPYk0G6F1zwrktJYW82e85Yts/edit?usp=drivesdk",
+            "cachedResultName": "Sector Rotation Config"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "YLNSloXJIWPMHBvp",
+            "name": "harshal chaudhari sheet acc"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "0e30149b-a049-4c29-882f-cc25c83896da",
+        "name": "Set API Base URL",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -1664,
+          -160
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "c142db23-0579-43d6-9353-f8295bdf4a5f",
+                "name": "yahoo_finance_base_url",
+                "type": "string",
+                "value": "https://query1.finance.yahoo.com/v8/finance/chart/"
+              }
+            ]
+          },
+          "includeOtherFields": true
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "3276f9b6-ba41-49f1-86e8-4340f1b66b9e",
+        "name": "Fetch Historic Data",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -352,
+          144
+        ],
+        "parameters": {
+          "options": {},
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": 2121732288,
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1tEkNVDDzXbsgD772VUNPYk0G6F1zwrktJYW82e85Yts/edit#gid=2121732288",
+            "cachedResultName": "Sheet2"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1tEkNVDDzXbsgD772VUNPYk0G6F1zwrktJYW82e85Yts",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1tEkNVDDzXbsgD772VUNPYk0G6F1zwrktJYW82e85Yts/edit?usp=drivesdk",
+            "cachedResultName": "Sector Rotation Config"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "YLNSloXJIWPMHBvp",
+            "name": "harshal chaudhari sheet acc"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "cd5ce733-ba7d-418b-a067-035a729f7acd",
+        "name": "Calculate Sector Strength",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -544,
+          -160
+        ],
+        "parameters": {
+          "jsCode": "// Production-grade sector strength calculation\n\nreturn items.map(item => {\n  const sectorData = item.json;\n  const stocks = sectorData.stocks || [];\n\n  if (stocks.length === 0) {\n    return {\n      json: {\n        sector: sectorData.sector,\n        error: \"No stocks found\"\n      }\n    };\n  }\n\n  const avgMomentum =\n    stocks.reduce((sum, stock) => sum + (stock.momentum_score || 0), 0) / stocks.length;\n\n  const avgOneDayReturn =\n    stocks.reduce((sum, stock) => sum + (stock.one_day_return || 0), 0) / stocks.length;\n\n  const avgThreeDayReturn =\n    stocks.reduce((sum, stock) => sum + (stock.three_day_return || 0), 0) / stocks.length;\n\n  const avgVolumeRatio =\n    stocks.reduce((sum, stock) => sum + (stock.volume_ratio || 0), 0) / stocks.length;\n\n  // Final strength score formula: Trust the underlying stock momentum\n  const sectorStrengthScore = avgMomentum;\n\n  // Sector trend label\n  let trend = \"Neutral\";\n\n  if (sectorStrengthScore >= 2) {\n    trend = \"Strong Bullish\";\n  } else if (sectorStrengthScore >= 0.5) {\n    trend = \"Bullish\";\n  } else if (sectorStrengthScore <= -2) {\n    trend = \"Strong Bearish\";\n  } else if (sectorStrengthScore <= -0.5) {\n    trend = \"Bearish\";\n  }\n\n  return {\n    json: {\n      sector: sectorData.sector,\n      total_stocks: stocks.length,\n      avg_momentum_score: Number(avgMomentum.toFixed(2)),\n      avg_1d_return: Number(avgOneDayReturn.toFixed(2)),\n      avg_3d_return: Number(avgThreeDayReturn.toFixed(2)),\n      avg_volume_ratio: Number(avgVolumeRatio.toFixed(2)),\n      sector_strength_score: Number(sectorStrengthScore.toFixed(2)),\n      trend: trend,\n      stocks: stocks\n    }\n  };\n});"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "7259af0c-a459-4340-a056-815d7a81489a",
+        "name": "Merge Current & Historic Data",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          -320,
+          -64
+        ],
+        "parameters": {},
+        "typeVersion": 3.2
+      },
+      {
+        "id": "e632c0a3-f40e-4ffd-bd81-63615d7eedc6",
+        "name": "AI Analyzer",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          352,
+          -160
+        ],
+        "parameters": {
+          "text": "=Analyze today's sector rotation data.\n\nDate: {{ $json.date }}\nSector: {{ $json.sector }}\n\nCurrent Score: {{ $json.sector_strength_score }}\nPrevious Score: {{ $json.previous_score }}\nScore Change: {{ $json.score_change }}\n\nTrend: {{ $json.trend }}\nRotation Signal: {{ $json.rotation_signal }}\n\nProvide professional institutional market insight.",
+          "options": {
+            "systemMessage": "=You are a senior equity research analyst specializing in sector rotation, momentum analysis and institutional capital flow tracking.\n\nYour job is to analyze sector strength data and identify meaningful market rotation signals.\n\nFocus on:\n1. Strength vs previous score\n2. Directional momentum shift\n3. Bullish / bearish capital rotation\n4. Institutional accumulation or distribution probability\n5. Trading bias (Bullish / Bearish / Neutral)\n\nRules:\n- Keep output concise and professional\n- Use financial market language\n- Do not hallucinate macro news unless clearly implied by the data\n- Base insights strictly on the provided numerical inputs\n- Output must be structured in exactly this format:\n\nINSIGHT:\n<one-line professional summary>\n\nREASON:\n<possible reason from score movement and trend>\n\nACTION:\n<Bullish / Bearish / Watchlist / Neutral>\n\nCONFIDENCE:\n<score out of 10>\n\n\nRespond ONLY in valid JSON format.\n\nRequired format:\n{\n  \"insight\": \"\",\n  \"reason\": \"\",\n  \"action\": \"\",\n  \"confidence\": \"\"\n}"
+          },
+          "promptType": "define"
+        },
+        "typeVersion": 3.1,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "1d31c2a7-5c5f-4816-afe0-446b45df8e07",
+        "name": "Check if Bullish",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          928,
+          -160
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 3,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "or",
+            "conditions": [
+              {
+                "id": "f8170857-06bf-4252-abba-e7310f547451",
+                "operator": {
+                  "name": "filter.operator.equals",
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{$json[\"ai_action\"]}}",
+                "rightValue": "Bullish"
+              },
+              {
+                "id": "9d8a2eb7-77f0-48a8-8e6e-8e110d26c9be",
+                "operator": {
+                  "type": "number",
+                  "operation": "gt"
+                },
+                "leftValue": "={{ $json.ai_confidence }}",
+                "rightValue": 7
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "82de3e1f-074d-4188-be35-d815557da93f",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1968,
+          -288
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 688,
+          "height": 368,
+          "content": "## Data Fetch & Setup\nStarts the daily tracking process by reading your active stock watchlist from Google Sheets. It then configures the API settings and automatically downloads the last 5 days of market trading data from Yahoo Finance for those specific stocks."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "225038e6-c8d0-4451-ad3d-d6f828b0958c",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1248,
+          -304
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 832,
+          "height": 336,
+          "content": "## Sector Strength Calculation\nCleans up the raw market data and calculates the momentum for each individual stock. It then groups these stocks into their specific market sectors (like IT or Banking) to determine the overall strength and health of each sector."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "36d5eb70-ffbe-4d10-942d-081866df953d",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -400,
+          -288
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 480,
+          "height": 672,
+          "content": "## Rotation Detection & Logging\n\nCompares today’s sector performance against historical data to spot capital rotation (money moving between sectors). After identifying if a sector is leading or lagging, it saves today's final scores back into your Google Sheet for future tracking.\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6cdd6814-8142-4b80-b721-379c8e05ea7c",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          112,
+          -288
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 768,
+          "height": 400,
+          "content": "## AI Insight Generation \nFeeds the freshly calculated sector data to the Llama 3 AI model. The AI acts as a professional financial analyst, providing a summary, explaining the market movement and assigning a trading action (like Bullish/Bearish) with a confidence score."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b2590a32-a97c-46bb-895c-e7215e183547",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          896,
+          -304
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 448,
+          "height": 352,
+          "content": "## Email Alerting\nActs as your final notification system by filtering the AI's recommendations. If the AI identifies a strong \"Bullish\" signal with a high confidence score (greater than 7), it immediately delivers a detailed alert directly to your inbox."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "54288373-3fa5-4782-94ff-30c0bdabe35b",
+        "name": "Send Email Alert",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          1152,
+          -160
+        ],
+        "webhookId": "6d77f245-f51e-4e31-95ea-89f14b5f6dc5",
+        "parameters": {
+          "message": "=Date: {{ $json.date }}\nSector: {{ $json.sector }}\nTrend: {{ $json.trend }}\nRotation Signal: {{ $json.rotation_signal }}\nScore Change: {{ $json.score_change }}\nAI Action: {{ $json.ai_action }}\nAI Insight: {{ $json.ai_insight }}\nReason: {{ $json.ai_reason }}\nConfidence: {{ $json.ai_confidence }}/10",
+          "options": {},
+          "subject": "=Sector Alert: {{$json[\"sector\"]}}",
+          "emailType": "text"
+        },
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "2bGhHtXnBefU5pfI",
+            "name": "harshal chaudhari gmail Acc"
+          }
+        },
+        "typeVersion": 2.2
+      }
+    ],
+    "active": false,
+    "pinData": {
+      "Send Email Alert": [
+        {
+          "json": {
+            "id": "19d43e88cc553d5a",
+            "labelIds": [
+              "UNREAD",
+              "SENT",
+              "INBOX"
+            ],
+            "threadId": "19d43e88cc553d5a"
+          },
+          "pairedItem": {
+            "item": 0
+          }
+        },
+        {
+          "json": {
+            "id": "19d43e891b41d756",
+            "labelIds": [
+              "UNREAD",
+              "SENT",
+              "INBOX"
+            ],
+            "threadId": "19d43e891b41d756"
+          },
+          "pairedItem": {
+            "item": 1
+          }
+        }
+      ],
+      "Save Today's Market Data": [
+        {
+          "json": {
+            "date": "2026-03-31",
+            "trend": "Neutral",
+            "sector": "IT",
+            "score_change": -0.31,
+            "rotation_signal": "STABLE",
+            "sector_strength_score": -0.05
+          },
+          "pairedItem": {
+            "item": 0
+          }
+        },
+        {
+          "json": {
+            "date": "2026-03-31",
+            "trend": "Strong Bearish",
+            "sector": "BANK",
+            "score_change": -0.28,
+            "rotation_signal": "LAGGING",
+            "sector_strength_score": -3.41
+          },
+          "pairedItem": {
+            "item": 1
+          }
+        },
+        {
+          "json": {
+            "date": "2026-03-31",
+            "trend": "Strong Bearish",
+            "sector": "AUTO",
+            "score_change": 0.06,
+            "rotation_signal": "LAGGING",
+            "sector_strength_score": -2.18
+          },
+          "pairedItem": {
+            "item": 2
+          }
+        }
+      ]
+    },
+    "settings": {
+      "availableInMCP": false,
+      "executionOrder": "v1"
+    },
+    "versionId": "a250be45-1e3f-457b-83c7-3f652dc03dc9",
+    "connections": {
+      "AI Analyzer": {
+        "main": [
+          [
+            {
+              "node": "Parse AI Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalize Data": {
+        "main": [
+          [
+            {
+              "node": "Calculate Stock Returns",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get stocks Data": {
+        "main": [
+          [
+            {
+              "node": "Normalize Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Group By Sector": {
+        "main": [
+          [
+            {
+              "node": "Calculate Sector Strength",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse AI Output": {
+        "main": [
+          [
+            {
+              "node": "Check if Bullish",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check if Bullish": {
+        "main": [
+          [
+            {
+              "node": "Send Email Alert",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      },
+      "Set API Base URL": {
+        "main": [
+          [
+            {
+              "node": "Get stocks Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Active Stocks": {
+        "main": [
+          [
+            {
+              "node": "Set API Base URL",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Historic Data": {
+        "main": [
+          [
+            {
+              "node": "Merge Current & Historic Data",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Insights from Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Analyzer",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Calculate Stock Returns": {
+        "main": [
+          [
+            {
+              "node": "Group By Sector",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Daily Rotation": {
+        "main": [
+          [
+            {
+              "node": "Fetch Historic Data",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Fetch Active Stocks",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Calculate Sector Strength": {
+        "main": [
+          [
+            {
+              "node": "Merge Current & Historic Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare AI Insights Prompt": {
+        "main": [
+          [
+            {
+              "node": "AI Analyzer",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge Current & Historic Data": {
+        "main": [
+          [
+            {
+              "node": "Detect Rotation and Compare Historic Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Detect Rotation and Compare Historic Data": {
+        "main": [
+          [
+            {
+              "node": "Save Today's Market Data",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Prepare AI Insights Prompt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 44,
+      "name": "Crypto Trading"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15068",
+  "fetched_at": "2026-09-12T13:15:14Z"
+}

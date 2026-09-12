@@ -1,0 +1,252 @@
+{
+  "id": 6395,
+  "name": "Automate news article scraping with ScrapegraphAI and store in Google Sheets",
+  "description": "*This workflow contains community nodes that are only compatible with the self-hosted version of n8n.*\n\n## News Article Scraping and Analysis with AI and Google Sheets Integration\n\n\n### 🎯 Target Audience\n- News aggregators and content curators\n- Media monitoring professionals\n- Market researchers tracking industry news\n- PR professionals monitoring brand mentions\n- Journalists and content creators\n- Business analysts tracking competitor news\n- Academic researchers collecting news data\n\n### 🚀 Problem Statement\nManual news monitoring is time-consuming and often misses important articles. This template solves the challenge of automatically collecting, structuring, and storing news articles from any website for comprehensive analysis and tracking.\n\n### 🔧 How it Works\n\nThis workflow automatically scrapes news articles from websites using AI-powered extraction and stores them in Google Sheets for analysis and tracking.\n\n#### Key Components\n\n- **Scheduled Trigger**: Runs automatically at specified intervals to collect fresh content\n- **AI-Powered Scraping**: Uses ScrapeGraphAI to intelligently extract article titles, URLs, and categories from any news website\n- **Data Processing**: Formats extracted data for optimal spreadsheet compatibility\n- **Automated Storage**: Saves all articles to Google Sheets with metadata for easy filtering and analysis\n\n### 📊 Google Sheets Column Specifications\n\nThe template creates the following columns in your Google Sheets:\n\n| Column | Data Type | Description | Example |\n|--------|-----------|-------------|---------|\n| **title** | String | Article headline and title | \"'My friend died right in front of me' - Student describes moment air force jet crashed into school\" |\n| **url** | URL | Direct link to the article | \"https://www.bbc.com/news/articles/cglzw8y5wy5o\" |\n| **category** | String | Article category or section | \"Asia\" |\n\n### 🛠️ Setup Instructions\n\n**Estimated setup time: 10-15 minutes**\n\n#### Prerequisites\n- n8n instance with community nodes enabled\n- ScrapeGraphAI API account and credentials\n- Google Sheets account with API access\n\n#### Step-by-Step Configuration\n\n##### 1. Install Community Nodes\n```bash\n# Install ScrapeGraphAI community node\nnpm install n8n-nodes-scrapegraphai\n```\n\n##### 2. Configure ScrapeGraphAI Credentials\n- Navigate to Credentials in your n8n instance\n- Add new ScrapeGraphAI API credentials\n- Enter your API key from ScrapeGraphAI dashboard\n- Test the connection to ensure it's working\n\n##### 3. Set up Google Sheets Connection\n- Add Google Sheets OAuth2 credentials\n- Grant necessary permissions for spreadsheet access\n- Select or create a target spreadsheet for data storage\n- Configure the sheet name (default: \"Sheet1\")\n\n##### 4. Customize News Source Parameters\n- Update the `websiteUrl` parameter in the ScrapeGraphAI node\n- Modify the target news website URL as needed\n- Adjust the user prompt to extract additional fields if required\n- Test with a small website first before scaling to larger news sites\n\n##### 5. Configure Schedule Trigger\n- Set your preferred execution frequency (daily, hourly, etc.)\n- Choose appropriate time zones for your business hours\n- Consider the news website's update frequency when setting intervals\n\n##### 6. Test and Validate\n- Run the workflow manually to verify all connections\n- Check Google Sheets for proper data formatting\n- Validate that all required fields are being captured\n\n### 🔄 Workflow Customization Options\n\n#### Modify News Sources\n- Change the website URL to target different news sources\n- Add multiple news websites for comprehensive coverage\n- Implement filters for specific topics or categories\n\n#### Extend Data Collection\n- Modify the user prompt to extract additional fields (author, date, summary)\n- Add sentiment analysis for article content\n- Integrate with other data sources for comprehensive analysis\n\n#### Output Customization\n- Change Google Sheets operation from \"append\" to \"upsert\" for deduplication\n- Add data validation and cleaning steps\n- Implement error handling and retry logic\n\n### 📈 Use Cases\n\n- **Media Monitoring**: Track mentions of your brand, competitors, or industry keywords\n- **Content Curation**: Automatically collect articles for newsletters or content aggregation\n- **Market Research**: Monitor industry trends and competitor activities\n- **News Aggregation**: Build custom news feeds for specific topics or sources\n- **Academic Research**: Collect news data for research projects and analysis\n- **Crisis Management**: Monitor breaking news and emerging stories\n\n### �� Important Notes\n\n- Respect the target website's terms of service and robots.txt\n- Consider implementing delays between requests for large datasets\n- Regularly review and update your scraping parameters\n- Monitor API usage to manage costs effectively\n- Keep your credentials secure and rotate them regularly\n\n### 🔧 Troubleshooting\n\n**Common Issues:**\n- ScrapeGraphAI connection errors: Verify API key and account status\n- Google Sheets permission errors: Check OAuth2 scope and permissions\n- Data formatting issues: Review the Code node's JavaScript logic\n- Rate limiting: Adjust schedule frequency and implement delays\n\n**Pro Tips:**\n- Keep detailed configuration notes in the sticky notes within the workflow\n- Test with a small website first before scaling to larger news sites\n- Consider adding filters in the Code node to exclude certain article types or categories\n- Monitor execution logs for any issues and adjust parameters accordingly\n\n**Support Resources:**\n- ScrapeGraphAI documentation and API reference\n- n8n community forums for workflow assistance\n- Google Sheets API documentation for advanced configurations\n",
+  "workflow": {
+    "id": "MIllJmbqayQrZM1F",
+    "meta": {
+      "instanceId": "521567c5f495f323b77849c4cfd0c9f4f2396c986e324e0e66c8425b6f124744",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Automate News Article Scraping with ScrapegraphAI and Store in Google Sheets",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "37df323b-5c75-495f-ba19-b8642c02d96f",
+        "name": "Automated News Collection Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          700,
+          820
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {}
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "efd61ca5-e248-4027-b705-6d9c5dabe820",
+        "name": "AI-Powered News Article Scraper",
+        "type": "n8n-nodes-scrapegraphai.scrapegraphAi",
+        "position": [
+          1380,
+          820
+        ],
+        "parameters": {
+          "userPrompt": "Extract all the articles from this site. Use the following schema for response {   \"request_id\": \"5a9de102-8a43-4e89-8aae-397c9ca80a9b\",   \"status\": \"completed\",   \"website_url\": \"https://www.bbc.com/\",   \"user_prompt\": \"Extract all the articles from this site.\",   \"title\": \"'My friend died right in front of me' - Student describes moment air force jet crashed into school\",   \"url\": \"https://www.bbc.com/news/articles/cglzw8y5wy5o\",   \"category\": \"Asia\" }",
+          "websiteUrl": "https://www.bbc.com/"
+        },
+        "credentials": {
+          "scrapegraphAIApi": {
+            "id": "",
+            "name": ""
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "976d9123-7585-4700-9972-5b2838571a44",
+        "name": "Google Sheets News Storage",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          2980,
+          820
+        ],
+        "parameters": {
+          "columns": {
+            "value": {},
+            "schema": [
+              {
+                "id": "title",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "title",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "url",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "url",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "category",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "category",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "autoMapInputData",
+            "matchingColumns": []
+          },
+          "options": {},
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "url",
+            "value": ""
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "",
+            "name": ""
+          }
+        },
+        "typeVersion": 4.5
+      },
+      {
+        "id": "6d11ae64-e2f8-47ed-854a-c749881ce72c",
+        "name": "News Data Formatting and Processing",
+        "type": "n8n-nodes-base.code",
+        "notes": "Hey this is where \nyou \nformat results ",
+        "position": [
+          2140,
+          820
+        ],
+        "parameters": {
+          "jsCode": "// Get the input data\nconst inputData = $input.all()[0].json;\n\n// Extract articles array\nconst articles = inputData.result.articles;\n\n// Map each article and return only title, url, category\nreturn articles.map(article => ({\n  json: {\n    title: article.title,\n    url: article.url,\n    category: article.category\n  }\n}));"
+        },
+        "notesInFlow": true,
+        "typeVersion": 2
+      },
+      {
+        "id": "ca78baaf-0480-490d-aa9a-3663ca93f5d0",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1180,
+          460
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 574.9363634768473,
+          "height": 530.4701664623029,
+          "content": "# Step 2: AI-Powered News Article Scraper 🤖\n\nThis is the core node which uses ScrapeGraphAI to intelligently extract news articles from any website.\n\n## How to Use\n- Configure the target news website URL\n- Use natural language to describe what data to extract\n- The AI will automatically parse and structure the results\n\n## Configuration\n- **Website URL**: Target news website (e.g., BBC, CNN, Reuters)\n- **User Prompt**: Natural language instructions for data extraction\n- **API Credentials**: ScrapeGraphAI API key required\n\n## Example\n- **Website**: BBC News homepage\n- **Instruction**: \"Extract all article titles, URLs, and categories\"\n\n⚠️ **Note**: This is a community node requiring self-hosting"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "51a1337b-6a50-43a5-8d6f-8345bc771c7b",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1920,
+          460
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 574.9363634768473,
+          "height": 530.4701664623029,
+          "content": "# Step 3: News Data Formatting and Processing 🧱\n\nThis node transforms and structures the scraped news data for optimal Google Sheets compatibility.\n\n## What it does\n- Extracts articles array from ScrapeGraphAI response\n- Maps each article to standardized format\n- Ensures data consistency and structure\n- Prepares clean data for spreadsheet storage\n\n## Data Structure\n- **title**: Article headline and title\n- **url**: Direct link to the article\n- **category**: Article category or section\n\n## Customization\n- Modify the JavaScript code to extract additional fields\n- Add data validation and cleaning logic\n- Implement error handling for malformed data"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2e8cde8e-f534-4f37-a1f9-bcf0fe0b09f9",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          460,
+          460
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 574.9363634768473,
+          "height": 530.4701664623029,
+          "content": "# Step 1: Automated News Collection Trigger ⏱️\n\nThis trigger automatically invokes the workflow at specified intervals to collect fresh news content.\n\n## Configuration Options\n- **Frequency**: Daily, hourly, or custom intervals\n- **Time Zone**: Configure for your business hours\n- **Execution Time**: Choose optimal times for news collection\n\n## Best Practices\n- Set appropriate intervals to respect rate limits\n- Consider news website update frequencies\n- Monitor execution logs for any issues\n- Adjust frequency based on your monitoring needs"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5606537c-a531-490a-b4ff-6d0dc5e642b4",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2680,
+          460
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 574.9363634768473,
+          "height": 530.4701664623029,
+          "content": "# Step 4: Google Sheets News Storage 📊\n\nThis node securely stores the processed news article data in your Google Sheets for analysis and tracking.\n\n## What it does\n- Connects to your Google Sheets account via OAuth2\n- Appends new article data as rows\n- Maintains historical data for trend analysis\n- Provides structured data for business intelligence\n\n## Configuration\n- **Spreadsheet**: Select or create target Google Sheets document\n- **Sheet Name**: Configure worksheet (default: Sheet1)\n- **Operation**: Append mode for continuous data collection\n- **Column Mapping**: Automatic mapping of title, url, category fields\n\n## Data Management\n- Each execution adds new article entries\n- Historical data preserved for analysis\n- Easy export and sharing capabilities\n- Built-in Google Sheets analytics and filtering"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "c2fee060-f99e-48aa-a280-ac5492715fd9",
+    "connections": {
+      "AI-Powered News Article Scraper": {
+        "main": [
+          [
+            {
+              "node": "News Data Formatting and Processing",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Automated News Collection Trigger": {
+        "main": [
+          [
+            {
+              "node": "AI-Powered News Article Scraper",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "News Data Formatting and Processing": {
+        "main": [
+          [
+            {
+              "node": "Google Sheets News Storage",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6395",
+  "fetched_at": "2026-09-12T13:11:19Z"
+}

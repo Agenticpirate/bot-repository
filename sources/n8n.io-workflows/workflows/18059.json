@@ -1,0 +1,375 @@
+{
+  "id": 18059,
+  "name": "Monitor website uptime and SSL expiry with Cert Spotter and Telegram alerts",
+  "description": "## Quick overview\nThis workflow monitors website uptime every 5 minutes and SSL certificate expiry daily at 8:00, sending Telegram alerts only when a site changes state (down/recovered) or when a certificate is nearing expiration using Cert Spotter certificate transparency data.\n\n## How it works\n1. Runs every 5 minutes on a schedule to check each configured website URL.\n2. Sends an HTTP request to each site with a 10-second timeout and captures the HTTP status or network error.\n3. Compares the current result to the last saved state and only creates an alert when a site goes down (error/timeout/status ≥ 500) or recovers.\n4. Sends the uptime state-change alert message to a Telegram chat.\n5. Runs daily at 8:00 to extract domains from the same site list and query Cert Spotter for the newest issued SSL certificate expiry date.\n6. Calculates days until expiry and sends a Telegram warning at 21 days and a critical alert at 7 days (or flags domains with missing certificate data).\n\n## Setup\n1. Add Telegram credentials in n8n and replace `YOUR_TELEGRAM_CHAT_ID` in both Telegram nodes with your chat ID.\n2. Update the URL list in the site list code so it contains the websites you want to monitor (one URL per line).\n3. Ensure the workflow is activated so workflow static data can persist site up/down state between scheduled runs.\n\n## Requirements\n- A free Telegram bot token (create one with @BotFather) and your chat ID\n\n## Customization\n- Swap Telegram for Gmail, Slack or SMS by replacing the alert nodes; change what counts as DOWN (e.g. treat 404 as down) in the Check for Status Change node; adjust the WARN_DAYS and CRITICAL_DAYS thresholds in Check SSL Expiry.\n\n## Additional info\nSSL data comes from Cert Spotter's free CT-log API - no API key or payment needed. CT logs show the newest issued certificate; if you renew but forget to deploy it, the 5-minute uptime loop still catches the broken TLS as DOWN - two layers, no gaps.\n\nI run production monitoring for real businesses. Need escalation chains, status pages, keyword checks, response-time budgets, or backup/disk monitoring for the same server that runs your n8n? I build extended versions with async delivery - contact links in my creator profile.",
+  "workflow": {
+    "name": "Monitor website uptime and SSL expiry with Telegram alerts",
+    "nodes": [
+      {
+        "id": "ddae4eeb-8abe-498a-aa08-fef9f4bede0d",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -848,
+          -256
+        ],
+        "parameters": {
+          "width": 480,
+          "height": 832,
+          "content": "## Monitor website uptime and SSL expiry with Telegram alerts\n\n### How it works\n\nThis workflow monitors configured websites through two parallel scheduled checks. Every five minutes it verifies uptime and sends Telegram alerts only when a site's state changes. Once per day it checks SSL certificate expiry dates and alerts when certificates approach warning or critical thresholds.\n\n### Setup steps\n\n- Edit the site/domain list in the code node labeled \"Sites to Watch\" so it contains the URLs or domains you want to monitor.\n- Configure Telegram credentials and the target chat ID in both Telegram alert nodes.\n- Verify the HTTP request settings for the uptime check, including timeout and error handling behavior.\n- Confirm the certificate lookup endpoint works for your domains and add any required Cert Spotter/API credentials or headers if your usage requires them.\n- Activate the workflow so both schedule triggers run automatically.\n\n### Customization\n\nAdjust the schedule intervals, uptime request timeout, SSL warning thresholds of 21 and 7 days, and Telegram message text to match your monitoring policy."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4ff84d40-8e49-45bd-ad77-471ee63970fb",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -288,
+          -240
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 640,
+          "height": 320,
+          "content": "## Uptime polling setup\n\nRuns every five minutes, expands the configured website list, and performs an HTTP GET request for each URL to determine its current availability."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b250a37a-9a02-4de4-8a87-6648dbb332e7",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          400,
+          -256
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 416,
+          "height": 336,
+          "content": "## Uptime change alerts\n\nCompares each current site result with the previous run and sends a Telegram message only when a site changes state, such as going down or recovering."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "be563afa-a773-44b0-9e05-4ed17676d7e9",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -288,
+          112
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 640,
+          "height": 304,
+          "content": "## Daily SSL lookup\n\nRuns each morning, prepares the domains to inspect, and calls the certificate information API for each domain."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "951f1353-6143-4994-a8c3-fa763e6f015b",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          400,
+          112
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 416,
+          "height": 320,
+          "content": "## SSL expiry alerts\n\nEvaluates certificate expiry dates, flags warning and critical thresholds or failed checks, and sends relevant Telegram notifications."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "node-uptime-schedule",
+        "name": "When Every 5 Minutes",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -240,
+          -80
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 5
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "node-site-list",
+        "name": "Prepare Site URLs",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -20,
+          -80
+        ],
+        "parameters": {
+          "jsCode": "// ONE URL PER LINE. Edit this list and nothing else.\nconst SITES = `\nhttps://example.com\nhttps://example.org\n`;\n\nreturn SITES.split('\\n')\n  .map(s => s.trim())\n  .filter(s => s.length > 0)\n  .map(url => ({ json: { url } }));"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "node-http-check",
+        "name": "Get Site Status",
+        "type": "n8n-nodes-base.httpRequest",
+        "onError": "continueRegularOutput",
+        "position": [
+          200,
+          -80
+        ],
+        "parameters": {
+          "url": "={{ $json.url }}",
+          "options": {
+            "timeout": 10000,
+            "redirect": {
+              "redirect": {
+                "maxRedirects": 5,
+                "followRedirects": true
+              }
+            },
+            "response": {
+              "response": {
+                "neverError": true,
+                "fullResponse": true
+              }
+            }
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "node-detect-changes",
+        "name": "Check for Status Change",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          448,
+          -80
+        ],
+        "parameters": {
+          "jsCode": "// Compare current status with the previous run and emit alerts ONLY on state changes.\n// Requires the workflow to be Active (static data does not persist in manual runs).\n\nconst state = $getWorkflowStaticData('global');\nif (!state.siteStatus) state.siteStatus = {};\n\nconst sites = $('Prepare Site URLs').all();\nconst results = $input.all();\nconst alerts = [];\n\nfor (let i = 0; i < results.length; i++) {\n  const url = sites[i] ? sites[i].json.url : 'unknown';\n  const r = results[i].json;\n\n  const status = typeof r.statusCode === 'number' ? r.statusCode : 0;\n  const failed = r.error !== undefined || status === 0 || status >= 500;\n  const now = failed ? 'down' : 'up';\n  const before = state.siteStatus[url] || 'up';\n\n  if (now !== before) {\n    const reason = r.error\n      ? String(r.error.message || r.error).slice(0, 140)\n      : `HTTP ${status}`;\n    alerts.push({\n      json: {\n        text: now === 'down'\n          ? `🔴 DOWN: ${url}\\nReason: ${reason}\\nTime: ${new Date().toISOString()}`\n          : `🟢 RECOVERED: ${url}\\nTime: ${new Date().toISOString()}`,\n      },\n    });\n  }\n  state.siteStatus[url] = now;\n}\n\nreturn alerts;"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "node-telegram-uptime",
+        "name": "Notify Site Status Change",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          672,
+          -80
+        ],
+        "parameters": {
+          "text": "={{ $json.text }}",
+          "chatId": "YOUR_TELEGRAM_CHAT_ID",
+          "additionalFields": {}
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "node-ssl-schedule",
+        "name": "When Every Morning at 8AM",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -240,
+          256
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "days",
+                "triggerAtHour": 8
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "node-domain-list",
+        "name": "Prepare Domain List",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -16,
+          256
+        ],
+        "parameters": {
+          "jsCode": "// Reuses the same list as the uptime loop - keeps config in ONE place.\nconst SITES = `\nhttps://example.com\nhttps://example.org\n`;\n\nreturn SITES.split('\\n')\n  .map(s => s.trim())\n  .filter(s => s.length > 0)\n  .map(url => ({ json: { domain: url.replace(/^https?:\\/\\//, '').replace(/\\/.*$/, '') } }));"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "node-ssl-api",
+        "name": "Get SSL Certificate Info",
+        "type": "n8n-nodes-base.httpRequest",
+        "onError": "continueRegularOutput",
+        "position": [
+          208,
+          256
+        ],
+        "parameters": {
+          "url": "=https://api.certspotter.com/v1/issuances?domain={{ $json.domain }}&include_subdomains=false&expand=not_after",
+          "options": {
+            "timeout": 15000
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "node-ssl-eval",
+        "name": "Check SSL Expiry",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          448,
+          272
+        ],
+        "parameters": {
+          "jsCode": "// Warn at 21 days before expiry, critical at 7. Also flags failed checks.\n// Data source: Cert Spotter CT logs (free, no key). We take the NEWEST issued\n// certificate per domain. If a renewed cert was issued but never deployed,\n// the 5-minute uptime loop still catches the broken TLS as DOWN.\nconst WARN_DAYS = 21;\nconst CRITICAL_DAYS = 7;\n\nconst domains = $('Prepare Domain List').all();\nconst results = $input.all();\nconst alerts = [];\nconst now = Date.now();\n\nfor (let i = 0; i < results.length; i++) {\n  const domain = domains[i] ? domains[i].json.domain : 'unknown';\n  const r = results[i].json;\n\n  const issuances = Array.isArray(r) ? r : (Array.isArray(r.data) ? r.data : null);\n  if (r.error !== undefined || !issuances || issuances.length === 0) {\n    alerts.push({ json: { text: `⚠️ SSL check failed for ${domain} - no certificate data returned. Check the site manually.` } });\n    continue;\n  }\n\n  let latest = 0;\n  for (const cert of issuances) {\n    const t = Date.parse(cert.not_after);\n    if (!Number.isNaN(t) && t > latest) latest = t;\n  }\n  if (latest === 0) continue;\n\n  const days = Math.floor((latest - now) / 86400000);\n  const till = new Date(latest).toISOString().slice(0, 10);\n\n  if (days <= CRITICAL_DAYS) {\n    alerts.push({ json: { text: `🚨 SSL CRITICAL: newest certificate for ${domain} expires in ${days} day(s) (${till}). Renew NOW.` } });\n  } else if (days <= WARN_DAYS) {\n    alerts.push({ json: { text: `⚠️ SSL warning: newest certificate for ${domain} expires in ${days} days (${till}).` } });\n  }\n}\n\nreturn alerts;"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "node-telegram-ssl",
+        "name": "Notify SSL Expiry Alert",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          672,
+          272
+        ],
+        "parameters": {
+          "text": "={{ $json.text }}",
+          "chatId": "YOUR_TELEGRAM_CHAT_ID",
+          "additionalFields": {}
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "sticky-42",
+        "name": "Sticky Note — Pro Version",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -848,
+          624
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 480,
+          "height": 400,
+          "content": "### 🚀 Want real monitoring?\n\nThis template covers the basics. I run production monitoring for a living and build extended versions: **Zabbix-grade checks** (keywords on page, response time budgets, DNS, ports), **multi-channel escalation** (Telegram → SMS → phone), **status pages**, backup and disk-space monitoring for the same server that runs your n8n.\n\nAsync delivery, no calls — contact links in my creator profile."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "connections": {
+      "Get Site Status": {
+        "main": [
+          [
+            {
+              "node": "Check for Status Change",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check SSL Expiry": {
+        "main": [
+          [
+            {
+              "node": "Notify SSL Expiry Alert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Site URLs": {
+        "main": [
+          [
+            {
+              "node": "Get Site Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Domain List": {
+        "main": [
+          [
+            {
+              "node": "Get SSL Certificate Info",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When Every 5 Minutes": {
+        "main": [
+          [
+            {
+              "node": "Prepare Site URLs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check for Status Change": {
+        "main": [
+          [
+            {
+              "node": "Notify Site Status Change",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get SSL Certificate Info": {
+        "main": [
+          [
+            {
+              "node": "Check SSL Expiry",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When Every Morning at 8AM": {
+        "main": [
+          [
+            {
+              "node": "Prepare Domain List",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 29,
+      "name": "SecOps"
+    }
+  ],
+  "url": "https://n8n.io/workflows/18059",
+  "fetched_at": "2026-09-12T13:16:47Z"
+}

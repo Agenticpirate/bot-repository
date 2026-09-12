@@ -1,0 +1,385 @@
+{
+  "id": 11650,
+  "name": "Automate lead processing from landing pages with Zoho CRM, Jira & Slack",
+  "description": "# Landing Page Lead Intake via Webhook to Zoho CRM, Jira Task & Slack Alerts\n\nThis n8n workflow captures lead data from a landing-page webhook, validates required fields and then processes the lead by creating a Zoho CRM Lead, generating a Jira Task and notifying a Slack channel. If required fields are missing, the workflow skips CRM + Jira creation and instead notifies Slack with available lead details.\n\n### ⚡ Quick Start: 5-Step Fast Implementation\n\n1. Import this workflow JSON into n8n.  \n2. Configure credentials: Zoho CRM OAuth2, Jira Cloud, Slack OAuth2.  \n3. Copy the webhook URL and connect it to your landing page form.  \n4. Ensure your form sends: first_name, last_name, company_name, email, phone, title, description, referrer.  \n5. Activate workflow → send test POST → verify Zoho, Jira & Slack outputs.\n\n\n## What It Does\nThis workflow works as an automated lead pipeline. When the landing page sends JSON to the webhook, the workflow checks if `last_name` and `company_name` are present. If both fields exist, it proceeds to create a Zoho CRM lead, then generates a Jira task using the same data. A detailed Slack message is then posted with all lead information and the newly created Jira task ID.\n\nIf any of the required fields are missing, the workflow does not create CRM or Jira entries. Instead, it sends a Slack notification with available details so teams can intervene manually without incorrect CRM data entry.\n\n\n## Who’s It For\n- Marketing teams capturing leads from landing pages.\n- Sales teams using CRM and Jira for task tracking.\n- Internal teams who want Slack alerts for new leads.\n- Agencies and startups handling inbound lead flow.\n- Anyone requiring automated lead routing without manual work.\n\n\n## Prerequisites\n- n8n instance  \n- Zoho CRM OAuth2 credential  \n- Jira Software Cloud credential  \n- Slack OAuth2 credential  \n- A landing page that sends POST JSON payloads  \n- Required payload fields:  \n  - first_name  \n  - last_name  \n  - company_name  \n  - email  \n  - phone  \n  - title  \n  - description  \n  - referrer  \n\n\n## How to Use & Setup\n\n### Step 1: Import Workflow\nGo to n8n → Workflows → Import workflow JSON.\n\n### Step 2: Configure Credentials\nAdd your credentials in:\n- Zoho CRM (Create a lead)\n- Jira Software Cloud (Create an issue)\n- Slack (Send a message & Send a message1)\n\n### Step 3: Connect Webhook\nCopy the Webhook URL from the **Webhook** node and configure your landing page to send POST JSON to it.\n\n### Step 4: Field Validation\nThe **If** node checks:\n- last_name exists  \n- company_name exists  \n\nIf both exist → CRM + Jira + Slack  \nIf missing → Slack-only alert\n\n### Step 5: Test Workflow\nSend sample JSON using your landing page or Postman.  \n\nCheck Zoho CRM, Jira task creation, and Slack messages.\n\n### Step 6: Activate Workflow\nEnable workflow after verification.\n\n\n## How To Customize Nodes?\n\n### Webhook Node\n- Add/remove expected fields  \n- Modify payload structure  \n\n### If Node\n- Add more validations  \n- Switch to OR logic  \n\n### Zoho CRM Lead Node\n- Add additional fields  \n- Modify CRM field mapping  \n\n### Jira Task Node\n- Change project, issue type, priority, assignee  \n- Modify description template  \n\n### Slack Nodes\n- Change channel  \n- Rewrite notification messages  \n- Add Slack formatting  \n\n\n## Add-ons (Optional Enhancements)\n- Email notification to lead  \n- Google Sheets entry logging  \n- Duplicate lead detection  \n- Lead scoring system  \n- CRM sync extensions (Contact, Account, etc.)  \n\n\n## Use Case Examples\n1. Marketing campaign lead automation.\n2. Instant Slack alerts for new inbound leads.\n3. Customer inquiry → Jira task workflow.\n4. Data quality enforcement (avoid CRM pollution).\n5. Trigger for larger lead qualification workflow.\n\n(And many more possible use cases.)\n\n\n## Troubleshooting Guide\n\n| Issue | Possible Cause | Solution |\n|-------|----------------|----------|\n| Webhook not triggered | Wrong webhook URL or wrong HTTP method | Check URL and ensure POST is used |\n| Zoho lead not created | Invalid credentials or missing required mapping | Reconnect Zoho credentials and verify fields |\n| Jira task not created | Wrong project/issue/assignee config | Verify project, issue type & permissions |\n| Slack message not sent | Token expired or incorrect channel ID | Re-authenticate Slack and confirm channel |\n| Workflow stops at If node | last_name or company_name missing | Update landing page form to include fields |\n| Slack message missing values | Wrong field names in payload | Ensure JSON fields match expected structure |\n\n\n## Need Help?\n\nFor assistance with setup, customization or building enhanced automation workflows, our n8n team at WeblineIndia can help you build & optimize your automations.\n\nWe support:\n- Workflow customization  \n- Add-on development  \n- Integration with other CRMs or apps  \n- Advanced automation logic",
+  "workflow": {
+    "id": "x9VXeBrmzjjGqAx6",
+    "meta": {
+      "instanceId": "14e4c77104722ab186539dfea5182e419aecc83d85963fe13f6de862c875ebfa",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Webhook for Leads from Landing Page → Jira Lead Task → Slack Hunter Bot",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "ebe98592-e9c0-48ad-84ad-1edbae249d0f",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -32,
+          0
+        ],
+        "webhookId": "73983463-2dbc-47a7-889d-0873939c2805",
+        "parameters": {
+          "path": "73983463-2dbc-47a7-889d-0873939c2805",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "b51b0788-95c2-4496-9bca-92be1310d4aa",
+        "name": "If",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          208,
+          0
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "2b876b51-6cdb-4676-87eb-8e79781c529a",
+                "operator": {
+                  "type": "string",
+                  "operation": "exists",
+                  "singleValue": true
+                },
+                "leftValue": "={{ $json.body.last_name }}",
+                "rightValue": ""
+              },
+              {
+                "id": "60913151-48cc-4f0f-ac77-648c6e6e8679",
+                "operator": {
+                  "type": "string",
+                  "operation": "exists",
+                  "singleValue": true
+                },
+                "leftValue": "={{ $json.body.company_name }}",
+                "rightValue": ""
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "2c69ba43-42a7-4cd4-a7e5-a4983cf78ebb",
+        "name": "Create a lead",
+        "type": "n8n-nodes-base.zohoCrm",
+        "position": [
+          464,
+          -176
+        ],
+        "parameters": {
+          "Company": "={{ $json.body.company_name }}",
+          "lastName": "={{ $json.body.last_name }}",
+          "resource": "lead",
+          "additionalFields": {
+            "Email": "={{ $json.body.email }}",
+            "Phone": "={{ $json.body.phone }}",
+            "Industry": "={{ $json.body.referrer }}",
+            "First_Name": "={{ $json.body.first_name }}",
+            "Description": "={{ $json.body.description }}"
+          }
+        },
+        "credentials": {
+          "zohoOAuth2Api": {
+            "id": "credential-id",
+            "name": "zohoOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "da80beae-44e9-4f5a-914c-cc9680cdbdef",
+        "name": "Create an issue",
+        "type": "n8n-nodes-base.jira",
+        "position": [
+          704,
+          -176
+        ],
+        "parameters": {
+          "project": {
+            "__rl": true,
+            "mode": "list",
+            "value": "10000",
+            "cachedResultName": "n8n sample project"
+          },
+          "summary": "=New lead generated",
+          "issueType": {
+            "__rl": true,
+            "mode": "list",
+            "value": "10003",
+            "cachedResultName": "Task"
+          },
+          "additionalFields": {
+            "assignee": {
+              "__rl": true,
+              "mode": "list",
+              "value": "712020:9fe0da7f-b88e-404e-b973-5428ffe53eab",
+              "cachedResultName": "Mobile1 Mobile1"
+            },
+            "priority": {
+              "__rl": true,
+              "mode": "list",
+              "value": "2",
+              "cachedResultName": "High"
+            },
+            "description": "=Company Name : {{ $('If').item.json.body.company_name }}\nName: {{ $('If').item.json.body.first_name }} {{ $('If').item.json.body.last_name }}\nEmail: {{ $('If').item.json.body.email }}\nPhone: {{ $('If').item.json.body.phone }}\nTitle: {{ $('If').item.json.body.title }}\nDescription: {{ $('If').item.json.body.description }}\nReferrer: {{ $('If').item.json.body.referrer }}"
+          }
+        },
+        "credentials": {
+          "jiraSoftwareCloudApi": {
+            "id": "credential-id",
+            "name": "jiraSoftwareCloudApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "dde75e9c-d208-47eb-a2fe-370933f30156",
+        "name": "Send a message",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          944,
+          -176
+        ],
+        "webhookId": "9d60b472-71a8-432a-b18f-78e9dc9d0e8d",
+        "parameters": {
+          "text": "=New lead created!! \n\nCompany Name : {{ $('If').item.json.body.company_name }}\nName: {{ $('If').item.json.body.first_name }} {{ $('If').item.json.body.last_name }} \nEmail: {{ $('If').item.json.body.email }} \nPhone: {{ $('If').item.json.body.phone }} \nTitle: {{ $('If').item.json.body.title }} \nDescription: {{ $('If').item.json.body.description }} \nReferrer: {{ $('If').item.json.body.referrer }}\n\nNew Jira task created\nTask id: {{ $json.key }}",
+          "select": "channel",
+          "channelId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "C09EV0SGCE5",
+            "cachedResultName": "team-n8n-workflow"
+          },
+          "otherOptions": {},
+          "authentication": "oAuth2"
+        },
+        "credentials": {
+          "slackOAuth2Api": {
+            "id": "credential-id",
+            "name": "slackOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "7861ab37-3d46-4826-b3bf-2c2190ff375e",
+        "name": "Send a message1",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          464,
+          192
+        ],
+        "webhookId": "9d60b472-71a8-432a-b18f-78e9dc9d0e8d",
+        "parameters": {
+          "text": "=New lead processed but company name or last name is missing. Below are availabled details:\nName: {{ $('Webhook').item.json.body.first_name }} {{ $('Webhook').item.json.body.last_name }}\nCompany name: {{ $('Webhook').item.json.body.company_name }}\nEmail: {{ $('Webhook').item.json.body.email }}\nPhone: {{ $('Webhook').item.json.body.phone }}\nTitle: {{ $('Webhook').item.json.body.title }}\nDescription: {{ $('Webhook').item.json.body.description }}\nRefferer: {{ $('Webhook').item.json.body.referrer }}",
+          "select": "channel",
+          "channelId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "C09EV0SGCE5",
+            "cachedResultName": "team-n8n-workflow"
+          },
+          "otherOptions": {},
+          "authentication": "oAuth2"
+        },
+        "credentials": {
+          "slackOAuth2Api": {
+            "id": "credential-id",
+            "name": "slackOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "be41773d-5aaa-4639-95a4-e10acc609103",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -544,
+          -304
+        ],
+        "parameters": {
+          "width": 368,
+          "height": 688,
+          "content": "## How it works\n\n•\tWebhook receives lead data (name, company, email, phone, title, description, referrer).\n•\tCheck if company_name and last_name are present.\n•\tIf either field is missing → send Slack message:\n•\t“Either last name or company name missing”\n•\tInclude all other submitted details.\n•\tIf both fields are present → create Zoho CRM Lead using webhook data.\n•\tAfter creating lead → create Jira Task with lead information.\n•\tAfter Jira task creation → send Slack message:\n•\t“New lead created!!”\n•\tDisplay all submitted details.\n•\tInclude the newly created Jira task ID.\n•\tWorkflow ends.\n\n## Setup Steps\n•\tWebhook expects: first_name, last_name, company_name, email, phone, title, description, referrer\n•\tZoho CRM → Create Lead → map all webhook fields\n•\tJira → Create Issue → select project → choose issue type\n•\tSlack → choose channel or user → send message with details and Jira task ID"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "068970fb-e033-4015-b063-673d29851508",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -112,
+          -144
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 224,
+          "height": 384,
+          "content": "Receives incoming JSON data containing the lead information.\n\nTriggers the workflow whenever valid data is posted to the endpoint."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "df79aa00-a641-41bf-97dc-76f7ba95727b",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          416,
+          -368
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 704,
+          "height": 448,
+          "content": "Sends a message indicating missing required fields.\nIncludes all submitted lead details for quick review.\n\nSends a message indicating missing required fields.\nIncludes all submitted lead details for quick review.\n\nSends a message indicating missing required fields.\nIncludes all submitted lead details for quick review."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "54ec153f-2bc6-4095-be26-3532bffbc9ae",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          416,
+          112
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 704,
+          "height": 320,
+          "content": "Sends a message indicating missing required fields.\n\nIncludes all submitted lead details for quick review."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "aa5e3a8c-6249-4bdd-9a28-830ef89c6d7b",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          144,
+          -144
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 224,
+          "height": 384,
+          "content": "Checks whether company_name and last_name are provided.\n\nIf either is missing, the workflow follows the error path."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {
+      "Webhook": [
+        {
+          "json": {
+            "body": {
+              "email": "hyline@gmail.com",
+              "phone": "9876543210",
+              "title": "Mobile application creation",
+              "referrer": "Pankaj Tripathi",
+              "last_name": "Mahatre",
+              "first_name": "Sachin",
+              "description": "I want to create a mobile application developer",
+              "company_name": "Hyland Hybrid"
+            },
+            "query": {},
+            "params": {},
+            "headers": {
+              "host": "192.168.101.63:5678",
+              "accept": "*/*",
+              "connection": "keep-alive",
+              "user-agent": "PostmanRuntime/7.49.1",
+              "content-type": "application/json",
+              "postman-token": "482c2f14-9a65-4f9d-b77a-90014245b528",
+              "content-length": "276",
+              "accept-encoding": "gzip, deflate, br"
+            },
+            "webhookUrl": "http://localhost:5678/webhook-test/73983463-2dbc-47a7-889d-0873939c2805",
+            "executionMode": "test"
+          }
+        }
+      ]
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "bcf3a6cd-11d6-40fb-9cc5-85cf568335f7",
+    "connections": {
+      "If": {
+        "main": [
+          [
+            {
+              "node": "Create a lead",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Send a message1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "If",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create a lead": {
+        "main": [
+          [
+            {
+              "node": "Create an issue",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create an issue": {
+        "main": [
+          [
+            {
+              "node": "Send a message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 37,
+      "name": "Lead Generation"
+    }
+  ],
+  "url": "https://n8n.io/workflows/11650",
+  "fetched_at": "2026-09-12T13:13:50Z"
+}

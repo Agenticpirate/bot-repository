@@ -1,0 +1,331 @@
+{
+  "id": 7185,
+  "name": "Automate contract employee lifecycle with Google Docs, DocuSign & Airtable",
+  "description": "### ⚙ Automated Contract Employee Placement & Management System: Setup Guide\n\nThis guide will walk you through setting up your n8n workflow. By the end, you'll have a fully automated system for managing your contract employee placements, from generating documents to sending renewal reminders.\n\n---\n\n### How It Works\n\nThis workflow is structured in three logical phases to automate the entire contract management lifecycle:\n\n1.  **Phase 1: Placement Trigger & Data Retrieval**: The workflow begins when a new placement record is created in your CRM or database. It automatically retrieves all necessary employee and client data to prepare for contract generation.\n\n2.  **Phase 2: Contract Generation & Delivery**: The system uses a pre-made Google Docs template to generate a professional contract. It then automatically sends this document for e-signature via DocuSign to both the employee and the client.\n\n3.  **Phase 3: Post-Placement Management & Reminders**: Once the contract is signed, the workflow updates your database, notifies your team, and adds the start date to your calendar. A separate scheduled automation runs weekly to proactively check for expiring contracts and send renewal reminders.\n\n---\n\n### Step-by-Step Setup Guide\n\nFollow these steps to configure the workflow in your n8n instance.\n\n### **Step 1: Prerequisites & Database Setup**\n\nBefore you begin, ensure you have the following accounts and a workspace set up:\n* **n8n Instance:** Your self-hosted or cloud-based n8n instance.\n* **Airtable:** Your main database for managing placements.\n* **Google Docs:** A contract template saved in your Google Drive.\n* **DocuSign:** For handling electronic signatures.\n* **Slack:** For internal team notifications.\n* **Google Calendar:** For adding start dates to a shared team calendar.\n\n**Airtable Database Preparation:**\nCreate an Airtable base with a `Placements` table. This table must include the following columns:\n* `Candidate Name`\n* `Candidate Email`\n* `Client Name`\n* `Client Contact Email`\n* `Start Date`\n* `End Date`\n* `Status`\n\n**Google Docs Template Preparation:**\nCreate a contract template in Google Docs with placeholders in the format `{{placeholder}}` (e.g., `{{candidateName}}`, `{{clientName}}`).\n\n### **Step 2: Workflow Import & Credential Configuration**\n\n1.  Import the workflow's `.json` file into your n8n instance. All the necessary nodes will appear on your canvas.\n2.  Click on any node with a red **\"!\"** icon (e.g., the `Airtable` or `DocuSign` node).\n3.  Click **\"Create new credential\"** and follow the instructions to connect your accounts. Repeat this for all nodes that require credentials.\n\n### **Step 3: Node-Specific Configuration**\n\nConfigure the following key nodes to match your specific setup:\n\n1.  **Webhooks Trigger**:\n    * Click on the `Webhooks Trigger` node and copy the **Webhook URL**.\n    * Configure your CRM or Airtable to send a `POST` request to this URL whenever a new placement is created.\n\n2.  **Airtable Nodes**:\n    * For every `Airtable` node in the workflow, enter the correct `Base ID` and `Table Name` (`Placements`) that you created in Step 1.\n\n3.  **Google Docs Node**:\n    * In the `Template File ID` field, enter the file ID of your Google Docs contract template.\n    * Map the placeholders you created in your template to the dynamic data from your database (e.g., `{{candidateName}}` should be mapped to `={{ $json.candidate_name }}`).\n\n4.  **DocuSign Node**:\n    * Enter your `Account ID` in the credentials settings.\n    * Map the `Signer Name` and `Signer Email` fields to the data from your database.\n    * Ensure your DocuSign envelope template is configured with anchor text (e.g., `/signature/`) that matches the anchor tags in the DocuSign node.\n\n5.  **Cron Trigger**:\n    * The `Cron Trigger` node is set up to check for expiring contracts. You can adjust the `Interval` parameter (e.g., `Every Week`) to match your desired schedule.\n\n### **Step 4: Activation**\n\n1.  Once all credentials and node configurations are complete, click **\"Save\"** at the top of the canvas.\n2.  Toggle the workflow to **\"Active\"** in the top-right corner.\n\nThe workflow is now live! It will automatically handle contract generation, signatures, and reminders for every new placement.",
+  "workflow": {
+    "id": "YHlm9XjboxWLxTtn",
+    "meta": {
+      "instanceId": "a287613f1596da776459594685fbf4e2b4a12124f80ab8c8772f5e37bff103ae"
+    },
+    "name": "Automate Contract Employee Lifecycle with Google Docs, DocuSign & Airtable",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "5ca11901-6138-4914-a123-ddf312a29b02",
+        "name": "Candidate Placed",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          1088,
+          80
+        ],
+        "webhookId": "5cfa22f5-29ad-4e64-9b82-79fd975308d9",
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "e13c9697-6a6c-4922-9424-09fdac2ccddb",
+        "name": "Get a record",
+        "type": "n8n-nodes-base.airtable",
+        "position": [
+          1296,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "89eaeb86-b066-4c9f-9a26-8ff8db679d3b",
+        "name": "Create Contract from Template",
+        "type": "n8n-nodes-base.googleDocs",
+        "notes": "Placeholders:\n\n{{candidateName}}: ={{ $json.candidate_name }}\n\n{{clientName}}: ={{ $json.client_name }}\n\n{{salary}}: ={{ $json.salary }}",
+        "position": [
+          1072,
+          448
+        ],
+        "parameters": {},
+        "notesInFlow": true,
+        "typeVersion": 2
+      },
+      {
+        "id": "8f3400f7-5cc1-424e-8771-a8147a53661f",
+        "name": "Send Document for Signature",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1280,
+          448
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "9e4cadba-b15d-4daa-86a0-6448814c1cac",
+        "name": "Signatures Received",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          1488,
+          448
+        ],
+        "webhookId": "66eea4c2-9991-4e2d-8a2a-6beb00c9ff11",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "c7ac2049-6176-442c-9e6f-3bed7f3947f5",
+        "name": "Update Status 'Signed'",
+        "type": "n8n-nodes-base.airtable",
+        "position": [
+          1072,
+          800
+        ],
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "34e03eb4-33ca-49cb-96ef-74375555c045",
+        "name": "Notify Team",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          1280,
+          800
+        ],
+        "webhookId": "c8e3d24a-ad40-4ef6-82b2-731ec0078a50",
+        "parameters": {},
+        "typeVersion": 2.3
+      },
+      {
+        "id": "46a115a5-71fd-4a7b-88a5-aff1fd6ffbd0",
+        "name": "Add Start Date",
+        "type": "n8n-nodes-base.googleCalendar",
+        "position": [
+          1488,
+          800
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "8124837a-6587-40b2-afad-2595e3bc916f",
+        "name": "Check Contract End Dates",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          1072,
+          1040
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "f8652d0d-433e-43cb-8fc1-7e71a1e3bca5",
+        "name": "Get Expiring Contracts",
+        "type": "n8n-nodes-base.airtable",
+        "position": [
+          1280,
+          1040
+        ],
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "42a56728-9c9f-4c3b-b525-a004fcc57c59",
+        "name": "Contracts Found?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1488,
+          1040
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "9210839d-9927-4b74-b88e-70a0dabe4276",
+        "name": "Send Renewal Reminder",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          1728,
+          1040
+        ],
+        "webhookId": "745fbc90-9740-46f0-a10b-20f1b8de4a32",
+        "parameters": {},
+        "typeVersion": 2.3
+      },
+      {
+        "id": "ffed8901-7c52-4f2f-baf3-8d686dfd5197",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          992,
+          0
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "bbed1b04-551c-4c0c-abfe-49bcb0e81a7b",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          992,
+          368
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5c50b7a6-6241-4a80-8534-bce27b2afe52",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          992,
+          720
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "bfea4db9-ac63-4ea6-b499-2a8fdab75ad6",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "77c98e0e-d106-4298-8f7c-a2ed8565b9bf",
+    "connections": {
+      "Notify Team": {
+        "main": [
+          [
+            {
+              "node": "Add Start Date",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get a record": {
+        "main": [
+          [
+            {
+              "node": "Create Contract from Template",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Candidate Placed": {
+        "main": [
+          [
+            {
+              "node": "Get a record",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Contracts Found?": {
+        "main": [
+          [
+            {
+              "node": "Send Renewal Reminder",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Signatures Received": {
+        "main": [
+          [
+            {
+              "node": "Update Status 'Signed'",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Expiring Contracts": {
+        "main": [
+          [
+            {
+              "node": "Contracts Found?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update Status 'Signed'": {
+        "main": [
+          [
+            {
+              "node": "Notify Team",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Contract End Dates": {
+        "main": [
+          [
+            {
+              "node": "Get Expiring Contracts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Document for Signature": {
+        "main": [
+          [
+            {
+              "node": "Signatures Received",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create Contract from Template": {
+        "main": [
+          [
+            {
+              "node": "Send Document for Signature",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 17,
+      "name": "HR"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7185",
+  "fetched_at": "2026-09-12T13:11:45Z"
+}

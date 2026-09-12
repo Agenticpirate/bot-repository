@@ -1,0 +1,122 @@
+{
+  "id": 901,
+  "name": "Add contacts to SendGrid automatically",
+  "description": "This workflow allows you to create, update and get a contact using the SendGrid node.\n\n![workflow-screenshot](fileId:387)\n\nBased on your use-case, you may want to add contacts to SendGrid from a different email service or from your CRM.\n\nFetch the information of the contact using the node of that service. Connect the node with the SendGrid node and reference the value from the node.",
+  "workflow": {
+    "id": "209",
+    "name": "Create, update and get a contact using the SendGrid node",
+    "nodes": [
+      {
+        "name": "On clicking 'execute'",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          270,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "SendGrid",
+        "type": "n8n-nodes-base.sendGrid",
+        "position": [
+          470,
+          300
+        ],
+        "parameters": {
+          "email": "",
+          "resource": "contact",
+          "additionalFields": {
+            "firstName": ""
+          }
+        },
+        "credentials": {
+          "sendGridApi": "SendGrid Credentials"
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "SendGrid1",
+        "type": "n8n-nodes-base.sendGrid",
+        "position": [
+          670,
+          300
+        ],
+        "parameters": {
+          "email": "={{$node[\"SendGrid\"].parameter[\"email\"]}}",
+          "resource": "contact",
+          "additionalFields": {
+            "lastName": ""
+          }
+        },
+        "credentials": {
+          "sendGridApi": "SendGrid Credentials"
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "SendGrid2",
+        "type": "n8n-nodes-base.sendGrid",
+        "position": [
+          870,
+          300
+        ],
+        "parameters": {
+          "by": "email",
+          "email": "={{$node[\"SendGrid\"].parameter[\"email\"]}}",
+          "resource": "contact",
+          "operation": "get"
+        },
+        "credentials": {
+          "sendGridApi": "SendGrid Credentials"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "settings": {},
+    "connections": {
+      "SendGrid": {
+        "main": [
+          [
+            {
+              "node": "SendGrid1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "SendGrid1": {
+        "main": [
+          [
+            {
+              "node": "SendGrid2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "On clicking 'execute'": {
+        "main": [
+          [
+            {
+              "node": "SendGrid",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 33,
+      "name": "Social Media"
+    }
+  ],
+  "url": "https://n8n.io/workflows/901",
+  "fetched_at": "2026-09-12T13:08:51Z"
+}

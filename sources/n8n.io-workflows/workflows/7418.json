@@ -1,0 +1,215 @@
+{
+  "id": 7418,
+  "name": "Automatically archive old WordPress posts to draft status",
+  "description": "##  Overview: Automated WordPress Post Archiving\n\nThis workflow is designed to maintain your blog's health and SEO by automatically moving old, published posts into a \"draft\" or \"archive\" state. This prevents outdated or low-traffic content from negatively impacting your site's performance and allows you to easily review and update them later.\n\n---\n\n## How It Works\n\n1.  **Quarterly Trigger**: The workflow is set to run automatically on a recurring schedule, specifically on the 1st day of every 3rd month (quarterly). This ensures that your content is regularly audited without any manual intervention.\n2.  **Find Old Posts**: The workflow connects to your WordPress site and fetches all published posts that are older than a specified time frame (in this case, 12 months). It uses the WordPress API's filtering capabilities to efficiently find the right content.\n3.  **Check if Posts Found**: An **If** node checks if the previous step found any posts. This prevents the workflow from running further steps if there's nothing to archive. If no posts are found, the workflow ends and logs this.\n4.  **Archive Post**: If posts are found, the workflow proceeds to update each one. It changes the post's status from `publish` to `draft` and automatically adds tags like `archived` and `old-content` for easy identification within your WordPress dashboard.\n5.  **Send Notification**: After the archiving process is complete, the workflow sends an email notification to the administrator. This provides a summary of the activity, letting you know that the task has been completed.\n\n---\n\n## Setup Steps\n\n1.  **Configure WordPress Credentials**: In both the **Find Old Posts** and **Archive Post** nodes, you need to add your WordPress credentials. This typically involves entering your site URL and creating an application password in your WordPress admin dashboard for secure API access.\n2.  **Set Up Email Credentials**: In the **Send Notification** node, add your email service credentials (like SMTP or a Gmail account) to enable the workflow to send you the completion notification.\n3.  **Adjust the Archiving Period**: In the **Find Old Posts** node, the current expression is `{{ $now.minus({ months: 12 }).toISO() }}` which archives posts older than 12 months. You can change the number of months to fit your content strategy (e.g., `24` for two years).\n4.  **Customize Tags**: In the **Archive Post** node, you can customize the tags to better suit your needs. You can change or add new tags that will be applied to the archived posts.\n5.  **Activate the Workflow**: Once all credentials and settings are configured, make sure to activate the workflow to set the quarterly schedule in motion.",
+  "workflow": {
+    "meta": {
+      "instanceId": "2000c64071c20843606b95c63795bb0797c41036047055a6586498e855b96efc",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "48e4e6d7-f1c4-4539-a1c7-9d5fd4aed1eb",
+        "name": "Quarterly Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -304,
+          96
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 0 1 */3 *"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "acc3caae-a2f2-47ee-90fe-d9d6cc908cde",
+        "name": "Find Old Posts",
+        "type": "n8n-nodes-base.wordpress",
+        "position": [
+          -48,
+          96
+        ],
+        "parameters": {
+          "options": {
+            "order": "asc",
+            "before": "{{ $now.minus({ months: 12 }).toISO() }}",
+            "status": "publish"
+          },
+          "operation": "getAll"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4d37e32a-8a0c-4881-9898-871252d5ac45",
+        "name": "Check if Posts Found",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          208,
+          96
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 1,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "6516d0df-79fc-4895-b422-1aaf6e348fc8",
+                "operator": {
+                  "type": "number",
+                  "operation": "gt"
+                },
+                "leftValue": "={{ $json.length }}",
+                "rightValue": 0
+              }
+            ]
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "9d23ec40-bb26-4aa4-b960-fde58c5247f6",
+        "name": "Archive Post",
+        "type": "n8n-nodes-base.wordpress",
+        "position": [
+          464,
+          32
+        ],
+        "parameters": {
+          "postId": "={{ $json.id }}",
+          "operation": "update",
+          "updateFields": {
+            "tags": "archived,old-content",
+            "status": "draft"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4d4a6928-521e-4cda-b7ee-66641e34838f",
+        "name": "Send Notification",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          720,
+          32
+        ],
+        "webhookId": "3bddfc19-dba1-4010-8c05-a4ff5f7f5f67",
+        "parameters": {
+          "options": {},
+          "subject": "Quarterly Archive Complete"
+        },
+        "credentials": {
+          "smtp": {
+            "id": "credential-id",
+            "name": "smtp Credential"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "6b526fe7-645a-4cb5-bb5b-4e0c31d84142",
+        "name": "Log No Posts",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          448,
+          208
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "e9a2e951-43e5-4e98-83d4-3145dc6dbf47",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -576,
+          -80
+        ],
+        "parameters": {
+          "width": 380,
+          "height": 780,
+          "content": "## Workflow Overview\n\n**Author: David Olusola**\nThis workflow automatically archives old WordPress posts every quarter.\n\n**Schedule:** Runs on the 1st day of every 3rd month (quarterly)\n\n**Steps:**\n1. Trigger executes quarterly\n2. Finds old posts from WordPress\n3. Archives the identified posts\n\n---\n\n## Need n8n Coaching?\n\n🎯 **Get Professional Help:**\n- Workflow optimization\n- Advanced automation strategies\n- Custom node development\n- Error handling & debugging\n- Performance improvements\n\n📧 [Contact for n8n coaching and consultation services!](mailto:david@daexai.com)\n\n---\n\n💡 **Tips:**\n- Add filters to \"Find Old Posts\" to specify criteria\n- Consider adding error handling nodes\n- Test with a smaller batch first"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Archive Post": {
+        "main": [
+          [
+            {
+              "node": "Send Notification",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Find Old Posts": {
+        "main": [
+          [
+            {
+              "node": "Check if Posts Found",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Quarterly Trigger": {
+        "main": [
+          [
+            {
+              "node": "Find Old Posts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check if Posts Found": {
+        "main": [
+          [
+            {
+              "node": "Archive Post",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Log No Posts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 36,
+      "name": "File Management"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7418",
+  "fetched_at": "2026-09-12T13:11:54Z"
+}

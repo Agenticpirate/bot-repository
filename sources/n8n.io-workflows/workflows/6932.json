@@ -1,0 +1,90 @@
+{
+  "id": 6932,
+  "name": "Send automated appointment reminders via SMS with Twilio webhook",
+  "description": "## How It Works\n\nThe workflow  is an automated appointment reminder system built on n8n. Here is a step-by-step breakdown of its process:\n\n### Reminder Webhook\nThis node acts as the entry point for the workflow. It's a unique URL that waits for data to be sent to it from an external application, such as a booking or scheduling platform. When a new appointment is created in that system, it sends a JSON payload to this webhook.\n\n### Extract Appointment Data\nThis is a **Code** node that processes the incoming data. It's a critical step that:\n\n- Extracts the customer's name, phone number, appointment time, and service from the webhook's JSON payload.\n- Includes validation to ensure a phone number is present, throwing an error if it's missing.\n- Formats the raw appointment time into a human-readable string for the SMS message.\n\n### Send SMS Reminder\nThis node uses your Twilio credentials to send an SMS message. It dynamically constructs the message using the data extracted in the previous step. The message is personalized with the customer's name and includes the formatted appointment details.\n\n---\n\n## Setup Instructions\n\n1. **Import the Workflow**  \nCopy the JSON code from the Canvas and import it into your n8n instance.\n\n2. **Connect Your Twilio Account**  \nClick on the \"Send SMS Reminder\" node. In the \"Credentials\" section, you will need to either select your existing Twilio account or add new credentials by providing your Account SID and Auth Token from your Twilio console.\n\n3. **Find the Webhook URL**  \nClick on the \"Reminder Webhook\" node. The unique URL for this workflow will be displayed. Copy this URL.\n\n4. **Configure Your Booking System**  \nGo to your booking or scheduling platform (e.g., Calendly, Acuity). In the settings or integrations section, find where you can add a new webhook. Paste the URL you copied from n8n here. You'll need to map the data fields from your booking system (like customer name, phone, etc.) to match the expected format shown in the comments of the \"Extract Appointment Data\" node.\n\n---\n\nOnce these steps are complete, your workflow will be ready to automatically send SMS reminders whenever a new appointment is created.\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "2000c64071c20843606b95c63795bb0797c41036047055a6586498e855b96efc",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "9e7a0fea-06bb-4067-9643-ade20a9b3e94",
+        "name": "Reminder Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          80,
+          240
+        ],
+        "webhookId": "appointment-reminder-webhook",
+        "parameters": {
+          "path": "appointment-reminder",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "670667bb-06eb-4db0-8976-1f7edcbd9f42",
+        "name": "Extract Appointment Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          304,
+          240
+        ],
+        "parameters": {
+          "jsCode": "// This node extracts and formats the appointment data from the incoming webhook.\n// The expected webhook payload from your booking software should look something like this:\n// {\n//   \"customer_name\": \"John Doe\",\n//   \"customer_phone\": \"+1234567890\",\n//   \"appointment_id\": \"appt_12345\",\n//   \"appointment_service\": \"Consultation\",\n//   \"appointment_time\": \"2025-08-04 14:00:00\"\n// }\n\nconst webhookData = $input.item.json.body || {};\n\n// Basic data extraction and validation\nconst customerName = webhookData.customer_name || 'Valued Customer';\nconst customerPhone = webhookData.customer_phone;\nconst appointmentTime = webhookData.appointment_time || 'today';\nconst serviceName = webhookData.appointment_service || 'your appointment';\nconst appointmentId = webhookData.appointment_id || 'no-id-provided';\n\nif (!customerPhone) {\n  throw new Error('No customer phone number found in webhook data');\n}\n\n// Format the appointment time for the SMS message\n// You can customize the date formatting here if needed.\nconst formattedTime = new Date(appointmentTime).toLocaleString('en-US', {\n  weekday: 'short',\n  month: 'short',\n  day: 'numeric',\n  hour: 'numeric',\n  minute: 'numeric'\n});\n\nreturn {\n  json: {\n    customer_name: customerName,\n    customer_phone: customerPhone,\n    appointment_time: formattedTime,\n    service_name: serviceName,\n    appointment_id: appointmentId,\n    raw_data: webhookData\n  }\n};\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "a50e0125-c361-48b7-8f6c-b001e548ccfb",
+        "name": "Send SMS Reminder",
+        "type": "n8n-nodes-base.twilio",
+        "position": [
+          544,
+          240
+        ],
+        "parameters": {
+          "to": "={{ $json.customer_phone }}",
+          "message": "={{ 'Hi ' + $json.customer_name + ', this is a friendly reminder for your ' + $json.service_name + ' appointment on ' + $json.appointment_time + '. We look forward to seeing you! - ' + $('Send SMS Reminder').parameters.from }}",
+          "options": {}
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Reminder Webhook": {
+        "main": [
+          [
+            {
+              "node": "Extract Appointment Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Appointment Data": {
+        "main": [
+          [
+            {
+              "node": "Send SMS Reminder",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 40,
+      "name": "Support Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6932",
+  "fetched_at": "2026-09-12T13:11:37Z"
+}

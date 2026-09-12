@@ -63,7 +63,7 @@ See [muse-research.md](muse-research.md).
 
 | Item | Dest | Status |
 | --- | --- | --- |
-| Official n8n library `api.n8n.io` | `sources/n8n.io-workflows/` | Search index + per-id workflow JSON; resume via `scripts/download_n8n_official.py` |
+| Official n8n library `api.n8n.io` | `sources/n8n.io-workflows/` | Index 12,325; **12,268** workflow JSON; 57 detail 404s |
 | marketplace.crewai.com | `sources/marketplace.crewai.com/` | Listing HTML (sitemap 404) |
 | crewAIInc/crewAI-examples | `sources/github/crewAIInc-crewAI-examples/` | Clone |
 | crewAIInc/awesome-crewai | `sources/github/crewAIInc-awesome-crewai/` | Clone |

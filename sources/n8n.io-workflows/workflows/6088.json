@@ -1,0 +1,224 @@
+{
+  "id": 6088,
+  "name": "Automate outbound voice calls from Go High Level opportunities with Vapi",
+  "description": "This workflow triggers when a **new opportunity** is created in **Go High Level (GHL)**, fetches the associated contact details, and initiates an **outbound call** using **Vapi**. The call is made by a Vapi assistant configured with the appropriate credentials.\n\n---\n\n## 🧾 Requirements\n\n### Go High Level (GHL)\n- A [**Go High Level**](https://www.gohighlevel.com/78476a2?fp_ref=1node) account\n- GHL **developer private app** and **credentials** enabled in n8n\n- **Webhook URL** from n8n added to your GHL private app\n\n### Vapi\n- A [**Vapi**](https://vapi.ai/?aff=onenode) account with credit\n- A connected **phone number** to make calls\n- An **assistant** created and ready to make calls\n- Your **Vapi API key**\n\n### 🔗 Useful Links\n- [GHL Docs](https://help.gohighlevel.com/)\n- [Vapi Docs](https://docs.vapi.ai/)\n- [n8n GHL Credentials Setup](https://docs.n8n.io/integrations/builtin/credentials/highlevel/)\n\n---\n\n## 🔄 Workflow Breakdown\n\n### 1. **Trigger: GHL Opportunity Created**\n- Triggered by a **Webhook (POST)** from Go High Level when a new opportunity is created.\n- Webhook URL must be enabled in your GHL private app.\n\n### 2. **Get a GHL Contact**\n- Retrieves contact details from GHL CRM using the contact ID from the opportunity.\n- Includes information such as phone number, name, and custom fields.\n\n### 3. **Wait 5 Minutes**\n- Introduces a short delay before making the call to avoid immediate outreach.\n- Helps ensure data is synced and gives the system time for any follow-up automation.\n\n### 4. **Set Vapi Fields (Manual Step)**\n- Set the required fields for the Vapi API call:\n  - `vapiPhoneNumberId` – the number id making the call\n  - `vapiAssistantId` – the assistant who will handle the call\n  - `vapiApi` – your secure Vapi API key\n\n### 5. **Start Outbound Vapi Call**\n- Sends a **POST** request to `https://api.vapi.ai/call`\n- Payload includes:\n  - Contact’s phone number\n  - Selected Vapi assistant\n  - Vapi phone number id to start the call\n\n---\n\n## ✅ Summary\n\nThis n8n automation connects your CRM ([Go High Level](https://www.gohighlevel.com/78476a2?fp_ref=1node)) with voice automation ([Vapi](https://vapi.ai/?aff=onenode)) to **immediately respond to new opportunities**. Once a lead is created, they will receive a **personalized voice call** from a Vapi AI assistant.\n\n---\n\n## 🙋‍♂️ Need Help?\n\nFeel free to contact us at [**1 Node**](https://1node.ai)  \nGet instant access to a library of [**free resources**](https://1node.ai/resources) we created.\n",
+  "workflow": {
+    "id": "io6gseeuMIg9Kg9s",
+    "meta": {
+      "instanceId": "9219ebc7795bea866f70aa3d977d54417fdf06c41944be95e20cfb60f992db19",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Start outbound Vapi calls from new Go High Level opportunities",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "a3814be0-c176-4c27-8606-29abf180fb55",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          360,
+          -220
+        ],
+        "parameters": {
+          "width": 260,
+          "height": 380,
+          "content": "## Set Vapi fields\nYou must set the \n- phone number id which will make the call\n- assistant id which will be enabled in the call\n- your Vapi api key"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "37b335ac-18c6-482b-bdd6-98c66981c063",
+        "name": "Start outbound Vapi call",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          660,
+          0
+        ],
+        "parameters": {
+          "url": "https://api.vapi.ai/call",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n    \"assistantId\": \"{{ $json.vapiAssistantId }}\",\n    \"phoneNumberId\": \"{{ $json.vapiPhoneNumberId }}\",\n    \"customer\": {\n        \"number\": \"{{ $('Get a GHL contact').item.json.phone }}\"\n    }\n}\n",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{ $json.vapiApi }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "035c16f5-ed66-4637-bbd4-c97c367f04ab",
+        "name": "Set fields",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          440,
+          0
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "f38947e1-c75a-44cc-88f9-c44fc80bada8",
+                "name": "vapiPhoneNumberId",
+                "type": "string",
+                "value": "insert-id"
+              },
+              {
+                "id": "463ed66e-e072-48dc-a75d-a3815fd07de0",
+                "name": "vapiAssistantId",
+                "type": "string",
+                "value": "insert-id"
+              },
+              {
+                "id": "93f058cd-e015-4b83-a16f-efceddafb128",
+                "name": "vapiApi",
+                "type": "string",
+                "value": "insert-api"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "c5462a8b-3227-4225-acfe-e5675a544127",
+        "name": "GHL opportunity created",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -220,
+          0
+        ],
+        "webhookId": "94788969-ef95-45c7-88ad-29b894324466",
+        "parameters": {
+          "path": "94788969-ef95-45c7-88ad-29b894324466",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "dcc47fda-66b7-4ecc-bdb5-50c005cf5f66",
+        "name": "Get a GHL contact",
+        "type": "n8n-nodes-base.highLevel",
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "contactId": "={{ $json.body.contactId }}",
+          "operation": "get",
+          "requestOptions": {}
+        },
+        "credentials": {
+          "highLevelOAuth2Api": {
+            "id": "credential-id",
+            "name": "highLevelOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "04971310-1fc8-4ba9-bbcc-b200ff36758e",
+        "name": "Wait 5min",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          220,
+          0
+        ],
+        "webhookId": "300ec071-c5be-462f-8a72-6d970ab2b372",
+        "parameters": {
+          "unit": "minutes"
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "22531ff8-5447-469f-b179-31092efdcd4d",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -620,
+          -160
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 320,
+          "height": 520,
+          "content": "## Requirements \n### Go High Level\n- [Go High Level](https://www.gohighlevel.com/78476a2?fp_ref=1node) account\n- Go High Level developer private app and credentials enabled in n8n\n- Webhook URL (from n8n) added in your Go High Level private app\n\n### Vapi\n- A [Vapi](https://vapi.ai/?aff=onenode) account with credit\n- A connected phone number which will make the calls\n- An assistant created and ready to make calls\n- Vapi api key \n\n### Useful links\n- [GHL docs](https://developers.gohighlevel.com/)\n- [Vapi docs](https://docs.vapi.ai/api-reference/calls/create)\n- [n8n GHL credentials](https://docs.n8n.io/integrations/builtin/credentials/highlevel/)"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "ed556e22-2852-44f9-8826-d9554f2cb950",
+    "connections": {
+      "Wait 5min": {
+        "main": [
+          [
+            {
+              "node": "Set fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set fields": {
+        "main": [
+          [
+            {
+              "node": "Start outbound Vapi call",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get a GHL contact": {
+        "main": [
+          [
+            {
+              "node": "Wait 5min",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "GHL opportunity created": {
+        "main": [
+          [
+            {
+              "node": "Get a GHL contact",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 38,
+      "name": "Lead Nurturing"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6088",
+  "fetched_at": "2026-09-12T13:11:08Z"
+}

@@ -1,0 +1,207 @@
+{
+  "id": 6707,
+  "name": "Fix & resend guest order emails in Magento 2 via REST API",
+  "description": "### This powerful n8n automation workflow is built for Magento 2 store owners and support teams who need to quickly correct guest customer email addresses and automatically resend order confirmation emails — all without logging into the Magento Admin Panel.\n\n#### 🧩 What This Workflow Does:\n- 🔄 Automates Magento 2 Admin Token Generation for secure REST API access.\n- ✏️ Edits the email address on guest orders by updating both customer_email and billing_address.email fields using the Magento 2 Order API.\n- 📧 Triggers the Magento 2 order confirmation email using the official /V1/orders/:id/emails endpoint.\n- 🧠 Can be triggered manually or automatically from a form, CRM, failed email webhook, or helpdesk system.\n- 📝 Logs actions and results to keep track of which emails were updated and which confirmations were resent.\n\n#### ✅ Why Use This n8n Workflow?\n- No more manual edits via Admin Panel.\n- Ideal for support teams fixing typos like @gamil.com or @yahho.com.\n- Seamless experience for customers who never received their order confirmation.\n- Easily extendable — connect to your existing n8n ecosystem (forms, Slack, HelpDesk, Airtable, etc.)\n\n#### 💼 Use Cases\n- 🔧 A customer checks out as a guest and provides the wrong email — this automation fixes it in seconds.\n- 📦 Support team gets a ticket: “I didn’t receive my confirmation email” — plug in the new address and let the workflow handle the rest.\n- 🤖 Ecommerce operators who want to automate email recovery and cleanup workflows with precision and audit logs.\n\n#### 🔑 Credentials Used\n- HTTP Request – For calling Magento 2 REST API endpoints.\n- Magento 2 Admin API Token – Acquired via /V1/integration/admin/token using admin username/password.\n\n#### 🏷️ Tags\n#n8n #Magento2 #AdobeCommerce #RESTAPI #Automation #Ecommerce #EmailFix #GuestCheckout #OrderMan\n\n#### 📂 Category\nEcommerce Automation / Magento 2 / Developer Tools / Support Ops\n\n#### 💬 Need Help?\n💡 Having trouble setting it up or want to customize this workflow further?\nFeel free to reach out — I’m happy to help with setup, customization, or Magento 2 API integration issues.\n\nContact: Author\n\n#### 👤 Author\n**Kanaka Kishore Kandregula**\nCertified Magento 2 Developer | N8N Engineer\nhttps://gravatar.com/kmyprojects\nhttps://www.linkedin.com/in/kanakakishore\n\nThank you",
+  "workflow": {
+    "meta": {
+      "instanceId": "54d8e296590faa0bb0e9d6290ad6ee2f19b78aa7b248ecb45c5f7c5ff622d210",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "f51fc817-6fe6-47aa-9fb2-a74614417162",
+        "name": "On form submission",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          -660,
+          -180
+        ],
+        "webhookId": "e441bdd8-6557-4b93-9d3a-8530db0d6b92",
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "cc5e2ab4-04a7-4e2c-acbe-1cfbb74f5c7c",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -740,
+          -260
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9a28e493-cb2e-4a95-ac1a-925b80897035",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -20,
+          -260
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "63d44194-73e7-43f5-9553-4ece56b67619",
+        "name": "Get Order By Increment ID",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -440,
+          -180
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "eae95104-f7ab-410e-a150-6fba641bc6aa",
+        "name": "Checks If Order Exist",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -220,
+          -180
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "79745ed9-731d-404b-a487-25bd2a3afcca",
+        "name": "Code",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          0,
+          -180
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "9b7ab232-4046-4acc-bbb0-3f001e05590b",
+        "name": "Update Guest Order Email",
+        "type": "n8n-nodes-base.mySql",
+        "position": [
+          220,
+          -180
+        ],
+        "parameters": {},
+        "typeVersion": 2.4
+      },
+      {
+        "id": "0fff6518-a075-4deb-8d77-5c31b8d83917",
+        "name": "resend order confirmation",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          660,
+          -180
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "c228566c-7f60-4524-b626-e3d825cfc21c",
+        "name": "Checks for Resend",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          440,
+          -180
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "88bbb3e5-f5ec-43e4-aa4a-696dbee08aed",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -740,
+          -440
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Code": {
+        "main": [
+          [
+            {
+              "node": "Update Guest Order Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Checks for Resend": {
+        "main": [
+          [
+            {
+              "node": "resend order confirmation",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "On form submission": {
+        "main": [
+          [
+            {
+              "node": "Get Order By Increment ID",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Checks If Order Exist": {
+        "main": [
+          [
+            {
+              "node": "Code",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update Guest Order Email": {
+        "main": [
+          [
+            {
+              "node": "Checks for Resend",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Order By Increment ID": {
+        "main": [
+          [
+            {
+              "node": "Checks If Order Exist",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 39,
+      "name": "CRM"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6707",
+  "fetched_at": "2026-09-12T13:11:31Z"
+}

@@ -1,0 +1,405 @@
+{
+  "id": 11601,
+  "name": "Handle failed payment renewals with AI analysis, Jira tickets and Slack alerts",
+  "description": "# Webhook from Payment Provider → Jira Finance Ticket → Slack Invoice Follow-up Automation\n\nThis workflow automates failed subscription renewal processing by validating webhook data, using AI to analyze urgency and churn risk, creating a Jira Finance Task and notifying the finance team via Slack. If required fields are missing, it sends an error alert for manual review instead.\n\n### ⚡ Quick Implementation Steps (Start Using in 60 Seconds)\n\n1. Import workflow JSON into n8n.\n2. Add Jira & Slack credentials.\n3. Configure webhook URL `/payment-failed-renewal` in payment provider.\n4. Test with:  \n```json\n{ \"customerId\": \"C-101\", \"customerEmail\": \"user@example.com\", \"subscriptionId\": \"S-500\", \"amount\": 39.99 }\n```\n5. Activate workflow.\n\n## What It Does\n\nThis automation connects your payment system with your financial operations. When a subscription renewal fails, the payment provider sends a webhook. The workflow validates the fields, uses OpenAI to analyze the payment failure reason (determining urgency & churn risk), routes high-value failures to high priority, creates a Jira task with an AI-drafted recovery email and alerts the finance team on Slack.\n\nIf required data is missing, the workflow prevents incomplete Jira tickets by routing the event to an error handler and sending a detailed Slack alert listing all missing fields and full payload for manual inspection.\n\n## Who’s It For\n\n- Finance & billing departments  \n- SaaS companies with recurring billing  \n- Teams using Jira for billing operations  \n- Slack-based financial support teams  \n- Companies wanting automated revenue recovery workflows  \n\n## Requirements to Use This Workflow\n\n- n8n instance\n- OpenAI API Key (or compatible LLM credential)\n- Jira Software account with permissions for FIN project\n- Slack bot token with channel posting rights\n- Payment provider that supports POST JSON webhooks\n- Webhook configured to: `https://YOUR-N8N-URL/webhook/payment-failed-renewal`\n\n## How It Works & How To Set Up\n\n### Step-by-Step Flow\n\n1. Webhook receives payment failure payload.\n2. Validation node checks required fields:  \n   - `customerId`  \n   - `customerEmail`  \n   - `subscriptionId`  \n   - `amount`\n3. **AI Analysis**: OpenAI analyzes failure reason, sets urgency, and drafts email.\n4. **Logic**: Switch node routes High Value (&gt;$500) to 'High' priority.\n5. Jira Finance Task created (with AI draft).\n6. Slack message sent (with Churn Risk score).\n\n### Setup Steps\n\n#### Step 1 — Webhook Setup\n- Method: POST  \n- Path: `payment-failed-renewal`\n\n#### Step 2 — Jira Setup\n- Select Jira credentials in **Create Jira Finance Ticket** node.\n- Ensure:  \n  - Project: FIN  \n  - Issue type: Task  \n\n#### Step 3 — Slack Setup\n- Add Slack credentials to both Slack nodes.\n- Select finance alert channel.\n\n#### Step 4 — OpenAI Setup\n- Add OpenAI credentials in the **AI Analysis** node.\n\n#### Step 5 — Test\n```json\n{\n  \"customerId\": \"CUST-001\",\n  \"customerEmail\": \"billing@example.com\",\n  \"subscriptionId\": \"SUB-1001\",\n  \"amount\": 19.99\n}\n```\n\n#### Step 6 — Activate\nEnable the workflow.\n\n## How To Customize Nodes\n\n### Webhook\n- Add Basic Auth  \n- Add token-based security  \n- Add JSON schema validation  \n\n### Validate Payload\nEnhance with:\n- Email format validation  \n- Numeric validation for amount  \n- Auto-fallback values  \n\n### Jira Node\nCustomize:\n- Ticket summary structure  \n- Labels (`billing-recovery`, `urgent`, etc.)  \n- Add custom fields  \n- Change issue type or project  \n\n### Slack Nodes\nEnhance:\n- Mentions: `@finance-team`  \n- Threads instead of channel posts  \n- Rich blocks, buttons, or attachments  \n\n## Add-ons (Optional Enhancements)\n- Automated email to customer for payment recovery  \n- Retry count–based escalation (e.g., retry ≥ 3 → escalate to manager)  \n- Log data to Airtable / Google Sheets  \n- Sync events into CRM (HubSpot, Salesforce, Zoho)  \n- Notify Sales for high-value customer failures  \n\n## Use Case Examples\n1. Stripe renewal payment fails → Create Jira task → Slack finance alert.  \n2. Chargebee retry attempts exhausted → Notify billing team immediately.  \n3. Declined credit card → Jira ticket with failure reason.  \n4. Razorpay/PayPal renewal failure → Automated follow-up.  \n5. Webhook missing data → Slack error alert ensures nothing is silently ignored.  \n\n## Troubleshooting Guide\n\n| Issue | Possible Cause | Solution |\n|-------|----------------|----------|\n| Webhook not triggering | Wrong URL / method | Use POST + correct endpoint |\n| Jira ticket missing | No permissions or invalid payload | Check Jira permissions + required fields |\n| Slack shows undefined values | Missing fields in payload | Confirm payload structure |\n| Error alert triggered incorrectly | Field names mismatch | Match exact names: customerId, customerEmail, subscriptionId, amount |\n| Payment provider not sending events | Firewall/CDN blocking | Whitelist the n8n webhook URL |\n| Workflow silent | Not activated | Turn workflow ON |\n\n## Need Help?\nIf you want help customizing this workflow or extending it into a complete revenue recovery automation suite:\n\n[WeblineIndia](https://www.weblineindia.com/) can support you with:\n- Jira & Slack automation pipelines  \n- Payment provider webhook integrations  \n- Finance workflow optimization  \n- AI-based billing insights  \n- End‑to‑end automation solutions  \n\nReach out anytime for expert implementation or enhancements.",
+  "workflow": {
+    "meta": {
+      "instanceId": "14e4c77104722ab186539dfea5182e419aecc83d85963fe13f6de862c875ebfa",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "83f1bf6b-b2d4-40eb-8cbc-bf9a4dd13e10",
+        "name": "Section - Validation",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          560,
+          560
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 528,
+          "height": 456,
+          "content": "## Validation & Routing\n\nValidates payload. If valid, passes to AI for analysis."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "46f341fc-77ad-4620-acec-a821de6e5754",
+        "name": "Section - AI & Logic",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1200,
+          512
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 648,
+          "height": 450,
+          "content": "## AI & Logic\n\n1. **AI Analysis**: Determines Churn Risk & drafts email.\n2. **Switch**: Routes High Value (>$500) to High Priority."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "35fc16ae-d215-4210-9b63-9ceac1c88387",
+        "name": "AI Analysis",
+        "type": "n8n-nodes-base.openAi",
+        "position": [
+          1296,
+          656
+        ],
+        "parameters": {
+          "model": "gpt-3.5-turbo",
+          "prompt": {
+            "messages": [
+              {
+                "role": "system",
+                "content": "You are a financial recovery assistant."
+              },
+              {
+                "role": "user",
+                "content": "=Analyze this payment failure:\nCustomer: {{$json.customerEmail}}\nAmount: ${{$json.amount}}\nReason: {{$json.failureReason}}\n\n1. Determine Churn Risk (Low, Medium, High).\n2. Determine Urgency (Standard, High).\n3. Draft a polite recovery email to the customer.\n\nReturn JSON: { \"churnRisk\": \"...\", \"urgency\": \"...\", \"emailDraft\": \"...\" }"
+              }
+            ]
+          },
+          "options": {},
+          "requestOptions": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6a23440a-6af1-48a7-ade8-1f71e716bdaf",
+        "name": "Priority Switch",
+        "type": "n8n-nodes-base.switch",
+        "position": [
+          1504,
+          656
+        ],
+        "parameters": {
+          "rules": {
+            "rules": [
+              {
+                "value2": 500,
+                "operation": "larger"
+              }
+            ]
+          },
+          "value1": "={{$json.amount}}",
+          "fallbackOutput": 1
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b650de29-af79-4dad-8ccc-0adf2e948df7",
+        "name": "Set High Priority",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1696,
+          560
+        ],
+        "parameters": {
+          "values": {
+            "string": [
+              {
+                "name": "ticketPriority",
+                "value": "High"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a36b4305-311a-4a10-90c9-df916dc628e1",
+        "name": "Set Standard Priority",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1696,
+          768
+        ],
+        "parameters": {
+          "values": {
+            "string": [
+              {
+                "name": "ticketPriority",
+                "value": "Medium"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f755de36-c8d1-4a20-9d32-d1d3c6386292",
+        "name": "Main Overview1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -160,
+          64
+        ],
+        "parameters": {
+          "color": "yellow",
+          "width": 550,
+          "height": 550,
+          "content": "## How it works\n\nThis workflow handles failed payment renewal notifications. It now includes **AI Analysis** to determine urgency and draft recovery emails.\n\n1. **Webhook**: Receives payload.\n2. **Validation**: Checks for required fields.\n3. **AI Analysis**: OpenAI analyzes the failure reason & amount to set urgency.\n4. **Routing**: High-value (> $500) or High-Risk failures get 'High' priority.\n5. **Jira**: Creates a ticket with AI-drafted content.\n6. **Slack**: Notifies the team with churn risk assessment.\n\n## Setup steps\n\n1. Configure the webhook endpoint path (`/payment-failed-renewal`)\n2. Set up Jira & Slack credentials\n3. **Configure OpenAI credentials** for the AI Analysis node\n4. Test with a POST request\n5. Activate"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a85de952-f857-48e1-82af-e38cac66d2cc",
+        "name": "Section - Success Path1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1904,
+          512
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 536,
+          "height": 446,
+          "content": "## Success Path\n\nCreates Jira ticket with AI-enhanced data and notifies Slack."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "d6344515-73bb-40f3-9881-ce6b723d1e6f",
+        "name": "Section - Error Path1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1216,
+          1008
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 384,
+          "height": 296,
+          "content": "## Error Path"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "bbb3248a-d8cd-48b2-a9cd-d1d8c3c418d5",
+        "name": "Webhook - Payment Failed",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          256,
+          752
+        ],
+        "webhookId": "payment-failed-renewal",
+        "parameters": {
+          "path": "payment-failed-renewal",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f885e35c-e699-4219-98b1-51479703bb99",
+        "name": "Validate Payload",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          640,
+          752
+        ],
+        "parameters": {
+          "functionCode": "// Validate required fields\nconst requiredFields = ['customerId', 'customerEmail', 'subscriptionId', 'amount'];\nconst missingFields = [];\nconst payload = $input.item.json;\n\n// Check each required field\nfor (const field of requiredFields) {\n  if (!payload[field] || payload[field] === '') {\n    missingFields.push(field);\n  }\n}\n\n// Prepare validation result\nconst isValid = missingFields.length === 0;\n\nreturn {\n  json: {\n    ...payload,\n    validationStatus: isValid ? 'valid' : 'invalid',\n    missingFields: missingFields,\n    hasError: !isValid\n  }\n};"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2e751337-57d9-45a6-ade4-6b2e3d76cd18",
+        "name": "Payload Valid?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          896,
+          752
+        ],
+        "parameters": {
+          "conditions": {
+            "boolean": [
+              {
+                "value1": "={{$json.hasError}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "7c943f69-8f7f-424f-b0b7-2705c8eebc3c",
+        "name": "Slack Error Alert",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          1344,
+          1120
+        ],
+        "parameters": {
+          "text": "=⚠️ *Payment Webhook Error*\nMissing fields: {{$json.missingFields.join(', ')}}",
+          "attachments": [],
+          "otherOptions": {
+            "mrkdwn": true
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "510ca07e-c8ca-4315-a7cd-d947764068c4",
+        "name": "Create Jira Finance Ticket",
+        "type": "n8n-nodes-base.jira",
+        "position": [
+          1952,
+          656
+        ],
+        "parameters": {
+          "project": "FIN",
+          "summary": "=Failed Renewal - {{$json.customerEmail}} (Risk: {{$json.churnRisk}})",
+          "issueType": "Task",
+          "additionalFields": {
+            "labels": [
+              "billing-recovery",
+              "={{$json.ticketPriority == 'High' ? 'urgent' : 'routine'}}"
+            ],
+            "description": "=**Analysis**\n- Urgency: {{$json.ticketPriority}}\n- Churn Risk: {{$json.churnRisk}}\n\n**Draft Email:**\n{{$json.emailDraft}}\n\n**Details**\n- Customer: {{$json.customerEmail}}\n- Amount: ${{$json.amount}}\n- Reason: {{$json.failureReason}}"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6361af2f-cfa3-48dc-ab18-3ccf4f825000",
+        "name": "Slack Finance Notification",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          2192,
+          656
+        ],
+        "parameters": {
+          "text": "=🚨 *Failed Subscription Renewal*\n\n*Urgency:* {{$json.ticketPriority}}\n*Risk:* {{$json.churnRisk}}\n\n*Customer:* {{$json.customerEmail}}\n*Amount:* ${{$json.amount}}\n\n<{{$node['Create Jira Finance Ticket'].json.self}}|View Jira Ticket>",
+          "attachments": [],
+          "otherOptions": {
+            "mrkdwn": true
+          }
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "AI Analysis": {
+        "main": [
+          [
+            {
+              "node": "Priority Switch",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Payload Valid?": {
+        "main": [
+          [
+            {
+              "node": "AI Analysis",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Slack Error Alert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Priority Switch": {
+        "main": [
+          [
+            {
+              "node": "Set High Priority",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Set Standard Priority",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validate Payload": {
+        "main": [
+          [
+            {
+              "node": "Payload Valid?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set High Priority": {
+        "main": [
+          [
+            {
+              "node": "Create Jira Finance Ticket",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Standard Priority": {
+        "main": [
+          [
+            {
+              "node": "Create Jira Finance Ticket",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook - Payment Failed": {
+        "main": [
+          [
+            {
+              "node": "Validate Payload",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create Jira Finance Ticket": {
+        "main": [
+          [
+            {
+              "node": "Slack Finance Notification",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 34,
+      "name": "Invoice Processing"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/11601",
+  "fetched_at": "2026-09-12T13:13:49Z"
+}

@@ -1,0 +1,787 @@
+{
+  "id": 6927,
+  "name": "Automate job search & applications with 5 job boards & AI resume generator",
+  "description": "**Automate Your Job Search: Find Job Listings on LinkedIn, Indeed, Glassdoor, Upwork & Adzuna!**\n\nStop wasting time manually searching for jobs! This powerful job search automation workflow for n8n is your secret weapon to finding and preparing for your next career move, effortlessly.\n\nTired of visiting multiple job boards every day, running the same searches, and drowning in a sea of irrelevant listings? \n\nOur Job Search Automation workflow streamlines the entire process for you. It automatically scours top job boards, filters and deduplicates the results, and even helps you craft a tailored resume and cover letter.\n\n**This workflow will automatically pull job listings from:**\n\nLinkedIn: The world's largest professional network.\n\nIndeed: One of the most popular job search engines.\n\nGlassdoor: A leading platform for company reviews and job listings.\n\nUpwork: The go-to marketplace for freelance opportunities.\n\nAdzuna: A comprehensive job search engine with a massive database of listings.\n\n**Key Features:**\n\nMulti-Board Job Sourcing: Never miss an opportunity! This workflow simultaneously searches LinkedIn, Indeed, Glassdoor, Upwork, and Adzuna for your desired job title.\n\n**Intelligent Filtering & Deduplication:** Say goodbye to repetitive listings. The workflow cleans up the results, so you only see unique, relevant job postings.\n\n**AI-Powered Resume & Cover Letter Generation:** Once a promising job is found, the workflow uses AI to analyze the job description, score your resume's match, and then rewrites your resume and generates a tailored cover letter to highlight the right skills and experience.\n\n**Automated Email Delivery:** Receive the tailored resume and cover letter directly in your inbox, ready for you to review and send.\n\n**Google Sheets Integration:** Keep track of every job you're considering. The workflow automatically logs the job details, your tailored documents, and the application status in a Google Sheet.\n\n**Fully Customizable:** Easily adapt the workflow to your specific needs. Change the job titles, locations, and even add or remove job boards.\n\n**Why You Need This Workflow:**\n\n**Save Dozens of Hours:** Automate the most time-consuming parts of your job search.\n\n**Discover More Opportunities:** Cast a wider net by searching multiple platforms at once.\n\n**Apply Faster:** Get a head start with AI-generated, tailored application materials.\n\n**Stay Organized:** Effortlessly track your applications in a centralized location.\n\nTake control of your job search and land your dream job faster. Get the Job Search Automation workflow today!\n\n**============**\n\n**How to configure your new n8n workflow.**\n\nPrerequisites:\n\nAn active n8n instance.\n\nAccounts for the services you want to use (Apify, Google, etc.).\n\nConfiguration Steps:\n\nApify Account & Scrapers:\nThis workflow uses Apify to scrape job listings from Indeed, LinkedIn, Upwork, and Glassdoor.\n\nCreate an Apify Account: If you don't have one, sign up at https://apify.com. A free plan is available.\n\nGet Your Apify API Key: In your Apify account, go to Settings &gt; Integrations to find your API token.\n\nAdd Apify Credentials to n8n:\n\nIn your n8n workflow, navigate to the Apify: Run Indeed Scraper node.\n\nIn the \"Credentials\" section, click to add new credentials.\n\nGive your credentials a name (e.g., \"My Apify Account\") and paste your API token.\n\nApply Credentials to All Apify Nodes: You will need to select your newly created Apify credentials for the following nodes:\n\nApify: Run Indeed Scraper\n\nApify: Get Indeed Results\n\nApify: Run LinkedIn Scraper\n\nApify: Get LinkedIn Results\n\nApify: Run Upwork Scraper\n\nApify: Get Upwork Results\n\nApify: Run Glassdoor Scraper\n\nApify: Get Glassdoor Results\n\nAdzuna API (Optional but Recommended):\n\nThe workflow uses Adzuna for an additional source of job listings. You will need to sign up for a free developer account to get an App ID and App Key.\n\nSign Up: Go to https://developer.adzuna.com/ and register.\n\n**Get Your Credentials:** Once registered, you will find your app_id and app_key in your dashboard.\n\nUpdate the \"Get Jobs from Adzuna\" Node:\n\nClick on this node to open its parameters.\n\nIn the URL field, place app_id and your app_key.\n\nOpenRouter for AI Models:\n\nThis workflow uses OpenRouter to access various AI models for tasks like resume scoring and writing.\n\nCreate an OpenRouter Account: Sign up at https://openrouter.ai/.\n\nGet Your API Key: Find your key in your account settings.\n\nAdd OpenRouter Credentials to n8n:\n\nGo to the OpenRouter Chat Model node.\n\nAdd your OpenRouter API key as new credentials.\n\nGoogle Sheets and Gmail Integration:\n\nCreate a Google Sheet: Create a new Google Sheet to track your job applications. The workflow is pre-configured with the following columns, but you can customize them: job_title, job_description, job_url, company, email, status, tailored_resume, cover_letter.\n\nAdd Google Credentials to n8n: You will need to authenticate your Google account in n8n to allow access to Sheets and Gmail.\n\nIn the Upate sheets node, go to the \"Credentials\" section and follow the prompts to connect your Google account using OAuth2.\n\nDo the same for the 📧Gmail node. It's recommended to use the same credentials for both.\n\nConfigure the \"Upate sheets\" Node:\n\nSelect your Google Sheets credentials.\n\nIn the \"Document ID\" field, enter the ID of the Google Sheet you created. You can find this in the URL of your sheet (it's the long string of characters between /d/ and /edit).\n\nIn the \"Sheet Name\" field, select the correct sheet from the dropdown list.\n\nSetting up the Initial Request (Webhook):\nThis workflow is triggered by a webhook. This means you can start it by sending a POST request from another application or using a tool like Postman.\n\nFind the Webhook URL: In the Webhook node, you will see a \"Test URL\" and a \"Production URL\". Use the production URL for live use.\n\nRequired Data: The webhook expects a JSON body with the following fields:\n\njobSearchKeyword: The job title you want to search for (e.g., \"Software Engineer\").\n\nemail: Your email address where the results will be sent.\n\nYou will also need to upload your resume as a file in the request.\n\nRunning the Workflow:\n\nUpload Your Resume: The workflow is designed to be initiated with your resume. When you trigger the webhook, you need to include the resume file.\n\nActivate the Workflow: Once all credentials are in place, save and activate your workflow.\n\nTrigger the Workflow: Send a POST request to the production webhook URL with the required JSON data and your resume file. **You can use Postman to do this or replace the webhook with a form.**\n\nYou are now all set! The workflow will begin searching for jobs and preparing your application materials.\n\n**Need Help?**\n\nReach me: https://www.linkedin.com/in/gerald-akhidenor-1ab1a45/\n\nWork with me: https://dominixai.com/\n\nMy website: https://jobmonkey.dev\n\nMy email: denorgerald@gmail.com\n\n",
+  "workflow": {
+    "id": "[REDACTED]",
+    "meta": {
+      "instanceId": "[REDACTED]",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Job Search Automation from Multiple Job Boards",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "b5bf1aa2-f629-42f7-ba89-2b491400cbf3",
+        "name": "4️⃣Get Jobs from Adzuna",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -320,
+          140
+        ],
+        "parameters": {},
+        "typeVersion": 4
+      },
+      {
+        "id": "3c979ce8-4808-4ecf-9acf-1a124b6ce16e",
+        "name": "OpenRouter Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+        "position": [
+          1340,
+          60
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "c373ee7d-99f0-43a1-84c9-1ae0262933f4",
+        "name": "Filter Duplicates",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          760,
+          -360
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "d48475b5-3ee3-4bb0-bccc-cf3bdc625ade",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -1200,
+          -260
+        ],
+        "webhookId": "[REDACTED]",
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "3fd7a034-5b57-4c2a-8b86-c5ace5b3d34c",
+        "name": "📈 IF Score ≥ 3",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1980,
+          -360
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "4a98a1ef-7e9d-4599-81de-59e5e113a765",
+        "name": "🔥Write Cover Letter",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          2580,
+          -360
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "70ffa07d-bd3f-437d-8b80-1e500bacedd2",
+        "name": "Upate sheets",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          2940,
+          -360
+        ],
+        "parameters": {},
+        "typeVersion": 4.6
+      },
+      {
+        "id": "93281385-290a-4015-8022-7f30fe37dc3b",
+        "name": "📧Gmail",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          3160,
+          -360
+        ],
+        "webhookId": "[REDACTED]",
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "0a3e74d8-3a80-4039-9abd-73d9c31d00f0",
+        "name": "Extract from File",
+        "type": "n8n-nodes-base.extractFromFile",
+        "position": [
+          -760,
+          -260
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "8a9fd3da-386f-4fb5-8c6e-f94c4c687c5b",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          300,
+          -720
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f7484ad6-e62d-4c90-941d-70a9f6666fee",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -420,
+          -720
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "521025b1-bf23-4ef1-bf3b-371ea3805116",
+        "name": "Check Send Email Success",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          3380,
+          -360
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "c9fc8453-2740-46d3-8775-f33af8767ce8",
+        "name": "Apify: Run Indeed Scraper",
+        "type": "@apify/n8n-nodes-apify.apify",
+        "position": [
+          -320,
+          -660
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "bbbca290-f921-4690-95d1-6c843c95d444",
+        "name": "Apify: Get Indeed Results",
+        "type": "@apify/n8n-nodes-apify.apify",
+        "position": [
+          -100,
+          -660
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "8fb20bd7-fa45-48ca-a68a-5a1cc0f4ef10",
+        "name": "Apify: Run LinkedIn Scraper",
+        "type": "@apify/n8n-nodes-apify.apify",
+        "position": [
+          -320,
+          -460
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "eaf9b75d-c894-4257-b579-bc325f625f00",
+        "name": "Apify: Run Upwork Scraper",
+        "type": "@apify/n8n-nodes-apify.apify",
+        "position": [
+          -320,
+          -260
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "a425222e-bc95-40d4-96fa-90ce47a36743",
+        "name": "Apify: Run Glassdoor Scraper",
+        "type": "@apify/n8n-nodes-apify.apify",
+        "position": [
+          -320,
+          -60
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "2e3755b0-c105-47e4-8f14-e3081052cd46",
+        "name": "Apify: Get Upwork Results",
+        "type": "@apify/n8n-nodes-apify.apify",
+        "position": [
+          -100,
+          -260
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "5a6c5246-918b-4b23-83d5-58ce57392965",
+        "name": "Apify: Get Glassdoor Results",
+        "type": "@apify/n8n-nodes-apify.apify",
+        "position": [
+          -100,
+          -60
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "324efaf8-f5ac-40ee-b561-2d8bb4fc04bf",
+        "name": "Merge",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          120,
+          -380
+        ],
+        "parameters": {},
+        "typeVersion": 3.2
+      },
+      {
+        "id": "0a64e76c-2cda-4f5d-93ad-f958f77589ab",
+        "name": "Standardize Job Data",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          580,
+          -360
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "6e310701-7a53-43cb-8f91-3c48eaabf752",
+        "name": "Filter",
+        "type": "n8n-nodes-base.filter",
+        "position": [
+          340,
+          -360
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "f249e26d-06d5-4fb0-9fbb-e7fd8436e0ca",
+        "name": "Apify: Get LinkedIn Results",
+        "type": "@apify/n8n-nodes-apify.apify",
+        "position": [
+          -100,
+          -460
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "d69f11ba-0fa6-4fa4-9139-c72b7a17532e",
+        "name": "Extract Skills from Job Description",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          1220,
+          -360
+        ],
+        "parameters": {},
+        "executeOnce": false,
+        "typeVersion": 2
+      },
+      {
+        "id": "66ab1b1b-c01e-4468-8154-1ee3a9bcdaf8",
+        "name": "Resume Match Score",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          1600,
+          -360
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "a4975157-6620-40e6-a057-5d0e9349648b",
+        "name": "Rewrite Resume",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          2200,
+          -360
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "8459d8b5-7168-4b7a-9181-f9267a24fa89",
+        "name": "Itemize List",
+        "type": "n8n-nodes-base.splitOut",
+        "position": [
+          -100,
+          140
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "3fec1f19-43e5-4dad-8e2e-6f35bba83956",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          -980,
+          -260
+        ],
+        "parameters": {},
+        "typeVersion": 1.4
+      },
+      {
+        "id": "f2f1b8a6-bdac-45d7-8542-ffdbb581d675",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          940,
+          -360
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "50b963fc-3fb1-426f-988f-118c4baac94f",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1260,
+          -720
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b7df0158-a7d5-4be4-be3f-8600eb44d9e3",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2900,
+          -720
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3528b902-c381-4be6-a388-2d7fdd41b53d",
+        "name": "Send a message if process failed",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          3660,
+          -260
+        ],
+        "webhookId": "[REDACTED]",
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "d2ab64c5-b0a5-4fd2-8691-f5ec7dc9cf3f",
+        "name": "Set Job Title",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -540,
+          -260
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "01d90da8-4e2e-411e-a9a8-e1e1b513897a",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          40,
+          -1040
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": true,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "[REDACTED]",
+    "connections": {
+      "Merge": {
+        "main": [
+          [
+            {
+              "node": "Filter",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter": {
+        "main": [
+          [
+            {
+              "node": "Standardize Job Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "📧Gmail": {
+        "main": [
+          [
+            {
+              "node": "Check Send Email Success",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Itemize List": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 3
+            }
+          ]
+        ]
+      },
+      "Upate sheets": {
+        "main": [
+          [
+            {
+              "node": "📧Gmail",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Job Title": {
+        "main": [
+          [
+            {
+              "node": "4️⃣Get Jobs from Adzuna",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Apify: Run Indeed Scraper",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Apify: Run LinkedIn Scraper",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Apify: Run Upwork Scraper",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Apify: Run Glassdoor Scraper",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Rewrite Resume": {
+        "main": [
+          [
+            {
+              "node": "🔥Write Cover Letter",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Extract Skills from Job Description",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract from File": {
+        "main": [
+          [
+            {
+              "node": "Set Job Title",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter Duplicates": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Respond to Webhook": {
+        "main": [
+          [
+            {
+              "node": "Extract from File",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Resume Match Score": {
+        "main": [
+          [
+            {
+              "node": "📈 IF Score ≥ 3",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "📈 IF Score ≥ 3": {
+        "main": [
+          [
+            {
+              "node": "Rewrite Resume",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      },
+      "Standardize Job Data": {
+        "main": [
+          [
+            {
+              "node": "Filter Duplicates",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenRouter Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Extract Skills from Job Description",
+              "type": "ai_languageModel",
+              "index": 0
+            },
+            {
+              "node": "Resume Match Score",
+              "type": "ai_languageModel",
+              "index": 0
+            },
+            {
+              "node": "Rewrite Resume",
+              "type": "ai_languageModel",
+              "index": 0
+            },
+            {
+              "node": "🔥Write Cover Letter",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "🔥Write Cover Letter": {
+        "main": [
+          [
+            {
+              "node": "Upate sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Send Email Success": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Send a message if process failed",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Apify: Get Indeed Results": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Apify: Get Upwork Results": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 2
+            }
+          ]
+        ]
+      },
+      "Apify: Run Indeed Scraper": {
+        "main": [
+          [
+            {
+              "node": "Apify: Get Indeed Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Apify: Run Upwork Scraper": {
+        "main": [
+          [
+            {
+              "node": "Apify: Get Upwork Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "4️⃣Get Jobs from Adzuna": {
+        "main": [
+          [
+            {
+              "node": "Itemize List",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Apify: Get LinkedIn Results": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Apify: Run LinkedIn Scraper": {
+        "main": [
+          [
+            {
+              "node": "Apify: Get LinkedIn Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Apify: Get Glassdoor Results": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 4
+            }
+          ]
+        ]
+      },
+      "Apify: Run Glassdoor Scraper": {
+        "main": [
+          [
+            {
+              "node": "Apify: Get Glassdoor Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send a message if process failed": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Skills from Job Description": {
+        "main": [
+          [
+            {
+              "node": "Resume Match Score",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 43,
+      "name": "Personal Productivity"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6927",
+  "fetched_at": "2026-09-12T13:11:37Z"
+}

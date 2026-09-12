@@ -1,0 +1,141 @@
+{
+  "id": 6467,
+  "name": "Scheduled website uptime monitor with Slack alert",
+  "description": "## Overview\nThis workflow periodically checks the status of a website. If the website is not reachable (returns an error or non-2xx status code), it sends an alert to a specified Slack channel.\n\nUse Case: Monitor your website, client websites, or critical APIs for downtime and receive immediate notifications.\n\n## How It Works\nThis workflow operates in four main steps:\n\nScheduled Trigger:\n\nA Cron node is configured to run at regular intervals (e.g., every 15 minutes, hourly).\n\nHTTP Request to Website:\n\nAn HTTP Request node attempts to make a GET request to the specified website URL.\n\nIt's set to ignore HTTP errors so that the workflow doesn't stop immediately if the site is down, allowing the \"If\" node to handle the status.\n\nCheck Website Status (If Node):\n\nAn If node checks the statusCode returned by the HTTP Request node.\n\nIf the statusCode is not in the 2xx range (indicating success), the workflow proceeds to the \"Send Slack Alert\" branch. Otherwise, it does nothing.\n\nSend Slack Alert:\n\nA Slack node sends a message to a predefined Slack channel, notifying you that the website is down and including details like the URL and status code.\n\n## Setup Steps\nTo get this workflow up and running, follow these instructions:\n\nStep 1: Create Slack API Credentials in n8n\n\nIn your n8n instance, click on Credentials in the left sidebar.\n\nClick New Credential.\n\nSearch for and select \"Slack API\".\n\nFollow the instructions to connect your Slack workspace. You'll likely need to create a Slack App and get a Bot User OAuth Token. Save the credential.\n\nMake note of the Credential Name (e.g., \"My \nSlack Account\").\nSchedule Monitor (Every Hour) Node:\n\n\"Mode\": Set your desired polling interval (e.g., everyHour, every15Minutes, every5Minutes).\n\n\"Hour\" / \"Minute\": Adjust if you want specific times for hourly/daily checks.\n\nCheck Website HTTP Status Node:\n\nIn the \"URL\" field, replace https://www.google.com with the actual URL of the website you want to monitor.\n\nSend Slack Alert Node:\n\nSelect your Slack credential under the \"Credentials\" section.\n\nIn the \"Channel\" field, replace #website-alerts with the actual Slack channel where you want to receive alerts.\n\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "2000c64071c20843606b95c63795bb0797c41036047055a6586498e855b96efc",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "eeb73a6f-5b96-4092-b7e0-f19c93fe7353",
+        "name": "Schedule Monitor (Every Hour)",
+        "type": "n8n-nodes-base.cron",
+        "position": [
+          32,
+          144
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "361472f2-1e8f-4bea-ae14-5612343d707c",
+        "name": "Check Website HTTP Status",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          240,
+          144
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "88e4e80e-2bbb-4cf7-b1b0-9d59c0fa2363",
+        "name": "If Website is Down",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          704,
+          144
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "e683cf82-0d98-42d7-ad71-199b3a0ebfd1",
+        "name": "Send a message",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          880,
+          128
+        ],
+        "webhookId": "97df9bb9-259e-4579-8b90-09f4b05b644a",
+        "parameters": {},
+        "typeVersion": 2.3
+      },
+      {
+        "id": "54635908-ac64-4526-ad2e-4169cd8b4db5",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -400,
+          -144
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "578ab563-4241-4a0d-8db8-d4922ea7d36c",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          992,
+          -96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5b4829d0-d79b-4934-bb84-95acfbcf0aae",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          352,
+          -80
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "If Website is Down": {
+        "main": [
+          [
+            {
+              "node": "Send a message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Website HTTP Status": {
+        "main": [
+          [
+            {
+              "node": "If Website is Down",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Monitor (Every Hour)": {
+        "main": [
+          [
+            {
+              "node": "Check Website HTTP Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 16,
+      "name": "DevOps"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6467",
+  "fetched_at": "2026-09-12T13:11:21Z"
+}

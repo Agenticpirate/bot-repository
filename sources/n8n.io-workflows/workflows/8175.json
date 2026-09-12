@@ -1,0 +1,399 @@
+{
+  "id": 8175,
+  "name": "Auto-track Amazon prices with Google Gemini & send alerts to Telegram",
+  "description": "# AI-Powered Amazon Price Tracker to Telegram\n\n## Overview\nAutomate your deal hunting with this intelligent Amazon price tracker. This workflow uses the power of AI to monitor any Amazon product page at regular intervals. When the price drops to or below your desired target, it instantly sends a notification to your Telegram chat. Say goodbye to manual price checking and never miss a sale, a lightning deal, or a Black Friday bargain again.\n\nUnlike traditional scrapers that break when a website's layout changes, this workflow uses a Large Language Model (Google Gemini) to understand the page content, making it significantly more robust and reliable.\n\n## 🚀 Key Features\n*   **AI-Powered Data Extraction:** Leverages Google Gemini to intelligently read the product page and extract the name and price, making it resilient to Amazon's frequent layout updates.\n*   **Scheduled Automation:** Set it up once with a schedule (e.g., every hour) and let it run in the background.\n*   **Instant Telegram Alerts:** Get real-time notifications directly in Telegram the moment a price drops to your target.\n*   **Centralized & Easy Configuration:** A single `Set` node holds all your settings—product URL, target price, and Telegram Chat ID—for quick and easy updates.\n*   **Built-in Error Handling:** Intelligently checks if data was extracted correctly and sends an error alert if it fails, so you're always in the loop.\n*   **Cost-Efficient Processing:** Includes a pre-processing step to clean and simplify the page's HTML, reducing the amount of data sent to the AI and lowering potential token costs.\n\n## ⚙️ How It Works\nThe workflow follows a clear, linear process from scheduling to notification.\n\n### 1. Initiation and Configuration\n*   A **Schedule** node triggers the workflow automatically at your chosen interval (e.g., every hour).\n*   A **Set** node named `Config: Product & Alert` acts as your control panel. Here, you define the Amazon product URL, your target price, and your Telegram Chat ID.\n\n### 2. Fetch and Clean Product Page\n*   An **HTTP Request** node fetches the full HTML content of the Amazon product URL.\n*   A **Code** node then cleans this raw HTML. It strips out unnecessary scripts, styles, and tags, leaving only the core text content. This crucial step makes the data easier for the AI to analyze accurately and efficiently.\n\n### 3. AI-Powered Data Extraction\n*   An **AI Agent** node sends the cleaned text to the **Google Gemini** model.\n*   It uses a specific prompt to ask the AI to identify and extract the product's name (`productName`) and its current price (`priceValue`) as a number.\n*   A **Structured Output Parser** ensures the AI returns the data in a clean, predictable JSON format (e.g., `{\"productName\": \"...\", \"priceValue\": 49.99}`), which is essential for the next steps.\n\n### 4. Validate and Compare Price\n*   An **IF** node first validates the AI's output, checking if a valid price was successfully extracted. If not, it routes the workflow to send an error message.\n*   If the data is valid, a second **IF** node compares the extracted `priceValue` with your `priceTarget` from the configuration node.\n\n### 5. Prepare and Send Telegram Notification\n*   If the current price is less than or equal to your target price, the workflow proceeds down the \"true\" path.\n*   A **Set** node constructs a formatted, user-friendly success message including the product name, the new low price, and a direct link to the product page.\n*   Finally, a **Telegram** node sends this prepared message to your specified Chat ID. If an error occurred at any stage, a corresponding error message is sent instead.\n\n## 🛠️ Setup Steps & Credentials\nTo get this workflow running, you'll need to configure the following:\n\n1.  **Google Gemini:**\n    *   You need a Google AI (Gemini) API Key.\n    *   Create a `Google Gemini(PaLM) Api` credential in n8n.\n    *   Assign this credential to the `Google Gemini Chat Model` node.\n2.  **Telegram:**\n    *   You need a **Telegram Bot Token**. Get one by talking to the `@BotFather` on Telegram.\n    *   You also need your personal **Chat ID**. You can get this from a bot like `@userinfobot`.\n    *   Create a `Telegram` credential in n8n with your Bot Token.\n    *   Assign this credential to both the `Send Success` and `Send Error` Telegram nodes.\n3.  **Workflow Configuration:**\n    *   Open the **`Config: Product & Alert`** node.\n    *   Replace the placeholder values:\n        *   `telegramChatId`: Paste your Telegram Chat ID.\n        *   `amazonUrl`: Paste the full URL of the Amazon product you want to track.\n        *   `priceTarget`: Set your desired price (e.g., `49.99`).\n\nOnce configured, save the workflow and activate it using the toggle in the top-right corner.\n\n## 💡 Customization & Learning\nThis workflow is a powerful template that you can easily adapt and expand:\n\n*   **Track Multiple Products:** Modify the workflow to read product URLs and target prices from a Google Sheet or Airtable base to monitor many items at once.\n*   **Add More Notification Channels:** Duplicate the Telegram node and add `Discord`, `Slack`, or `Email` nodes to receive alerts on multiple platforms.\n*   **Store Price History:** Connect a `Google Sheets`, `Airtable`, or database node after the AI extraction step to log the price of the product over time, creating a historical price chart.\n*   **Switch AI Models:** Easily swap the `Google Gemini` node for an `OpenAI` or `Anthropic` model by adjusting the prompt and credentials.",
+  "workflow": {
+    "nodes": [
+      {
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2816,
+          352
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2352,
+          352
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2816,
+          1072
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1696,
+          1072
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2288,
+          1072
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Set: Success Message",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -2144,
+          1216
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "name": "Set: Error Message",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -2144,
+          1488
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "name": "Config: Product & Alert",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -2672,
+          576
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "name": "AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          -1616,
+          576
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "name": "Schedule Trigger1",
+        "type": "n8n-nodes-base.cron",
+        "position": [
+          -3008,
+          576
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2384,
+          -192
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Google Gemini Chat Model1",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "position": [
+          -1712,
+          784
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Memory",
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "position": [
+          -1536,
+          784
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "name": "Structured Output Parser",
+        "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "position": [
+          -1376,
+          784
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "name": "Send Error",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          -1568,
+          1488
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "name": "Send Success",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          -1568,
+          1216
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "name": "If",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -2784,
+          1472
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "name": "IF: Price <= Target?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -2544,
+          1216
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "name": "Fetch HTML",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -2320,
+          576
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "name": "Parse and clean HTML",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -2032,
+          576
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1760,
+          352
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Sticky Note7",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -4800,
+          -224
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "If": {
+        "main": [
+          [
+            {
+              "node": "IF: Price <= Target?",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Set: Error Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Agent": {
+        "main": [
+          [
+            {
+              "node": "If",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch HTML": {
+        "main": [
+          [
+            {
+              "node": "Parse and clean HTML",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger1": {
+        "main": [
+          [
+            {
+              "node": "Config: Product & Alert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set: Error Message": {
+        "main": [
+          [
+            {
+              "node": "Send Error",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF: Price <= Target?": {
+        "main": [
+          [
+            {
+              "node": "Set: Success Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse and clean HTML": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set: Success Message": {
+        "main": [
+          [
+            {
+              "node": "Send Success",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Config: Product & Alert": {
+        "main": [
+          [
+            {
+              "node": "Fetch HTML",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Structured Output Parser": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Gemini Chat Model1": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 44,
+      "name": "Crypto Trading"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8175",
+  "fetched_at": "2026-09-12T13:12:19Z"
+}

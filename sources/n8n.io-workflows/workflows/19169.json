@@ -1,0 +1,504 @@
+{
+  "id": 19169,
+  "name": "Qualify Meta Lead Ads with OpenAI and route hot leads to HubSpot and WhatsApp",
+  "description": "## Quick overview\nI built this to score every Meta Lead Ads submission the minute it lands. OpenAI reads the answers and gives a fit score. HubSpot keeps the contact with that verdict. Slack tells your team which ones to call first. The WhatsApp reply ships switched off until you turn it on.\n\n## How it works\n1. A new Meta Lead Ads submission fires the trigger, so nobody has to export a CSV from Ads Manager to see who came in.\n2. A Code node flattens the form answers into a name, an email and a phone in E.164 format, whatever fields your form happens to have.\n3. OpenAI reads your business description next to the answers. It returns intent, urgency, a fit score out of 100 and a suggested first reply. If the call fails the lead is marked UNSCORED instead of dropped.\n4. Your thresholds in Lead Settings turn that score into HOT, WARM or COLD, and you can move the line whenever your calendar fills up.\n5. The contact is upserted in HubSpot with the score, the summary and the verdict on custom properties.\n6. A HOT lead with a usable phone number gets the approved WhatsApp template, but only when sendWhatsAppAutomatically is true. It ships false, so nothing reaches a stranger until you decide it should.\n7. Slack gets the alert with the summary and the HubSpot link. Google Sheets gets the row, and a failed write is announced in Slack rather than swallowed.\n\n## Setup\n1. Connect the Meta Lead Ads trigger to your Meta account, then pick the page and the form you want to watch from the dropdowns.\n2. Add an OpenAI credential on the chat model node, the only model node in the workflow, and leave the rest of it alone.\n3. Add your HubSpot app token. Create three contact properties: lead_fit_score, lead_summary and lead_verdict.\n4. Add Slack, set the target channel in Lead Settings, and check the bot is actually a member of that channel before the first run.\n5. Add Google Sheets. Make a Leads tab whose headers match the mapped columns, then put the sheet ID and tab name in Lead Settings.\n6. WhatsApp is optional. Add the Business Cloud credential, your phone number ID and the approved template in Lead Settings. I would flip sendWhatsAppAutomatically to true only once you have read a few suggested replies in Slack and trust what the model writes.\n\n## Requirements\n- You need a Meta app with lead retrieval access, an OpenAI API key, a HubSpot account, a Slack bot in the target channel and a Google Sheet. I made WhatsApp Business Cloud optional, so add it only if you want the automatic reply to hot leads switched on.\n\n## Customization\n- I left the hot line in Lead Settings so you can move it whenever the calendar fills up. Swap the WhatsApp node for SMS or email if your buyers do not use it, or replace the sheet with an n8n Data Table if you would rather keep the log inside n8n.\n\n## Additional info\nThis is the same workflow I sell as a Fractional HQ kit on Etsy, with a setup guide and a README in the download, which is where the purchase link takes you.",
+  "workflow": {
+    "name": "[FHQ-TPL] Qualify Meta Lead Ads with AI and route hot leads to HubSpot, WhatsApp and Slack",
+    "nodes": [
+      {
+        "id": "3e6a3f72-9e6c-4725-ac01-0c25fb73cd5b",
+        "name": "New Meta Lead",
+        "type": "n8n-nodes-base.facebookLeadAdsTrigger",
+        "position": [
+          0,
+          460
+        ],
+        "webhookId": "7f132185-739e-439a-8341-6c6e63c59745",
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "f7576d5f-a4a4-44c3-a439-8a1f1c5c9e75",
+        "name": "Lead Settings",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          240,
+          460
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "e1bc41b4-fdab-42f6-bfcb-3ed36292ee3b",
+        "name": "Normalise Lead Fields",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          480,
+          460
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "1d37924a-b989-4768-b366-0ee917f65824",
+        "name": "Qualify Lead With AI",
+        "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+        "onError": "continueErrorOutput",
+        "position": [
+          720,
+          460
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "245399bf-b130-43a5-b7e8-52a4462b1dcf",
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          720,
+          700
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "22175f7e-4b78-4513-9194-eac3abc57f8a",
+        "name": "Fall Back To Manual Review",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          980,
+          700
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "e6a0b01a-3769-4198-849e-7112f1b55a5a",
+        "name": "Shape The Verdict",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1220,
+          460
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "fbeb453e-f3ea-453e-91fa-3e50bf39eb8e",
+        "name": "Is It A Hot Lead?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1460,
+          460
+        ],
+        "parameters": {},
+        "typeVersion": 2.3
+      },
+      {
+        "id": "4c6b8525-eeaa-4d07-8132-a759ed9de02e",
+        "name": "Create Or Update Hot Contact In HubSpot",
+        "type": "n8n-nodes-base.hubspot",
+        "onError": "continueRegularOutput",
+        "position": [
+          1720,
+          260
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "c1f96d28-b72d-4123-bbc0-4546488fc371",
+        "name": "Does The Lead Have A Phone Number?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1960,
+          260
+        ],
+        "parameters": {},
+        "typeVersion": 2.3
+      },
+      {
+        "id": "e011b2fa-31b7-48cf-8b8e-50ee8d537bdd",
+        "name": "Send WhatsApp First Reply",
+        "type": "n8n-nodes-base.whatsApp",
+        "onError": "continueRegularOutput",
+        "position": [
+          2200,
+          160
+        ],
+        "webhookId": "aee63593-be24-4c25-9da2-fb83155def2e",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "a0426100-5b59-455c-b402-0f0ebc432712",
+        "name": "Alert The Team In Slack",
+        "type": "n8n-nodes-base.slack",
+        "onError": "continueRegularOutput",
+        "position": [
+          2440,
+          260
+        ],
+        "webhookId": "1dc2db3c-1388-4b97-b318-ff2c6c8addae",
+        "parameters": {},
+        "typeVersion": 2.5
+      },
+      {
+        "id": "16618c84-7d7c-4c8e-a98f-e4588c77ebe9",
+        "name": "Create Or Update Contact In HubSpot",
+        "type": "n8n-nodes-base.hubspot",
+        "onError": "continueRegularOutput",
+        "position": [
+          1720,
+          680
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "f9cb82f3-af45-45bd-8d95-45171059ebb2",
+        "name": "Log The Lead In Google Sheets",
+        "type": "n8n-nodes-base.googleSheets",
+        "onError": "continueErrorOutput",
+        "position": [
+          2700,
+          460
+        ],
+        "parameters": {},
+        "typeVersion": 4.7
+      },
+      {
+        "id": "29b07f14-09dd-4fa5-a476-676f8cb7b078",
+        "name": "Done",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          2940,
+          460
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "03ad5582-69d9-4bb9-88ee-38419a0ee729",
+        "name": "Sticky Note Overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -900,
+          0
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a23452c0-24d3-41a7-b2d0-8bb29cf35150",
+        "name": "Sticky Note 1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -40,
+          200
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "df671f1f-7505-43b1-a1f3-af2cb27c9ccc",
+        "name": "Sticky Note 2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          680,
+          180
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4a16d833-7e40-4ef6-b448-93bdfcff1787",
+        "name": "Sticky Note 3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1420,
+          -70
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "0b1caf36-e129-458e-9c11-7d379a703dd0",
+        "name": "Sticky Note 4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1920,
+          -100
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "086cf75c-54c8-4f2a-8b35-d3dca0c82822",
+        "name": "Sticky Note 5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2660,
+          160
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b5f1c0d2-7a44-4e19-9c31-2f6d8a4b1e77",
+        "name": "Was The Lead Left Unscored?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1960,
+          680
+        ],
+        "parameters": {},
+        "typeVersion": 2.3
+      },
+      {
+        "id": "d4c99a13-6b02-4d77-8f5a-11ac37e2b640",
+        "name": "Tell The Team The Log Failed",
+        "type": "n8n-nodes-base.slack",
+        "onError": "continueRegularOutput",
+        "position": [
+          2940,
+          700
+        ],
+        "parameters": {},
+        "typeVersion": 2.5
+      }
+    ],
+    "pinData": {},
+    "settings": {
+      "availableInMCP": true,
+      "executionOrder": "v1"
+    },
+    "connections": {
+      "Lead Settings": {
+        "main": [
+          [
+            {
+              "node": "Normalise Lead Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "New Meta Lead": {
+        "main": [
+          [
+            {
+              "node": "Lead Settings",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is It A Hot Lead?": {
+        "main": [
+          [
+            {
+              "node": "Create Or Update Hot Contact In HubSpot",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Create Or Update Contact In HubSpot",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Qualify Lead With AI",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Shape The Verdict": {
+        "main": [
+          [
+            {
+              "node": "Is It A Hot Lead?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Qualify Lead With AI": {
+        "main": [
+          [
+            {
+              "node": "Shape The Verdict",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Fall Back To Manual Review",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalise Lead Fields": {
+        "main": [
+          [
+            {
+              "node": "Qualify Lead With AI",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Alert The Team In Slack": {
+        "main": [
+          [
+            {
+              "node": "Log The Lead In Google Sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send WhatsApp First Reply": {
+        "main": [
+          [
+            {
+              "node": "Alert The Team In Slack",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fall Back To Manual Review": {
+        "main": [
+          [
+            {
+              "node": "Shape The Verdict",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Was The Lead Left Unscored?": {
+        "main": [
+          [
+            {
+              "node": "Alert The Team In Slack",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Log The Lead In Google Sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log The Lead In Google Sheets": {
+        "main": [
+          [
+            {
+              "node": "Done",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Tell The Team The Log Failed",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Does The Lead Have A Phone Number?": {
+        "main": [
+          [
+            {
+              "node": "Send WhatsApp First Reply",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Alert The Team In Slack",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create Or Update Contact In HubSpot": {
+        "main": [
+          [
+            {
+              "node": "Was The Lead Left Unscored?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create Or Update Hot Contact In HubSpot": {
+        "main": [
+          [
+            {
+              "node": "Does The Lead Have A Phone Number?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 37,
+      "name": "Lead Generation"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/19169",
+  "fetched_at": "2026-09-12T13:17:18Z"
+}

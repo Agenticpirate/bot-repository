@@ -1,0 +1,206 @@
+{
+  "id": 15656,
+  "name": "Find daily Amazon India bestsellers with Apify and Google Sheets (4%+ commission)",
+  "description": "## Who's it for\n\nIndian Amazon affiliate marketers, content creators, and dropshipping researchers who waste hours every morning hunting for trending products — only to pick items that pay 1% commission on electronics. This workflow does that hunt for you and only surfaces products that pay 4% or more.\n\n## How it works\n\nEvery morning at 08:02 IST, the workflow:\n\n1. **Detects the current Indian retail season** — Summer (Mar–May), Monsoon (Jun–Aug), Festive/Diwali (Sep–Nov), or Winter (Dec–Feb) — and randomly picks one matching Amazon Bestsellers category for the day.\n2. **Scrapes the top 50 products** from that category page via the Apify Amazon Bestsellers actor, with a hard $0.05/run cost cap so your daily spend stays predictable.\n3. **Scores every product** against a 4-layer formula: category commission rate (drops anything under 4%), review count, average rating, and seasonal keyword match in the title.\n4. **Saves the Top 10 winners** to a Google Sheet with status = `Pending`, ready for any downstream content or posting workflow to pick up.\n\nThe output sheet is pre-structured with status columns for Facebook, Instagram, LinkedIn, Twitter, Threads, and YouTube — so it slots cleanly into a multi-platform affiliate content engine.\n\n## How to set up\n\nTotal setup time: ~10 minutes.\n\n- Install the Apify community node (`@apify/n8n-nodes-apify`) from Settings → Community Nodes.\n- Add your Apify API credential and select it inside the Apify nodes.\n- Create a Google Sheet with the column headers listed in the Setup sticky note on the canvas, then paste your Sheet ID into the final node.\n- Connect a Google Sheets OAuth2 credential.\n- Activate the workflow.\n\nFull step-by-step instructions are in the colored sticky notes on the canvas.\n\n## Requirements\n\n- Apify account (free tier is enough).\n- Google account with Sheets access.\n- Apify community node installed in your n8n instance.\n\n## How to customize\n\n- Edit the seasonal category map in the **Seasonal Category Selector** Code node to target other countries (just swap `amazon.in` URLs for `amazon.com`, `amazon.co.uk`, etc.) or to focus on a single niche.\n- Tweak the commission percentage map and minimum-commission floor in the **Score & Select Top 10** Code node to match your region's affiliate rates.\n- Change the Schedule Trigger to run multiple times a day, or only on weekdays, depending on your content cadence.",
+  "workflow": {
+    "id": "VainBov0RHqE03tI",
+    "meta": {
+      "instanceId": "2aee18c690cc58ad13035d9dc82491c74d01a897497c0e070996a90f9a3d2221"
+    },
+    "name": "Amazon Trending Product Popular Finder with 4%+ Commission - Workflow for Marketers",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "9b1da693-7772-4d93-a84e-919f45766e73",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "bcd4e999-943c-4b6e-be67-0af3e10275c7",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          560,
+          0
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "fcc4f48a-e0a4-4e36-96f1-750fbbdbb844",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1056,
+          0
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "81cee4ff-bee0-4c70-828d-fab8b43b87d4",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1488,
+          0
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "43a91a79-da7f-4ab8-a28e-4760af851182",
+        "name": "Every Day at 8:02 AM",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          608,
+          128
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "9ebdafeb-09dc-4371-adce-871d3874c0b4",
+        "name": "Select Seasonal Category",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          880,
+          128
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "b8b35285-3215-4bb9-995b-9c308fb53cd1",
+        "name": "Post to Apify Actor API",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1104,
+          128
+        ],
+        "parameters": {},
+        "typeVersion": 4.3
+      },
+      {
+        "id": "69f56ffb-ef59-4988-9b41-c4a2844ea9bd",
+        "name": "Retrieve Apify Dataset",
+        "type": "@apify/n8n-nodes-apify.apify",
+        "position": [
+          1312,
+          128
+        ],
+        "parameters": {},
+        "typeVersion": 1,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "40893735-41ac-4aad-a321-b78e976f5f9a",
+        "name": "Calculate and Select Top Products",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1536,
+          128
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "b9c780f2-2aed-4d04-bb06-717d07a7264e",
+        "name": "Append Products to Sheets",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1792,
+          128
+        ],
+        "parameters": {},
+        "typeVersion": 4.7
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "binaryMode": "separate",
+      "executionOrder": "v1"
+    },
+    "versionId": "9f7a3d0e-458e-42ac-9e36-04cb74dba7b8",
+    "connections": {
+      "Every Day at 8:02 AM": {
+        "main": [
+          [
+            {
+              "node": "Select Seasonal Category",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Retrieve Apify Dataset": {
+        "main": [
+          [
+            {
+              "node": "Calculate and Select Top Products",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Post to Apify Actor API": {
+        "main": [
+          [
+            {
+              "node": "Retrieve Apify Dataset",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Select Seasonal Category": {
+        "main": [
+          [
+            {
+              "node": "Post to Apify Actor API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Calculate and Select Top Products": {
+        "main": [
+          [
+            {
+              "node": "Append Products to Sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15656",
+  "fetched_at": "2026-09-12T13:15:31Z"
+}

@@ -1,0 +1,236 @@
+{
+  "id": 17588,
+  "name": "Post Instagram images with captions from Google Drive using Gemini Vision",
+  "description": "## Quick Overview\nThis workflow runs on a schedule to pick an image from a Google Drive folder, generate an Instagram caption with Google Gemini Vision, and publish the post through the Instagram Graph API using the required create-container and publish steps.\n\n## How it works\n1. Runs every 3 days at 19:30 on a scheduled trigger.\n2. Sets the Instagram Business Account ID, CTA link, and brand context used throughout the workflow.\n3. Searches a specified Google Drive folder for an image and downloads the file.\n4. Sends the image to Google Gemini Vision to generate a formatted Instagram caption returned as JSON.\n5. Calls the Facebook/Instagram Graph API to create an Instagram media container with the image URL and generated caption.\n6. Publishes the created media container to the Instagram Business account via the Graph API.\n\n## Setup\n1. Add Google Drive OAuth2 credentials and update the Google Drive folder ID used for the image search.\n2. Add a Google Gemini API key (Google Gemini node credentials).\n3. Add a Facebook Graph API credential with permission to publish Instagram content (for example, `instagram_content_publish`) and connect it to the correct Instagram Business account.\n4. Replace the placeholder Instagram Business Account ID in the Config step and set your CTA link and brand context values.",
+  "workflow": {
+    "name": "AI Social Poster — Instagram (Google Drive + Gemini Vision)",
+    "nodes": [
+      {
+        "id": "sticky-main",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -864,
+          -128
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "sticky-trigger-config",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -304,
+          -80
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "sticky-fetch",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          176,
+          -80
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "sticky-caption",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          640,
+          -128
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "sticky-publish",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          912,
+          -96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "trigger-1",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -260,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "config-1",
+        "name": "Config",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -20,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "drive-search-1",
+        "name": "Search files and folders",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          220,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "drive-download-1",
+        "name": "Download file",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          440,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "gemini-analyze-1",
+        "name": "Analyze an image",
+        "type": "@n8n/n8n-nodes-langchain.googleGemini",
+        "position": [
+          688,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "ig-create-media-1",
+        "name": "Create Media Container",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          960,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "ig-publish-1",
+        "name": "Publish Media",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1184,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      }
+    ],
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "connections": {
+      "Config": {
+        "main": [
+          [
+            {
+              "node": "Search files and folders",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Download file": {
+        "main": [
+          [
+            {
+              "node": "Analyze an image",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Analyze an image": {
+        "main": [
+          [
+            {
+              "node": "Create Media Container",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Config",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create Media Container": {
+        "main": [
+          [
+            {
+              "node": "Publish Media",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Search files and folders": {
+        "main": [
+          [
+            {
+              "node": "Download file",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 33,
+      "name": "Social Media"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/17588",
+  "fetched_at": "2026-09-12T13:16:33Z"
+}

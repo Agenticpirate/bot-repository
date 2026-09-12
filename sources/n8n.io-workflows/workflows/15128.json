@@ -1,0 +1,414 @@
+{
+  "id": 15128,
+  "name": "Get a morning email and calendar brief with Gmail, Google Calendar, GPT-4o-mini and Telegram",
+  "description": "### Description\n\nActivate this workflow once and every weekday morning at 8AM your phone receives a complete day briefing on Telegram — automatically. It fetches your unread emails and today's and tomorrow's calendar events in parallel, sends everything to GPT-4o-mini which filters out promotions and noise, and delivers one clean structured message with your urgent emails, today's schedule, tomorrow's preparation, and one focus recommendation. Built for founders, executives, and busy professionals who want full day context before they open a single app.\n\n---\n\n## What This Workflow Does\n\n- **Fetches emails and calendar simultaneously** — Pulls unread inbox emails from the last 24 hours and calendar events for today and tomorrow at the same time to save processing time\n- **Filters out email noise automatically** — GPT-4o-mini identifies only emails that need a reply or action — newsletters, promotions, automated notifications, and receipts are silently excluded\n- **Separates today and tomorrow events** — Calendar events are split into two lists so your schedule and your preparation are clearly distinct in the brief\n- **Generates one focus recommendation** — Based on the combined context of your emails and calendar, GPT surfaces the single most important thing to concentrate on today\n- **Adds a preparation tip for busy meetings** — If tomorrow has meetings with more than two attendees, the brief automatically includes a preparation suggestion\n- **Delivers with Markdown formatting** — The Telegram message uses bold headings and clean layout so the brief is easy to scan on a phone screen\n- **Includes a timezone-aware timestamp** — A footer shows the exact local time the brief was generated so you always know when the data was pulled\n\n---\n\n## Setup Requirements\n\n### Tools Needed\n- n8n instance (self-hosted or cloud)\n- Gmail account (the inbox you want monitored)\n- Google Calendar (your primary calendar)\n- OpenAI account with GPT-4o-mini API access\n- Telegram bot (created via @BotFather)\n\n### Credentials Required\n- Gmail OAuth2\n- Google Calendar OAuth2\n- OpenAI API key\n- Telegram Bot credential\n\n**Estimated Setup Time: 15–20 minutes**\n\n---\n\n## Step-by-Step Setup\n\n1. **Import the workflow** — Open n8n → Workflows → Import from JSON → paste the workflow JSON → click Import\n\n2. **Get your Telegram Chat ID** — Open Telegram → search for `@userinfobot` → send `/start` → it replies with your numeric chat ID\n\n3. **Fill in Config Values** — Open node **2. Set — Config Values** → replace all four placeholders:\n\n| Field | What to enter |\n|---|---|\n| `PASTE_YOUR_TELEGRAM_CHAT_ID_HERE` | Your Telegram chat ID from step 2 |\n| `PASTE_YOUR_GMAIL_ADDRESS_HERE` | Your Gmail address (e.g. `you@gmail.com`) |\n| `PASTE_YOUR_NAME_OR_COMPANY_HERE` | Your name or company name (used in the GPT prompt greeting) |\n| `timezone` | Your timezone string — default is `Asia/Kolkata`. Change to your timezone e.g. `America/New_York`, `Europe/London`, `Asia/Singapore` |\n\n4. **Connect Gmail** — Open node **3. Gmail — Fetch Unread Emails** → click the credential dropdown → add Gmail OAuth2 → sign in with the Gmail account you want monitored → authorize access\n\n5. **Connect Google Calendar** — Open node **4. Google Calendar — Fetch Today and Tomorrow** → click the credential dropdown → add Google Calendar OAuth2 → sign in with the same Google account → authorize access\n\n6. **Connect OpenAI** — Open node **7. OpenAI — GPT-4o-mini Model** → click the credential dropdown → add your OpenAI API key → test the connection\n\n7. **Connect Telegram** — Open node **9. Telegram — Send Morning Brief** → click the credential dropdown → add your Telegram Bot API credential (paste the bot token from @BotFather) → save\n\n8. **Activate your Telegram bot** — Open Telegram → find your bot → send `/start` — this is required before the bot can message you for the first time\n\n9. **Activate the workflow** — Toggle the workflow to Active — it will run automatically every weekday at 8AM\n\n&gt; ⚠️ **Test before 8AM** — To test immediately, click on node **1. Schedule — Every Weekday 8AM** and use the manual Execute option to trigger a test run.\n\n---\n\n## How It Works (Step by Step)\n\n**Step 1 — Schedule: Every Weekday 8AM**\nThis step fires the workflow automatically every Monday through Friday at 8AM. The cron expression `0 8 * * 1-5` ensures it never runs on weekends. No manual trigger is needed once activated.\n\n**Step 2 — Set: Config Values**\nYour Telegram chat ID, Gmail address, name, timezone, and all date variables used throughout the workflow are stored here. Today's date, today's ISO timestamp, yesterday's timestamp (for the 24-hour email window), tomorrow's timestamp, and the day-after-tomorrow's timestamp are all calculated automatically from the current date — you never need to update these.\n\n**Step 3 — Gmail: Fetch Unread Emails (parallel)**\nAll unread inbox emails received in the last 24 hours are fetched from your Gmail account. This step runs at the same time as the calendar fetch to save time. Up to 20 emails are processed — the sender, subject line, and a short preview of each message are captured.\n\n**Step 4 — Google Calendar: Fetch Today and Tomorrow (parallel)**\nAll events from your primary Google Calendar for today and tomorrow are fetched simultaneously alongside the Gmail step. For each event, the title, start and end time, location, and attendee count are captured. If the event has a specific time it is formatted as HH:MM to HH:MM — all-day events are labelled accordingly.\n\n**Step 5 — Code: Merge Emails and Calendar**\nBoth the email and calendar data are read together here and formatted into clean text for GPT. Emails are listed with sender, subject, and preview. Calendar events are separated into a today list and a tomorrow list, each with time and attendee count. If either source returns no data, a clean fallback message is used (e.g. \"No unread emails in the last 24 hours\"). The formatted text, event counts, and email count are all packaged for the AI step.\n\n**Step 6 — AI Agent: Write Morning Brief**\nGPT-4o-mini receives your name, today's date, the full email list, and both calendar lists. It writes a structured 4-section brief in plain text with basic Telegram Markdown bold headings. Section 1 lists only urgent emails that need a reply or action — all promotional and automated emails are excluded. Section 2 lists all today's events with their times. Section 3 lists tomorrow's events and adds a preparation tip for any meeting with more than two attendees. Section 4 gives one single focus recommendation for the day based on the combined context. The brief is kept under 300 words.\n\n**Step 7 — OpenAI: GPT-4o-mini Model**\nThis is the language model powering the brief. It runs at temperature 0.4 for a natural, warm tone that is not robotic but also not overly creative. It is capped at 600 tokens to keep the brief concise and costs extremely low — well under $0.001 per morning brief.\n\n**Step 8 — Code: Prepare Telegram Message**\nThe GPT brief text is read and a timestamp footer is added in your local timezone (e.g. `Brief generated at 08:02`). If GPT failed to generate any output, a fallback message is used instead so Telegram always receives something. The complete message and your Telegram chat ID are packaged for delivery.\n\n**Step 9 — Telegram: Send Morning Brief**\nThe full brief is sent to your Telegram chat with Markdown rendering enabled. Bold headings render correctly in Telegram so the four sections are clearly separated. A Telegram attribution footer is suppressed so the message looks clean.\n\n---\n\n## Key Features\n\n✅ **Fully automated weekday delivery** — Runs Monday to Friday at 8AM with zero manual input after the one-time setup\n✅ **Parallel Gmail and Calendar fetch** — Both data sources are pulled at the same time rather than one after the other, keeping the workflow fast\n✅ **Noise-filtered email list** — GPT actively excludes newsletters, promotions, and automated notifications so only actionable emails appear in your brief\n✅ **Two-day calendar view** — Today's schedule and tomorrow's events are always both included so you can plan ahead from the morning brief alone\n✅ **Preparation tips for group meetings** — If tomorrow has a meeting with more than two attendees, the brief automatically suggests how to prepare\n✅ **Fallback protection** — If GPT fails or returns empty output, a fallback message is sent to Telegram so you always receive something at 8AM\n✅ **Timezone-correct timestamp** — The footer shows your local time based on the `timezone` value in Config Values — not UTC\n✅ **Under $0.001 per brief** — GPT-4o-mini at 600 tokens with temperature 0.4 costs fractions of a cent per run — 260 working days a year costs less than $0.25 total\n\n---\n\n## Customisation Options\n\n**Change the delivery time** — In node **1. Schedule — Every Weekday 8AM**, edit the cron expression `0 8 * * 1-5` to fire at a different hour — for example `0 7 * * 1-5` for 7AM or `30 7 * * 1-5` for 7:30AM.\n\n**Include weekends** — In node **1. Schedule — Every Weekday 8AM**, change the cron expression from `0 8 * * 1-5` to `0 8 * * *` to receive a brief every day of the week including Saturday and Sunday.\n\n**Add a specific Gmail label filter** — In node **3. Gmail — Fetch Unread Emails**, add a label filter to only pull emails tagged with a specific Gmail label (e.g. your client label) so the brief focuses only on the emails that matter most to you.\n\n**Include a second Google Calendar** — After node **4. Google Calendar — Fetch Today and Tomorrow**, duplicate the step and connect it to a second calendar ID — then update node **5. Code — Merge Emails and Calendar** to also read from that second calendar result and merge the events together.\n\n**Add a Slack summary for your team** — After node **8. Code — Prepare Telegram Message**, add a Slack node that posts a shorter 2-line version (just today's meeting count and your one focus) to a `#team-standup` channel so your team gets daily context too.\n\n---\n\n## Troubleshooting\n\n**Workflow not triggering at 8AM:**\n- Confirm the workflow is Active — inactive workflows do not run on a schedule\n- Check that the cron expression in node **1. Schedule — Every Weekday 8AM** is exactly `0 8 * * 1-5` — any accidental edit breaks the schedule\n- Confirm your n8n instance is running at 8AM — self-hosted instances that are turned off will not fire scheduled workflows\n- To test immediately, click on node 1 and use the manual Execute option\n\n**Gmail returning no emails even when you have unread messages:**\n- Confirm the Gmail OAuth2 credential in node **3. Gmail — Fetch Unread Emails** is connected and not expired — re-authorize if needed\n- The filter fetches emails received after `yesterdayISO` — if your n8n instance timezone is set incorrectly, this window may shift unexpectedly\n- Check that `PASTE_YOUR_GMAIL_ADDRESS_HERE` in node **2. Set — Config Values** is replaced with your actual Gmail address\n\n**Google Calendar returning no events:**\n- Confirm the Google Calendar OAuth2 credential in node **4. Google Calendar — Fetch Today and Tomorrow** is connected with the same Google account that owns the calendar\n- The step fetches from the `primary` calendar — if your events are on a different calendar (e.g. a work calendar with a different email), you need to change the calendar ID in the step\n- Check that your calendar events have dates that fall within today or tomorrow relative to your n8n server's timezone\n\n**OpenAI not generating the brief:**\n- Confirm the API key is connected in node **7. OpenAI — GPT-4o-mini Model** and your account has available credits\n- If the brief arrives as the fallback message (\"Your brief could not be generated\"), check the execution log of node **6. AI Agent — Write Morning Brief** for the raw error\n- Temperature 0.4 and 600 max tokens are set by design — do not reduce max tokens below 400 or the brief may be cut off mid-section\n\n**Telegram message not arriving:**\n- Confirm the Telegram Bot credential in node **9. Telegram — Send Morning Brief** is connected with a valid bot token from @BotFather\n- Confirm `PASTE_YOUR_TELEGRAM_CHAT_ID_HERE` in node **2. Set — Config Values** is replaced with your numeric chat ID from @userinfobot\n- You must send `/start` to your bot in Telegram before the first message can be delivered — bots cannot initiate conversations without this activation step\n\n---\n\n## Support\n\nNeed help setting this up or want a custom version built for your team or agency?\n\n📧 Email: [info@isawow.com](info@isawow.com)\n🌐 Website: [https://isawow.com/](https://isawow.com/)",
+  "workflow": {
+    "meta": {
+      "instanceId": "bc8ca75c203589705ae2e446cad7181d6f2a7cc1766f958ef9f34810e53b8cb2",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "a98f6394-ea87-4ca2-94e9-de0113cf812d",
+        "name": "Overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -752,
+          816
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 524,
+          "height": 1092,
+          "content": "## Daily Morning Intelligence Brief — Gmail + Calendar + GPT-4o-mini + Telegram\n\nFor founders, executives, and busy professionals who want their full day context delivered to Telegram before they open a single app. Every weekday at 8AM this workflow automatically fetches unread emails from the last 24 hours and today and tomorrow's calendar events in parallel, merges the data, sends it to GPT-4o-mini which filters out promotions and noise, and delivers one clean structured brief to Telegram. You wake up with urgent emails, your schedule, tomorrow's preparation, and one recommended focus — all in one message.\n\n## How it works\n- **1. Schedule — Every Weekday 8AM** triggers the workflow automatically Monday to Friday\n- **2. Set — Config Values** stores your Telegram chat ID, Gmail address, name, and timezone\n- **3. Gmail — Fetch Unread Emails** fetches all unread inbox emails from the last 24 hours in parallel\n- **4. Google Calendar — Fetch Today and Tomorrow** fetches primary calendar events for today and tomorrow in parallel\n- **5. Code — Merge Emails and Calendar** reads both parallel branches, formats emails with sender and preview, separates events into today and tomorrow, and builds clean text for GPT\n- **6. AI Agent — Write Morning Brief** uses GPT-4o-mini to write a 4-section brief: urgent emails only (promotions filtered), today's schedule, tomorrow preparation with tips, and one focus recommendation\n- **8. Code — Prepare Telegram Message** adds a timezone-aware timestamp footer and a fallback message if GPT fails\n- **9. Telegram — Send Morning Brief** delivers the formatted brief with Markdown to your Telegram chat\n\n## Set up steps\n1. In **2. Set — Config Values** — replace PASTE_YOUR_TELEGRAM_CHAT_ID_HERE, PASTE_YOUR_GMAIL_ADDRESS_HERE, PASTE_YOUR_NAME_OR_COMPANY_HERE, and set your timezone (examples: Asia/Kolkata, America/New_York, Europe/London)\n2. In **3. Gmail — Fetch Unread Emails** — connect your Gmail OAuth2 credential\n3. In **4. Google Calendar — Fetch Today and Tomorrow** — connect your Google Calendar OAuth2 credential\n4. In **7. OpenAI — GPT-4o-mini Model** — connect your OpenAI credential\n5. In **9. Telegram — Send Morning Brief** — connect your Telegram Bot API credential\n6. Before first run — open Telegram, find your bot, and send /start to activate it\n7. Get your Telegram Chat ID by messaging @userinfobot on Telegram"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "7d20de47-a135-4f54-8f11-21cf9993ebc1",
+        "name": "Section — Schedule and Config",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -160,
+          1120
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 468,
+          "height": 356,
+          "content": "## Schedule and Config\nWorkflow triggers automatically every weekday at 8AM. Config stores your Telegram chat ID, Gmail address, name, timezone, and all date variables used across the workflow."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b87e4d35-22b1-4f38-97d2-11a1777d4274",
+        "name": "Section — Parallel Data Fetch",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          416,
+          880
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 324,
+          "height": 852,
+          "content": "## Parallel Data Fetch\nGmail and Google Calendar are fetched simultaneously to save time. Gmail gets unread inbox emails from the last 24 hours. Calendar gets all events for today and tomorrow from the primary calendar."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "50a2a0dd-6e77-43f4-87fb-6f7d75c30ed8",
+        "name": "Section — Data Merge and AI Brief Writing",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          864,
+          1088
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 596,
+          "height": 580,
+          "content": "## Data Merge and AI Brief Writing\nThe Code node reads both parallel branches using .all() and formats emails and events into clean text. GPT-4o-mini writes a structured 4-section brief: urgent emails, today's schedule, tomorrow preparation, and one focus recommendation. Promotions and notifications are filtered out."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "334046db-d5e2-4152-b74b-4bfd46c1688c",
+        "name": "Section — Telegram Delivery",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1536,
+          1104
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 580,
+          "height": 404,
+          "content": "## Telegram Delivery\nAdds a timezone-aware timestamp footer and a fallback message if GPT fails. Sends the complete formatted brief to your Telegram chat with Markdown rendering."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "465fbadf-3c07-4703-9d93-0b81406473a7",
+        "name": "1. Schedule — Every Weekday 8AM",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -96,
+          1264
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 8 * * 1-5"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "3671ecad-99b5-43cc-8d88-cebbd6b44175",
+        "name": "2. Set — Config Values",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          144,
+          1264
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "cfg-001",
+                "name": "telegramChatId",
+                "type": "string",
+                "value": "PASTE_YOUR_TELEGRAM_CHAT_ID_HERE"
+              },
+              {
+                "id": "cfg-002",
+                "name": "gmailUserId",
+                "type": "string",
+                "value": "PASTE_YOUR_GMAIL_ADDRESS_HERE"
+              },
+              {
+                "id": "cfg-003",
+                "name": "companyName",
+                "type": "string",
+                "value": "PASTE_YOUR_NAME_OR_COMPANY_HERE"
+              },
+              {
+                "id": "cfg-004",
+                "name": "timezone",
+                "type": "string",
+                "value": "Asia/Kolkata"
+              },
+              {
+                "id": "cfg-005",
+                "name": "todayFormatted",
+                "type": "string",
+                "value": "={{ $now.toFormat('cccc, dd MMMM yyyy') }}"
+              },
+              {
+                "id": "cfg-006",
+                "name": "todayISO",
+                "type": "string",
+                "value": "={{ $now.toISO() }}"
+              },
+              {
+                "id": "cfg-007",
+                "name": "tomorrowISO",
+                "type": "string",
+                "value": "={{ $now.plus({days: 1}).toISO() }}"
+              },
+              {
+                "id": "cfg-008",
+                "name": "dayAfterTomorrowISO",
+                "type": "string",
+                "value": "={{ $now.plus({days: 2}).startOf('day').toISO() }}"
+              },
+              {
+                "id": "cfg-009",
+                "name": "yesterdayISO",
+                "type": "string",
+                "value": "={{ $now.minus({days: 1}).toISO() }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "cdc47741-beda-4e78-8cc8-7820429336a6",
+        "name": "3. Gmail — Fetch Unread Emails",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          512,
+          1088
+        ],
+        "webhookId": "a4a202f2-ffe3-46f1-97db-cbe42e47b40f",
+        "parameters": {
+          "filters": {
+            "labelIds": [
+              "INBOX",
+              "UNREAD"
+            ],
+            "readStatus": "unread",
+            "receivedAfter": "={{ $json.yesterdayISO }}"
+          },
+          "operation": "getAll"
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "82baeb6b-eaca-469a-b784-f279ced44a6b",
+        "name": "4. Google Calendar — Fetch Today and Tomorrow",
+        "type": "n8n-nodes-base.googleCalendar",
+        "position": [
+          512,
+          1408
+        ],
+        "parameters": {
+          "options": {},
+          "calendar": {
+            "__rl": true,
+            "mode": "id",
+            "value": "primary"
+          },
+          "operation": "getAll"
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "b4553e33-6150-42bd-af13-e623f894e404",
+        "name": "5. Code — Merge Emails and Calendar",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          912,
+          1280
+        ],
+        "parameters": {
+          "jsCode": "// Collect emails and calendar events from parallel branches\nconst config = $('2. Set — Config Values').item.json;\n\n// Process emails\nlet emailItems = [];\ntry {\n  const gmailItems = $('3. Gmail — Fetch Unread Emails').all();\n  emailItems = gmailItems.map(item => {\n    const msg = item.json;\n    return {\n      from: msg.from || 'Unknown sender',\n      subject: msg.subject || 'No subject',\n      date: msg.date || '',\n      snippet: (msg.snippet || '').substring(0, 200)\n    };\n  });\n} catch (e) {\n  emailItems = [];\n}\n\n// Process calendar events\nlet calendarItems = [];\ntry {\n  const calItems = $('4. Google Calendar — Fetch Today and Tomorrow').all();\n  calendarItems = calItems.map(item => {\n    const event = item.json;\n    const startTime = event.start?.dateTime || event.start?.date || '';\n    const endTime = event.end?.dateTime || event.end?.date || '';\n    let timeDisplay = 'All day';\n    if (event.start?.dateTime) {\n      const start = new Date(event.start.dateTime);\n      const end = new Date(event.end?.dateTime || event.start.dateTime);\n      timeDisplay =\n        start.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) +\n        ' to ' +\n        end.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });\n    }\n    const eventDate = new Date(startTime);\n    const today = new Date();\n    const isToday = eventDate.toDateString() === today.toDateString();\n    const tomorrow = new Date(today);\n    tomorrow.setDate(today.getDate() + 1);\n    const isTomorrow = eventDate.toDateString() === tomorrow.toDateString();\n    return {\n      title: event.summary || 'Untitled event',\n      time: timeDisplay,\n      location: event.location || '',\n      attendees: (event.attendees || []).length,\n      isToday,\n      isTomorrow\n    };\n  });\n} catch (e) {\n  calendarItems = [];\n}\n\nconst todayEvents = calendarItems.filter(e => e.isToday);\nconst tomorrowEvents = calendarItems.filter(e => e.isTomorrow);\n\n// Format emails for GPT\nlet emailText = 'No unread emails in the last 24 hours.';\nif (emailItems.length > 0) {\n  emailText = emailItems.slice(0, 20).map((e, i) =>\n    (i + 1) + '. From: ' + e.from + '\\n   Subject: ' + e.subject + '\\n   Preview: ' + e.snippet\n  ).join('\\n\\n');\n}\n\n// Format today events for GPT\nlet todayText = 'No events scheduled for today.';\nif (todayEvents.length > 0) {\n  todayText = todayEvents.map((e, i) =>\n    (i + 1) + '. ' + e.title + ' — ' + e.time +\n    (e.location ? ' — ' + e.location : '') +\n    (e.attendees > 0 ? ' (' + e.attendees + ' attendees)' : '')\n  ).join('\\n');\n}\n\n// Format tomorrow events for GPT\nlet tomorrowText = 'No events scheduled for tomorrow.';\nif (tomorrowEvents.length > 0) {\n  tomorrowText = tomorrowEvents.map((e, i) =>\n    (i + 1) + '. ' + e.title + ' — ' + e.time +\n    (e.location ? ' — ' + e.location : '') +\n    (e.attendees > 0 ? ' (' + e.attendees + ' attendees)' : '')\n  ).join('\\n');\n}\n\nreturn [{\n  json: {\n    emailText,\n    todayText,\n    tomorrowText,\n    totalEmails: emailItems.length,\n    totalTodayEvents: todayEvents.length,\n    totalTomorrowEvents: tomorrowEvents.length,\n    todayFormatted: config.todayFormatted,\n    companyName: config.companyName,\n    telegramChatId: config.telegramChatId\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "77b38857-9919-451e-9665-ff7fd022adbf",
+        "name": "6. AI Agent — Write Morning Brief",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          1152,
+          1280
+        ],
+        "parameters": {
+          "text": "=You are a smart personal assistant creating a morning brief for {{ $json.companyName }}.\n\nToday is {{ $json.todayFormatted }}.\n\nUNREAD EMAILS (last 24 hours) — {{ $json.totalEmails }} total:\n{{ $json.emailText }}\n\nTODAY'S CALENDAR — {{ $json.totalTodayEvents }} events:\n{{ $json.todayText }}\n\nTOMORROW'S CALENDAR — {{ $json.totalTomorrowEvents }} events:\n{{ $json.tomorrowText }}\n\nWrite a clean morning brief for Telegram. Use plain text only. No HTML.\nYou may use basic Telegram markdown: *bold* for headings, and dashes for lists.\n\nStructure it exactly like this:\n\nGood morning [name]! Here is your brief for [today's date].\n\n*URGENT EMAILS*\nList only emails that need a reply or action today. Skip newsletters, promotions, automated notifications, and receipts. For each urgent email write one line: who sent it and what action is needed. If no urgent emails write: No urgent emails today.\n\n*TODAY'S SCHEDULE*\nList all events for today with their time. If no events write: No meetings today — a free day.\n\n*PREPARE FOR TOMORROW*\nList tomorrow's events so the user can prepare. If tomorrow has meetings with more than 2 attendees, add one preparation tip. If no events write: Nothing scheduled for tomorrow.\n\n*ONE FOCUS FOR TODAY*\nBased on the emails and calendar, write one sentence recommending the most important thing to focus on today.\n\nKeep the entire brief under 300 words. Be direct and clear.",
+          "options": {},
+          "promptType": "define"
+        },
+        "typeVersion": 1.7
+      },
+      {
+        "id": "dcfc7f3f-2e4a-4f1c-ac82-d0c8f0160014",
+        "name": "7. OpenAI — GPT-4o-mini Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          1152,
+          1488
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4o-mini"
+          },
+          "options": {
+            "maxTokens": 600,
+            "temperature": 0.4
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "ac24f86a-bb32-43cd-b45e-0a95adccb45f",
+        "name": "8. Code — Prepare Telegram Message",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1648,
+          1280
+        ],
+        "parameters": {
+          "jsCode": "// Get the brief text from GPT output\nconst briefText = $input.first().json.output || 'Good morning! Your brief could not be generated today. Please check your credentials.';\nconst config = $('2. Set — Config Values').item.json;\n\n// Add a timestamp footer\nconst timeNow = new Date().toLocaleTimeString('en-GB', {\n  hour: '2-digit',\n  minute: '2-digit',\n  timeZone: config.timezone || 'UTC'\n});\n\nconst fullMessage = briefText + '\\n\\n_Brief generated at ' + timeNow + ' — powered by n8n_';\n\nreturn [{\n  json: {\n    telegramMessage: fullMessage,\n    telegramChatId: config.telegramChatId\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "545aceff-2baa-4aaf-b17a-f1dce5519b51",
+        "name": "9. Telegram — Send Morning Brief",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          1872,
+          1280
+        ],
+        "webhookId": "ef8c7a77-e7ea-46e0-95f8-ce432fbfb9c4",
+        "parameters": {
+          "text": "={{ $json.telegramMessage }}",
+          "chatId": "={{ $json.telegramChatId }}",
+          "additionalFields": {
+            "parse_mode": "Markdown",
+            "appendAttribution": false
+          }
+        },
+        "typeVersion": 1.2
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "2. Set — Config Values": {
+        "main": [
+          [
+            {
+              "node": "3. Gmail — Fetch Unread Emails",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "4. Google Calendar — Fetch Today and Tomorrow",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "7. OpenAI — GPT-4o-mini Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "6. AI Agent — Write Morning Brief",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "3. Gmail — Fetch Unread Emails": {
+        "main": [
+          [
+            {
+              "node": "5. Code — Merge Emails and Calendar",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "1. Schedule — Every Weekday 8AM": {
+        "main": [
+          [
+            {
+              "node": "2. Set — Config Values",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "6. AI Agent — Write Morning Brief": {
+        "main": [
+          [
+            {
+              "node": "8. Code — Prepare Telegram Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "8. Code — Prepare Telegram Message": {
+        "main": [
+          [
+            {
+              "node": "9. Telegram — Send Morning Brief",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "5. Code — Merge Emails and Calendar": {
+        "main": [
+          [
+            {
+              "node": "6. AI Agent — Write Morning Brief",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "4. Google Calendar — Fetch Today and Tomorrow": {
+        "main": [
+          [
+            {
+              "node": "5. Code — Merge Emails and Calendar",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 43,
+      "name": "Personal Productivity"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15128",
+  "fetched_at": "2026-09-12T13:15:16Z"
+}

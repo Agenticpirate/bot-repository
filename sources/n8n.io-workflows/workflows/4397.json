@@ -1,0 +1,143 @@
+{
+  "id": 4397,
+  "name": "Boost posts/statuses from a specific FediVerse account on your Mastodon profile",
+  "description": "## Template Overview\n\nThis template is designed for individuals and businesses who want to maintain a consistent presence on the Fediverse while also posting on Threads or managing multiple Fediverse profiles. By automating the process of resharing statuses or posts, this workflow saves time and ensures regular engagement across accounts.\n\n---\n\n## Use Case\n\nThe template addresses the challenge of managing activity across Fediverse accounts by automatically boosting or resharing posts from a specific account to your own. It is especially helpful for users who want to consolidate engagement without manually reposting content across multiple platforms or profiles.\n\n---\n\n## How It Works\n\nThe workflow runs on a scheduled trigger and retrieves recent posts from a specified Fediverse account, such as your Threads.net account. It uses a JavaScript filter to identify posts from the current day and then automatically boosts or reshares them to your selected Mastodon profile.\n\n---\n\n## Preconditions\n\n1. You need a Mastodon account with developer access.\n2. Identify a Threads.net or other Fediverse account which you want to boost.\n3. Basic familiarity with APIs and setting up credentials in n8n.\n\n---\n\n## Setup Steps\n\n### Step 1: Create a Developer Application on Mastodon\n\n1. Log in to your Mastodon account and navigate to **Preferences &gt; Development &gt; New Application**.\n2. Fill out the required information and create your application.\n3. Set **Scopes** to atleast `read, profile, write:statuses`.\n4. Click Submit.\n5. Note down the access token generated for this application.\n\n### Step 2: Get the Account ID\n\n1. Use the following command to retrieve the account ID for the profile you want to boost:\n\n   ```bash\n   curl -s \"https://mastodon.social/api/v1/accounts/lookup?acct=&lt;ACCOUNTNAME&gt;\"\n   ```\n\n   Alternatively, paste the URL into a GET node on n8n.\n2. From the returned JSON, copy the `\"id\"` field value (e.g., `{\"id\":\"110564198672505618\", ...}`).\n\n### Step 3: Update the \"Get Statuses\" Node\n\n1. Replace `&lt;ACCOUNTID&gt;` in the URL field with the ID you retrieved in Step 2:\n\n   ```\n   https://mastodon.social/api/v1/accounts/&lt;ACCOUNTID&gt;/statuses\n   ```\n\n### Step 4: Configure the \"Boost Statuses\" Node\n\nAuthentication type will already be set to **Header Auth**.\n\n1. Grab the access token from Step 1.\n2. In the **Credential for Header Auth** field, create a new credential.\n3. Click the pencil icon in the top-left corner to name your credential.\n4. In the `Name` field, enter `Authorization`.\n5. In the `Value` field, enter `Bearer &lt;YOUR_MASTODON_ACCESS_TOKEN&gt;`. (Note: there is a space after \"Bearer.\")\n6. Save the credential, and it should automatically be selected as your Header Auth.\n\n### Step 5: Test the Workflow\n\n1. Run the workflow to ensure everything is set up correctly.\n2. Adjust filters or parameters as needed for your specific use case.\n\n---\n\n## Customization Guidance\n\n* Replace `mastodon.social` with your own Mastodon domain if you're using a self-hosted instance.\n* Adjust the JavaScript filter logic to meet your specific needs (e.g., filtering by hashtags or keywords).\n* For enhanced security, store the access token as an n8n credential. Embedding it directly in the URL is ++not recommended++.\n\n---\n\n### Notes\n\n* This workflow is designed to work with any Mastodon domain.\n* Ensure your Mastodon account has appropriate permissions for boosting posts.\n\nBy following these steps, you can automate your Fediverse engagement and focus on creating meaningful content while the workflow handles the rest!\n\n",
+  "workflow": {
+    "name": "Post Threads to Mastodon",
+    "nodes": [
+      {
+        "id": "30f525e7-1131-4cff-86d8-348505da9fb5",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          0,
+          -180
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "triggerAtHour": 23,
+                "triggerAtMinute": 59
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "99773c0b-3d32-4819-99d2-03e3d6638813",
+        "name": "Get statuses from threads.net",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          220,
+          -180
+        ],
+        "parameters": {
+          "url": "https://mastodon.social/api/v1/accounts/<ACCOUNT_ID>/statuses",
+          "options": {}
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "c842ba51-42bf-466b-8128-aa8056c082a3",
+        "name": "Filter today",
+        "type": "n8n-nodes-base.filter",
+        "position": [
+          440,
+          -180
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "2efb4760-9294-496b-aca7-4e6abb8dcf34",
+                "operator": {
+                  "type": "dateTime",
+                  "operation": "afterOrEquals"
+                },
+                "leftValue": "={{ $json.created_at }}",
+                "rightValue": "={{ new Date().toISOString().split('T')[0] }}\n"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "c6e8aa82-0e9c-42a3-b34a-ea130dbdaad7",
+        "name": "Boost statuses",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          660,
+          -180
+        ],
+        "parameters": {
+          "url": "=https://mastodon.social/api/v1/statuses/{{ $json.id }}/reblog",
+          "options": {},
+          "requestMethod": "POST",
+          "authentication": "headerAuth"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "credential-id",
+            "name": "httpHeaderAuth Credential"
+          }
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Filter today": {
+        "main": [
+          [
+            {
+              "node": "Boost statuses",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Get statuses from threads.net",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get statuses from threads.net": {
+        "main": [
+          [
+            {
+              "node": "Filter today",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 33,
+      "name": "Social Media"
+    }
+  ],
+  "url": "https://n8n.io/workflows/4397",
+  "fetched_at": "2026-09-12T13:10:12Z"
+}

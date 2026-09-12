@@ -1,0 +1,188 @@
+{
+  "id": 8387,
+  "name": "Track crypto prices & FX rates with CoinGecko & ExchangeRate-API to Notion",
+  "description": "# 📊 Log BTC/ETH Prices and USD Exchange Rates to Notion (Hourly)\n\n## 📌 Overview\nThis workflow automatically logs live **crypto prices (Bitcoin & Ethereum)** and **fiat exchange rates (USD→EUR / USD→NGN)** into a Notion database every hour. Each entry becomes a new row in your Notion dashboard, letting you visualize currency and crypto trends side by side.  \n\nIt’s perfect for traders, analysts, and anyone who wants a **single source of truth in Notion** without needing multiple apps open. With hourly updates, you’ll have a clean data history for building rollups, trend graphs, or financial dashboards.\n\n---\n\n## ⚙️ How it works\n1. **Schedule Trigger** — runs every hour (adjustable via cron).  \n2. **HTTP Request (ExchangeRate-API)** — fetches USD-base FX rates (no API key required).  \n3. **HTTP Request (CoinGecko)** — fetches BTC & ETH prices + 24h % change (no API key required).  \n4. **Merge** — combines both payloads.  \n5. **Code (v2)** — formats a Notion-ready JSON payload with the correct fields.  \n6. **Notion Node** — creates a new page in your database with mapped properties.\n\n**Example Row in Notion:**  \nTitle: *Crypto+FX — 2025-09-08 09:00*  \nBTC: 112,417 | BTC_24h: +1.22%  \nETH: 4,334.57 | ETH_24h: +1.33%  \nUSD→EUR: 0.854 | USD→NGN: ₦1,524.54  \n\n---\n\n## 🛠 Setup Guide\n\n### 1) Create the Notion database\n- In Notion, create a new **database (Table view)**.  \n- Add these columns with matching property types:\n\n| Column     | Property Type |\n|------------|---------------|\n| Title      | Title         |\n| BTC        | Number        |\n| BTC_24h    | Number        |\n| ETH        | Number        |\n| ETH_24h    | Number        |\n| USD_EUR    | Number        |\n| USD_NGN    | Number        |\n\n### 2) Connect Notion in n8n\n- In the **Notion “Create Page” node**, connect with your **Notion OAuth2 credentials**.  \n- On first use, you’ll be redirected to authorize n8n with your Notion workspace.  \n- Copy your **Database ID** (from the Notion URL) and paste it into the node.\n\n### 3) Map the Code output\n- The Code node outputs JSON fields: `BTC`, `BTC_24h`, `ETH`, `ETH_24h`, `USD_EUR`, `USD_NGN`.  \n- In the Notion node, map each property:  \n  - `BTC` → `{{$json.BTC}}`  \n  - `BTC_24h` → `{{$json.BTC_24h}}`  \n  - `ETH` → `{{$json.ETH}}`  \n  - `ETH_24h` → `{{$json.ETH_24h}}`  \n  - `USD_EUR` → `{{$json.USD_EUR}}`  \n  - `USD_NGN` → `{{$json.USD_NGN}}`\n\n### 4) Test\n- Run the workflow once.  \n- Confirm that a new page is added to your Notion database with all values filled.\n\n---\n\n## 🎛 Customization\n- **Cadence:** change the schedule to 10 minutes, 4 hours, or daily depending on your needs.  \n- **Extra coins:** add more IDs (e.g., `solana`, `bnb`) in the CoinGecko call and update the Code node.  \n- **Extra FX pairs:** expand from ExchangeRate-API (e.g., USD→GBP, USD→ZAR).  \n- **Notion dashboards:** use rollups, charts, and linked databases for trend visualization.  \n- **Formatting:** add emojis, colors, or sections in your Notion view for clarity.  \n\n---\n\n## 🧩 Troubleshooting\n- **Page not created:** verify Database ID and ensure the Notion API integration has access.  \n- **Empty fields:** check that property names in Notion exactly match those used in the Code node.  \n- **Wrong data type:** make sure properties are set as **Number**, not Text.  \n- **Rate limits:** CoinGecko and ExchangeRate-API are free but may rate-limit if called too often; keep cadence reasonable (hourly recommended).\n\n---\n\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "2000c64071c20843606b95c63795bb0797c41036047055a6586498e855b96efc"
+    },
+    "nodes": [
+      {
+        "id": "8d9c79de-0c8b-4398-9a0b-83b2bf7750d5",
+        "name": "Every 60 Minutes",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -144,
+          112
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "702634ad-a504-4fad-9602-dad4cc589e1d",
+        "name": "Get Fiat Exchange Rates",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          0,
+          48
+        ],
+        "parameters": {
+          "url": "https://api.exchangerate-api.com/v4/latest/USD",
+          "options": {}
+        },
+        "typeVersion": 4.1
+      },
+      {
+        "id": "9abbada7-3fda-47b8-9cb2-5bcf6d595cea",
+        "name": "Get Crypto Prices",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          0,
+          192
+        ],
+        "parameters": {
+          "url": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true",
+          "options": {}
+        },
+        "typeVersion": 4.1
+      },
+      {
+        "id": "101e0111-e84c-40fb-92f0-6db1c574a023",
+        "name": "Merge",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          208,
+          128
+        ],
+        "parameters": {},
+        "typeVersion": 3.2
+      },
+      {
+        "id": "05be9717-9af2-4e50-8a2f-933213ef63f0",
+        "name": "Build Notion Page",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          400,
+          128
+        ],
+        "parameters": {
+          "jsCode": "let fx,cg;for(const it of $input.all()){ if(it.json?.rates) fx=it.json; if(it.json?.bitcoin) cg=it.json; }\nconst page={\n  properties:{\n    Title:{ title:[{ text:{ content:`Crypto+FX — ${new Date().toLocaleString('en-US',{timeZone:'Africa/Lagos'})}`}}]},\n    BTC:{ number: cg?.bitcoin?.usd ?? null },\n    BTC_24h:{ number: cg?.bitcoin?.usd_24h_change ?? null },\n    ETH:{ number: cg?.ethereum?.usd ?? null },\n    ETH_24h:{ number: cg?.ethereum?.usd_24h_change ?? null },\n    USD_EUR:{ number: fx?.rates?.EUR ?? null },\n    USD_NGN:{ number: fx?.rates?.NGN ?? null }\n  }\n};\nreturn [{json:page}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "325a38f3-e4c9-4d09-9e80-37e723c785f2",
+        "name": "Create in Notion",
+        "type": "n8n-nodes-base.notion",
+        "position": [
+          672,
+          128
+        ],
+        "parameters": {
+          "pageId": {
+            "__rl": true,
+            "mode": "url",
+            "value": ""
+          },
+          "simple": false,
+          "options": {}
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "45915593-1f21-48fc-bc2e-868c336fee7e",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -592,
+          -176
+        ],
+        "parameters": {
+          "width": 736,
+          "height": 512,
+          "content": "## 📊 Crypto + FX → Notion Dashboard\n\n**What it does:**  \nCreates a **Notion page entry** every hour with BTC/ETH prices, 24h % changes, and USD→EUR / USD→NGN rates.\n\n**Trigger:**  \nHourly (adjustable cron).\n\n**Nodes:**  \nSchedule → ExchangeRate-API → CoinGecko → Merge → **Code (build properties)** → **Notion (Create Page)**\n\n**Setup:**  \n- Create a Notion database with **Title + Number fields**:\n  - BTC, BTC_24h, ETH, ETH_24h, USD_EUR, USD_NGN  \n- Copy the **Database ID** into the Notion node.  \n- Run once to confirm rows are added correctly.\n\n**Example Row in Notion:**  \nTitle: *Crypto+FX — Monday 09:00*  \nBTC: 112,417 | ETH: 4,334.57 | USD→EUR: 0.854 | USD→NGN: ₦1,524.54\n\n**Author:** David Olusola  \n**Trading & 1:1 consulting:** [sales@daexai.com](mailto:sales@daexai.com)\n"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Merge": {
+        "main": [
+          [
+            {
+              "node": "Build Notion Page",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Every 60 Minutes": {
+        "main": [
+          [
+            {
+              "node": "Get Fiat Exchange Rates",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Get Crypto Prices",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Notion Page": {
+        "main": [
+          [
+            {
+              "node": "Create in Notion",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Crypto Prices": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Fiat Exchange Rates": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 44,
+      "name": "Crypto Trading"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8387",
+  "fetched_at": "2026-09-12T13:12:26Z"
+}

@@ -1,0 +1,423 @@
+{
+  "id": 8257,
+  "name": "Automate Instagram reel downloads with Google Drive storage & Telegram alerts",
+  "description": "## Instagram Reel Downloader & Logger\nAutomate Instagram Reel Downloads, Storage, and Activity Logging\n\n### What does this workflow do?\n\n- Handles incoming webhook requests (ideal for Instagram/Facebook API triggers).\n- Validates the webhook via challenge-response and custom verify token.\n- Checks for messages from yourself (filtering automated/self-triggered runs).\n- Downloads Instagram Reels from URLs posted to the webhook.\n- Uploads the reel to Google Drive and retrieves the download URL.\n- Logs reel details (status, URL, and timestamp) to a Google Sheet for record-keeping.\n- Notifies you on Telegram with the download details and Google Drive link.\n\n### How does it work?\n\n- Webhook: Listens for new messages/events (custom webhook endpoint for Meta).\n- Validation: Confirms webhook subscribe/challenge and verify token from Meta API.\n- Sender Check: Ignores messages unless they match your configured sender/recipient.\n- Download Reel: Fetches the reel/attachment from Instagram using received URLs.\n- Timestamp Gen: Adds a precise timestamp and ISO-based unique ID to the activity log.\n- Upload to Drive: Saves the downloaded reel in a preset Google Drive folder.\n- Log to Sheet: Updates a Google Sheet with the reel’s status, URL, and timestamp.\n- Telegram Alert: Instantly notifies you when a new reel is downloaded and logged.\n\n### What do I need to make this work?\n\n- A registered webhook endpoint (from your Meta/Instagram app configuration). \n- A Google Drive and Google Sheets account (OAuth2 connected to n8n).\n- A Telegram Bot and Chat ID setup to receive download completion messages.\n- The correct verify_token in your webhook event source matches your template (‘youtube-automation-n8n-token’ by default).\n- Update your Drive/Sheet/Bot credentials as per your n8n instance’s environment.\n\n### Why use this?\n\n- Fully automates the collection and archival of Instagram Reels.\n- Centralizes content download, backup, and activity records for your automation flows.\n- Provides instant monitoring and archival of each event.\n\n### Setup Tips:\n\n- Make sure your webhook path and Meta app configuration match (/n8n-template-insta-webhook).\n- Double-check the Google credentials and the sheet’s tab IDs/names.\n- Replace the Telegram and Google connection credentials with your own securely.\n\nUse this as a foundation for any Instagram/Facebook-based automations in n8n,\nand customize as your automation stack evolves!\n\nPublish confidently, and let users know this template:\n\nSaves time, automates digital content management, and notifies users in real-time.",
+  "workflow": {
+    "meta": {
+      "instanceId": "58a9e858b82757a75629d435ec0da2448ad5d9e906a9ce3b7dcbb64c90fda9fe",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "28a1d05e-2b90-4654-ad8b-b78e7403dabd",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -624,
+          40
+        ],
+        "webhookId": "21e2041e-0006-48c2-995d-344e41a9e689",
+        "parameters": {
+          "path": "n8n-template-insta-webhook",
+          "options": {},
+          "responseMode": "responseNode",
+          "multipleMethods": true
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "7d238158-1d62-4280-9c3d-ec0631ff9240",
+        "name": "If",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -400,
+          -128
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "a3aa0a1a-a5b2-4bf3-9a34-639ce39138f0",
+                "operator": {
+                  "name": "filter.operator.equals",
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.query['hub.mode'] }}",
+                "rightValue": "subscribe"
+              },
+              {
+                "id": "fcf913d6-363e-46fe-bcb7-b77cce5a8d88",
+                "operator": {
+                  "name": "filter.operator.equals",
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.query['hub.verify_token'] }}",
+                "rightValue": "youtube-automation-n8n-token"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "1a1629ed-5508-45b2-b139-6cb3650401bc",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          -176,
+          -128
+        ],
+        "parameters": {
+          "options": {},
+          "respondWith": "text",
+          "responseBody": "={{ $json.query['hub.challenge'] }}"
+        },
+        "typeVersion": 1.4
+      },
+      {
+        "id": "3a7ebfa8-ac9e-4c05-a4dc-c1a8a7ccf89d",
+        "name": "If Sender is Me",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -400,
+          136
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "2d8fd5c8-8bcc-4be8-9f3d-66f64748b670",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.body.entry[0].messaging[0].sender.id }}",
+                "rightValue": "123456"
+              },
+              {
+                "id": "f0f4d497-2945-47fc-a193-8a4504b031cd",
+                "operator": {
+                  "name": "filter.operator.equals",
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.body.entry[0].messaging[0].recipient.id }}",
+                "rightValue": "123456"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "7e3690c5-bffa-4202-bf0e-0add7cc8de07",
+        "name": "Get Reel",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          48,
+          64
+        ],
+        "parameters": {
+          "url": "={{ $('If Sender is Me').first().json.body.entry[0].messaging[0].message.attachments[0].payload.url }}",
+          "options": {}
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "aa7d406d-6b21-4d4e-9671-9f592ad81880",
+        "name": "Update Sheet with the Reel",
+        "type": "n8n-nodes-base.googleSheets",
+        "onError": "continueRegularOutput",
+        "position": [
+          496,
+          136
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "URL": "={{ $json.webViewLink }}",
+              "Status": "Downloaded",
+              "Timestamp": "={{ $('Get Timestamp Code').item.json.timestamp }}"
+            },
+            "schema": [
+              {
+                "id": "Timestamp",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "Timestamp",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "URL",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "URL",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Status",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Status",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [
+              "URL"
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "appendOrUpdate",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": 969588995,
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ItzGn2Wrs7FCXTzGGxbCbhUElUR4Q78S7_OFSbWbBRk/edit#gid=969588995",
+            "cachedResultName": "Sheet"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1ItzGn2Wrs7FCXTzGGxbCbhUElUR4Q78S7_OFSbWbBRk",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ItzGn2Wrs7FCXTzGGxbCbhUElUR4Q78S7_OFSbWbBRk/edit?usp=drivesdk",
+            "cachedResultName": "n8n Template | Instagram Reels Downloader"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleSheetsOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 4.6,
+        "alwaysOutputData": false
+      },
+      {
+        "id": "e41cd87b-220d-4db5-b2ad-92a55a9b1152",
+        "name": "Get Timestamp Code",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -176,
+          64
+        ],
+        "parameters": {
+          "jsCode": "return {\n  timestamp: new Date().toLocaleString(\"en-In\", {\n    timeZone: \"asia/Kolkata\",\n  }),\n  id: new Date().toISOString()\n};\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "db50d4e7-7010-4fe7-ad28-ce5e3d4eb93f",
+        "name": "Message",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          720,
+          144
+        ],
+        "webhookId": "563be58f-8c89-40e0-9434-269f1c784384",
+        "parameters": {
+          "text": "={{ $json.Timestamp }}\n\nDownloaded Reel & Saved to Drive.\nURL - {{ $json.URL }}",
+          "chatId": "123456789",
+          "additionalFields": {
+            "appendAttribution": false
+          }
+        },
+        "credentials": {
+          "telegramApi": {
+            "id": "credential-id",
+            "name": "telegramApi Credential"
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "bf2293bc-4ed4-441c-84aa-523d7056d43a",
+        "name": "Upload file",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          272,
+          136
+        ],
+        "parameters": {
+          "driveId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "My Drive"
+          },
+          "options": {},
+          "folderId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1WcR_S-0wDexvEX16NmEH9SZFiJD8Ajk7",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/1WcR_S-0wDexvEX16NmEH9SZFiJD8Ajk7",
+            "cachedResultName": "Trials"
+          }
+        },
+        "credentials": {
+          "googleDriveOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleDriveOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "a670fed0-c9d0-4dc2-9603-7a84646ff16c",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1216,
+          -144
+        ],
+        "parameters": {
+          "width": 528,
+          "height": 512,
+          "content": "## Insta Reel Auto Downloader – Key Steps\n#### Webhook Listener: \n- Receives events (set this path in Meta Dev).\n#### Challenge Validate: \n- Responds to webhook handshake with verify token.\n#### Sender Filter: \n- Processes only your own events/messages.\n#### Fetch Reel: \n- Downloads IG reel from message/attachment URL.\n#### Timestamp + ID: \n- Adds unique ISO timestamp per event.\n#### Drive Upload: \n- Saves video file to Google Drive.\n#### Sheet Log: \n- Records download info in Google Sheet.\n#### Telegram: \n- Sends download/link alert to you."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "841103f4-de00-4a5e-b797-9fa4f0a45a68",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          272,
+          -160
+        ],
+        "parameters": {
+          "width": 448,
+          "content": "## Setup Tips\n- Set Google Drive, Sheets, and Telegram creds in credentials.\n- Update webhook path and verify_token to match your app.\n- Make sure Sheet tab & folder IDs are correct.\n- Use this as a plug-and-play IG reel downloader + logger!"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "If": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "If",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "If Sender is Me",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Reel": {
+        "main": [
+          [
+            {
+              "node": "Upload file",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Upload file": {
+        "main": [
+          [
+            {
+              "node": "Update Sheet with the Reel",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "If Sender is Me",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If Sender is Me": {
+        "main": [
+          [
+            {
+              "node": "Get Timestamp Code",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Timestamp Code": {
+        "main": [
+          [
+            {
+              "node": "Get Reel",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update Sheet with the Reel": {
+        "main": [
+          [
+            {
+              "node": "Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 36,
+      "name": "File Management"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8257",
+  "fetched_at": "2026-09-12T13:12:22Z"
+}

@@ -1,0 +1,533 @@
+{
+  "id": 6212,
+  "name": "Build website Q&A chatbot with RAG, OpenAI GPT-4o-mini and Supabase Vector DB",
+  "description": "## ✅ What problem does this workflow solve?\n\nMany websites lack a smart, searchable interface. Visitors often leave due to unanswered questions. This workflow transforms any website into a **Retrieval-Augmented Generation (RAG)** chatbot—automatically extracting content, creating embeddings, and enabling real-time, context-aware chat on your own site.\n\n---\n\n## ⚙️ What does this workflow do?\n\n1. Accepts a website URL through a form trigger.\n2. Fetches and cleans website content.\n3. Parses content into smaller sections.\n4. Generates vector embeddings using OpenAI (or your embedding model).\n5. Stores embeddings and metadata in **Supabase’s vector database**.\n6. When a user asks a question:\n   - Searches Supabase for relevant chunks via similarity search.\n   - Retrieves matching content as context.\n   - Sends context + question to OpenAI to generate an accurate answer.\n7. Returns the AI-generated response to the user in the chat interface.\n\n---\n\n## 🔧 Setup Instructions\n\n### 🖥️ Website Form Trigger\n- Use a **Form / HTTP Trigger** to submit website URLs for indexing.\n\n### 📥 Content Extraction & Chunking\n- Use HTTP nodes to fetch HTML.\n- Clean and parse it (e.g., remove scripts, ads).\n- Use a **Function node** to split into manageable text chunks.\n\n### 🧠 Embedding Generation\n- Call OpenAI (or Cohere) to generate embeddings for each chunk.\n- Insert vectors and metadata into Supabase via its **API or n8n Supabase node**.\n\n### 💬 User Query Handling\n- Use a **Chat Trigger** (webhook/UI) to receive user questions.\n- Convert the question into an embedding.\n- Query Supabase with similarity search (e.g., `match_documents` RPC).\n- Retrieve top-matching chunks and feed them into OpenAI with the user question.\n- Return the reply to the user.\n\n### 🛠 AI & Database Setup\n- **OpenAI API key** for embedding and chat.\n- A **Supabase project** with:\n  - `vector` extension enabled\n  - Tables for document chunks and embeddings\n  - A similarity search function like `match_documents`\n\n## 💬 How to Embed the Chat Widget on Your Website\n\nYou can add the chatbot interface to your website with a simple JavaScript snippet.\n\n### Steps:\n\n1. Open the \"When chat message received\" node\n2. Copy Chat URL\n3. Make sure, \"Make Chat Publicly Available\n\"Toggle is enabled\n4. Make sure the mode is \"Embedded Chat\"\n5. Follow the instructions given on this package [here](https://www.npmjs.com/package/@n8n/chat#a-cdn-embed).\n\n---\n\n## 🧠 How it Works\n\n1. **Submit URL** → Form Trigger  \n2. **Fetch Website Content** → HTTP Request  \n3. **Clean & Chunk Content** → Function Node  \n4. **Make Embeddings** (OpenAI/Cohere)  \n5. **Store in Supabase** → embeddings + metadata  \n6. **User Chat** → Chat Trigger  \n7. **Search for Similar Content** → Supabase similarity match  \n8. **Generate Answer** → OpenAI completion w/ context  \n9. **Send Reply** → Chat interface returns answer\n\n---\n\n## 🗂 Why Supabase?\n\nSupabase offers a scalable Postgres-based vector database with extensions like `pgvector`, making it easy to:\n- Store vector data alongside metadata\n- Run ANN (Approximate Nearest Neighbor) similarity searches\n- Integrate seamlessly with n8n and your chatbot UI :contentReference[oaicite:1]{index=1}\n\n---\n\n## 👤 Who can use this?\n\n- 📝 **Documentation websites**\n- 👩‍💼 **Support portals**\n- 🏢 **Product/Landing pages**\n- 🛠 **Internal knowledge bases**\n\nPerfect for anyone who wants a **smart, website-specific chatbot** without building an entire AI stack from scratch.\n\n---\n\n## 🚀 Ready to Deploy?\n\nPlug in your:\n- ✅ OpenAI API Key\n- ✅ Supabase project credentials\n- ✅ Chat UI or webhook endpoint\n\n… and launch your **AI-powered, website-specific RAG chatbot** in minutes!\n\n",
+  "workflow": {
+    "id": "klsAKNm0Q07J8RXY",
+    "meta": {
+      "instanceId": "fcb622cbd5234c565b9b78babeaf0ea2455df9d2aad0d1adff7c1ef99583e685",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Build RAG Chatbot for Your Website Using Supabase",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "c2c34da8-27e8-4881-a3fd-3b5f6987e0bf",
+        "name": "When chat message received",
+        "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+        "position": [
+          500,
+          -580
+        ],
+        "webhookId": "dec328cc-f47e-4727-b1c5-7370be86a958",
+        "parameters": {
+          "mode": "webhook",
+          "public": true,
+          "options": {}
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "31f5d600-1694-4d50-a581-0880f65a7755",
+        "name": "HTML Extract",
+        "type": "n8n-nodes-base.htmlExtract",
+        "position": [
+          -460,
+          -540
+        ],
+        "parameters": {
+          "options": {},
+          "extractionValues": {
+            "values": [
+              {
+                "key": "title",
+                "cssSelector": "title, h1"
+              },
+              {
+                "key": "content",
+                "cssSelector": "p, article, .content, .post-content, main"
+              },
+              {
+                "key": "meta_description",
+                "attribute": "content",
+                "cssSelector": "meta[name='description']",
+                "returnValue": "attribute"
+              },
+              {
+                "key": "links",
+                "attribute": "href",
+                "cssSelector": "a[href]",
+                "returnValue": "attribute"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "d48d0d67-cfb6-4058-96e2-4198b40650bc",
+        "name": "Default Data Loader",
+        "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+        "position": [
+          20,
+          -360
+        ],
+        "parameters": {
+          "loader": "jsonLoader",
+          "options": {
+            "metadata": {
+              "metadataValues": [
+                {
+                  "name": "website_url",
+                  "value": "={{ $('Enter Website Url').item.json['Website Url'] }}"
+                }
+              ]
+            }
+          },
+          "dataType": "binary"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "32b79786-e8d1-4083-80e9-4d2eada2c46b",
+        "name": "Recursive Character Text Splitter",
+        "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+        "position": [
+          120,
+          -160
+        ],
+        "parameters": {
+          "options": {},
+          "chunkSize": 3000,
+          "chunkOverlap": 500
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b7541584-131f-4868-b8dd-053ab509ab1b",
+        "name": "Supabase Vector Store",
+        "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+        "position": [
+          -40,
+          -540
+        ],
+        "parameters": {
+          "mode": "insert",
+          "options": {},
+          "tableName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "documents",
+            "cachedResultName": "documents"
+          },
+          "embeddingBatchSize": 100
+        },
+        "credentials": {
+          "supabaseApi": {
+            "id": "credential-id",
+            "name": "supabaseApi Credential"
+          }
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "7b923d0f-c803-4b3c-afd8-ee680793c955",
+        "name": "Enter Website Url",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          -820,
+          -540
+        ],
+        "webhookId": "b02a5096-11b0-4677-acfa-fcac5722498c",
+        "parameters": {
+          "options": {},
+          "formTitle": "Form",
+          "formFields": {
+            "values": [
+              {
+                "fieldLabel": "Website Url",
+                "placeholder": "Enter Website Url"
+              }
+            ]
+          },
+          "formDescription": "Enter Website Url"
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "9e961fc5-b937-4f0e-b9f5-8ada4f3598f5",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -180,
+          -680
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 520,
+          "height": 100,
+          "content": "## Generating Embeddings from Website Content"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "7f4feec8-62a8-47a0-a8d6-9bce01261b1a",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          380,
+          -680
+        ],
+        "parameters": {
+          "width": 300,
+          "height": 80,
+          "content": "## User-Initiated Question"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1c11199e-d217-4f2d-8afe-913f902ef47c",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          700,
+          -680
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 540,
+          "height": 80,
+          "content": "## Vector-Based Answer Retrieval"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ddb37d99-4e8d-4eef-83da-6b3088360062",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -840,
+          -680
+        ],
+        "parameters": {
+          "width": 640,
+          "height": 100,
+          "content": "## Website Data Extraction\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "eeffcae9-2e9c-48f2-ad13-2b75b7218fe2",
+        "name": "Website Data Scrapping",
+        "type": "n8n-nodes-base.httpRequest",
+        "maxTries": 3,
+        "position": [
+          -640,
+          -540
+        ],
+        "parameters": {
+          "url": "={{ $json['Website Url'] }}",
+          "options": {
+            "timeout": 30000,
+            "redirect": {
+              "redirect": {
+                "maxRedirects": 5
+              }
+            }
+          }
+        },
+        "retryOnFail": true,
+        "typeVersion": 4.1
+      },
+      {
+        "id": "df8e6032-41f2-4f95-8906-7150ce565d8a",
+        "name": "Convert to File",
+        "type": "n8n-nodes-base.convertToFile",
+        "position": [
+          -320,
+          -540
+        ],
+        "parameters": {
+          "options": {},
+          "operation": "toJson"
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "697c29c6-6bcd-4748-a874-3c754f9b034e",
+        "name": "Embeddings Cohere",
+        "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+        "position": [
+          -100,
+          -360
+        ],
+        "parameters": {},
+        "credentials": {
+          "cohereApi": {
+            "id": "credential-id",
+            "name": "cohereApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "d8d3a79a-1ac2-42dd-b383-e39bbcbded75",
+        "name": "Question & Answer Retrieve",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          820,
+          -580
+        ],
+        "parameters": {
+          "options": {
+            "systemMessage": "=# Overview  \nYou are an AI agent that responds strictly using information from stored document embeddings in a supabase vector store.  \n\n## Context  \n- The agent is designed to provide accurate, document-based answers.  \n- It must avoid using external knowledge or assumptions.  \n\n## Instructions  \n1. Analyze the user's question.  \n2. Retrieve relevant content from the document embeddings using supabase.  \n3. Construct a response only from the matching document chunks.\n## Tools  \n- Vector store containing embedded documents\n- Embeddings Cohere  \n\n## SOP (Standard Operating Procedure)  \n1. Receive user query.  \n2. Search the vector store for relevant document chunks.  \n3. Extract and synthesize an answer using only that content.  \n4. If no matches, issue fallback message.  \n\n## Final Notes  \n- Do not rely on prior training or external facts.  \n- The response must remain strictly grounded in the documents.  "
+          }
+        },
+        "typeVersion": 1.8
+      },
+      {
+        "id": "65d51d86-cae3-4cdb-9d95-025962195953",
+        "name": "Data From Supabase Vector Store",
+        "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+        "position": [
+          1000,
+          -360
+        ],
+        "parameters": {
+          "mode": "retrieve-as-tool",
+          "topK": null,
+          "options": {},
+          "toolName": "documents_knowledge_base",
+          "tableName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "documents",
+            "cachedResultName": "documents"
+          },
+          "toolDescription": "work with documents data in Supabase vector store",
+          "includeDocumentMetadata": false
+        },
+        "credentials": {
+          "supabaseApi": {
+            "id": "credential-id",
+            "name": "supabaseApi Credential"
+          }
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "6ef28803-e21f-4733-a6a9-d894b97dbb35",
+        "name": "Embeddings With Cohere",
+        "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+        "position": [
+          1020,
+          -140
+        ],
+        "parameters": {},
+        "credentials": {
+          "cohereApi": {
+            "id": "credential-id",
+            "name": "cohereApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4796d1f3-ab76-4ed4-86b3-96bca2aae4e9",
+        "name": "Chat Memory",
+        "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+        "position": [
+          900,
+          -320
+        ],
+        "parameters": {
+          "tableName": "chat_memory",
+          "contextWindowLength": 3
+        },
+        "credentials": {
+          "postgres": {
+            "id": "credential-id",
+            "name": "postgres Credential"
+          }
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "2ce21a19-e586-4cc6-88ed-b1957b04a06a",
+        "name": "OpenAI Chat Modell",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          760,
+          -340
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4o-mini"
+          },
+          "options": {}
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "credential-id",
+            "name": "openAiApi Credential"
+          }
+        },
+        "typeVersion": 1.2
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1fe65722-2127-4e4c-8af6-d8c967259653",
+    "connections": {
+      "Chat Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "Question & Answer Retrieve",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "HTML Extract": {
+        "main": [
+          [
+            {
+              "node": "Convert to File",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Convert to File": {
+        "main": [
+          [
+            {
+              "node": "Supabase Vector Store",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Embeddings Cohere": {
+        "ai_embedding": [
+          [
+            {
+              "node": "Supabase Vector Store",
+              "type": "ai_embedding",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Enter Website Url": {
+        "main": [
+          [
+            {
+              "node": "Website Data Scrapping",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Modell": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Question & Answer Retrieve",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Default Data Loader": {
+        "ai_document": [
+          [
+            {
+              "node": "Supabase Vector Store",
+              "type": "ai_document",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Embeddings With Cohere": {
+        "ai_embedding": [
+          [
+            {
+              "node": "Data From Supabase Vector Store",
+              "type": "ai_embedding",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Website Data Scrapping": {
+        "main": [
+          [
+            {
+              "node": "HTML Extract",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When chat message received": {
+        "main": [
+          [
+            {
+              "node": "Question & Answer Retrieve",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Data From Supabase Vector Store": {
+        "ai_tool": [
+          [
+            {
+              "node": "Question & Answer Retrieve",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Recursive Character Text Splitter": {
+        "ai_textSplitter": [
+          [
+            {
+              "node": "Default Data Loader",
+              "type": "ai_textSplitter",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 40,
+      "name": "Support Chatbot"
+    },
+    {
+      "id": 48,
+      "name": "AI RAG"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6212",
+  "fetched_at": "2026-09-12T13:11:13Z"
+}

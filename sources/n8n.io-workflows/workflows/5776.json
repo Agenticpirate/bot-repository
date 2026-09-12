@@ -1,0 +1,465 @@
+{
+  "id": 5776,
+  "name": "Automate contact enrichment with Surfe, Google Sheets & HubSpot",
+  "description": "This template enables fully automated lead enrichment using Surfe’s bulk API. Simply drop a Google Spreadsheet into your Google Drive, and n8n will handle everything — from reading the leads, enriching them in batches, filtering valid data, and pushing results to HubSpot.\n\n## 1. ❓ What Problem Does This Solve?\n\nManually enriching contact lists is tedious, error-prone, and doesn’t scale. Whether you’re importing leads from events, marketing forms, or partners, this workflow ensures each record is enriched and synced to your CRM — hands-free.\n\n---\n\n## 2. 🧰 Prerequisites\n\nTo use this template, you’ll need:\n\n- A self-hosted or cloud instance of [n8n](https://n8n.io/)\n- A **Surfe API Key**\n- A **Google Drive and Sheets** account (with OAuth or service account)\n- A **HubSpot account** with access to create/update contacts (via OAuth or Private App Token)\n- The workflow JSON file (included with this tutorial)\n\n## 3. 📌 Input File Format\n\nTo run the automation, you must upload a Google Spreadsheet to a specific folder in your Drive.\n\nThe spreadsheet must contain the following columns:\n\n- `first name` (required)\n- `last name` (required)\n- Either `company name` or `company domain` (at least one is required)\n- `linkedin url` (optional)\n\n🛑 Important: Any row missing first name, last name, and both company name and company domain will be ignored automatically by the workflow.\n\nEach row represents a person to enrich.\nWe recommend including the `linkedin url` if available, but it's not mandatory.\n\n![Screenshot 20250807 at 11.54.27.png](fileId:1969)\n\n---\n\n## 4. ⚙️ Setup Instructions\n\n### 4.1 🔐 Create Your Credentials in n8n\n\n### 4.1.1 📁 Google Drive\n\nTo connect Google Drive and Google Sheets in your workflow, you need to authorize n8n via Google OAuth 2.0 using a **Client ID and Client Secret** from the Google Cloud Console.\n\n---\n\n### 📋 Step 1: Create a Google Cloud Project\n\n1. Visit Google Cloud Console\n2. Create a new project or select an existing one\n3. Navigate to **APIs & Services → OAuth consent screen**\n\n---\n\n### ⚙️ Step 2: Configure the OAuth Consent Screen\n\n1. Enter the following:\n    - App name (e.g. `n8n Integration`)\n    - User support email\n2. Choose Audience **Type**:\n    - `Internal` if you’re using a Google Workspace account\n    - `External` if using a personal Gmail account\n3. Under Contact information\n    - email address\n4. Click **Save and Continue**\n\n![Screenshot 20250807 at 11.54.02.png](fileId:1973)\n\n---\n\n### 🔑 Step 3: Create OAuth Client Credentials\n\n1. Go to **APIs & Services → Credentials**\n2. Click **+ Create Credentials → OAuth Client ID**\n3. Select **Web application** as the application type\n4. Name it (e.g. `n8n Google Drive Access`)\n5. In **Authorized redirect URIs**, paste this:\n    \n    ```\n    https://oauth.n8n.cloud/oauth2/callback\n    ```\n    \n    *(Or your self-hosted n8n redirect URI)*\n    \n6. Click **Create**\n7. Copy the **Client ID** and **Client Secret**\n\n---\n\n### ✅ Step 4: Finish Setup in n8n\n\n1. In n8n, go to **Credentials → Create New → Google Drive / Google Sheets**\n2. Choose **OAuth2**\n3. Paste your:\n    - Client ID\n    - Client Secret\n    - Redirect URL (should match Google Console)\n4. Click **Sign in with Google**\n5. Authorize access and save the credential\n\n![Screenshot 20250807 at 11.43.41.png](fileId:1975)\n\n✅ Your Google Drive is now ready to use in workflows.\n\n---\n\n### 4.1.2 📊 Google Sheets OAuth2 API\n\n1. Go to **n8n → Credentials**\n2. Create new credentials:\n    - Type: `Google Sheets OAuth2 API`\n3. Here a pop-up will open where you can login to your Google account from where you will read the Google Sheets\n\nWhen it’s done you should see this on n8n\n\n![Screenshot 20250807 at 11.44.35.png](fileId:1970)\n\n---\n\n### 4.1.3 📧 Gmail OAuth2 API\n\n1. Go to **n8n → Credentials**\n2. Create new credentials:\n    - Type: `Gmail OAuth2 API`\n3. A pop-up window will appear where you can log in with your **Google account** that is linked to Gmail\n    - Make sure you grant **email send permissions** when prompted\n\n![Screenshot 20250807 at 11.45.06.png](fileId:1968)\n\n---\n\n### 4.1.4 🚀 Surfe API\n\n1. In your [Surfe dashboard](https://www.surfe.com/) → Use Surfe Api → copy your **API key**\n2. Go to **n8n → Credentials → Create Credential**\n    1. Choose **Credential Type**: `Bearer Auth`\n    2. Name it something like `SURFE API Key`\n    3. Paste your API key into the `Bearer Token`\n    4. Save \n\n![Screenshot 20250807 at 11.45.58.png](fileId:1971)\n\n---\n\n### 4.1.5 🎯 HubSpot\n\n### 🔓 Private App Token\n\n1. Go to HubSpot → Settings → Integrations → **Private Apps**\n    1. Create an app with scopes:\n        - `crm.objects.contacts.read`\n        - `crm.objects.contacts.write`\n        - `crm.schemas.contacts.read`\n    2. **Save the App token**\n2. Go to **n8n → Credentials → Create Credential → HubSpot App Token**\n    1. Paste your App Token\n\n![Screenshot 20250807 at 11.47.05.png](fileId:1977)\n\n![Screenshot 20250807 at 11.47.34.png](fileId:1979)\n\n![Screenshot 20250807 at 11.48.47.png](fileId:1972)\n\n### ✅ You are now all set for the credentials\n\n---\n\n### 4.2 📥 Import and Configure the N8N Workflow\n\n- Import the provided JSON workflow into N8N\n    - Create a New Blank Workflow\n    - click the `…` on the top left\n    - Import from File\n\n![Screenshot 20250807 at 11.49.34.png](fileId:1976)\n\n![Screenshot 20250807 at 11.50.36.png](fileId:1980)\n\n### 4.2.1 🔗 Link Nodes to Your Credentials\n\nIn the workflow, link your newly created credentials to each node of this list :\n\n- `Google Drive Node` -&gt; `Credentials to connect with` → `Google Drive Account`\n- `Google Sheets` -&gt; `Credentials to connect with` → `Google Sheets Account`\n- `Gmail Node Credentials to connect with` → `Gmail account`\n- `Hubspot Node` →`Credentials to connect with` → `Gmail account`\n- `Surfe HTTP nodes:`\n    - Authentication → Generic Credential Type\n    - Generic Auth Type → Bearer Auth\n    - Bearer Auth → Select the credentials you created before\n\n![Screenshot 20250807 at 11.51.16.png](fileId:1974)\n\n\n![Surfe HTTP nodes](attachment:03360805-e810-45dc-8f15-3124bcc19889:my_mardownTUTORIAL_3_CSV_Upload__Enrich__Push_to_CRM_or__21ff367b08f280dfbf06ee4ff44747d5image_12.png)\n\n`Surfe HTTP nodes`\n\n`Surfe HTTP nodes`\n\n- HubSpot node → `Credentials to connect with` → select your HubSpot credentials in the list\n\n---\n\n### 4.2.2 🔧 Additional Setup for the Google Drive Trigger Node\n\n![Screenshot 20250807 at 11.52.50.png](fileId:1978)\n\n---\n\n## 5. 🔄 How This N8N Workflow Works\n\n1. A new **Google Sheet** containing a `linkedin_url` column is added to a specific folder in Google Drive\n2. n8n detects the new file automatically via the Google Drive Trigger\n3. All rows are read and **batched in groups of 500** to comply with Surfe’s API limits\n4. Each batch is sent to Surfe’s **Bulk Enrichment API**\n5. n8n **polls Surfe** until the enrichment job is complete\n6. It extracts the enriched contact data from Surfe’s response\n7. Only contacts with **both email and phone number** are kept\n8. These validated leads are **pushed to HubSpot**\n9. Finally, a **Gmail notification** is sent to confirm the job is complete\n\n---\n\n## 6. 🧩 Use Cases\n\n- **Post-event contact enrichment** – After a trade show, upload a list of LinkedIn profile URLs from badge scans or lead capture forms\n- **Outbound LinkedIn campaign follow-ups** – Gather LinkedIn URLs from manual outreach and enrich them into usable CRM leads\n- **CRM data enhancement** – Use LinkedIn URLs to fill in missing contact info for existing or imported contacts\n- **List building from LinkedIn exports** – Upload a list of LinkedIn profiles (e.g. from Sales Navigator) and turn them into fully enriched contacts in HubSpot\n\n---\n\n## 7. 🛠 Customization Ideas\n\n- 🔁 Add retry logic for failed Surfe enrichment jobs\n- 📤 Log enriched contacts into a Google Sheet or Airtable\n- 🔍 Add pre-check logic to avoid creating duplicates in HubSpot\n- 📊 Extend the flow to generate a basic summary report of enriched vs rejected contacts\n\n---\n\n## 8. ✅ Summary\n\nThis workflow turns a basic Google Sheet of LinkedIn URLs into fully enriched, CRM-ready contacts — automatically synced with HubSpot.\n\nJust upload your file.\n\nLet Surfe do the rest.",
+  "workflow": {
+    "id": "GepE6tB2olhDRCxP",
+    "meta": {
+      "instanceId": "1c6299b01fe56ad80280bbb1a8394f761ca72a9606abe611a4617f9adc407187",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Enrich Marketing Leads From A Google Sheet",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "0796ab84-bf14-4f51-906e-db01486b2c76",
+        "name": "Google Sheets",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -460,
+          580
+        ],
+        "parameters": {
+          "options": {},
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-4gGB9cugFdrutFYdlaPwMT737ODxPnizWqLODoDfmo/edit#gid=0",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ $json.id }}"
+          }
+        },
+        "typeVersion": 4.6
+      },
+      {
+        "id": "0cf2212f-e1f3-4616-ad6b-6c8c00bfe237",
+        "name": "Google Drive Trigger",
+        "type": "n8n-nodes-base.googleDriveTrigger",
+        "position": [
+          -760,
+          580
+        ],
+        "parameters": {
+          "event": "fileCreated",
+          "options": {
+            "fileType": "application/vnd.google-apps.spreadsheet"
+          },
+          "pollTimes": {
+            "item": [
+              {
+                "mode": "everyMinute"
+              }
+            ]
+          },
+          "triggerOn": "specificFolder",
+          "folderToWatch": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1C4ccbMW84VWzgGMsNTVEUUm3i_MH3Rlm",
+            "cachedResultUrl": "https://drive.google.com/YOUR_AWS_SECRET_KEY_HERE_MH3Rlm",
+            "cachedResultName": "folder-n8n-listener"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c3e28407-7bb4-4d2a-8009-0621f236efa3",
+        "name": "Filter: phone AND email",
+        "type": "n8n-nodes-base.filter",
+        "position": [
+          1240,
+          440
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "4f8f9bec-6eee-4e62-8d5f-e8f5b85620d6",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty",
+                  "singleValue": true
+                },
+                "leftValue": "={{ $json.phone }}",
+                "rightValue": ""
+              },
+              {
+                "id": "007f5a66-4e2a-42bc-bbed-0fb2b2f39ae7",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty",
+                  "singleValue": true
+                },
+                "leftValue": "={{ $json.email }}",
+                "rightValue": ""
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "23fdf067-cd74-4b04-96df-9241a86570cf",
+        "name": "Extract list of peoples from Surfe API response",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1020,
+          440
+        ],
+        "parameters": {
+          "jsCode": "const people = $json.people || [];\n\nreturn people.map(person => {\n  return {\n    json: {\n      id: person.id || '',\n      firstName: person.firstName || '',\n      lastName: person.lastName || '',\n      email: person.emails?.[0]?.email || '',\n      phone: person.mobilePhones?.[0]?.mobilePhone || '',\n      jobTitle: person.jobTitle || '',\n      companyName: person.companyName || '',\n      companyWebsite: person.companyWebsite || '',\n      linkedinUrl: person.linkedinUrl || '',\n      country: person.country || '',\n      status: person.status || ''\n    }\n  };\n});\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "1b84d64f-85ea-4914-96e2-3321c3ed389d",
+        "name": "Is enrichment complete ?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          800,
+          480
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "65a670df-84e8-4c87-956c-96758b8d8d26",
+                "operator": {
+                  "name": "filter.operator.equals",
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.status }}",
+                "rightValue": "COMPLETED"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "735abd1e-66df-4e0c-92e4-803c08edd307",
+        "name": "Surfe Bulk Enrichments API",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          340,
+          580
+        ],
+        "parameters": {
+          "url": "https://api.surfe.com/v2/people/enrich",
+          "method": "POST",
+          "options": {
+            "redirect": {
+              "redirect": {}
+            }
+          },
+          "jsonBody": "={{ $json }}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "976ebf8c-8838-41c1-bb8f-f817a9b60ae9",
+        "name": "Surfe check enrichement status",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          560,
+          580
+        ],
+        "parameters": {
+          "url": "=https://api.surfe.com/v2/people/enrich/{{ $json.enrichmentID }}",
+          "options": {
+            "redirect": {
+              "redirect": {}
+            }
+          },
+          "jsonBody": "{\n  \"enrichmentType\": \"emailAndMobile\",\n  \"listName\": \"listName\",\n  \"people\": [\n    {\n      \"firstName\": \"\",\n      \"lastName\": \"\",\n      \"companyName\": \"\",\n      \"companyWebsite\": \"\",\n      \"externalID\": \"\",\n      \"linkedinUrl\": \"[YOUR LINKEDIN URL]/\"\n    }\n  ]\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "94417a70-a873-491e-88e6-262dcadde94f",
+        "name": "Gmail",
+        "type": "n8n-nodes-base.gmail",
+        "notes": "Notify end of all batches",
+        "position": [
+          120,
+          340
+        ],
+        "webhookId": "b46c028e-8212-40fe-b4d5-0f7c1890585e",
+        "parameters": {
+          "sendTo": "{YOUR EMAIL ADDRESS}",
+          "message": "Your batch csv enrichment is done.",
+          "options": {},
+          "subject": "Your batch csv enrichment is done."
+        },
+        "executeOnce": true,
+        "notesInFlow": true,
+        "typeVersion": 2.1
+      },
+      {
+        "id": "ad49f2c1-a9a0-49fa-8853-aef4dc63a453",
+        "name": "Split Batch - 500",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          -160,
+          580
+        ],
+        "parameters": {
+          "options": {},
+          "batchSize": 500
+        },
+        "notesInFlow": false,
+        "typeVersion": 3,
+        "alwaysOutputData": false
+      },
+      {
+        "id": "b1c2c48c-5ba6-4a42-ab17-bf69400aa0ac",
+        "name": "HubSpot: Create or Update",
+        "type": "n8n-nodes-base.hubspot",
+        "position": [
+          1380,
+          1100
+        ],
+        "parameters": {
+          "email": "={{ $json.email }}",
+          "options": {
+            "resolveData": false
+          },
+          "authentication": "appToken",
+          "additionalFields": {
+            "country": "={{ $json.country }}",
+            "jobTitle": "={{ $json.jobTitle }}",
+            "lastName": "={{ $json.lastName }}",
+            "firstName": "={{ $json.firstName }}",
+            "websiteUrl": "={{ $json.linkedinUrl }}",
+            "companyName": "={{ $json.companyName }}",
+            "phoneNumber": "={{ $json.phone }}",
+            "mobilePhoneNumber": "={{ $json.phone }}"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "5e689b8d-5539-4593-9e18-903b172f4c73",
+        "name": "Wait 30 secondes",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          780,
+          940
+        ],
+        "webhookId": "faddf14b-4e33-4108-a141-c1a172e0a5d1",
+        "parameters": {
+          "amount": 30
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "b6b81b03-77b5-4868-91f6-12d4d9c248d9",
+        "name": "Prepare JSON Payload Enrichment Request",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          120,
+          580
+        ],
+        "parameters": {
+          "jsCode": "const items = $input.all();\n\nreturn [\n  {\n    json: {\n    \"include\": {\n      \"email\": true,\n      \"linkedInUrl\": false,\n      \"mobile\": true\n    },\n    \"notificationOptions\": {\n      \"webhookUrl\": \"\"\n    },\n      people: items.map((item) => ({\n        firstName: \"\",\n        lastName: \"\",\n        companyName: \"\",\n        companyWebsite: \"\",\n        externalID: \"\",\n        linkedinUrl: item.json.linkedin_url,\n      })),\n    },\n  },\n];\n"
+        },
+        "typeVersion": 2
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "eb0be05b-a13d-453a-ae04-6800bce9699a",
+    "connections": {
+      "Google Sheets": {
+        "main": [
+          [
+            {
+              "node": "Split Batch - 500",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait 30 secondes": {
+        "main": [
+          [
+            {
+              "node": "Surfe check enrichement status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split Batch - 500": {
+        "main": [
+          [
+            {
+              "node": "Gmail",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Prepare JSON Payload Enrichment Request",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Drive Trigger": {
+        "main": [
+          [
+            {
+              "node": "Google Sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter: phone AND email": {
+        "main": [
+          [
+            {
+              "node": "HubSpot: Create or Update",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is enrichment complete ?": {
+        "main": [
+          [
+            {
+              "node": "Extract list of peoples from Surfe API response",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Wait 30 secondes",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "HubSpot: Create or Update": {
+        "main": [
+          [
+            {
+              "node": "Split Batch - 500",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Surfe Bulk Enrichments API": {
+        "main": [
+          [
+            {
+              "node": "Surfe check enrichement status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Surfe check enrichement status": {
+        "main": [
+          [
+            {
+              "node": "Is enrichment complete ?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare JSON Payload Enrichment Request": {
+        "main": [
+          [
+            {
+              "node": "Surfe Bulk Enrichments API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract list of peoples from Surfe API response": {
+        "main": [
+          [
+            {
+              "node": "Filter: phone AND email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 37,
+      "name": "Lead Generation"
+    }
+  ],
+  "url": "https://n8n.io/workflows/5776",
+  "fetched_at": "2026-09-12T13:10:57Z"
+}

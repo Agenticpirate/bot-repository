@@ -1,0 +1,123 @@
+{
+  "id": 2548,
+  "name": "Convert URL-encoded webhook data from amoCRM to structured array",
+  "description": "This template processes webhooks received from amoCRM in a URL-encoded format and transforms the data into a structured array that n8n can easily interpret. \nBy default, n8n does not automatically parse URL-encoded webhook payloads into usable JSON. This template bridges that gap, enabling seamless data manipulation and integration with subsequent processing nodes.\n\n**Key Features:**\n- Input Handling: Processes URL-encoded data received from amoCRM webhooks.\n- Data Transformation: Converts complex, nested keys into a structured JSON array.\n- Ease of Use: Simplifies access to specific fields for further workflow automation.\n\n**Setup Guide:**\n- Webhook Trigger Node: Configure the Webhook Trigger node to receive data from amoCRM.\n- URL-Encoding Parsing: Use the provided nodes to transform the input URL-encoded data into a structured array.\n- Access Transformed Data: Use the resulting JSON structure for subsequent nodes in your workflow, such as filtering, updating records, or triggering external systems.\n\n**Example Data Transformation:**\n- Sample Input (URL-Encoded):\nThe following input format is typically received from amoCRM:\n$json.body['leads[update][0][custom_fields][0][id]']  \n\n- Output (Structured JSON):\nAfter processing, the data is transformed into an easily accessible JSON array format:\n{{ $json.leads.update[‘0’].id }}  \n\nThis output allows you to work with clean, structured JSON, simplifying field extraction and workflow continuation.\n\n**Code Explanation:**\nThis workflow parses URL-encoded key-value pairs using n8n nodes to restructure the data into a nested JSON object. By doing so, the template improves transparency, ensures data integrity, and makes further automation tasks straightforward.\n\n",
+  "workflow": {
+    "id": "5BjmEGmHyXKxm61l",
+    "meta": {
+      "instanceId": "b93d255be4e517753e6dfc702d9b0bae32d9e5e7a835506ed91e172c76f2bce0"
+    },
+    "name": "parse encoded WebHook for amoCRM",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "57ecb69b-4f2d-4b26-8534-84288c654ffa",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -220,
+          0
+        ],
+        "webhookId": "28969653-3102-4a07-aea5-1d90fec5a680",
+        "parameters": {
+          "path": "72b4b381-4474-46dc-af61-c7c0c49b1ab1",
+          "options": {
+            "rawBody": true
+          },
+          "httpMethod": "POST"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "540f10af-a63c-4c4b-83d3-d759ed63854e",
+        "name": "Extract from File",
+        "type": "n8n-nodes-base.extractFromFile",
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "options": {},
+          "operation": "text"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "edf41443-4225-47ab-a419-8449ee8589c7",
+        "name": "Code",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          200,
+          0
+        ],
+        "parameters": {
+          "jsCode": "const result = {};\nvar str = $input.all(0)[0].json.data;\nstr.split('&').forEach(pair => {\n    const [key, value] = pair.split('=');\n    let currentObj = result;\n\n    const keys = key.split('%5B').map(k => k.replace(/%5D/g, ''));\n    keys.forEach((k, index) => {\n        if (index === keys.length - 1) {\n            currentObj[k] = decodeURIComponent(value || '');\n        } else {\n            if (!currentObj[k]) {\n                currentObj[k] = {};\n            }\n            currentObj = currentObj[k];\n        }\n    });\n});\nreturn result;\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "2e0037b6-fc11-4fa7-8a8e-b0f0fbe53c4d",
+        "name": "Split Out",
+        "type": "n8n-nodes-base.splitOut",
+        "position": [
+          400,
+          0
+        ],
+        "parameters": {
+          "options": {},
+          "fieldToSplitOut": "leads.update['0'].custom_fields"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "f73a89ca-a645-4f08-a474-8b25ccb8bf64",
+    "connections": {
+      "Code": {
+        "main": [
+          [
+            {
+              "node": "Split Out",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Extract from File",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract from File": {
+        "main": [
+          [
+            {
+              "node": "Code",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 43,
+      "name": "Personal Productivity"
+    }
+  ],
+  "url": "https://n8n.io/workflows/2548",
+  "fetched_at": "2026-09-12T13:09:20Z"
+}

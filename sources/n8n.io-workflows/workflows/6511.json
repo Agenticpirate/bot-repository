@@ -1,0 +1,151 @@
+{
+  "id": 6511,
+  "name": "CYBERPULSE AI RedOps: generate daily RedOps security simulation reports",
+  "description": "## Description\nAutomatically compiles a daily HTML report of all RedOps simulations (Modules 1–5), summarizing offensive activity, response logs, and module effectiveness. Designed for GRC teams, Red/Purple teams, and internal auditors — no manual formatting required.\n\n## Who’s It For:\nRed Teams running daily simulations\n\nPurple Teams reviewing impact and response\n\nCISOs, SOCs, or compliance teams requiring summaries\n\n## How It Works:\nTrigger manually or on schedule (e.g., daily cron)\n\nReads simulation logs from a shared Google Sheet\n\nFilters data by time or module\n\nFormats data into an HTML summary table\n\nSends email with report or uploads to Drive/S3\n\n## Requirements:\nGmail or SMTP node for email\n\nGoogle Sheets connected (OAuth)\n\n### Google Sheet Requirements:\n- Columns: `Date`, `Module`, `Action`, `Result`, `Status`\n- One row per offensive simulation log\n- Make sure headers are in the first row\n\n\nUnified log format for RedOps Modules 1–5\n\n## File Templates:\nRedOps_AutoReport_Log_Template.xlsx\n\nemail\tmodule\tpayload\tstatus\tresponse\ttimestamp\n\n## Customization Tips:\nSet filtering timeframe (24h, 7d) in JavaScript node\n\nModify the table style in the HTML generator\n\nConnect to PDF node or S3 for exporting to other tools\n\n## Ethics & Compliance:\nThis workflow is designed for internal reporting only. It does not simulate attacks or initiate actions.\nUse for audit logs, red team reviews, and awareness tracking only.\n\n## Setup Instructions\n\n1. Copy the provided Google Sheet template (linked in File Templates).\n2. Fill in your RedOps logs (columns: date, module, action, result, status).\n3. Connect Google Sheets node using OAuth credentials.\n4. In the Gmail node:\n   - Set recipient email (use `your_email@example.com` as a placeholder).\n   - Choose HTML output from the summary table.\n5. Trigger via Cron node (daily) or manually.\n6. Optional: Connect Drive or S3 node to store a backup.\n\n\nSupports:\n\nNIST 800-53 AU-6, AU-12\n\nISO 27001 A.16.1.6\n\nACSC Essential Eight reporting practices\n\n🔗 Part of the CYBERPULSE RedOps Suite\n🌐 https://cyberpulsesolutions.com\n📧 info@cyberpulsesolutions.com",
+  "workflow": {
+    "id": "Pk4Ou8ITce0vjJHj",
+    "meta": {
+      "instanceId": "6feff41aadeb8409737e26476f9d0a45f95eec6a9c16afff8ef87a662455b6df"
+    },
+    "name": "🔴 RedOps Module 6 - Auto_Report",
+    "tags": [
+      {
+        "id": "uNqHAlvBtMsP4gFd",
+        "name": "Pro",
+        "createdAt": "2025-07-07T09:34:20.437Z",
+        "updatedAt": "2025-07-07T09:34:20.437Z"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "89a7108d-7f35-427b-9e0a-b188fdd22a06",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "dfe20b6f-cf49-4c46-b597-a5903510ab6b",
+        "name": "🕒 Trigger AutoReport",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          -1840,
+          40
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "059c0784-4981-480d-977e-314f6c27ee03",
+        "name": "📄 Read Trap Log Sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -1620,
+          40
+        ],
+        "parameters": {},
+        "typeVersion": 4.6
+      },
+      {
+        "id": "5187baa9-a247-4dea-96b7-e7d49b62c246",
+        "name": "📊 Format Report Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1400,
+          40
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "053fb8f2-5e90-458c-9cd1-59cb96e27572",
+        "name": "📑 Build HTML Report Summary",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1180,
+          40
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "aec2f987-c61a-459e-82ee-b439af67b9bb",
+        "name": "📧 Send Summary Email",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          -960,
+          40
+        ],
+        "webhookId": "64e24252-6bea-459a-8051-9852ae8a3e27",
+        "parameters": {},
+        "typeVersion": 2.1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "fb18e6b4-0a37-453b-a24d-e36437e2b41c",
+    "connections": {
+      "📊 Format Report Data": {
+        "main": [
+          [
+            {
+              "node": "📑 Build HTML Report Summary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "🕒 Trigger AutoReport": {
+        "main": [
+          [
+            {
+              "node": "📄 Read Trap Log Sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "📄 Read Trap Log Sheet": {
+        "main": [
+          [
+            {
+              "node": "📊 Format Report Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "📑 Build HTML Report Summary": {
+        "main": [
+          [
+            {
+              "node": "📧 Send Summary Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 29,
+      "name": "SecOps"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6511",
+  "fetched_at": "2026-09-12T13:11:23Z"
+}

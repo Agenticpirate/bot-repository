@@ -1,0 +1,534 @@
+{
+  "id": 15066,
+  "name": "Generate daily investment ideas with Yahoo Finance and Google Gemini",
+  "description": "# AI-Powered Daily Investment Idea Generator via Yahoo Finance & Gemini\n\nThis workflow serves as your personal quantitative analyst. It automatically fetches your active watchlist, grabs real-time prices and breaking news from Yahoo Finance and uses Google Gemini AI to analyze the data and highlight the top 2 to 3 daily investment opportunities. \n\n**Quick Implementation Steps:**\n\n1. **Import the Workflow:** Copy the provided JSON and paste it directly into your n8n canvas.\n2. **Set Up Credentials:** Add your Google Gemini API key to the `Google Gemini Chat Model` node.\n3. **Configure Data Tables:** Ensure you have two n8n Data Tables ready—one for your Watchlist and one for the Daily Ideas output. \n4. **Activate:** Toggle the workflow to \"Active\" so the Schedule Trigger runs automatically at 8:00 AM every day.\n\n\n## What It Does\n\nThis automated system takes the manual labor out of daily market research. Every morning, a Schedule Trigger wakes the workflow up and immediately connects to your internal n8n Data Table to pull a list of financial assets (like crypto or stocks) that you actively want to monitor. \n\nOnce the watchlist is loaded, the workflow loops through each ticker individually. It sends direct requests to public Yahoo Finance endpoints to gather the most recent trading prices, market charts and top news headlines. A packaging node neatly formats this raw data so that nothing gets lost or overwritten as the loop continues through your entire list.\n\nAfter all tickers are processed, the workflow bundles the packaged data into a comprehensive market report. This report is handed off to a Google Gemini AI Agent equipped with a strict financial analyst prompt. The AI evaluates the news sentiment and catalysts, identifies the most compelling investment setups and formats them into a clean JSON structure. Finally, a code node processes the AI's output and logs the finalized ideas directly into your database for easy reading.\n\n\n## Who It's For\n\nThis workflow is perfect for day traders, crypto enthusiasts, financial analysts and data-driven investors. If you spend hours every morning reading news headlines and checking stock prices to find the best trading setups, this automation acts as an invaluable, time-saving assistant.\n\n\n## Requirements to use this workflow\n\nTo successfully run this workflow, you will need:\n\n* An [active account of **n8n**](https://n8n.partnerlinks.io/om1efg2qgvwi) (must support Advanced AI nodes and internal Data Tables).\n* A **Google Gemini API Key** (or an alternative LLM like Groq/OpenAI, if you choose to swap the model node).\n* Active internet access to reach the **Yahoo Finance API** endpoints.\n* Two pre-configured **n8n Data Tables** to handle the input (Watchlist) and output (Daily Ideas).\n\n\n## How It Works & Set Up\n\nSetting up this workflow involves understanding the data flow and configuring your environment to prevent execution errors.\n\n**1. Data Table Schemas**\n\nFor smooth data retrieval and storage, your n8n Data Tables must be structured correctly:\n\n* **Input Table (Watchlist):** Must contain a `Status` column (used to filter for \"Active\" items) and a `Ticker` column (e.g., BTC-USD, AAPL).\n* **Output Table (Daily Ideas):** Must contain four string columns exactly matching the AI's output: `Ticker`, `Idea_Title`, `Catalyst_Summary` and `Conviction_Level`.\n\n**2. Yahoo Finance API Considerations**\n\nThe workflow utilizes public, undocumented Yahoo Finance endpoints (`query1.finance.yahoo.com` and `query2.finance.yahoo.com`). While these do not require an explicit API key, they are subject to strict rate limits. Making hundreds of rapid, back-to-back requests can result in a temporary IP ban (HTTP 429 errors). Keep your active watchlist size manageable (under 50 items) or introduce a brief Wait node inside the loop if you are processing massive lists.\n\n**3. Execution Flow**\n\n* The **Schedule Trigger** initiates the run at 8 AM.\n* The **Get Tickers from Watchlist** node filters your database for \"Active\" assets.\n* The **Loop Over Items** node pushes one ticker at a time to the **HTTP Request** nodes.\n* The **Packager** node maps the complex Yahoo JSON responses into clean variables (`Price Data`, `News Data`).\n* The **Bundler** aggregates the items into a single array.\n* The **AI Agent** reads the aggregated array and generates a JSON string of recommendations.\n* The **Array of Data** node sanitizes the AI output, stripping away markdown backticks so the final **DB-Table Daily Ideas** node can easily insert the rows.\n\n\n## How To Customize Nodes\n\n* **Change the Schedule:** \n\nDouble-click the `Schedule Trigger` to adjust the run time or switch to a completely different trigger (like a Webhook or manual trigger).\n\n* **Modify the AI Prompt:** \n\nOpen the `AI Agent` node and tweak the System Message. You can ask the AI to act more aggressively, focus entirely on negative sentiment or output additional JSON keys like `Risk_Level`.\n\n* **Swap AI Models:** \n\nIf you prefer OpenAI or Anthropic, simply delete the `Google Gemini Chat Model` node and connect your preferred language model to the AI Agent.\n\n* **Adjust Data Packaging:** \n\nOpen the `Packager` node to extract different data points from the Yahoo Finance payload, such as trading volume or publisher names.\n\n\n## Add‑ons\n\nTo make this automation even more powerful, you can also consider these extensions:\n\n* **The Gold Intelligence Engine Integration:** \n\nUse this workflow as a foundational data feeder. Pass the refined output table into a larger, multi-agent intelligence engine that cross-references these daily ideas with macroeconomic indicators.\n\n* **Slack and Notion Delivery:** \n\nAdd nodes at the end of the workflow to automatically format the AI's top picks into a message, sending it directly to a Slack channel and logging it permanently into a structured Notion database.\n\n* **Automated Trading Webhooks:** \n\nConnect the final output to a broker's webhook (like Alpaca or Binance) to automatically execute micro-trades based on the AI's high-conviction ideas.\n\n\n## Use Case Examples\n\nThis workflow framework can be adapted for several valuable scenarios. There can be many more such use cases of this workflow depending on your creative requirements:\n\n1.  **Crypto Market Briefings:** \n\nFeed the system top coin tickers (BTC, ETH, SOL) to get a daily breakdown of the crypto landscape before you start trading.\n\n2.  **Earnings Call Sentinel:** \n\nUpdate the watchlist to track companies releasing earnings reports on a specific week, allowing the AI to summarize the sentiment immediately following the news.\n\n3.  **Commodities Monitoring:** \n\nTrack assets like Gold, Silver and Oil to capture macroeconomic shifts and global catalysts.\n\n4.  **Portfolio Risk Management:** \n\nFeed your current holdings into the watchlist. Ask the AI to flag only the *negative* news, acting as an early warning system for your investments.\n\n5.  **Forex Pair Tracking:** \n\nMonitor major currency pairs and global financial news to predict daily currency fluctuations.\n\n\n## Troubleshooting Guide\n\n| Issue | Possible Cause | Solution |\n| :--- | :--- | :--- |\n| **HTTP 429 Too Many Requests** | Yahoo Finance is rate-limiting your IP address due to rapid polling. | Add a \"Wait\" node inside the loop (e.g., 2 seconds) to slow down the requests or reduce your total active watchlist size. |\n| **JSON Parsing Error in Code Node** | The AI included conversational text or formatting that broke the `JSON.parse()` command. | Review the prompt in the `AI Agent` to ensure it enforces strict JSON formatting. Consider lowering the AI temperature setting. |\n| **Empty Output Table** | The Data Table ID is incorrect or the column names do not perfectly match the schema. | Verify your Data Table ID in the final node and ensure your table columns exactly read: `Ticker`, `Idea_Title`, `Catalyst_Summary` and `Conviction_Level`. |\n| **Missing Yahoo Data** | The Ticker symbol provided from the watchlist is not recognized by Yahoo Finance. | Ensure symbols match Yahoo's exact format (e.g., use `BTC-USD` instead of just `BTC`). |\n\n\n## Need Help?\n\nBuilding robust financial workflows and fine-tuning AI agents can sometimes get complicated, especially when integrating multiple APIs or dealing with complex data schemas. \n\nSo if you need assistance configuring your data tables, customizing the AI prompts or building advanced add-ons to integrate this into your broader systems, please feel free to reach out to our [n8n workflow development](https://www.weblineindia.com/n8n-automation/) experts at WeblineIndia.",
+  "workflow": {
+    "id": "shBiGdfHgYoIT8Su",
+    "meta": {
+      "instanceId": "9f24379abd1ca05a3f590fdaa874ca82fbc5e1188798d609d51d2a8f6bacb662",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Investment_Idea_Generator",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "7cecbe3c-1d87-4626-a091-45089fde8cea",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          368,
+          -128
+        ],
+        "parameters": {
+          "options": {
+            "reset": false
+          }
+        },
+        "executeOnce": false,
+        "notesInFlow": true,
+        "typeVersion": 3,
+        "alwaysOutputData": false
+      },
+      {
+        "id": "93419cbb-030b-416e-9e9e-5b948c8606ee",
+        "name": "Get Price",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          800,
+          64
+        ],
+        "parameters": {
+          "url": "=https://query1.finance.yahoo.com/v8/finance/chart/{{$json.Ticker}}",
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true,
+                "fullResponse": true
+              }
+            },
+            "allowUnauthorizedCerts": false
+          },
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {}
+            ]
+          }
+        },
+        "notesInFlow": false,
+        "typeVersion": 4.3
+      },
+      {
+        "id": "0bcb1dde-971f-4603-ba84-b7af19aaa07c",
+        "name": "Get News",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          960,
+          64
+        ],
+        "parameters": {
+          "url": "=https://query2.finance.yahoo.com/v1/finance/search?q={{ $('Loop Over Items').item.json.Ticker }}",
+          "options": {
+            "allowUnauthorizedCerts": true
+          }
+        },
+        "typeVersion": 4.3
+      },
+      {
+        "id": "e2a42d22-6315-42a6-90b7-eecc9f0ce87d",
+        "name": "AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          720,
+          -464
+        ],
+        "parameters": {
+          "text": "={{ JSON.stringify($json) }}",
+          "options": {
+            "systemMessage": "You are a quantitative financial analyst. Review the provided JSON data containing stock prices and news. Identify the top 2 to 3 most compelling investment ideas based on catalysts or news sentiment. You MUST return your answer strictly as a JSON array of objects and output NOTHING else (no conversational text). Each object must have exactly these keys: \"Ticker\", \"Idea_Title\", \"Catalyst_Summary\" and \"Conviction_Level\"."
+          },
+          "promptType": "define"
+        },
+        "typeVersion": 3.1
+      },
+      {
+        "id": "c1dc248b-e6dd-4d90-95bb-57036add8457",
+        "name": "Google Gemini Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "position": [
+          688,
+          -240
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "credentials": {
+          "googlePalmApi": {
+            "id": "srxY9MHiILZXyfKL",
+            "name": "PT-HarshalS-Gemini"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2ebb5f51-ee2e-4a37-b508-7b4a7d0e72db",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -512,
+          -544
+        ],
+        "parameters": {
+          "width": 448,
+          "height": 944,
+          "content": "## Summary\nThis workflow, Investment Idea Generator, is an automated n8n pipeline that scans a watchlist of stocks/crypto, fetches real-time market data and uses AI to distill the information into high-conviction trading ideas.\n\n## How it works\n1 Trigger & Retrieval: The Scheduler triggers daily at 8:00 AM, pulling \"Active\" tickers from your Watchlist Data Table.\n\n2 Data Fetching Loop: It loops through each ticker to fetch live prices and the latest news headlines via the Yahoo Finance API.\n\n3 Aggregation: The Packager combines price and news for each ticker and the Bundler gathers all results into a single market report.\n\n4 AI Analysis: The AI Agent (powered by Google Gemini) reviews the report to identify the top 2–3 investment ideas based on news sentiment and catalysts.\n\n5 Final Storage: The Code node formats the AI's response into a clean table, which is then saved to the Daily Ideas Data Table.\n\n## Setup Steps\n- Credentials: Add your Google Gemini API Key to the Google Gemini Chat Model node.\n\n- Data Tables: * Ensure you have an n8n Data Table named PT-HarshalS_Coins-WatchList with a column Status (set to \"Active\") and a column for Ticker.\n\n- Create a second Data Table named Crypto_Daily_Ideas with columns: Ticker, Idea_Title, Catalyst_Summary and Conviction_Level.\n\n- API Access: Ensure your n8n instance can reach query1.finance.yahoo.com and query2.finance.yahoo.com (no API key is usually required for these basic Yahoo endpoints)."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "d9d9999d-8c2d-4169-bb88-33dfe632fff5",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          624,
+          -608
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 400,
+          "height": 272,
+          "content": "## Analysis & Output\nThe AI analyzes the bundled data to find the best ideas. The results are then cleaned into a readable format and saved to your final results table.\nAnalyze the market report and generate the top 2 - 3 investment ideas."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "7b0b7def-d8fa-4ea0-b543-fb1f8583ad49",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1152,
+          -48
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 278,
+          "height": 256,
+          "content": "## Edit field or set\n\n\nUsed to package the data together"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "eecf5e51-8d74-4c59-9aba-44ebcdeb681f",
+        "name": "Get Tickers from Watchlist",
+        "type": "n8n-nodes-base.dataTable",
+        "position": [
+          208,
+          -128
+        ],
+        "parameters": {
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "Status",
+                "keyValue": "Active"
+              }
+            ]
+          },
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "glcDX2uABGe3J7jf",
+            "cachedResultUrl": "/projects/XkgejKSYcPusPWyB/datatables/glcDX2uABGe3J7jf",
+            "cachedResultName": "PT-HarshalS_Coins-WatchList"
+          }
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "043b93c3-d798-4304-b14f-39f048ae7103",
+        "name": "Array of Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1088,
+          -320
+        ],
+        "parameters": {
+          "jsCode": "// Grab the AI's response (adjust 'output' to 'text' if your node uses that)\nlet aiResponse = $input.first().json.output || $input.first().json.text || $input.first().json.message.content;\n\n// Clean up any weird AI markdown formatting\naiResponse = aiResponse.replace(/```json/g, '').replace(/```/g, '').trim();\n\n// Convert the text into an actual data array\nlet ideas = JSON.parse(aiResponse);\n\n// Split them into separate n8n items\nreturn ideas.map(idea => ({ json: idea }));"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "c32e20d9-7df7-4572-8422-9978fb26b6c4",
+        "name": "Packager",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1184,
+          48
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "4d189e42-c213-414e-9c80-b84a4a2a7cc4",
+                "name": "Ticker",
+                "type": "string",
+                "value": "=Symbol: {{ $json.quotes[0].symbol }}\nShortname: {{ $json.quotes[0].shortname }}\n"
+              },
+              {
+                "id": "9ea3c985-f560-4469-a420-531f8104c739",
+                "name": "Price Data",
+                "type": "number",
+                "value": "={{ $('Get Price').item.json.body.chart.result[0].meta.regularMarketPrice }}"
+              },
+              {
+                "id": "a480d7d3-4ce6-4d6b-862c-5df89dd19edc",
+                "name": "News Data",
+                "type": "string",
+                "value": "={{ $json.news[0].title }}\npublish by: {{ $json.news[0].publisher }}\nLink : {{ $json.news[0].link }}"
+              },
+              {
+                "id": "6eb2611d-0fd5-4ea7-9197-8481212f65ef",
+                "name": "URL",
+                "type": "string",
+                "value": "={{ $json.news[0].thumbnail.resolutions[0].url }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "a8df0ade-1d14-48f5-b1af-f0e71b930ee0",
+        "name": "Bundler",
+        "type": "n8n-nodes-base.aggregate",
+        "position": [
+          560,
+          -288
+        ],
+        "parameters": {
+          "options": {},
+          "aggregate": "aggregateAllItemData"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5be953fa-0af9-42f3-985b-bd7e4d747fe3",
+        "name": "DB-Table Daily Ideas",
+        "type": "n8n-nodes-base.dataTable",
+        "position": [
+          1232,
+          -320
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "Ticker": "={{ $json.Ticker }}",
+              "Idea_Title": "={{ $json.Idea_Title }}",
+              "Catalyst_Summary": "={{ $json.Catalyst_Summary }}",
+              "Conviction_Level": "={{ $json.Conviction_Level }}"
+            },
+            "schema": [
+              {
+                "id": "Ticker",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "readOnly": false,
+                "required": false,
+                "displayName": "Ticker",
+                "defaultMatch": false
+              },
+              {
+                "id": "Idea_Title",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "readOnly": false,
+                "required": false,
+                "displayName": "Idea_Title",
+                "defaultMatch": false
+              },
+              {
+                "id": "Catalyst_Summary",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "readOnly": false,
+                "required": false,
+                "displayName": "Catalyst_Summary",
+                "defaultMatch": false
+              },
+              {
+                "id": "Conviction_Level",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "readOnly": false,
+                "required": false,
+                "displayName": "Conviction_Level",
+                "defaultMatch": false
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "dataTableId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "QM7MP30kNt5VGmVI",
+            "cachedResultUrl": "/projects/XkgejKSYcPusPWyB/datatables/QM7MP30kNt5VGmVI",
+            "cachedResultName": "Crypto_Daily_Ideas"
+          }
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "b966e636-d195-4235-872a-edad9c92c9b8",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          736,
+          -48
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 384,
+          "height": 256,
+          "content": "## HTTP Request Node\nFor every ticker, it reaches out to Yahoo Finance to grab the live trading price and the most recent news headlines."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c7f18321-ded4-4d82-8e22-43fe28c40cbf",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          48,
+          -272
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 432,
+          "height": 304,
+          "content": "## Data Input & Control\nThis section triggers the workflow daily and pulls your active watchlisted tickers from the database to start the processing loop."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2f00bb6a-e95f-4d05-8734-0bdc9e092c58",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1072,
+          -496
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 352,
+          "height": 336,
+          "content": "## Final Formatting & Storage\nCleans the AI's conversational response into a structured data format and saves the final investment signals into the Daily Ideas table for review."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "fbff4c31-f77b-44c7-8112-7fab6c922c39",
+        "name": "Start",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          64,
+          -128
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "availableInMCP": false,
+      "executionOrder": "v1"
+    },
+    "versionId": "6e4ea15f-6905-4259-84f8-bb829589f218",
+    "connections": {
+      "Start": {
+        "main": [
+          [
+            {
+              "node": "Get Tickers from Watchlist",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Bundler": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Array of Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get News": {
+        "main": [
+          [
+            {
+              "node": "Packager",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Packager": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Price": {
+        "main": [
+          [
+            {
+              "node": "Get News",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Array of Data": {
+        "main": [
+          [
+            {
+              "node": "DB-Table Daily Ideas",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [
+            {
+              "node": "Bundler",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Get Price",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "DB-Table Daily Ideas": {
+        "main": [
+          []
+        ]
+      },
+      "Google Gemini Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Tickers from Watchlist": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 44,
+      "name": "Crypto Trading"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15066",
+  "fetched_at": "2026-09-12T13:15:14Z"
+}

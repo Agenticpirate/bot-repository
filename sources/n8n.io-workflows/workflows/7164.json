@@ -1,0 +1,308 @@
+{
+  "id": 7164,
+  "name": "Extract and convert PDF documents to Markdown with LlamaIndex Cloud API",
+  "description": "# Extract and Convert PDF Documents to Markdown with LlamaIndex Cloud API\n\n## Overview\n\nThis workflow automatically converts PDF documents to Markdown format using the LlamaIndex Cloud API. LlamaIndex is a powerful data framework that specializes in connecting large language models with external data sources, offering advanced document processing capabilities with high accuracy and intelligent content extraction.\n\n![Screenshot 20250812 153318.png](fileId:2051)\n## How It Works\n\n**Automatic Processing Pipeline:**\n* **Form Submission Trigger**: Workflow initiates when a user submits a document through a web form\n* **Document Upload**: PDF files are automatically uploaded to LlamaIndex Cloud for processing  \n* **Smart Status Monitoring**: The system continuously checks processing status and adapts the workflow based on results\n* **Conditional Content Extraction**: Upon successful processing, extracted Markdown content is retrieved for further use\n\n## Setup Instructions\n\n**Estimated Setup Time: 5-10 minutes**\n\n### Prerequisites\n- LlamaIndex Cloud account and API credentials\n- Access to n8n instance (cloud or self-hosted)\n\n### Configuration Steps\n\n1. **Configure Form Trigger**\n   - Set up the webhook form trigger with file upload capability\n   - Add required fields to capture document metadata and processing preferences\n\n2. **Setup LlamaIndex API Connection**\n   - Obtain your API key from LlamaIndex Cloud dashboard\n   - Configure the HTTP Request node with your credentials and endpoint URL\n   - Set proper authentication headers and request parameters\n\n3. **Configure Status Verification**\n   - Define polling intervals for status checks (recommended: 10-30 seconds)\n   - Set maximum retry attempts to avoid infinite loops\n   - Configure success/failure criteria based on API response codes\n\n4. **Setup Content Extractor**\n   - Configure output format preferences (Markdown styling, headers, etc.)\n   - Set up error handling for failed extractions\n   - Define content storage or forwarding destinations\n\n## Use Cases\n\n- **Document Digitization**: Convert legacy PDF documents to editable Markdown format\n- **Content Management**: Prepare documents for CMS integration or static site generators\n- **Knowledge Base Creation**: Transform PDF manuals and guides into searchable Markdown content\n- **Academic Research**: Convert research papers and publications for analysis and citation\n- **Technical Documentation**: Process PDF specifications and manuals for developer documentation\n\n## Key Features\n\n- Fully automated PDF to Markdown conversion\n- Intelligent content structure preservation\n- Error handling and retry mechanisms\n- Status monitoring with real-time feedback\n- Scalable processing for batch operations\n\n## Requirements\n\n- LlamaIndex Cloud API key\n- n8n instance (v0.200.0 or higher recommended)\n- Internet connectivity for API access\n\n## Support\n\nFor issues related to LlamaIndex API, consult their official documentation [docs](https://docs.cloud.llamaindex.ai/). For n8n-specific questions, refer to the n8n community forum.\n\n\n",
+  "workflow": {
+    "id": "rnBhMZpP6vRnoQ8Z",
+    "meta": {
+      "instanceId": "7578372eeadee5ee5414cdf5a06141eebec63e21f295454563ddce7b1217363f",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "transform pdf tot markdown",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "5653ad40-2f56-4e18-be4b-04b4dd10b107",
+        "name": "Wait",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          816,
+          -256
+        ],
+        "webhookId": "a0518843-31f8-44f9-bd8e-1189e16de0f1",
+        "parameters": {
+          "amount": 30
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "ef584ef5-1aeb-434a-9ed2-f837a329486f",
+        "name": "Upload_doc",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          624,
+          -256
+        ],
+        "parameters": {
+          "url": "https://api.cloud.llamaindex.ai/api/v1/parsing/upload",
+          "method": "POST",
+          "options": {},
+          "sendBody": true,
+          "contentType": "multipart-form-data",
+          "sendHeaders": true,
+          "authentication": "genericCredentialType",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "file",
+                "parameterType": "formBinaryData",
+                "inputDataFieldName": "file"
+              }
+            ]
+          },
+          "genericAuthType": "httpBearerAuth",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "accept",
+                "value": "application/json"
+              },
+              {
+                "name": "Content-Type",
+                "value": "multipart/form-data"
+              }
+            ]
+          }
+        },
+        "credentials": {
+          "httpBearerAuth": {
+            "id": "credential-id",
+            "name": "httpBearerAuth Credential"
+          },
+          "httpHeaderAuth": {
+            "id": "credential-id",
+            "name": "httpHeaderAuth Credential"
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "63c299af-dae8-4dd5-a4a9-159302c9a18a",
+        "name": "If",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1232,
+          -256
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "7a07aec1-fc5f-4b76-94d9-6fa8f509ac8e",
+                "operator": {
+                  "name": "filter.operator.equals",
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.status }}",
+                "rightValue": "SUCCESS"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "3bf86ec3-5cbe-4581-a615-528c0e6b783b",
+        "name": "On form submission",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          416,
+          -256
+        ],
+        "webhookId": "5d1027e0-2885-4436-840f-a0e95cde60a2",
+        "parameters": {
+          "options": {},
+          "formTitle": "Upload file",
+          "formFields": {
+            "values": [
+              {
+                "fieldType": "file",
+                "fieldLabel": "File",
+                "acceptFileTypes": "pdf"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "f451ade2-fccd-4636-b11c-7971b9d32b5e",
+        "name": "Wait2",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          1504,
+          -112
+        ],
+        "webhookId": "8da5da31-1ebd-4c82-8c6a-476d5d277cdd",
+        "parameters": {
+          "amount": 60
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "8f7d2640-7fd4-425b-bb03-bb71b73a7dc3",
+        "name": "Status Verification",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1008,
+          -256
+        ],
+        "parameters": {
+          "url": "=https://api.cloud.llamaindex.ai/api/parsing/job/{{ $('Upload_doc').item.json.id }}",
+          "options": {},
+          "sendHeaders": true,
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpBearerAuth",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "accept",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "credentials": {
+          "httpBearerAuth": {
+            "id": "credential-id",
+            "name": "httpBearerAuth Credential"
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "0c488546-7ec6-4c95-bc18-255d792705d4",
+        "name": "Content extraction",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1504,
+          -304
+        ],
+        "parameters": {
+          "url": "=https://api.cloud.llamaindex.ai/api/v1/parsing/job/{{ $json.id }}/result/markdown",
+          "options": {},
+          "sendHeaders": true,
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpBearerAuth",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "accept",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "credentials": {
+          "httpBearerAuth": {
+            "id": "credential-id",
+            "name": "httpBearerAuth Credential"
+          }
+        },
+        "typeVersion": 4.2
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "a0fb030f-88ae-4c19-8662-b83f55dbeced",
+    "connections": {
+      "If": {
+        "main": [
+          [
+            {
+              "node": "Content extraction",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Wait2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait": {
+        "main": [
+          [
+            {
+              "node": "Status Verification",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait2": {
+        "main": [
+          [
+            {
+              "node": "Status Verification",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Upload_doc": {
+        "main": [
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "On form submission": {
+        "main": [
+          [
+            {
+              "node": "Upload_doc",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Status Verification": {
+        "main": [
+          [
+            {
+              "node": "If",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 35,
+      "name": "Document Extraction"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7164",
+  "fetched_at": "2026-09-12T13:11:44Z"
+}

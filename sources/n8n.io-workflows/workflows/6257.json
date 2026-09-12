@@ -1,0 +1,248 @@
+{
+  "id": 6257,
+  "name": "Automate LinkedIn lead generation and connection requests with Browserflow",
+  "description": "# **Auto find & invite LinkedIn Leads**\nThis n8n template automates LinkedIn lead generation by scraping profiles, filtering out existing connections, and sending connection requests — all in a controlled, looped workflow. Ideal for outreach campaigns, recruitment, or lead gen efforts.\n![Screenshot 20250724 at 18.09.50.png](fileId:1859)\n\n## ⚠️ **Disclaimer – Community Node Notice**\nThis template uses a verified community node available inside the n8n cloud environment.\nTo use it, go to \"Nodes\" → search for:\n\n*Browserflow for Linkedin*\n\n…and click Install.\nIt’s officially verified and accessible directly from n8n cloud.\n\nIn case you wish to run this template locally, you need to go to the settings, click community nodes and search for *n8n-nodes-browserflow*. Then after installing you can start using the actions in this node.\n\n## **🛠️ How to Use**\n\n###### Trigger: Manual Start\nInitiates the workflow manually via the “Test workflow” button, giving you full control.\n\n###### Scrape LinkedIn Profiles\nUses the Browserflow automation to extract profile links from a LinkedIn search or keyword query.\n\n###### Split Out Results\nConverts the list of profiles into individual items for single-profile processing.\n\n###### Loop Through Each Profile\nEnsures each LinkedIn profile is handled one at a time, avoiding simultaneous actions.\n\n###### Check Existing Connection\nVerifies if you’re already connected with the lead on LinkedIn.\n\n###### Conditional Logic\n\n✅ Already Connected → Skip to next profile\n\n❌ Not Connected → Continue to next step\n\n###### Send Connection Invite\nSends a LinkedIn connection request, optionally with a personalized message.\n\n## 📦 Requirements\n- n8n (cloud or self-hosted)\n\n- Installed community node: Browserflow for Linkedin\n\n- LinkedIn account\n\n- Valid Browserflow acount (you can set up a free 7-day trial at [https://browserflow.io](https://browserflow.io/n8n))\n\n## **⚙️ Setup Instructions**\n###### Install the Browserflow Community Node\nSearch “Browserflow for Linkedin” &gt; Install.\n\n###### **Get your API key**\nGet your API key at [https://browserflow.io](https://browserflow.io/n8n)\n\n###### **Setup your Browserflow account**\nAfter registering, setup your Browserflow and connect with Linkedin using the wizard at [https://browserflow.io](https://browserflow.io/n8n)\n\n###### **Connect with Browserflow by making a credential**\nClick on the Browserflow actions to setup a connection with Browserflow by adding your API key to a credential.\n\n## **🧩 Customization Tips**\nTargeting: Adjust the Browserflow actions to scrape specific roles, industries, or locations.\n\nMessaging: You can add a message to the connection invite but remind that LinkedIn limits the amount of messages that can be send each month. Use variables in the message for personalization (e.g., {firstName}).\n\nTrigger: Replace manual trigger with a cron node for scheduled outreach.\n\nIntegration: Combine with CRM tools (e.g., HubSpot, Notion, Airtable) for syncing leads or integrate with AI Agents. \n\n",
+  "workflow": {
+    "id": "lK0J8tz7PLZUwg6e",
+    "meta": {
+      "instanceId": "6d98388133fed6ffc94a735d2fbc577b6a7f07745674eec7e26c77528a1f030e"
+    },
+    "name": "My workflow",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "7189a1d6-61f0-4c5d-9744-c0d66506ffd6",
+        "name": "When clicking ‘Test workflow’",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "a92e299a-282f-4dbf-b3fe-50a078d1a098",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          672,
+          0
+        ],
+        "parameters": {
+          "options": {},
+          "batchSize": "=1"
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "ee95db18-73bc-4655-b197-9e5068107280",
+        "name": "Split Out",
+        "type": "n8n-nodes-base.splitOut",
+        "position": [
+          448,
+          0
+        ],
+        "parameters": {
+          "options": {},
+          "fieldToSplitOut": "data"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c312a13e-2176-4c50-b1d6-f172213f2ec2",
+        "name": "Check if person is a connection",
+        "type": "n8n-nodes-browserflow.browserflow",
+        "position": [
+          928,
+          48
+        ],
+        "parameters": {
+          "requestOptions": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "bee26d5d-ed98-43e7-8ec3-c3cb23f1cd42",
+        "name": "Send Connection invite",
+        "type": "n8n-nodes-browserflow.browserflow",
+        "position": [
+          1344,
+          112
+        ],
+        "parameters": {
+          "requestOptions": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "79dca4f2-e677-4344-ab3c-f56ff4dd628e",
+        "name": "Scrape profiles from a linked in search",
+        "type": "n8n-nodes-browserflow.browserflow",
+        "position": [
+          208,
+          0
+        ],
+        "parameters": {
+          "city": "Amsterdam",
+          "country": "Netherlands",
+          "operation": "scrapeProfilesFromSearch",
+          "searchTerm": "Content Marketeer",
+          "requestOptions": {}
+        },
+        "credentials": {
+          "browserflowApi": {
+            "id": "credential-id",
+            "name": "browserflowApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c89f0d55-7cf9-4862-8590-99c6ded8d9ba",
+        "name": "Check Connection Status",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1136,
+          80
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "70827b04-15cf-4415-bcd8-51dad92f200e",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "false",
+                  "singleValue": true
+                },
+                "leftValue": "={{ $json.is_connection }}",
+                "rightValue": "true"
+              },
+              {
+                "id": "b9632671-e23e-4873-8308-486d2fda9a7e",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "false",
+                  "singleValue": true
+                },
+                "leftValue": "={{ $json.is_pending }}",
+                "rightValue": ""
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "ea5acef1-e5b2-41e5-b31e-e28a2a9ea257",
+    "connections": {
+      "Split Out": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Check if person is a connection",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Connection invite": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Connection Status": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Send Connection invite",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check if person is a connection": {
+        "main": [
+          [
+            {
+              "node": "Check Connection Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When clicking ‘Test workflow’": {
+        "main": [
+          [
+            {
+              "node": "Scrape profiles from a linked in search",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Scrape profiles from a linked in search": {
+        "main": [
+          [
+            {
+              "node": "Split Out",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 37,
+      "name": "Lead Generation"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6257",
+  "fetched_at": "2026-09-12T13:11:14Z"
+}

@@ -1,0 +1,437 @@
+{
+  "id": 13219,
+  "name": "Generate bulk certificates from Google Sheets and Google Slides",
+  "description": "# Bulk certificate generator from Google Sheets and Slides\n\n**Categories:** Productivity, Education, Google, Automation\n\nAutomate the creation of personalized certificates, diplomas, or event invitations at scale. This workflow takes a list of recipients from Google Sheets, generates customized PDFs from a Google Slides template, and tracks completion—perfect for course completions, event attendance, or team recognition programs.\n\n## Benefits\n\n- **Save 95% of manual time** - Generate hundreds of certificates in minutes instead of hours of copy-paste work\n- **Zero design skills needed** - Create your template once in Google Slides (or download from Canva and import), then let automation handle the rest\n- **Built-in tracking** - Automatically marks processed recipients and stores Drive links in your spreadsheet\n- **Rate-limit safe** - Includes intelligent delays to respect Google API quotas\n- **Clean workspace** - Automatically deletes temporary files after PDF generation\n\n## How It Works\n\nThe workflow processes recipients one at a time in a loop:\n\n1. **Read recipients** - Fetches unprocessed rows from your Google Sheet (filtered by \"Processed = FALSE\")\n2. **Copy template** - Creates a temporary copy of your Google Slides template for each recipient\n3. **Personalize content** - Replaces placeholders ({{name}}, {{date}}, {{certificateid}}) with actual recipient data\n4. **Export to PDF** - Converts the personalized slide to a high-quality PDF\n5. **Save to Drive** - Stores the final PDF in your designated Google Drive folder\n6. **Update tracker** - Marks the row as processed and adds the Drive link to your sheet\n7. **Cleanup** - Deletes the temporary slide copy to avoid clutter\n8. **Rate limiting** - Waits 2 seconds before processing the next recipient (prevents API quota issues)\n\nThe loop continues until all unprocessed recipients are handled.\n\n## Required Setup\n\n### Google Sheet Structure\n\nYour spreadsheet needs these columns (exact names):\n\n| Column Name | Description | Example |\n|------------|-------------|---------|\n| `CertificateID` | Unique identifier (used for filename) | CERT-001 |\n| `Name` | Recipient's full name | John Smith |\n| `Date` | Date to display on certificate | January 15, 2026 |\n| `Processed` | Track status (FALSE/TRUE) | FALSE |\n| `DriveLink` | Auto-filled with PDF link | (empty initially) |\n\nYou can add other columns (email, course name, etc.) for your records—the workflow only uses the ones above.\n\n### Google Slides Template\n\nCreate a slide in Google Slides with these placeholders:\n\n- `{{name}}` - Will be replaced with recipient's name\n- `{{date}}` - Will be replaced with the date\n- `{{certificateid}}` - Will be replaced with the unique ID\n\n**Design tip:** You can design your certificate in Canva, export as PPTX, then upload to Google Slides. This gives you access to Canva's beautiful templates while keeping Google's automation power.\n\n## Business Use Cases\n\n- **Online course creators** - Issue completion certificates to students automatically after they finish a course\n- **Event organizers** - Generate personalized attendance certificates for conference or workshop participants\n- **HR departments** - Create employee recognition awards, training completion docs, or onboarding materials at scale\n- **Educational institutions** - Batch-produce diplomas, achievement awards, or participation certificates\n- **Nonprofits** - Generate donor recognition certificates or volunteer appreciation documents\n- **Corporate training** - Issue compliance training certificates with unique tracking IDs\n\n## Set Up Steps\n\n### 1. Prepare Your Google Sheet\n\n- Create a new Google Sheet with the required columns (see structure above)\n- Fill in recipient data (CertificateID, Name, Date)\n- Set all \"Processed\" values to `FALSE`\n- Leave \"DriveLink\" column empty\n\n### 2. Create Your Slides Template\n\n- Design a certificate/diploma/invitation in Google Slides\n- Use text placeholders: `{{name}}`, `{{date}}`, `{{certificateid}}`\n- Note the template's file ID from the URL (the long string after `/presentation/d/`)\n\n**Optional Canva workflow:**\n1. Design in Canva using their certificate templates\n2. Download as PPTX\n3. Upload to Google Slides\n4. Add the placeholder text\n\n### 3. Configure the Workflow\n\nReplace placeholder IDs in these nodes:\n\n**\"Read Unprocessed Recipients\" node:**\n- Set your Google Sheet ID\n\n**\"Copy Slides Template\" node:**\n- Replace `YOUR_TEMPLATE_SLIDES_ID` with your template's file ID\n\n**\"Save PDF to Drive\" node:**\n- Set the destination folder ID where PDFs should be saved\n\n**\"Mark as Processed\" node:**\n- Confirm it points to the same Google Sheet\n\n### 4. Set Up Credentials\n\nAdd your Google account credentials for:\n- Google Sheets (OAuth2)\n- Google Drive (OAuth2)  \n- Google Slides (OAuth2)\n\n(All three can use the same Google account)\n\n### 5. Test Run\n\n- Click \"Test workflow\" with 2-3 test recipients\n- Verify PDFs are generated correctly\n- Check that your Sheet updates with \"Processed = TRUE\" and Drive links\n\n### 6. Scale to Production\n\n- Add all your recipients to the Sheet\n- Execute the workflow\n- Monitor progress in the Sheet's \"Processed\" column\n\n## Troubleshooting\n\n**\"Rate limit exceeded\" errors:**\n- Increase the wait time in \"Wait 2s (Rate Limit)\" node to 3-5 seconds\n- Process in smaller batches (50-100 at a time)\n\n**Placeholders not replacing:**\n- Ensure exact match: `{{name}}` not `{{ name }}` (no spaces)\n- Check placeholder text is plain text, not inside text boxes or grouped objects\n\n**PDFs not saving:**\n- Verify the destination folder ID is correct\n- Ensure your Google account has write permissions to that folder\n\n**Sheet not updating:**\n- Confirm \"CertificateID\" column exists and has unique values\n- Check that the \"Processed\" column is formatted as plain text (not checkbox)\n\n## Important Notes\n\n- **API quotas:** Google Slides API has daily limits. For &gt;500 certificates, consider splitting across multiple days or upgrading to Google Workspace\n- **File cleanup:** The workflow deletes temporary slide copies—do NOT delete this node or you'll fill your Drive with copies\n- **Unique IDs:** CertificateID must be unique for each recipient (used for matching and filename)\n- **Template preservation:** Your original Slides template is never modified—only copies are created\n\n**Difficulty Level:** Intermediate  \n**Estimated Build Time:** 30-45 minutes (including template design)  \n**Monthly Operating Cost:** $0 (uses Google's free tier APIs for reasonable volumes)\n\n## Customization Ideas\n\n- Add more placeholder fields (course name, instructor signature, expiration date)\n- Send certificates via email using the Gmail node after PDF generation\n- Generate QR codes with the certificate ID for verification\n- Create a public verification page using the certificate IDs\n- Use AI to auto-generate personalized messages for each recipient\n\n---\n\n*Built with ❤️ for educators, event organizers, and anyone who needs to issue bulk certificates without the manual tedium.*\n",
+  "workflow": {
+    "id": "UwWFNPUauG6I7NdKhcV1V",
+    "meta": {
+      "instanceId": "cc7b6445ad30da5302066ff642554de149d528ab55eabf52f705543432fc8455"
+    },
+    "name": "Bulk certificate generator from Google Sheets and Slides",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "f352d49c-d9bc-49fa-8b0a-c43a94d321fa",
+        "name": "When clicking 'Test workflow'",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          -272,
+          -32
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "4651f9ff-07a3-4857-9d69-06cf864315e5",
+        "name": "Read Unprocessed Recipients",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -48,
+          -32
+        ],
+        "parameters": {
+          "options": {},
+          "filtersUI": {
+            "values": [
+              {
+                "lookupValue": "FALSE",
+                "lookupColumn": "Processed"
+              }
+            ]
+          },
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "YOUR_GOOGLE_SHEET_ID"
+          }
+        },
+        "typeVersion": 4.5
+      },
+      {
+        "id": "5b34aeac-f173-4c22-8826-930bb392182f",
+        "name": "Process One at a Time",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          224,
+          -32
+        ],
+        "parameters": {
+          "options": {
+            "reset": false
+          }
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "0d054ec2-6ac2-43f9-a5f7-3ce5a4399556",
+        "name": "Copy Slides Template",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          480,
+          -16
+        ],
+        "parameters": {
+          "url": "=https://www.googleapis.com/drive/v3/files/YOUR_TEMPLATE_SLIDES_ID/copy",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={{ JSON.stringify({ name: 'Certificate_' + $json['CertificateID'] }) }}",
+          "sendBody": true,
+          "specifyBody": "json",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "googleDriveOAuth2Api"
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "546fe323-348e-4345-9658-abb66e898a19",
+        "name": "Replace Template Placeholders",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          688,
+          -16
+        ],
+        "parameters": {
+          "url": "=https://slides.googleapis.com/v1/presentations/{{ $json.id }}:batchUpdate",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n  \"requests\": [\n    {\n      \"replaceAllText\": {\n        \"containsText\": { \"text\": \"{{name}}\", \"matchCase\": false },\n        \"replaceText\": \"{{ $('Process One at a Time').item.json.Name }}\"\n      }\n    },\n    {\n      \"replaceAllText\": {\n        \"containsText\": { \"text\": \"{{date}}\", \"matchCase\": false },\n        \"replaceText\": \"{{ $('Process One at a Time').item.json.Date }}\"\n      }\n    },\n    {\n      \"replaceAllText\": {\n        \"containsText\": { \"text\": \"{{certificateid}}\", \"matchCase\": false },\n        \"replaceText\": \"{{ $('Process One at a Time').item.json['CertificateID'] }}\"\n      }\n    }\n  ]\n}",
+          "sendBody": true,
+          "specifyBody": "json",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "googleSlidesOAuth2Api"
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "404a9f32-2653-46f1-ae0f-da5e517b85f1",
+        "name": "Export to PDF",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          912,
+          -16
+        ],
+        "parameters": {
+          "url": "=https://www.googleapis.com/drive/v3/files/{{ $('Copy Slides Template').item.json.id }}/export?mimeType=application/pdf",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "file"
+              }
+            }
+          },
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "googleSlidesOAuth2Api"
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "e1d0a513-024c-49c5-b5b0-6af8145ccf09",
+        "name": "Save PDF to Drive",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          1152,
+          -16
+        ],
+        "parameters": {
+          "name": "={{ $('Process One at a Time').item.json['CertificateID']}}.pdf",
+          "driveId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "My Drive"
+          },
+          "options": {},
+          "folderId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "YOUR_OUTPUT_FOLDER_ID"
+          }
+        },
+        "typeVersion": 3,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "beda0ef7-7376-431c-b753-2565efa28f5f",
+        "name": "Mark as Processed",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1376,
+          -16
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "DriveLink": "={{ $('Save PDF to Drive').item.json.webViewLink }}",
+              "Processed": "TRUE",
+              "CertificateID": "={{ $('Read Unprocessed Recipients').item.json['CertificateID'] }}"
+            },
+            "mappingMode": "defineBelow",
+            "matchingColumns": [
+              "CertificateID"
+            ]
+          },
+          "options": {},
+          "operation": "update",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "YOUR_GOOGLE_SHEET_ID"
+          }
+        },
+        "typeVersion": 4.5
+      },
+      {
+        "id": "e85e5469-bfeb-43d2-a9d1-e478f06695a6",
+        "name": "Delete Temporary Slide",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1600,
+          -16
+        ],
+        "parameters": {
+          "url": "=https://www.googleapis.com/drive/v3/files/{{ $('Copy Slides Template').item.json.id }}",
+          "method": "DELETE",
+          "options": {},
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "googleSlidesOAuth2Api"
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "420a078e-5d83-416f-9b23-0c16e89222d3",
+        "name": "Wait 2s (Rate Limit)",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          1824,
+          -16
+        ],
+        "webhookId": "bulk-cert-wait",
+        "parameters": {
+          "amount": 2
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "4cfca671-cf3d-48c5-905a-3f86db1d4433",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -928,
+          -240
+        ],
+        "parameters": {
+          "width": 560,
+          "height": 550,
+          "content": "## How it works\nThis workflow generates personalized PDF certificates in bulk using Google Sheets as the data source and Google Slides as the template engine.\n\n1. Reads recipient data from a Google Sheet (only rows where Processed = FALSE)\n2. For each recipient, copies your Slides template and replaces placeholders with actual values\n3. Exports the personalized slide as a PDF and saves it to Google Drive\n4. Updates the spreadsheet with the Drive link and marks the row as processed\n5. Cleans up by deleting the temporary slide copy\n\n## Setup steps\n1. **Google Sheet**: Create a sheet with columns: Name, Date, CertificateID, Processed, DriveLink. Set Processed to FALSE for new entries.\n2. **Slides Template**: Create a template with placeholders: {{name}}, {{date}}, {{certificateid}}\n3. **Credentials**: Connect Google Sheets, Drive, and Slides OAuth2 credentials\n4. **Configure IDs**: Replace YOUR_GOOGLE_SHEET_ID, YOUR_TEMPLATE_SLIDES_ID, and YOUR_OUTPUT_FOLDER_ID in the nodes\n5. **Test**: Run with one row first to verify everything works correctly"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2da79aa7-186f-4239-9946-611867eb56de",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -288,
+          -176
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 652,
+          "height": 336,
+          "content": "### 📥 Data Input\nReads recipients from Google Sheets and processes them one at a time to avoid API rate limits."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8b5724f3-07ab-4e46-ad57-b2d9730ea818",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          400,
+          -176
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 680,
+          "height": 336,
+          "content": "### 🎨 Certificate Generation\nCopies the Slides template, replaces placeholders with recipient data, and exports as PDF."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "73124c2f-6c78-49f3-8571-c3e59487c0c4",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1104,
+          -176
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 450,
+          "height": 336,
+          "content": "### 💾 Save & Update\nSaves the PDF to Drive and updates the spreadsheet with the file link."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "28057c2a-b7e1-4228-abb0-36b5a76af4d0",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1584,
+          -176
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 414,
+          "height": 336,
+          "content": "### 🧹 Cleanup & Loop\nDeletes temporary files and waits 2 seconds before processing the next recipient."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "binaryMode": "separate",
+      "availableInMCP": false,
+      "executionOrder": "v1"
+    },
+    "versionId": "6a20ac22-9b29-452b-a4c3-0447ac481c28",
+    "connections": {
+      "Export to PDF": {
+        "main": [
+          [
+            {
+              "node": "Save PDF to Drive",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mark as Processed": {
+        "main": [
+          [
+            {
+              "node": "Delete Temporary Slide",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Save PDF to Drive": {
+        "main": [
+          [
+            {
+              "node": "Mark as Processed",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Copy Slides Template": {
+        "main": [
+          [
+            {
+              "node": "Replace Template Placeholders",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait 2s (Rate Limit)": {
+        "main": [
+          [
+            {
+              "node": "Process One at a Time",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Process One at a Time": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Copy Slides Template",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Delete Temporary Slide": {
+        "main": [
+          [
+            {
+              "node": "Wait 2s (Rate Limit)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read Unprocessed Recipients": {
+        "main": [
+          [
+            {
+              "node": "Process One at a Time",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Replace Template Placeholders": {
+        "main": [
+          [
+            {
+              "node": "Export to PDF",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When clicking 'Test workflow'": {
+        "main": [
+          [
+            {
+              "node": "Read Unprocessed Recipients",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 35,
+      "name": "Document Extraction"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/13219",
+  "fetched_at": "2026-09-12T13:14:28Z"
+}

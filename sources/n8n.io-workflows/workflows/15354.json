@@ -1,0 +1,543 @@
+{
+  "id": 15354,
+  "name": "Automate GitLab tag releases to Jira and Slack for Dev and QA",
+  "description": "# Git Tag → Release Notes → Jira → Slack (Dev + QA)\n\nThis workflow automatically detects a new GitLab tag, validates the version, fetches commit changes, generates release notes, creates a Jira task and sends notifications to separate Slack channels for Development and QA teams.\n\nThis workflow starts whenever a new tag such as v1.0.0 is pushed in GitLab. It checks whether the tag format is correct, collects recent commits, prepares release notes, creates a Jira issue for QA testing and sends Slack notifications to Dev and QA teams.\n\nYou receive:\n\n- **Automatic release process after GitLab tag push**\n- **Auto-generated release notes from commit history**\n- **Jira task for QA testing**\n- **Separate Slack alerts for Dev and QA teams**\n\nIdeal for teams that want a clean and automated software release process without manual follow-up.\n\n### Quick Start – Implementation Steps\n\n1. [Import workflow json in your n8n account](https://n8n.partnerlinks.io/om1efg2qgvwi)\n2. Add your GitLab webhook URL in repository settings.\n3. Add your GitLab API token in HTTP Request node.\n4. Connect your Jira Cloud account.\n5. Connect your Slack account.\n6. Select Dev and QA Slack channels.\n7. Activate the workflow.\n\n\n## What It Does\n\nThis workflow automates release management:\n\n1. Detects new GitLab tag push.\n2. Validates semantic version format.\n3. Fetches commit changes from GitLab.\n4. Generates release notes automatically.\n5. Creates Jira issue for testing.\n6. Sends release update to Dev Slack channel.\n7. Sends testing request to QA Slack channel.\n8. Returns success or error response.\n\nThis helps teams release faster with proper communication.\n\n\n## Who It's For\n\nThis workflow is ideal for:\n\n- Development teams\n- QA teams\n- DevOps engineers\n- Release managers\n- Product teams\n- Companies using GitLab + Jira + Slack\n\n\n## Requirements to Use This Workflow\n\nTo run this workflow, you need:\n\n- [**n8n instance** (cloud or self-hosted)](https://n8n.partnerlinks.io/om1efg2qgvwi)\n- **GitLab repository access**\n- **GitLab API token**\n- **Jira Cloud account**\n- **Slack workspace**\n- Basic understanding of releases and version tags\n\n\n## How It Works\n\n1. **Tag Push** – Workflow starts when GitLab tag is created.\n2. **Version Check** – Validates tag like v1.0.0.\n3. **Fetch Commits** – Gets commit changes from GitLab.\n4. **Generate Notes** – Creates release notes.\n5. **Create Jira Task** – Creates testing ticket.\n6. **Send Dev Alert** – Notifies developers.\n7. **Send QA Alert** – Notifies QA team.\n8. **Complete Workflow** – Sends success response.\n\n## Setup Steps\n\n1. [Import the provided n8n JSON file](https://n8n.partnerlinks.io/om1efg2qgvwi).\n2. Open Webhook node and copy URL.\n3. Add webhook in GitLab repository settings.\n4. Open HTTP node and add GitLab API URL + Token.\n5. Connect Jira Cloud credentials.\n6. Select Jira project and issue type.\n7. Connect Slack credentials.\n8. Select separate Dev and QA channels.\n9. Activate workflow.\n\n\n## How To Customize Nodes\n\n### Customize Version Rules\n\nModify the IF node:\n\n- Allow custom tag formats\n- Add beta or release candidate versions\n\n### Customize Jira Task\n\nYou can change:\n\n- Summary title\n- Priority\n- Assignee\n- Labels\n- Due date\n\n### Customize Slack Alerts\n\nYou may add:\n\n- Emojis\n- Mentions (@channel)\n- Jira link\n- Deployment notes\n- Release owner\n\n### Customize Release Notes\n\nYou can include:\n\n- Commit author names\n- Merge request links\n- Feature list\n- Bug fixes\n- Build details\n\n\n## Add-Ons (Optional Enhancements)\n\nYou can extend this workflow to:\n\n- Auto-create GitLab Release page\n- Trigger deployment automatically\n- Add email notifications\n- Generate PDF release notes\n- Add approval step before release\n- Send summary to management\n- Track release history in database\n\n\n## Use Case Examples\n\n### 1. Development Release\n\nNotify developers instantly after version tag push.\n\n### 2. QA Testing Flow\n\nAutomatically create Jira ticket for testing.\n\n### 3. Sprint Release\n\nUse during sprint end releases.\n\n### 4. Production Release\n\nSend official release communication.\n\n### 5. Multi-Team Coordination\n\nKeep Dev, QA and Managers updated.\n\n\n## Troubleshooting Guide\n\n| Issue | Possible Cause | Solution |\n|---|---|---|\n| Workflow not starting | Webhook not added | Recheck GitLab webhook |\n| Invalid tag error | Wrong version format | Use v1.0.0 |\n| No commits found | Token/API issue | Check GitLab token |\n| Jira issue not created | Wrong credentials | Reconnect Jira |\n| Slack message failed | Invalid Slack auth | Reconnect Slack |\n| Wrong channel used | Wrong channel ID | Select correct channel |\n\n\n## Need Help?\n\nIf you need help customizing or extending this workflow with features such as auto deployments, approvals, dashboards or enterprise release automation, then our [n8n workflow developers](https://www.weblineindia.com/hire-n8n-developers/) at **WeblineIndia** can help with [advanced automation solutions](https://www.weblineindia.com/process-automation-solutions.html).",
+  "workflow": {
+    "id": "M2M3G1dv1HTy9jmP",
+    "meta": {
+      "instanceId": "14e4c77104722ab186539dfea5182e419aecc83d85963fe13f6de862c875ebfa",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Git Tag → Release Notes → Jira → Slack (Dev + QA)",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "3c74c452-1ad0-48a4-adfe-e95390d1468d",
+        "name": "Git Tag Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -1728,
+          400
+        ],
+        "webhookId": "git-tag-webhook",
+        "parameters": {
+          "path": "git-tag-webhook",
+          "options": {},
+          "responseMode": "responseNode"
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "f3392442-28e4-42c9-a9bb-4c7ea7357712",
+        "name": "Is Valid Semver?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -1488,
+          400
+        ],
+        "parameters": {
+          "conditions": {
+            "boolean": [
+              {
+                "value1": "={{ $json.isValid }}",
+                "value2": true
+              }
+            ]
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4f6ddf56-e8c4-481f-a8ac-f6781e29728a",
+        "name": "Fetch Commits from Branch",
+        "type": "n8n-nodes-base.httpRequest",
+        "notes": "Fetches commit list between current tag and specified branch (default: main). Supports GitHub, GitLab (cloud & self-hosted) and Bitbucket. For GitLab self-hosted, set GITLAB_TOKEN environment variable with your GitLab API token. The PRIVATE-TOKEN header will be added automatically for GitLab servers.",
+        "position": [
+          -1152,
+          112
+        ],
+        "parameters": {
+          "url": "=Here_your_git_url",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            }
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Accept",
+                "value": "="
+              },
+              {
+                "name": "User-Agent"
+              },
+              {
+                "name": "PRIVATE-TOKEN",
+                "value": "="
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "de26cab7-ed47-41a2-8e8c-da0877e68060",
+        "name": "Generate Release Notes",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -928,
+          112
+        ],
+        "parameters": {
+          "jsCode": "// Generate release notes with commit data\nconst tagData = $input.item.json;\nconst tagName = tagData.tagName;\nconst version = tagData.version;\nconst major = parseInt(tagData.major) || 0;\nconst minor = parseInt(tagData.minor) || 0;\nconst patch = parseInt(tagData.patch) || 0;\nconst preRelease = tagData.preRelease;\nconst repository = tagData.repositoryFullName || tagData.repository;\nconst commitSha = tagData.commitSha;\nconst baseUrl = tagData.baseUrl;\nconst defaultBranch = tagData.defaultBranch || 'main';\n\n// Try to get commit data from previous node (HTTP Request)\nlet commits = [];\nlet commitCount = 0;\nlet commitData = null;\n\ntry {\n  // Check if we have commit data from HTTP Request node\n  const httpNode = $('Fetch Commits from Branch');\n  if (httpNode && httpNode.first()) {\n    commitData = httpNode.first().json;\n    \n    // Check for error responses\n    if (commitData.error || commitData.message) {\n      console.log('API returned error:', commitData.error || commitData.message);\n      // Continue without commit data\n    }\n    // GitHub format\n    else if (commitData.commits && Array.isArray(commitData.commits)) {\n      commits = commitData.commits.map(c => ({\n        sha: c.sha?.substring(0, 7) || '',\n        message: c.commit?.message || c.message || '',\n        author: c.commit?.author?.name || c.author?.login || c.author?.name || 'unknown',\n        date: c.commit?.author?.date || c.date || ''\n      }));\n      commitCount = commitData.commits.length;\n    }\n    // GitLab format (cloud & self-hosted)\n    else if (commitData.commits && Array.isArray(commitData.commits)) {\n      commits = commitData.commits.map(c => ({\n        sha: c.id?.substring(0, 7) || c.short_id?.substring(0, 7) || '',\n        message: c.message || c.title || '',\n        author: c.author_name || c.author?.name || c.committer_name || 'unknown',\n        date: c.created_at || c.committed_date || c.date || ''\n      }));\n      commitCount = commitData.commits.length;\n    }\n    // GitLab compare API returns commits array directly\n    else if (Array.isArray(commitData)) {\n      commits = commitData.map(c => ({\n        sha: c.id?.substring(0, 7) || c.short_id?.substring(0, 7) || '',\n        message: c.message || c.title || '',\n        author: c.author_name || c.author?.name || 'unknown',\n        date: c.created_at || c.committed_date || ''\n      }));\n      commitCount = commitData.length;\n    }\n  }\n} catch (e) {\n  // If HTTP request failed or not available, continue without commit data\n  console.log('No commit data available, continuing without it:', e.message);\n}\n\n// Determine release type\nlet releaseType = '';\nlet releaseEmoji = '';\nlet notes = '';\n\nif (preRelease) {\n  releaseType = `Pre-release (${preRelease})`;\n  releaseEmoji = '🚧';\n  notes = `\\n${releaseEmoji} **Pre-release Build**\\n\\nThis is a ${preRelease} release for testing purposes.\\n\\n`;\n} else if (major > 0 && minor === 0 && patch === 0) {\n  releaseType = 'Major Release';\n  releaseEmoji = '🎉';\n  notes = `\\n${releaseEmoji} **Major Release**\\n\\nThis release includes breaking changes and significant new features.\\n\\n`;\n} else if (patch === 0) {\n  releaseType = 'Minor Release';\n  releaseEmoji = '✨';\n  notes = `\\n${releaseEmoji} **Minor Release**\\n\\nThis release includes new features and improvements.\\n\\n`;\n} else {\n  releaseType = 'Patch Release';\n  releaseEmoji = '🐛';\n  notes = `\\n${releaseEmoji} **Patch Release**\\n\\nThis release includes bug fixes and minor improvements.\\n\\n`;\n}\n\n// Add commit information if available\nif (commits.length > 0) {\n  notes += `**Changes in this release:**\\n\\n`;\n  notes += `Total commits: ${commitCount}\\n\\n`;\n  \n  // Add commit list (limit to 20 most recent)\n  const recentCommits = commits.slice(0, 20);\n  recentCommits.forEach(commit => {\n    const firstLine = commit.message.split('\\n')[0];\n    notes += `- ${commit.sha}: ${firstLine} (${commit.author})\\n`;\n  });\n  \n  if (commits.length > 20) {\n    notes += `\\n... and ${commits.length - 20} more commits.\\n`;\n  }\n  \n  notes += `\\n**View all changes:** ${baseUrl}/compare/${tagName}...${defaultBranch}\\n\\n`;\n} else {\n  notes += `**View changes:** ${baseUrl}/compare/${tagName}...${defaultBranch} or ${baseUrl}/-/tags/${tagName}\\n\\n`;\n}\n\nnotes += `**Release Information:**\\n`;\nnotes += `- Version: ${version}\\n`;\nnotes += `- Repository: ${repository}\\n`;\nnotes += `- Release Type: ${releaseType}\\n`;\nnotes += `- Tagged by: ${tagData.tagger}\\n`;\nif (commitSha) {\n  notes += `- Commit: ${commitSha.substring(0, 7)}\\n`;\n}\nnotes += `\\n**Action Items:**\\n`;\nnotes += `- [ ] Review release notes\\n`;\nnotes += `- [ ] Perform QA testing\\n`;\nnotes += `- [ ] Update deployment documentation\\n`;\nnotes += `- [ ] Notify stakeholders\\n`;\n\nreturn {\n  json: {\n    ...tagData,\n    releaseType: releaseType,\n    releaseEmoji: releaseEmoji,\n    releaseNotes: notes,\n    commitCount: commitCount,\n    commits: commits\n  }\n};"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "85a948c3-97da-44fa-ac70-b9e696764ff0",
+        "name": "Prepare Slack Payload",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -480,
+          112
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "tagInfo",
+                "name": "tagInfo",
+                "type": "object",
+                "value": "={{ $('Parse & Validate Tag').first().json }}"
+              },
+              {
+                "id": "jiraTicket",
+                "name": "jiraTicket",
+                "type": "object",
+                "value": "={{ $json }}"
+              },
+              {
+                "id": "releaseNotes",
+                "name": "releaseNotes",
+                "type": "object",
+                "value": "={{ $('Generate Release Notes').first().json }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.3
+      },
+      {
+        "id": "ad5d1a4c-9623-49db-833f-7fe2583bad2b",
+        "name": "Slack: Dev Channel",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          -192,
+          -48
+        ],
+        "webhookId": "e2195999-804b-4c1a-83b7-3fd2eb6ed16d",
+        "parameters": {
+          "text": "={{ $json.releaseNotes.releaseEmoji + ' *New Release Created!*\\n\\n' + '**Version:** ' + $json.tagInfo.tagName + '\\n' + '**Repository:** ' + $json.tagInfo.repositoryFullName + '\\n' + '**Tagged by:** ' + $json.tagInfo.tagger + '\\n' + '**Release Type:** ' + $json.releaseNotes.releaseType + '\\n\\n' + ($json.releaseNotes.releaseNotes ? $json.releaseNotes.releaseNotes.substring(0, 500) + '...' : '') + '\\n\\n**Jira Ticket:** ' + $json.jiraTicket.key + '\\n' + '🔗 ' + ($env.JIRA_URL || '') + '/browse/' + $json.jiraTicket.key }}",
+          "select": "channel",
+          "channelId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "C09EV0SGCE5",
+            "cachedResultName": "team-n8n-workflow"
+          },
+          "otherOptions": {}
+        },
+        "credentials": {
+          "slackApi": {
+            "id": "NwllndcJLwnQYcFB",
+            "name": "Slack account 15"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "07116db3-dacd-41ab-b425-a78ddfffe1a5",
+        "name": "Slack: QA Channel",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          -176,
+          240
+        ],
+        "webhookId": "2f46dff9-cae4-4ec5-9a21-d83abacc2abd",
+        "parameters": {
+          "text": "={{ '🧪 *Release Ready for QA Testing*\\n\\n' + '**Version:** ' + $json.tagInfo.tagName + '\\n' + '**Repository:** ' + $json.tagInfo.repositoryFullName + '\\n' + '**Release Type:** ' + $json.releaseNotes.releaseType + '\\n\\n' + ($json.releaseNotes.commitCount > 0 ? '**Total Changes:** ' + $json.releaseNotes.commitCount + ' commits\\n' : '') + '\\n**Testing Checklist:**\\n' + '- [ ] Smoke testing\\n' + '- [ ] Regression testing\\n' + '- [ ] Performance testing\\n' + '- [ ] Security testing\\n\\n**Jira Ticket:** ' + $json.jiraTicket.key + '\\n' + '🔗 ' + ($env.JIRA_URL || '') + '/browse/' + $json.jiraTicket.key + '\\n\\n**View Release:** ' + $json.tagInfo.baseUrl + '/releases/tag/' + $json.tagInfo.tagName }}",
+          "select": "channel",
+          "channelId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "C09EV0SGCE5",
+            "cachedResultName": "team-n8n-workflow"
+          },
+          "otherOptions": {}
+        },
+        "credentials": {
+          "slackApi": {
+            "id": "NwllndcJLwnQYcFB",
+            "name": "Slack account 15"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "cdb03d73-f6f5-4e07-8ba1-b9e58aa3eef5",
+        "name": "Slack: Invalid Format Warning",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          -1136,
+          576
+        ],
+        "webhookId": "115c3a85-8258-427b-9267-9d0e2437f337",
+        "parameters": {
+          "text": "={{ '⚠️ *Warning: Invalid Version Format*\\n\\n' + 'The tag **' + $json.tagName + '** does not match the expected semantic versioning format (e.g., v1.2.3 or 1.2.3).\\n\\n' + '**Repository:** ' + $json.repositoryFullName + '\\n' + '**Tagged by:** ' + $json.tagger + '\\n' + '**Tag:** ' + $json.tagName + '\\n\\n' + '**Expected Format:**\\n' + '- Semantic versioning: `v1.2.3` or `1.2.3`\\n' + '- Pre-release: `v1.2.3-alpha1` or `v1.2.3-beta1`\\n\\n' + 'Please ensure tags follow semantic versioning format to trigger automated release workflows.' }}",
+          "select": "channel",
+          "channelId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "C09EV0SGCE5",
+            "cachedResultName": "team-n8n-workflow"
+          },
+          "otherOptions": {}
+        },
+        "credentials": {
+          "slackApi": {
+            "id": "NwllndcJLwnQYcFB",
+            "name": "Slack account 15"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "b958653e-cf56-40d7-9f4c-bd875cc88972",
+        "name": "Webhook Response",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          96,
+          96
+        ],
+        "parameters": {
+          "options": {},
+          "respondWith": "json",
+          "responseBody": "={{ { success: true, message: 'Release workflow completed successfully', jiraKey: $json.jiraTicket?.key || '', tag: $json.tagInfo?.tagName || '', releaseType: $json.releaseNotes?.releaseType || '' } }}"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "667f43d9-8a5a-4803-837a-cd169a6b203a",
+        "name": "Webhook Error Response",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          -896,
+          576
+        ],
+        "parameters": {
+          "options": {},
+          "respondWith": "json",
+          "responseBody": "={{ { success: false, message: 'Invalid tag format', tag: $json.tagName || 'unknown', error: 'Tag does not match semantic versioning format' } }}"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "0eda8408-b5dc-4e30-8686-b9861293fcac",
+        "name": "Create an issue",
+        "type": "n8n-nodes-base.jira",
+        "position": [
+          -704,
+          208
+        ],
+        "parameters": {
+          "project": {
+            "__rl": true,
+            "mode": "list",
+            "value": "10000",
+            "cachedResultName": "n8n sample project"
+          },
+          "summary": "Here_your_prefered _summry_msg_for_task",
+          "issueType": {
+            "__rl": true,
+            "mode": "list",
+            "value": "10003",
+            "cachedResultName": "Task"
+          },
+          "additionalFields": {}
+        },
+        "credentials": {
+          "jiraSoftwareCloudApi": {
+            "id": "RjUNCCXD0nr2nuGC",
+            "name": "Jira SW Cloud account"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "dd7726f7-27d8-4bba-b890-5091bc8b133e",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1792,
+          304
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 224,
+          "height": 240,
+          "content": "Receives GitLab tag push event and starts the workflow automatically."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "408f5d66-a8e2-4192-94ed-eee589f0bfff",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1552,
+          304
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 208,
+          "height": 240,
+          "content": "Checks whether the tag follows version format like v1.0.0."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "916c1fdf-0caf-48f1-8fcb-69d0dc23ce86",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1264,
+          416
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 592,
+          "height": 352,
+          "content": "**Slack: Invalid Format Warning:** Sends alert if tag version format is incorrect.\n\n**Webhook Error Response:** Returns error response when validation fails."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "72e00f83-9aac-4c8e-b416-d703f8700360",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1264,
+          -16
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 944,
+          "height": 384,
+          "content": "## Release Processing Steps\n\nThis section fetches commit changes from GitLab and creates automatic release notes for the new version. It also creates a Jira task for QA tracking and prepares the final Slack notification message for Dev and QA teams."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6843c629-fb5b-4055-8130-07f6b101786d",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -272,
+          -144
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 256,
+          "height": 256,
+          "content": "**Slack: Dev Channel:** Sends release notification to the developer Slack channel."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "15810b49-e0a7-4890-83e0-be4c0ddae937",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -272,
+          144
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 256,
+          "height": 256,
+          "content": "**Slack: QA Channel:** Sends testing notification to the QA Slack channel."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f315ea9e-e3c9-4272-8d9e-e73b98793973",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          32,
+          16
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 272,
+          "height": 256,
+          "content": "Returns success response after workflow completes."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "efdf5478-62f9-4009-8484-69ddb5e3d9c7",
+        "name": "Sticky Note7",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2352,
+          -272
+        ],
+        "parameters": {
+          "width": 368,
+          "height": 576,
+          "content": "## How it Works\n\nThis workflow starts automatically when a new GitLab tag is created, such as v1.0.0. First, it checks whether the tag follows the correct version format. If the format is valid, it fetches recent commit changes from GitLab and uses them to generate release notes. After that, it creates a Jira task so the QA team can track and test the release. Finally, it sends notifications to separate Slack channels for the Development team and QA team with release details, Jira ticket information and testing updates. If the tag format is invalid, the workflow stops and sends a warning message to Slack.\n\n\n## Setup steps\n**1.** Connect your GitLab account and add the webhook URL in your GitLab repository webhook settings.\n**2.** Connect your Jira Cloud account and select the project where release tasks should be created.\n**3.** Connect your Slack account and choose separate Dev and QA channels.\n**4.** Add your GitLab API token in the HTTP Request node to fetch commits.\n**5.** Test by creating a new tag like v1.0.0 in GitLab.\n**6.** Activate the workflow after successful testing."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "binaryMode": "separate",
+      "executionOrder": "v1"
+    },
+    "versionId": "f510a14b-88d0-4044-88a8-1c6bc2f34627",
+    "connections": {
+      "Create an issue": {
+        "main": [
+          [
+            {
+              "node": "Prepare Slack Payload",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Git Tag Webhook": {
+        "main": [
+          [
+            {
+              "node": "Is Valid Semver?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is Valid Semver?": {
+        "main": [
+          [
+            {
+              "node": "Fetch Commits from Branch",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Slack: Invalid Format Warning",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Slack: QA Channel": {
+        "main": [
+          [
+            {
+              "node": "Webhook Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Slack: Dev Channel": {
+        "main": [
+          [
+            {
+              "node": "Webhook Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Slack Payload": {
+        "main": [
+          [
+            {
+              "node": "Slack: Dev Channel",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Slack: QA Channel",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Release Notes": {
+        "main": [
+          [
+            {
+              "node": "Create an issue",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Prepare Slack Payload",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Commits from Branch": {
+        "main": [
+          [
+            {
+              "node": "Generate Release Notes",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Slack: Invalid Format Warning": {
+        "main": [
+          [
+            {
+              "node": "Webhook Error Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 16,
+      "name": "DevOps"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15354",
+  "fetched_at": "2026-09-12T13:15:23Z"
+}

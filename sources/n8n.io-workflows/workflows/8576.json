@@ -1,0 +1,342 @@
+{
+  "id": 8576,
+  "name": "WhatsApp number verify & confirmation system with Rapiwa API and Google Sheets",
+  "description": "# WhatsApp Number Verify & Confirmation System with Rapiwa API and Google Sheets\n---\n\n## Who is this for?\nThis **n8n workflow** makes it easy to verify **WhatsApp numbers** submitted through a form. When someone fills out the form, the automation kicks in—capturing the data via a **webhook**, checking the WhatsApp number using the **Rapiwa API**, and sending a **confirmation message** if the number is valid. All submissions, whether verified or not, are logged into a **Google Sheet** with a clear status. \n\nIt’s a great solution for **businesses**, **marketers**, or **developers** who need a reliable way to **verify leads**, manage **event signups**, or **onboard customers** using WhatsApp.\n\n\n---\n\n## How it works?\nThis **n8n automation** listens for form submissions via a webhook, **validates the provided WhatsApp number** using the **Rapiwa API**, sends a confirmation message if the number is verified, and then appends the submission data to a **Google Sheet**, marking each entry as **verified or unverified**.\n\n---\n\n## Features\n- **Webhook Trigger**: Captures form submissions via HTTP POST\n- **Data Cleaning**: Formats and sanitizes the WhatsApp number\n- **Rapiwa API Integration**: Checks if the number is registered on WhatsApp\n- **Conditional Messaging**: Sends confirmation messages only to verified WhatsApp users\n- **Google Sheets Integration**: Appends all submissions with a validity status\n- **Auto Timestamping**: Adds the submission date in `YYYY-MM-DD` format\n- **Throttling Support**: Built-in delay to avoid hitting API or sheet rate limits\n- **Separation of Verified/Unverified**: Distinct handling for both types of entries\n\n---\n## Nodes Used in the Workflow\n- **Webhook**\n- **Format Webhook Response Data** (Code)\n- **Loop Over Items** (Split In Batches)\n- **Cleane Number** (Code)\n- **check valid whatsapp number** (HTTP Request)\n- **If** (Conditional)\n- **Send Message Using Rapiwa**\n- **verified append row in sheet** (Google Sheets)\n- **unverified append row in sheet** (Google Sheets)\n- **Wait1**\n\n---\n\n# How to set up?\n## Webhook\n\n1. Add a `Webhook` node to the canvas.\n2. Set **HTTP Method** to `POST`.\n3. Copy the **Webhook URL path** (`/a9b6a936-e5f2-4xxxxxxxxxe0a970d5`).\n4. In your frontend form or app, make a POST request to:\n5. The request body should include:\n```json\n{\n  \"business_name\": \"ABC Corp\",\n  \"location\": \"New York\",\n  \"whatsapp\": \"+1 234-567-8901\",\n  \"email\": \"user@example.com\",\n  \"name\": \"John Doe\"\n}\n```\n\n## Format Webhook Response Data\n\n1. Add a `Code` node after the `Webhook` node.\n2. Use this JavaScript code:\n```js\nconst result = $input.all().map(item =&gt; {\n  const body = item.json.body || {};\n  const submitted_date = new Date().toISOString().split('T')[0];\n\n  return {\n    business_name: body.business_name,\n    location: body.location,\n    whatsapp: body.whatsapp,\n    email: body.email,\n    name: body.name,\n    submitted_date: submitted_date\n  };\n});\nreturn result;\n```\n\n## Loop Over Items\n\n1. Insert a `SplitInBatches` node after the data formatting.\n2. Set the **Batch Size** to a reasonable number (e.g. 1 or 10).\n3. This is useful for processing multiple submissions at once, especially if your webhook receives arrays of entries.\n\n**Note:** If you expect only one submission at a time, it still helps future-proof your workflow.\n\n## Cleane Number\n\n1. Add a `Code` node named `Cleane Number`.\n2. Paste the following JavaScript:\n```js\nconst items = $input.all();\nconst updatedItems = items.map((item) =&gt; {\n  const waNo = item?.json[\"whatsapp\"];\n  const waNoStr = typeof waNo === 'string' ? waNo : (waNo !== undefined && waNo !== null ? String(waNo) : \"\");\n  const cleanedNumber = waNoStr.replace(/\\D/g, \"\");\n  item.json[\"whatsapp\"] = cleanedNumber;\n  return item;\n});\nreturn updatedItems;\n```\n\n## Check WhatsApp Number using Rapiwa\n\n1. Add an `HTTP Request` node.\n2. Set:\n   - Method: `POST`\n   - URL: `https://app.rapiwa.com/api/verify-whatsapp`\n3. Add authentication:\n   - Type: HTTP Bearer\n   - Credentials: Select or create Rapiwa token\n4. In Body Parameters, add:\n   - `number`: `={{ $json.whatsapp }}`\n5. This API call checks if the WhatsApp number exists and is valid.\n\n**Expected Output:**\n```json\n```json\n{\n    \"success\": true,\n    \"data\": {\n        \"number\": \"+88017XXXXXXXX\",\n        \"exists\": true,\n        \"jid\": \"88017XXXXXXXXXXXXX\",\n        \"message\": \"✅ Number is on WhatsApp\"\n    }\n}\n```\n\n## Conditional If Check\n\n1. Add an `If` node after the Rapiwa validation.\n2. Configure the condition:\n   - Left Value: `={{ $json.data.exists }}`\n   - Operation: `true`\n3. If true → valid number → go to messaging and append as \"verified\".\n4. If false → go to unverified sheet directly.\n\n**Note:** This step branches the flow based on the WhatsApp verification result.\n\n## Send WhatsApp Message (Rapiwa)\n\n1. Add an `HTTP Request` node under the TRUE branch of the If node.\n2. Set:\n   - Method: `POST`\n   - URL: `https://app.rapiwa.com/api/send-message`\n3. Authentication:\n   - Type: HTTP Bearer\n   - Use same Rapiwa token\n4. Body Parameters:\n   - `number`: `={{ $json.data.phone }}`\n   - `message_type`: `text`\n   - `message`: \n     ```\n     Hi {{ $('Cleane Number').item.json.name }},\n     Thanks! Your form has been submitted successfully.\n     ```\n\nThis sends a confirmation message via WhatsApp to the verified number.\n\n## Google Sheets – Verified Data\n\n1. Add a `Google Sheets` node under the TRUE branch (after the message is sent).\n2. Set:\n   - Operation: `Append`\n   - Document ID: Choose your connected Google Sheet\n   - Sheet Name: Set to your active sheet (e.g., `Sheet1`)\n3. Column Mapping:\n   - `Business Name`: `={{ $('Cleane Number').item.json.business_name }}`\n   - `Location`: `={{ $('Cleane Number').item.json.location }}`\n   - `WhatsApp Number`: `={{ $('Cleane Number').item.json.whatsapp }}`\n   - `Email `: `={{ $('Cleane Number').item.json.email }}`\n   - `Name`: `={{ $('Cleane Number').item.json.name }}`\n   - `Date`: `={{ $('Cleane Number').item.json.submitted_date }}`\n   - `validity`: `verified`\n\n4. Use OAuth2 Google Sheets credentials for access.\n\n**Note:** Make sure the sheet has matching column headers.\n\n\n## Google Sheets – Unverified Data\n\n1. Add a `Google Sheets` node under the FALSE branch of the If node.\n2. Use the same settings as the verified node, but set:\n   - `validity`: `unverified`\n\nThis stores entries with unverified WhatsApp numbers in the same Google Sheet.\n\n## Wait Node\n\n1. Add a `Wait` node after both Google Sheets nodes.\n2. Set Wait Time:\n   - Value: 2 seconds\n\nThis delay prevents API throttling and adds buffer time before processing the next item in the batch.\n\n---\n\n## Google Sheet Column Reference\n**A Google Sheet** formatted like this ➤ [Sample Sheet](https://docs.google.com/spreadsheets/d/1H29z_8tnsu8AvCsI7o1SjiV-5LDTwiVVQk-BNr8SMk0/edit?usp=sharing)  \n\n| Business Name      | Location     | WhatsApp Number | Email      | Name    | validity   | Date  |\n|---------------------|--------------------|------------------|----------------------|------------------|------------|------------|\n| SpaGreen Creative   | Dhaka, Bangladesh  | 8801322827799| contact@spagreen.net | Abdul Mannan    | unverified | 2025-09-14 |\n| SpaGreen Creative   | Bagladesh          | 8801322827799| contact@spagreen.net| Abdul Mannan   | verified   | 2025-09-14 |\n\n&gt; **Note**: The `Email ` column includes a **trailing space**. Ensure your column headers match exactly to prevent data misalignment.\n\n---\n\n## How to customize the workflow\n- Modify confirmation message with your brand tone\n- Add input validation for missing or malformed fields\n- Route unverified submissions to a separate spreadsheet or alert channel\n- Add Slack or email notifications on new verified entries\n\n---\n\n## Notes & Warnings\n- Ensure your Google Sheets credential has access to the target sheet\n- Rapiwa requires an active subscription for API access\n- Monitor Rapiwa API limits and adjust wait time as needed\n- Keep your webhook URL protected to avoid misuse\n\n---\n\n## Support & Community\n- WhatsApp Support: [Chat Now](https://wa.me/8801322827799)  \n- Discord: [Join SpaGreen Community](https://discord.gg/SsCChWEP)  \n- Facebook Group: [SpaGreen Support](https://www.facebook.com/groups/spagreenbd)  \n- Website: [spagreen.net](https://spagreen.net)  \n- Developer Portfolio: [Codecanyon SpaGreen](https://codecanyon.net/user/spagreen/portfolio)  \n",
+  "workflow": {
+    "id": "kAOSKqqPXlCnisof",
+    "meta": {
+      "instanceId": "cb9a1e5321767b6316634728341237e564b2587ab15b74ca0a89eb02a53484d6",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "WhatsApp Number Verify & Confirmation System with Rapiwa API and Google Sheets",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "6cc792e7-eb4a-4e9e-8989-338986085fb8",
+        "name": "Cleane Number",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -624,
+          144
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "5707dc19-9692-40db-96f4-8e2061d0e0b2",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          -992,
+          128
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "78732045-d7d2-464d-85b5-e4069a76f6d5",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -1552,
+          128
+        ],
+        "webhookId": "a9b6a936-e5f2-4d4c-9cf9-182de0a970d5",
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "05f4d013-f55c-43ad-90a3-e93db13a6482",
+        "name": "If",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          16,
+          144
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "04cff67c-51e0-4516-9279-13349b9badfb",
+        "name": "unverified append row in sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          496,
+          320
+        ],
+        "parameters": {},
+        "typeVersion": 4.6
+      },
+      {
+        "id": "50964759-12c0-42e3-a38a-6a317293bfac",
+        "name": "verified append row in sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          752,
+          -32
+        ],
+        "parameters": {},
+        "typeVersion": 4.6
+      },
+      {
+        "id": "deaa6822-f6d6-42c4-a2cd-64698c77611b",
+        "name": "Wait1",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          768,
+          320
+        ],
+        "webhookId": "6c474e54-eb3c-4fcd-b455-948322cd0121",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "0c2f6847-5472-4f5a-9fa1-e63fca06e2c1",
+        "name": "Format Webhook Response Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1296,
+          128
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "0f832810-51fd-408a-9b41-68c12d0aaf9d",
+        "name": "Send Message Using Rapiwa",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          528,
+          -32
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "6a2c5979-109d-4e30-9c40-109aeef24632",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2656,
+          -480
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "bf94c923-f333-4ea5-8cd1-82433fd9e92f",
+        "name": "Check valid whatsapp number Using Rapiwa",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -416,
+          144
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "7b625fbd-b299-4183-bb65-85c8bfa020a1",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1664,
+          -480
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c0e6db0e-ba2f-448e-a948-c6adb0d6301a",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1088,
+          -480
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "cacbf378-6483-42ac-a76a-ad221b657d37",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -736,
+          -480
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1e2ba823-daa4-4760-872e-f2565e8148d7",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -144,
+          -480
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "7a599350-0eb0-4566-bd19-a3204d06e815",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          320,
+          -480
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a31d310f-f7b6-48f9-9c5f-6fdfd30fae5d",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          320,
+          240
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "b8c04f80-9b16-4781-80fc-3cbf119954c6",
+    "connections": {
+      "If": {
+        "main": [
+          [
+            {
+              "node": "Send Message Using Rapiwa",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "unverified append row in sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Format Webhook Response Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Cleane Number": {
+        "main": [
+          [
+            {
+              "node": "Check valid whatsapp number Using Rapiwa",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Cleane Number",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Message Using Rapiwa": {
+        "main": [
+          [
+            {
+              "node": "verified append row in sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Webhook Response Data": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "verified append row in sheet": {
+        "main": [
+          [
+            {
+              "node": "Wait1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "unverified append row in sheet": {
+        "main": [
+          [
+            {
+              "node": "Wait1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check valid whatsapp number Using Rapiwa": {
+        "main": [
+          [
+            {
+              "node": "If",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 37,
+      "name": "Lead Generation"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8576",
+  "fetched_at": "2026-09-12T13:12:32Z"
+}

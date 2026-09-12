@@ -1,0 +1,167 @@
+{
+  "id": 7024,
+  "name": "Automate weekly US trademark reports with USPTO API and Google Drive CSV export",
+  "description": "**Title:**\n⚙️ Deep Dive: Automating Weekly US Trademark Reports with n8n, RapidAPI & Google Drive (No-Code Workflow)\n\n---\n\n**Full Breakdown Post:**\n\nIn this in-depth walkthrough, we're exploring a **powerful no-code automation** built entirely using [n8n](https://n8n.io), that automatically fetches the **latest US trademark registrations every 7 days**, saves them to a CSV, and uploads that file to your **Google Drive** — no manual effort required.\n\nWhether you're a **startup founder**, **legal tech builder**, or **data analyst**, this type of automation can save you hours every week and give you a real-time pulse on newly registered trademarks in the US.\n\n---\n\n### ⚙️ **What This Workflow Does:**\n\nEvery week, the workflow automatically:\n\n1. **Triggers on a schedule**\n2. **Calculates the date range** (today and 7 days prior)\n3. **Fetches trademark data** from the USPTO via a RapidAPI endpoint\n4. **Splits the API response** into individual rows\n5. **Converts it into a CSV file**\n6. **Uploads the file to Google Drive** with a dynamic name like:\n\n   ```\n   Active TM (2025-07-29 - 2025-08-05).csv\n   ```\n\n---\n\n### 🔍 Node-by-Node Breakdown\n\n---\n\n#### **1. Schedule Trigger**\n\n* **Node**: `Schedule Trigger`\n* **Purpose**: Starts the workflow every 7 days\n\n---\n\n#### **2. Date & Time**\n\n* **Node**: `Date & Time`\n* **Purpose**: Captures the current timestamp in ISO format to use for calculations.\n\n---\n\n#### **3. Manual (Set Start & End Dates)**\n\n* **Node**: `Set`\n\n* **Purpose**: Assigns two dynamic values:\n\n  * `Start_Date`: Current date minus 7 days\n  * `End_Date`: Current date (today)\n\n---\n\n#### **4. HTTP Request: Get Trademark Data**\n\n* **Node**: `HTTP Request`\n* **Method**: POST\n\nThis returns an array of trademark records from USPTO's database that were registered in the past week.\n\n---\n\n#### **5. Split the Array into Items**\n\n* **Node**: `Code`\n\nThis takes the `results` array from the HTTP response and flattens it so that each trademark record becomes its own item in n8n's context.\n\n---\n\n#### **6. Convert to CSV File**\n\n* **Node**: `Convert to File`\n* **File Name**: `test.csv` (you can change this dynamically if needed)\n\nThis node takes all the individual trademark JSON objects and generates a CSV file out of them.\n\n---\n\n#### **7. Upload to Google Drive**\n\n* **Node**: `Google Drive`\n* **Folder ID**: Your target folder’s ID\n* **Dynamic Name**:\n\n  ```js\n  =Active TM ({{ $('Manual').item.json.Start_Date }} - {{ $('Manual').item.json.End_Date }})\n  ```\n\nThis uploads the generated CSV file directly into your specified Google Drive folder with the correct name and date range.\n\n---\n\n### 🧠 Why This is Powerful\n\n* **Zero maintenance** once configured\n* **Always fresh** trademark data weekly\n* Ideal for **market research**, **brand monitoring**, **IP tracking**\n* Fully **serverless**... all you need is n8n, a RapidAPI key, and Google Drive access\n\n---\n\n### 🛡️ Disclaimer\n\n&gt; **DISCLAIMER: THIS IS FOR EDUCATIONAL PURPOSES ONLY. THE CREATOR IS NOT LIABLE FOR ANY LOSSES OR DAMAGES CAUSED BY MISUSE OF THIS WORKFLOW.**\n\n---\n\n### 🚀 Final Thoughts\n\nWith this one workflow, you're building a **production-grade automation pipeline** that would otherwise take a full dev sprint to manually script and deploy.\n\nUse it, extend it, and plug it into other workflows like:\n\n* Auto-emailing the report\n* Pushing to Google Sheets\n* Generating insights via AI\n\nn8n is your playground — this is just the beginning.\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "b6731f6e46273cffeac6b5188a5b3bcb0840c00108e73b48ae2b799ac6e8e081",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "53bb2ee2-d72c-43ff-996f-25a602bc3bd3",
+        "name": "Convert to File",
+        "type": "n8n-nodes-base.convertToFile",
+        "position": [
+          384,
+          -80
+        ],
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "7697d7d4-8f39-4d71-9dac-801175b6ba33",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -832,
+          -80
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "a1cc8d70-6349-4b93-95eb-38f6e09f1017",
+        "name": "Get Latest TradeMarks ~ 7 days",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -144,
+          -80
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "329e52a4-9ae7-48a3-96a1-b3cd4faa7deb",
+        "name": "Date & Time",
+        "type": "n8n-nodes-base.dateTime",
+        "position": [
+          -624,
+          -80
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "85e97837-9502-4b44-9cbb-c4561ca362ab",
+        "name": "Split the array into individual items",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          128,
+          -80
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "9e8a22db-0053-4a83-b0e3-2c638d903490",
+        "name": "Manual",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -416,
+          -80
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "a27a7a4d-84a8-40af-a487-0956d07b1e5b",
+        "name": "Upload file",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          592,
+          -80
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Manual": {
+        "main": [
+          [
+            {
+              "node": "Get Latest TradeMarks ~ 7 days",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Date & Time": {
+        "main": [
+          [
+            {
+              "node": "Manual",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Convert to File": {
+        "main": [
+          [
+            {
+              "node": "Upload file",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Date & Time",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Latest TradeMarks ~ 7 days": {
+        "main": [
+          [
+            {
+              "node": "Split the array into individual items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split the array into individual items": {
+        "main": [
+          [
+            {
+              "node": "Convert to File",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7024",
+  "fetched_at": "2026-09-12T13:11:41Z"
+}

@@ -1,0 +1,203 @@
+{
+  "id": 6774,
+  "name": "Automate construction site attendance tracking with geofencing, Google Sheets & email alerts",
+  "description": "This n8n workflow automates attendance tracking for construction workers at a designated site in Thaltej, Ahmedabad (GPS coordinates: 23.0489, 72.5118). Using geofencing technology, it logs \"Punch In\" and \"Punch Out\" times when workers enter or exit a predefined 100-meter radius around the site, requiring no manual input. Attendance data is stored in Google Sheets for easy access and reporting, and error notifications are sent via email to ensure reliable operation.\n\n## Good to Know\n\n- **Fully Automated**: Tracks attendance without worker intervention using GPS data from a mobile app.\n- **Geofence-Based**: Only logs entries/exits within the Thaltej, Ahmedabad site radius.\n- **Structured Logs**: Stores data in Google Sheets with columns for User ID, Punch Type, Punch Date, and Punch Time.\n- **Error Handling**: Sends email notifications for any issues in the workflow.\n- **Scalable**: Supports multiple workers with unique IDs sent by the GPS app.\n- **Real-Time**: Processes location updates instantly for accurate time tracking.\n\n## How It Works\n\n### Attendance Tracking Flow\n\n1. **Webhook Trigger**:\n   - Listens for POST requests from a GPS tracking app at the endpoint `/webhook/geofence-thaltej-attendance`.\n   - Expects a JSON payload with:\n     ```json\n     {\n       \"latitude\": 23.0489,\n       \"longitude\": 72.5118,\n       \"event\": \"enter\", // or \"exit\"\n       \"userId\": \"worker123\"\n     }\n     ```\n\n2. **Validate Geofence & Format Log**:\n   - Validates the received payload for required fields (`latitude`, `longitude`, `event`, `userId`).\n   - Uses the Haversine formula to check if the coordinates are within 100 meters of Thaltej, Ahmedabad (23.0489, 72.5118).\n   - Maps `event` (\"enter\" to \"in\", \"exit\" to \"out\") and formats the log with current date and time (e.g., Punch Type: \"in\", Punch Date: \"2025-08-01\", Punch Time: \"11:53:07\").\n   - Skips invalid or out-of-geofence data.\n\n3. **Save to Google Sheets**:\n   - Appends the formatted log to a Google Sheet in the \"Attendance\" tab, under columns: `User ID`, `Punch Type`, `Punch Date`, `Punch Time`.\n\n4. **Error Notification via Email**:\n   - Sends an email to a specified address if the workflow encounters errors (e.g., invalid payload or geofence mismatch).\n   - Includes error details for troubleshooting.\n\n### Example Log Output in Google Sheets\n\n| User ID    | Punch Type | Punch Date  | Punch Time |\n|------------|------------|-------------|------------|\n| worker123  | in         | 2025-08-01  | 11:53:07   |\n| worker123  | out        | 2025-08-01  | 13:30:20   |\n| worker123  | in         | 2025-08-01  | 13:50:21   |\n\n## How to Use\n\n1. **Import Workflow**:\n   - Copy the workflow JSON (provided below) and import it into n8n via the \"Import Workflow\" feature.\n\n2. **Configure GPS Tracking App**:\n   - Use a GPS app (e.g., allGeo, Truein, or a custom solution) that supports geofencing and webhook integration.\n   - Set the geofence to Thaltej, Ahmedabad (latitude: 23.0489, longitude: 72.5118, radius: 100 meters).\n   - Configure the app to send POST requests to the n8n webhook URL (`/webhook/geofence-thaltej-attendance`) with the payload:\n     ```json\n     {\n       \"latitude\": 23.0489,\n       \"longitude\": 72.5118,\n       \"event\": \"enter\", // or \"exit\"\n       \"userId\": \"worker123\"\n     }\n     ```\n   - Ensure the app is installed on workers’ devices and running in the background.\n\n3. **Set Up Google Sheets**:\n   - Create a Google Sheet with a tab named \"Attendance\".\n   - Add headers in columns A to D: `User ID`, `Punch Type`, `Punch Date`, `Punch Time`.\n   - Copy the Sheet ID from the URL (e.g., `https://docs.google.com/spreadsheets/d/[your_sheet_id]/edit`).\n   - In n8n, configure Google Sheets OAuth2 credentials and update the `sheetId` in the workflow.\n\n4. **Configure Email Notifications**:\n   - Set up an email service (e.g., Gmail, SendGrid) in n8n with appropriate credentials.\n   - Update the email node with your recipient email address and SMTP settings.\n\n5. **Activate Workflow**:\n   - Save and activate the workflow in n8n.\n   - Test by simulating a webhook call or using the GPS app to send a sample payload.\n\n6. **Monitor and Verify**:\n   - Check Google Sheets for attendance logs after workers enter/exit the geofence.\n   - Verify error emails are received if issues occur.\n\n## Requirements\n\n- **n8n Instance**: Self-hosted or cloud-based n8n setup.\n- **GPS Tracking App**: A mobile app or service (e.g., allGeo, Truein) that sends geofence events via webhooks.\n- **Google Sheets API**:\n  - Google Cloud project with Sheets API enabled.\n  - OAuth2 credentials configured in n8n.\n- **Email Service**:\n  - SMTP credentials for an email provider (e.g., Gmail, SendGrid).\n- **Worker Devices**: Smartphones with GPS enabled and the tracking app installed.\n\n## Customizing This Workflow\n\n- **Adjust Geofence Radius**: Modify the `radius` value in the Function node (e.g., change from 100 meters to 200 meters).\n- **Change Location**: Update `latitude` and `longitude` in the Function node for a different site.\n- **Alternative Storage**: Replace Google Sheets with a database (e.g., MySQL, PostgreSQL) by adding a database node.\n- **Custom Email Content**: Modify the email node’s message template for specific error details or branding.\n- **Add Authentication**: Secure the webhook with an API key or basic auth in the Webhook node.\n- **Multi-Site Support**: Add a Switch node to handle multiple geofence locations by checking coordinates against different sites.\n",
+  "workflow": {
+    "id": "zgVjyTFdUx4JfRnv",
+    "meta": {
+      "instanceId": "dd69efaf8212c74ad206700d104739d3329588a6f3f8381a46a481f34c9cc281",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Track site attendance when construction worker checks in by GPS",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "e15aaea0-7665-41dd-b05a-eda638e0550e",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -320,
+          40
+        ],
+        "webhookId": "thaltej-attendance-webhook",
+        "parameters": {
+          "path": "geofence-thaltej-attendance",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9958bc29-4e65-4996-86cb-a3cb9fc2cf3b",
+        "name": "Validate Geofence & Format Log",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          -100,
+          40
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "b0803efa-f662-4071-8752-c47dec49eb98",
+        "name": "Send email",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          340,
+          40
+        ],
+        "webhookId": "e3d3059b-ff06-4978-b548-7cd0da1bbc59",
+        "parameters": {
+          "text": "=Hello,\n\nThe attendance sheet has been successfully updated for today.\n\nPlease review the latest punch-in and punch-out entries to ensure everything is in order.\n\n🗓️ Date: {{new Date().toLocaleDateString()}} \n📍 Location: Construction Site (Geofenced)\n\nYou can access the updated sheet here: [Insert Sheet Link]\n\nRegards,  \nn8n Automation System  \n",
+          "options": {},
+          "subject": "📋 Daily Attendance Updated – Please Review",
+          "toEmail": "user@example.com",
+          "fromEmail": "user@example.com",
+          "emailFormat": "text"
+        },
+        "credentials": {
+          "smtp": {
+            "id": "credential-id",
+            "name": "smtp Credential"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "ab599b4d-b6da-458b-967f-8c7a7ad1214e",
+        "name": "Append data to a sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          120,
+          40
+        ],
+        "parameters": {
+          "range": "Attendance!A:D",
+          "options": {},
+          "sheetId": "your_google_sheet_id",
+          "operation": "append"
+        },
+        "credentials": {
+          "googleApi": {
+            "id": "credential-id",
+            "name": "googleApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4930e9c8-9e6a-4b31-bcef-717b09c2ef51",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -360,
+          -160
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 180,
+          "height": 340,
+          "content": "Receives check-in/check-out requests from mobile input (e.g., Google Form or WhatsApp). Carries GPS coordinates and worker info."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9a36eeaf-b4c8-4e0f-a96b-b4fee8e3be52",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -140,
+          -160
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 180,
+          "height": 340,
+          "content": "Validates if the worker’s location is within the geofenced construction site area using Google Maps API.\nAlso formats the log with punch type, time, and date."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5ed902d5-ce69-4b2b-a532-3cd5c2a8e271",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          80,
+          -160
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 180,
+          "height": 340,
+          "content": "Appends the validated punch-in/out record to a Google Sheet for attendance tracking and reporting.\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ab0ecb3a-53cf-4d58-9196-de9e4134a0e7",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          300,
+          -160
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 180,
+          "height": 340,
+          "content": "Sends a notification email with attendance details or alerts if the location is invalid.\n\n"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "8d45bac2-3103-430c-a9ab-9f12168e48f2",
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Validate Geofence & Format Log",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Append data to a sheet": {
+        "main": [
+          [
+            {
+              "node": "Send email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validate Geofence & Format Log": {
+        "main": [
+          [
+            {
+              "node": "Append data to a sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 17,
+      "name": "HR"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6774",
+  "fetched_at": "2026-09-12T13:11:33Z"
+}

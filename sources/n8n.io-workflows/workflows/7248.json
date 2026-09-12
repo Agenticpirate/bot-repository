@@ -1,0 +1,186 @@
+{
+  "id": 7248,
+  "name": "Clean and log IoT sensor data to InfluxDB (Webhook | Function | HTTP)",
+  "description": "# 🌡 IoT Sensor Data Cleaner + InfluxDB Logger (n8n | Webhook | Function | InfluxDB)\n\nThis workflow accepts raw sensor data from IoT devices via webhook, applies basic cleaning and transformation logic, and writes the cleaned data to an InfluxDB instance for time-series tracking. Perfect for renewable energy sites, smart farms and environmental monitoring setups using dashboards like Grafana or Chronograf.\n\n## ⚡ Quick Implementation Steps\n\n1. Import the workflow JSON into your n8n instance.\n2. Edit the **Set Config** node to include your InfluxDB credentials and measurement name.\n3. Use the webhook URL (`/webhook/sensor-data`) in your IoT device or form to send sensor data.\n4. Start monitoring your data directly in InfluxDB!\n\n## 🎯 Who’s It For\n\n- IoT developers and integrators.\n- Renewable energy and environmental monitoring teams.\n- Data engineers working with time-series data.\n- Smart agriculture and utility automation platforms.\n\n## 🛠 Requirements\n\n| Tool | Purpose |\n|------|---------|\n| n8n Instance | For automation |\n| InfluxDB (v1 or v2) | To store time-series sensor data |\n| IoT Device or Platform | To POST sensor data |\n| Function Node | To filter and transform data |\n\n## 🧠 What It Does\n\n- Accepts JSON-formatted sensor data via HTTP POST.\n- Validates the data (removes invalid or noisy readings).\n- Applies transformation (rounding, timestamp formatting).\n- Pushes the cleaned data to InfluxDB for real-time visualization.\n\n## 🧩 Workflow Components\n\n- **Webhook Node:** Exposes an HTTP endpoint to receive sensor data.\n- **Function Node:** Filters out-of-range values, formats timestamp, rounds data.\n- **Set Node:** Stores configurable values like InfluxDB host, user/pass, and measurement name.\n- **InfluxDB Node:** Writes valid records into the specified database bucket.\n\n## 🔧 How To Set Up – Step-by-Step\n\n1. **Import Workflow:**\n   - Upload the provided `.json` file into your n8n workspace.\n\n2. **Edit Configuration Node:**\n   - Update InfluxDB connection info in the `Set Config` node:\n     - `influxDbHost`, `influxDbDatabase`, `influxDbUsername`, `influxDbPassword`\n     - `measurement`: What you want to name the data set (e.g., `sensor_readings`)\n\n3. **Send Data to Webhook:**\n   - Webhook URL: `https://your-n8n/webhook/sensor-data`\n   - Example payload:\n     ```json\n     {\n       \"temperature\": 78.3,\n       \"humidity\": 44.2,\n       \"voltage\": 395.7,\n       \"timestamp\": \"2024-06-01T12:00:00Z\"\n     }\n     ```\n\n4. **View in InfluxDB:**\n   - Log in to your InfluxDB/Grafana dashboard and query the new measurement.\n\n## ✨ How To Customize\n\n| Customization | Method |\n|---------------|--------|\n| Add more fields (e.g., wind_speed) | Update the Function & InfluxDB nodes |\n| Add field/unit conversion | Use math in the Function node |\n| Send email alerts on anomalies | Add IF → Email branch after Function node |\n| Store in parallel in Google Sheets | Add Google Sheets node for hybrid logging |\n\n## ➕ Add‑ons (Advanced)\n\n| Add-on | Description |\n|--------|-------------|\n| 📊 Grafana Integration | Real-time charts using InfluxDB |\n| 📧 Email on Faulty Data | Notify if voltage &lt; 0 or temperature too high |\n| 🧠 AI Filtering | Add OpenAI or TensorFlow for anomaly detection |\n| 🗃 Dual Logging | Save data to both InfluxDB and BigQuery/Sheets |\n\n## 📈 Use Case Examples\n\n1. Remote solar inverter sends temperature and voltage via webhook.\n2. Environmental sensor hub logs humidity and air quality data every minute.\n3. Smart greenhouse logs climate control sensor metrics.\n4. Edge IoT devices periodically report health and diagnostics remotely.\n\n## 🧯 Troubleshooting Guide\n\n| Issue | Cause | Solution |\n|-------|-------|----------|\n| No data logged in InfluxDB | Invalid credentials or DB name | Recheck InfluxDB values in config |\n| Webhook not triggered | Wrong method or endpoint | Confirm it is a POST to `/webhook/sensor-data` |\n| Data gets filtered | Readings outside valid range | Check logic in Function node |\n| Data not appearing in dashboard | Influx write format error | Inspect InfluxDB log and field names |\n\n\n## 📞 Need Assistance?\n\nNeed help integrating this workflow into your energy monitoring system or need InfluxDB dashboards built for you?\n\n👉 Contact WeblineIndia | Experts in workflow automation and time-series analytics.",
+  "workflow": {
+    "id": "Vz7fCuVAkUFMUjHC",
+    "meta": {
+      "instanceId": "14e4c77104722ab186539dfea5182e419aecc83d85963fe13f6de862c875ebfa",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "IoT Sensor Data Cleaner + InfluxDB Logger (n8n | Webhook | Function | InfluxDB)",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "0a94db25-793e-4d2d-867a-5fe8132c849c",
+        "name": "Sensor Input",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -620,
+          -60
+        ],
+        "webhookId": "278534e3-2340-4504-ac50-9c0c1df4e4de",
+        "parameters": {
+          "path": "sensor-data",
+          "options": {
+            "responseData": "{\"status\":\"received\"}"
+          },
+          "httpMethod": "POST"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "7b1507ea-8760-45ff-bee8-d656723ce34e",
+        "name": "Clean & Transform Data",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          -220,
+          -60
+        ],
+        "parameters": {
+          "functionCode": "const data = $json.body;\n\nfunction isValid(value, min, max) {\n  return typeof value === 'number' && value >= min && value <= max;\n}\n\nif (!isValid(data.temperature, -50, 150) || \n    !isValid(data.humidity, 0, 100) || \n    !isValid(data.voltage, 0, 500)) {\n  throw new Error('Invalid sensor data range');\n}\n\nconst cleaned = {\n  temperature: Math.round(data.temperature * 10) / 10,\n  humidity: Math.round(data.humidity * 10) / 10,\n  voltage: Math.round(data.voltage * 10) / 10,\n  timestamp: new Date(data.timestamp).toISOString()\n};\n\nreturn [\n  {\n    json: cleaned\n  }\n];"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2bd6195b-4989-4e86-a622-79c5131ccf4e",
+        "name": "Set Config",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -420,
+          -60
+        ],
+        "parameters": {
+          "values": {
+            "string": [
+              {
+                "name": "influxDbHost",
+                "value": "hosturl"
+              },
+              {
+                "name": "influxDbToken",
+                "value": "token"
+              },
+              {
+                "name": "influxDbBucket",
+                "value": "bucket"
+              },
+              {
+                "name": "influxDbOrg",
+                "value": "org"
+              },
+              {
+                "name": "measurement",
+                "value": "table"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6afbb252-6628-4ad3-81da-f8a5db70c171",
+        "name": "HTTP Request",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          20,
+          -60
+        ],
+        "parameters": {
+          "url": "={{$node[\"Set Config\"].json[\"influxDbHost\"]}}/api/v2/write",
+          "body": "={{$node[\"Set Config\"].json[\"measurement\"]}} temperature={{$json[\"temperature\"]}},humidity={{$json[\"humidity\"]}},voltage={{$json[\"voltage\"]}} {{Date.parse($json[\"timestamp\"])}}",
+          "method": "POST",
+          "options": {},
+          "sendBody": true,
+          "sendQuery": true,
+          "contentType": "raw",
+          "sendHeaders": true,
+          "rawContentType": "text/plain",
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "bucket",
+                "value": "={{$node[\"Set Config\"].json[\"influxDbBucket\"]}}"
+              },
+              {
+                "name": "org",
+                "value": "={{$node[\"Set Config\"].json[\"influxDbOrg\"]}}"
+              },
+              {
+                "name": "precision",
+                "value": "={{$node[\"Set Config\"].json[\"precision\"]}}"
+              }
+            ]
+          },
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Token {{$node[\"Set Config\"].json[\"influxDbToken\"]}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      }
+    ],
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "bbe71c64-0ee9-4bef-af35-99f00227f20f",
+    "connections": {
+      "Set Config": {
+        "main": [
+          [
+            {
+              "node": "Clean & Transform Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "HTTP Request": {
+        "main": [
+          []
+        ]
+      },
+      "Sensor Input": {
+        "main": [
+          [
+            {
+              "node": "Set Config",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Clean & Transform Data": {
+        "main": [
+          [
+            {
+              "node": "HTTP Request",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 5,
+      "name": "Engineering"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7248",
+  "fetched_at": "2026-09-12T13:11:48Z"
+}

@@ -1,0 +1,378 @@
+{
+  "id": 8473,
+  "name": "Automated finance tracker with Gmail, Google Sheets & GPT-4o monthly reports",
+  "description": "### 🚀 What This Workflow Does\n\nThis automation helps small business owners **track income and expenses effortlessly**, turning scattered emails and WhatsApp messages into structured financial data — all without manual entry.\n\nEvery month, it:\n- Pulls receipts and invoices from your Gmail and WhatsApp\n- Uses AI to extract key details (date, vendor, amount, category)\n- Logs everything into Google Sheets\n- Generates a **monthly cash flow forecast** with visual insights\n- Sends you a clear, concise email report with **AI-powered recommendations**\n\nNo more spreadsheet stress. No more missing receipts. Just **financial peace of mind — delivered every month**.\n\n### 💡 Why It Matters\n\nAs a small business owner, your time is too valuable to spend manually logging transactions. This workflow automates the **entire finance tracking loop** — from receipt capture to insight delivery — so you can:\n- Know exactly where your money is going\n- Spot trends and plan ahead\n- Make smarter decisions with real-time data\n- Start each month with confidence\n\nIt's **soft tech at its best**: simple, elegant, and deeply useful.\n\n### 🛠️ How It Works\n\n1. **Triggers monthly** on the 1st at 9 AM (customizable)\n2. **Scans your inbox** for new receipts/invoices via Gmail\n3. **Uses GPT-4o** to parse text and extract financial data\n4. **Avoids duplicates** by checking existing entries\n5. **Saves to Google Sheets** with clean formatting\n6. **Generates a monthly summary** with:\n   - Total income & expenses\n   - Net profit/loss\n   - Expense breakdown (pie chart via QuickChart)\n   - AI-written insights and action steps\n7. **Delivers a beautiful email report** with visuals and next steps\n\n### 🧩 Tools Used\n- Gmail (IMAP)  \n- WhatsApp (via Twilio)  \n- Google Sheets  \n- OpenAI (GPT-4o)  \n- Cron (scheduled trigger)  \n- Email (SMTP)  \n\n### ✅ Built With Soft Tech Principles\n- Zero-code design  \n- Human-first UX  \n- Scalable for any small business  \n- Privacy-respecting (no sensitive data stored)  \n- Easy to customize and extend  \n\n### 📌 Perfect For\n- Solopreneurs  \n- Coaches & consultants  \n- E-commerce sellers  \n- Service-based businesses  \n- Anyone tired of manual bookkeeping  \n\n\"I used to dread my monthly financial review. Now I get a clear, friendly report that tells me what’s working — and what to fix. This one workflow saved me 4 hours a month.\"  — *Sarah L., Online Coach*\n\n",
+  "workflow": {
+    "meta": {
+      "templateCreatedBy": {
+        "id": "template-creator",
+        "name": "n8n Template Creator"
+      },
+      "templateCredentials": [
+        "gmailOAuth2",
+        "googleSheetsOAuth2Api",
+        "openAiApi",
+        "smtp"
+      ]
+    },
+    "name": "Auto-Finance Tracker: Sync Receipts, Forecast Cash Flow & Get Monthly Reports",
+    "nodes": [
+      {
+        "id": "sticky-description",
+        "name": "📋 Template Description",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          50,
+          50
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "cron-trigger-node",
+        "name": "Monthly Report Trigger",
+        "type": "n8n-nodes-base.cron",
+        "position": [
+          250,
+          100
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "user-config",
+        "name": "User Config",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          50,
+          200
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "gmail-fetch-node",
+        "name": "Fetch Receipt Emails",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          250,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "gmail-get-attachments",
+        "name": "Get Email with Attachments",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          450,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "parse-email-body",
+        "name": "Parse Email Body & Check Attachments",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          650,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "ai-extract-receipt",
+        "name": "AI: Extract Receipt Data (GPT-4o)",
+        "type": "n8n-nodes-base.openAi",
+        "position": [
+          850,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "clean-ai-output",
+        "name": "Clean & Parse AI Output",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          1050,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "check-duplicates",
+        "name": "Check for Duplicates",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1250,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 4
+      },
+      {
+        "id": "filter-missing-vendor",
+        "name": "Filter: Skip if Missing Vendor",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1450,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "append-to-sheet",
+        "name": "Append to Finance Sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1650,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 4
+      },
+      {
+        "id": "generate-date-range",
+        "name": "Generate Month Range",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          450,
+          100
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "read-finance-data",
+        "name": "Read All Finance Data",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          650,
+          100
+        ],
+        "parameters": {},
+        "typeVersion": 4
+      },
+      {
+        "id": "aggregate-monthly",
+        "name": "Aggregate Monthly Data",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          850,
+          100
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "ai-generate-insights",
+        "name": "AI: Generate Insights",
+        "type": "n8n-nodes-base.openAi",
+        "position": [
+          1050,
+          100
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "generate-chart",
+        "name": "Generate Chart & Final Data",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          1250,
+          100
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "email-report",
+        "name": "Send Monthly Report",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          1450,
+          100
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      }
+    ],
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "v2.1-production-ready",
+    "connections": {
+      "Check for Duplicates": {
+        "main": [
+          [
+            {
+              "node": "Filter: Skip if Missing Vendor",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Receipt Emails": {
+        "main": [
+          [
+            {
+              "node": "Get Email with Attachments",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Month Range": {
+        "main": [
+          [
+            {
+              "node": "Read All Finance Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI: Generate Insights": {
+        "main": [
+          [
+            {
+              "node": "Generate Chart & Final Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read All Finance Data": {
+        "main": [
+          [
+            {
+              "node": "Aggregate Monthly Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Aggregate Monthly Data": {
+        "main": [
+          [
+            {
+              "node": "AI: Generate Insights",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Monthly Report Trigger": {
+        "main": [
+          [
+            {
+              "node": "Generate Month Range",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Fetch Receipt Emails",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Clean & Parse AI Output": {
+        "main": [
+          [
+            {
+              "node": "Check for Duplicates",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Email with Attachments": {
+        "main": [
+          [
+            {
+              "node": "Parse Email Body & Check Attachments",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Chart & Final Data": {
+        "main": [
+          [
+            {
+              "node": "Send Monthly Report",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter: Skip if Missing Vendor": {
+        "main": [
+          [
+            {
+              "node": "Append to Finance Sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI: Extract Receipt Data (GPT-4o)": {
+        "main": [
+          [
+            {
+              "node": "Clean & Parse AI Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse Email Body & Check Attachments": {
+        "main": [
+          [
+            {
+              "node": "AI: Extract Receipt Data (GPT-4o)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8473",
+  "fetched_at": "2026-09-12T13:12:29Z"
+}

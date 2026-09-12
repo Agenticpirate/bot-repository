@@ -1,0 +1,466 @@
+{
+  "id": 5631,
+  "name": "Transform YouTube videos into interactive MCQ quizzes with Google Forms & Gemini",
+  "description": "## AI-Powered MCQ Quiz Generator from YouTube Videos\n\nTransform any YouTube video into an interactive MCQ quiz automatically! This workflow uses Google Gemini AI to analyze video content and generate comprehensive multiple-choice questions with automatic grading - perfect for educators, trainers, and content creators.\n\n## Who is this For\nThis workflow is perfect for:\n- **Educators** creating quizzes from educational YouTube content\n- **Corporate Trainers** developing assessments from training videos\n- **Content Creators** engaging their audience with interactive quizzes\n- **Students** testing their knowledge on video lectures\n- **Online Course Creators** building assessments from video content\n\n## Features\n* **AI Video Analysis**: Google Gemini 2.5 Flash analyzes entire YouTube videos (up to 50 minutes)\n* **Dynamic Question Generation**: Creates up to 90 MCQ questions with 3 options each\n* **Automatic Form Creation**: Generates Google Forms with quiz functionality\n* **Smart Grading**: Built-in correct answer identification and scoring\n* **Error Handling**: Robust error management with user feedback\n\n## How It Works\n1. **User Input via n8n Web Form:**\n   - Form Name (Quiz Title)\n   - Email Address\n   - YouTube Video URL\n   - Number of Questions (1-90)\n\n2. **AI Processing Pipeline:**\n   - Google Gemini analyzes the YouTube video content\n   - AI extracts key concepts and generates relevant questions\n   - Structured output parser formats questions into JSON\n\n3. **Google Forms Integration:**\n   - Automatically creates a new Google Form\n   - Adds all generated questions with multiple choice options\n   - Configures quiz settings with correct answers and scoring\n\n4. **Completion & Access:**\n   - User receives direct link to the generated quiz\n   - Form ready for immediate use or sharing\n\n5. **Video Demo:**\n\t- [See this youtube Video](https://youtu.be/qHQ62KoRGHc) to explore \"how it works\".\n\n## Set Up Steps\n1. **Import the Workflow**\n   - Create a new workflow in n8n\n   - Import the JSON file by clicking \"three dots\" (upper right corner) &gt; \"Import from file...\"\n\n2. **Configure Google Gemini API**\n   - Get your Google AI Studio API key from [Google AI Studio](https://aistudio.google.com)\n   - On “HTTP Request to Gemini” node replace the “API_KEY” from url with your API key.\n   - Create a \"Google Gemini (PaLM) API\" credential in n8n\n   - Add your API key to the credential\n   - Connect the credential to the \"Google Gemini Chat Model\" node\n\n3. **Set Up Google Forms Integration**\n   - Enable Google Forms API in Google Cloud Console\n   - Create a \"Google OAuth2 API\" credential in n8n\n   - Authorize the credential with Forms permissions\n   - Connect the credential to both HTTP Request nodes (“Create a Google Form” node and “Create MCQ Quizzes” node)\n\n4. **Configure Form Trigger**\n   - The workflow includes a built-in form trigger\n   - No additional setup needed - the form URL will be generated automatically\n   - Customize form fields if needed in the “Input YouTube URL\" node\n\n5. **Test the Workflow**\n   - Activate the workflow\n   - Submit the form to generate a test quiz\n   - Verify the Google Form is created successfully\n\n## Pre-requisites\n* **Necessary Accounts:**\n  1. Google Account (for Forms API access)\n  2. Google AI Studio Account (for Gemini API access)\n  3. n8n Instance (cloud or self-hosted)\n\n* **API Access:**\n  - Google Forms API enabled\n  - Google drive API enabled \n  - Google Generative AI API access\n  - Valid API keys and OAuth credentials\n\n* **N8N Requirements:**\n  - n8n version 1.95.2 or higher\n  - LangChain nodes package installed\n  - Internet access for API calls\n\n## Customization Guidance\n1. **Question Generation Prompts:**\n   - Modify the prompt in \"Set Prompt and model\" node for different question styles\n   - Adjust difficulty levels or focus areas\n   - Change question format (True/False, Fill-in-blanks, etc.)\n\n2. **Form Customization:**\n   - Update form title and description templates\n   - Add additional input fields (difficulty level, subject area)\n   - Customize success/error messages\n\n3. **Advanced Features You Can Add:**\n   - **Email Notifications**: Send quiz links via email\n   - **Analytics Integration**: Track quiz performance and completion rates\n   - **Multi-language Support**: Generate quizzes in different languages\n   - **Question Bank Storage**: Save generated questions to a database\n   - **Batch Processing**: Generate multiple quizzes from a YouTube playlist\n\n4. **Error Handling Enhancements:**\n   - Add retry logic for API failures\n   - Implement fallback question generation\n   - Create detailed error logging\n\n## Technical Specifications\n- **Video Length**: Up to 50 minutes supported\n- **Question Limit**: 1-90 questions per quiz\n- **Processing Time**: 2-10 minutes depending on video length\n- **Supported Formats**: YouTube videos (public and unlisted)\n- **Output Format**: Google Forms with automatic grading\n\n## Limitations & Considerations\n- YouTube video must be publicly accessible or unlisted\n- Processing time increases with video length and question count\n- API rate limits may apply for high-volume usage\n- Some complex visual content may not be fully analyzed\n\n**Ready to Transform Videos into Quizzes?**\nThis workflow streamlines the entire process from video analysis to quiz deployment. Perfect for educators and trainers looking to create engaging assessments from video content quickly and efficiently.\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "d80b5150263fe72aa8e869b415c9976cc4068f6d829d47aec881a843e81db62f",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "a9d881c8-7bd2-4731-9190-dfdc71feee7c",
+        "name": "Set Fields: Define Outcome",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -1380,
+          670
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "0ad13e7e-0184-4a95-b58f-5949849eba0c",
+        "name": "If: Was an error detected?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -1600,
+          795
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "14b9683c-e1f4-4559-865b-a345da7d7146",
+        "name": "Google Gemini Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "position": [
+          -1160,
+          900
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "1b283330-f4e9-44b6-aebf-018d45c7f9e4",
+        "name": "Structured Output Parser",
+        "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "position": [
+          -960,
+          900
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "8040c890-8a38-455a-a5b9-064bfb5d24b1",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          0,
+          420
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "0a9c007e-7767-4849-bd05-d0b1ecb5c14c",
+        "name": "filter",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -2260,
+          945
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "e963159e-716a-4693-b03e-b7646a1322ac",
+        "name": "Input YouTube URL",
+        "type": "n8n-nodes-base.formTrigger",
+        "notes": "https://youtu.be/cZQPDLgPtNg?si=Ze6zOu5oTpF8QMq0",
+        "position": [
+          -2480,
+          945
+        ],
+        "webhookId": "e2885d2e-0bd8-4891-916c-0c679782869d",
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "8d7b2422-a214-4993-af3f-f898e3ca190f",
+        "name": "Set Prompt and Model",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -2040,
+          870
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "b6c30d65-0157-4856-a5c7-05dc73db566e",
+        "name": "HTTP Request to Gemini",
+        "type": "n8n-nodes-base.httpRequest",
+        "onError": "continueErrorOutput",
+        "position": [
+          -1820,
+          870
+        ],
+        "parameters": {},
+        "typeVersion": 4.2,
+        "alwaysOutputData": false
+      },
+      {
+        "id": "20189418-6cfe-4bf3-b4ac-dad375673dab",
+        "name": "Extract JSON",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "onError": "continueErrorOutput",
+        "position": [
+          -1160,
+          670
+        ],
+        "parameters": {},
+        "typeVersion": 1.5
+      },
+      {
+        "id": "93b3900b-02b2-44e0-b167-7e337b7e2135",
+        "name": "Create a Google Form",
+        "type": "n8n-nodes-base.httpRequest",
+        "onError": "continueErrorOutput",
+        "position": [
+          -660,
+          520
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "93e8ca01-8c33-40f2-b925-d9dc485b7940",
+        "name": "Prepare Questions for API call",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -260,
+          420
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "95142722-9a47-4f48-bece-9a7813f61a95",
+        "name": "Create MCQ Quizzes",
+        "type": "n8n-nodes-base.httpRequest",
+        "onError": "continueErrorOutput",
+        "maxTries": 5,
+        "position": [
+          200,
+          520
+        ],
+        "parameters": {},
+        "retryOnFail": true,
+        "typeVersion": 4.2
+      },
+      {
+        "id": "ea54a41d-0b2d-4a8d-aede-e6f2b108f02a",
+        "name": "Error Output",
+        "type": "n8n-nodes-base.form",
+        "position": [
+          160,
+          960
+        ],
+        "webhookId": "07b8f426-4177-47ed-bba6-27f968c6758f",
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "68f30765-f7f4-472f-b144-f2988b65a693",
+        "name": "Redirect to Google Form",
+        "type": "n8n-nodes-base.form",
+        "position": [
+          200,
+          320
+        ],
+        "webhookId": "5dc0fe0e-fd39-4751-94f5-744616313e37",
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "e4f108b5-884e-483c-a3d2-662096a91e2e",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2560,
+          720
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "eb20cf7c-630d-43a7-9e80-53613196e632",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2080,
+          560
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "34233649-1635-43b3-b264-b0a6aa67d845",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1220,
+          300
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6f2fb7b1-a5ab-444e-9dd7-ec6116e0f53c",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -380,
+          100
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "0a103f0b-cd29-4952-b7e6-32887a4e6eb4",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -380,
+          760
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "filter": {
+        "main": [
+          [
+            {
+              "node": "Set Prompt and Model",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Error Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract JSON": {
+        "main": [
+          [
+            {
+              "node": "Create a Google Form",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Error Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [
+            {
+              "node": "Redirect to Google Form",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Create MCQ Quizzes",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Input YouTube URL": {
+        "main": [
+          [
+            {
+              "node": "filter",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create MCQ Quizzes": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Error Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create a Google Form": {
+        "main": [
+          [
+            {
+              "node": "Prepare Questions for API call",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Error Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Prompt and Model": {
+        "main": [
+          [
+            {
+              "node": "HTTP Request to Gemini",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "HTTP Request to Gemini": {
+        "main": [
+          [
+            {
+              "node": "If: Was an error detected?",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Error Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Redirect to Google Form": {
+        "main": [
+          []
+        ]
+      },
+      "Google Gemini Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Extract JSON",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Structured Output Parser": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "Extract JSON",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If: Was an error detected?": {
+        "main": [
+          [
+            {
+              "node": "Set Fields: Define Outcome",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Error Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Fields: Define Outcome": {
+        "main": [
+          [
+            {
+              "node": "Extract JSON",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Questions for API call": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 35,
+      "name": "Document Extraction"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/5631",
+  "fetched_at": "2026-09-12T13:10:52Z"
+}

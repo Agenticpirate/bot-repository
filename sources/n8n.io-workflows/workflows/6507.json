@@ -1,0 +1,207 @@
+{
+  "id": 6507,
+  "name": "CYBERPULSE AI RedOps: validate email security gateways generated payloads",
+  "description": "Description:\nAutomatically send structured benign payloads (PDF/HTML/JS markers) to test email gateways and sandbox response. AI-generated phishing-style content helps simulate real-world threats without malicious intent. Results logged in Google Sheets.\n\n## Who’s It For:\nSecurity teams validating email filters and sandboxes\n\nRed Teams doing payload simulation\n\nGRC/compliance teams testing Secure Email Gateway (SEG) controls\n\n## How It Works:\nLoads target list from Google Sheets\n\nCrafts payload using OpenAI prompt logic\n\nSends emails with embedded controlled markers\n\nLogs responses back to the same sheet\n\n## Requirements:\n\n## Google Sheet Requirements\n\n- Sheet Name: `Payload_Validation_Log`\n- Required Columns:\n  - `payload`\n  - `status`\n  - `response`\n  - `timestamp`\n\nGmail/SMTP or email-sending node\n\nGoogle Sheets credential\n\nOpenAI API Key\n\n## File Templates:\nRedOps_PayloadValidator_Log_Template.xlsx – track targets, payload, status\n\n## How to Customize:\nModify the OpenAI prompt for alternate payload types\n\nAdjust fields or webhook triggers\n\nAdd logging to SIEM or ticketing platforms\n\n## This module is part of the CYBERPULSE AI RedOps Suite\n🌐 https://cyberpulsesolutions.com\n\n## Detailed README:\n\n## Purpose\n\nSimulate benign payloads (e.g., links, encoded HTML) to test how your email security gateway and sandbox environment responds.\n\n## How It Works\n\n1. **Trigger Test Batch**  \n   Starts manually or on schedule.\n\n2. **Get Targets**  \n   Loads email recipients from Google Sheets.\n\n3. **Generate Payload**  \n   Prepares static payload like a fake link.\n\n4. **OpenAI Node**  \n   Generates a realistic simulation email using the payload.\n\n5. **Merge + Format**  \n   Combines recipient info with OpenAI output, formats the message, and tags it as simulated.\n\n6. **Validated Node**  \n   Appends results to Google Sheets with fields like:\n   - `email`, `payload`, `response`, `status`, `module`, `time`\n\n## Google Sheets Requirements\n\n- Sheet Name: `RedOps_Targets`\n- Columns: `email`, `name`, `team`, `payload`, `status`, `response`, `module`, `time`\n\n## Security Note\n\nThis workflow uses simulated payloads and never sends real malicious content. No real user data is stored or transmitted. Meant for internal Red Team and security validation use only.\n",
+  "workflow": {
+    "name": "🔴 RedOps Module 2 – Payload_Validator",
+    "nodes": [
+      {
+        "id": "sticky-note",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          860,
+          60
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "trigger",
+        "name": "▶️ Trigger Test Batch",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          -1200,
+          180
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "get-targets",
+        "name": "📥 Get Targets",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -980,
+          180
+        ],
+        "parameters": {},
+        "typeVersion": 4.6
+      },
+      {
+        "id": "generate-payload",
+        "name": "🧪 Generate Payload",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -560,
+          -180
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "openai-generate",
+        "name": "OpenAI",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "position": [
+          -300,
+          120
+        ],
+        "parameters": {},
+        "typeVersion": 1.8
+      },
+      {
+        "id": "edit-fields",
+        "name": "Edit Fields",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          360,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "validated-log",
+        "name": "Validated",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          560,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 4.6
+      },
+      {
+        "id": "merge",
+        "name": "Merge",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          220,
+          -160
+        ],
+        "parameters": {},
+        "typeVersion": 3.2
+      },
+      {
+        "id": "add-email",
+        "name": "Add Email",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          80,
+          120
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "connections": {
+      "Merge": {
+        "main": [
+          [
+            {
+              "node": "Edit Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI": {
+        "main": [
+          [
+            {
+              "node": "Add Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Add Email": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Edit Fields": {
+        "main": [
+          [
+            {
+              "node": "Validated",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "📥 Get Targets": {
+        "main": [
+          [
+            {
+              "node": "🧪 Generate Payload",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "🧪 Generate Payload": {
+        "main": [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      },
+      "▶️ Trigger Test Batch": {
+        "main": [
+          [
+            {
+              "node": "📥 Get Targets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 29,
+      "name": "SecOps"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6507",
+  "fetched_at": "2026-09-12T13:11:23Z"
+}

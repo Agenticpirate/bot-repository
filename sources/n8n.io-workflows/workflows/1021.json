@@ -1,0 +1,141 @@
+{
+  "id": 1021,
+  "name": "Create, update, and get a person from Copper",
+  "description": "This workflow allows you to create, update, and get a person from Copper.\n\n![workflow-screenshot](fileId:466)\n\n**Copper node:** This node will create a new person in Copper.\n\n**Copper1 node:** This node will update the information of the person that we created using the previous node.\n\n**Copper2 node:** This node will retrieve the information of the person that we created earlier.",
+  "workflow": {
+    "nodes": [
+      {
+        "name": "On clicking 'execute'",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          250,
+          320
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Copper",
+        "type": "n8n-nodes-base.copper",
+        "position": [
+          450,
+          320
+        ],
+        "parameters": {
+          "name": "Harshil",
+          "resource": "person",
+          "additionalFields": {
+            "emails": {
+              "emailFields": [
+                {
+                  "email": "user@example.com",
+                  "category": "work"
+                }
+              ]
+            }
+          }
+        },
+        "credentials": {
+          "copperApi": {
+            "id": "credential-id",
+            "name": "copperApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Copper1",
+        "type": "n8n-nodes-base.copper",
+        "position": [
+          650,
+          320
+        ],
+        "parameters": {
+          "personId": "={{$json[\"id\"]}}",
+          "resource": "person",
+          "operation": "update",
+          "updateFields": {
+            "phone_numbers": {
+              "phoneFields": [
+                {
+                  "number": "1234567890",
+                  "category": "work"
+                }
+              ]
+            }
+          }
+        },
+        "credentials": {
+          "copperApi": {
+            "id": "credential-id",
+            "name": "copperApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Copper2",
+        "type": "n8n-nodes-base.copper",
+        "position": [
+          850,
+          320
+        ],
+        "parameters": {
+          "personId": "={{$json[\"id\"]}}",
+          "resource": "person",
+          "operation": "get"
+        },
+        "credentials": {
+          "copperApi": {
+            "id": "credential-id",
+            "name": "copperApi Credential"
+          }
+        },
+        "typeVersion": 1
+      }
+    ],
+    "connections": {
+      "Copper": {
+        "main": [
+          [
+            {
+              "node": "Copper1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Copper1": {
+        "main": [
+          [
+            {
+              "node": "Copper2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "On clicking 'execute'": {
+        "main": [
+          [
+            {
+              "node": "Copper",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 39,
+      "name": "CRM"
+    }
+  ],
+  "url": "https://n8n.io/workflows/1021",
+  "fetched_at": "2026-09-12T13:08:52Z"
+}

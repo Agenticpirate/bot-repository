@@ -1,0 +1,149 @@
+{
+  "id": 7864,
+  "name": "Track policy expiry dates and ownership with Google Sheets and Gmail notifications",
+  "description": "Purpose\nAutomates the monitoring of policy documents for expiry and ownership gaps. Ensures accountability by sending proactive notifications when policies are nearing renewal deadlines or when no owner is assigned.\n\nKey Benefits\n\nAvoids missed policy reviews or lapses.\n\nEnforces accountability by flagging missing owners.\n\nSends automated, clear email notifications.\n\nReduces manual tracking workload across teams.\n\nMaintains an audit-ready record of policy metadata.\n\nHow It Works\n\nFetches policy metadata from Google Sheets.\n\nChecks if policy expiry date is within 30 days.\n\nFlags entries with blank owner fields.\n\nSends automated notifications to responsible teams.\n\nMaintains an updated log of policy status for audits.\n\nRequirements\n\nGoogle Sheets (OAuth2) to store and manage policy metadata.\n\nGmail/SMTP node for notifications (optional).\n\nSheet must include:\n\npolicy_name\n\nowner_email\n\nlast_reviewed\n\nexpiry_date\n\nreview_frequency_months\n\nstatus\n\nCustomization Tips\n\nAdjust expiry window to 60 or 90 days.\n\nReplace Gmail with Slack/Teams notifications.\n\nIntegrate with Jira/ServiceNow for policy tasks.\n\nModify email templates to include escalation paths.\n\nCompliance Alignment\n\nISO 27001: A.5.1.1 (Policies for Information Security)\n\nNIST 800-53: PL-2 (System and Communications Protection Policy)\n\nSOC 2: CC5.3 (Policies and Communication)\n\nSupports lifecycle validation for external audits.\n\nSupports\n\nISO 27001 Information Security\n\nSOC 2 Compliance\n\nNIST 800-53\n\nACSC Essential Eight\n\n🔗 https://cyberpulsesolutions.com",
+  "workflow": {
+    "id": "NBP9VDzT8zFtkYfy",
+    "meta": {
+      "info": "***SANITIZED***"
+    },
+    "name": "GRC Module 4 - Policy Lifecycle Tracker",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "fe69debd-7076-4af7-82e3-510c6530035d",
+        "name": "Fetch Policy Data",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -336,
+          -128
+        ],
+        "parameters": {},
+        "typeVersion": 4.6,
+        "alwaysOutputData": false
+      },
+      {
+        "id": "e76fee01-69af-4615-81c2-1ae2be3566c0",
+        "name": "Is Policy Expiring Soon?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -128,
+          -128
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "66b5f39c-da2d-45d8-8755-14b97a37cc80",
+        "name": "When clicking ‘Execute workflow’",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          -544,
+          -144
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "a9656a5c-7b92-456e-9590-5ea4e035c0aa",
+        "name": "Is Owner Missing?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          128,
+          -208
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "fa85241a-c62e-4e46-9fc0-a245c047c368",
+        "name": "Notify Missing Owner",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          368,
+          -224
+        ],
+        "webhookId": "b83ec4ff-a5ed-4932-85d6-92a82bbc9a9f",
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "108a5b6e-e365-4b3f-8456-2cc652799e9c",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          544,
+          -80
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "8f00cdcc-7e70-4e0d-ad6a-6c0c7072b3a7",
+    "connections": {
+      "Fetch Policy Data": {
+        "main": [
+          [
+            {
+              "node": "Is Policy Expiring Soon?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is Owner Missing?": {
+        "main": [
+          [
+            {
+              "node": "Notify Missing Owner",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is Policy Expiring Soon?": {
+        "main": [
+          [
+            {
+              "node": "Is Owner Missing?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When clicking ‘Execute workflow’": {
+        "main": [
+          [
+            {
+              "node": "Fetch Policy Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 29,
+      "name": "SecOps"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7864",
+  "fetched_at": "2026-09-12T13:12:09Z"
+}

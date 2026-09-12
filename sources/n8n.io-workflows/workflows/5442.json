@@ -1,0 +1,884 @@
+{
+  "id": 5442,
+  "name": "Automated expense tracking with AI receipt analysis & Google Sheets",
+  "description": "*This workflow contains community nodes that are only compatible with the self-hosted version of n8n.* \n\n**Your Pocket Bookkeeper** is workflow designed to automate expense tracking for freelancers and small businesses. It transforms your favorite chat app into a smart financial assistant, eliminating tedious manual data entry and ensuring your records are always organized, up-to-date, and secure. Just send a photo or a text, and let AI handle the rest.\n\n### Why Your Pocket Bookkeeper? 🤔\n\nFor a freelancer or small business owner, time is money. Administrative tasks like logging receipts and updating spreadsheets steal valuable hours that could be spent on billable work. This workflow solves these critical problems:\n\n*   **Saves Significant Time:** Drastically reduces the hours spent on manual bookkeeping.\n*   **Eliminates Human Error:** AI-powered data extraction is more accurate than manual entry, preventing costly mistakes.\n*   **Ensures Audit-Readiness:** Creates a secure, digital archive of every receipt, linked directly to its corresponding transaction.\n*   **Provides Real-Time Financial Clarity:** Your expense log is always current, giving you an accurate snapshot of your business spending at any moment.\n*   **Simplifies Tax Season:** With perfectly organized records, preparing your tax return becomes a straightforward, stress-free process.\n\n### Core Features & Automations 🧩\n\nThis workflow bundle is built around a simple yet powerful \"Capture &gt; Process &gt; Log\" model:\n\n🧾 **Multi-Modal Expense Capture:**\n*   **Photo Capture:** Snap a photo of a receipt. The workflow automatically extracts the text using Optical Character Recognition (OCR).\n*   **Text Capture:** Send a simple text message describing an expense (e.g., \"Software subscription for $15\").\n\n🤖 **AI-Powered Processing:**\n*   **Intelligent Data Extraction:** An advanced AI Agent (powered by Mistral) analyzes the text from your photo or message to identify and structure key financial data.\n*   **Structured Output:** The AI formats the extracted information into a clean JSON object, identifying fields like:\n    *   `store_name`, `date`, `time`, `total_price`, `currency`, `item_description`, `category`, and more.\n*   **Smart Validation:** A built-in check flags potential errors, like a transaction with a total of zero, and prompts you to double-check.\n\n🗄️ **Automated Logging & Archiving:**\n*   **Google Sheets Integration:** Every valid expense is automatically appended as a new, neatly organized row in a designated Google Sheet.\n*   **Google Drive Archiving:** If a photo was submitted, the original receipt image is automatically saved to a specified Google Drive folder.\n*   **Linked Records:** The Google Sheet entry includes a direct hyperlink to the corresponding receipt image in Google Drive, creating a seamless, interconnected record.\n*   **User Confirmation:** The system sends a summary of the logged expense or a success/error message back to you via Telegram, closing the loop on every transaction.\n\n### Getting Started: Setup & Customization 🛠️\n\nSetting up your Pocket Bookkeeper is designed to be quick and easy:\n\n1.  **Import the Workflow:** Add the provided `.json` file to your n8n instance.\n2.  **Configure Credentials:**\n    *   **Telegram:** Create a new bot via `@BotFather` on Telegram to get a Bot Token. Add this token to the `Telegram Trigger` and all `Telegram` sender nodes.\n    *   **Mistral AI:** Obtain an API key from your Mistral AI console and create a `Mistral Cloud API` credential. Assign this to the `Mistral Cloud Chat Model` nodes.\n    *   **Google Drive & Google Sheets:** Set up OAuth 2.0 credentials for the Google Drive and Google Sheets APIs in your Google Cloud Console. Create the corresponding credentials in n8n and assign them to the `Google Drive` and `Google Sheets` nodes.\n3.  **Personalize Your Setup (Crucial!):**\n    *   **Google Drive Folder:** In the `Save Receipt` (Google Drive) node, specify the **Folder ID** where you want your receipt images to be saved.\n    *   **Google Sheet:** In the `Google Sheets` node, enter your **Spreadsheet ID** and **Sheet Name**. Ensure your sheet has columns matching the data fields (e.g., `store_name`, `date`, `total_price`, etc.).\n    *   **(Optional) AI Prompting:** Fine-tune the system message in the `AI Agent` node to better guide the AI on how to categorize your specific business expenses.\n4.  **Activate the Workflow:**\n    *   The workflow is inactive by default. Toggle the **Active** switch to `ON` at the top left of the n8n canvas to start listening for messages.\n\n### How The Workflow Operates ⚙️\n\n1.  **TRIGGER:** The `Telegram Trigger` node listens for incoming messages (text or photo).\n2.  **ROUTE:** An `IF` node checks if the message contains a photo.\n    *   **If Photo:** The image is downloaded, and OCR is used to extract text.\n    *   **If Text:** The message text is used directly.\n3.  **PROCESS:** The extracted text is sent to the `AI Agent` node. The agent, using the Mistral LLM, parses the text and structures it into a predefined JSON format.\n4.  **VALIDATE & FORMAT:** The structured data flows to a `Code` node that formats a user-friendly summary message. An `IF` node then checks for invalid data (e.g., total = 0).\n5.  **LOG & ARCHIVE:**\n    *   A sub-workflow is triggered via the `Execute Workflow` node.\n    *   The `Save Receipt` node uploads the image to Google Drive (if one was sent).\n    *   The `Google Sheets` node appends the final structured data to your spreadsheet.\n6.  **RESPOND:** A `Telegram` node sends a confirmation message back to you, confirming that the expense has been successfully logged or notifying you of an error.\n\n### Expanding Your Bookkeeper 🚀\n\nThis workflow is a powerful foundation. Consider these enhancements:\n\n*   **Multi-Currency Handling:** Add a function to convert all expenses to a single base currency.\n*   **Advanced Reporting:** Schedule a monthly summary of your expenses to be emailed to you.\n*   **Invoice OCR:** Expand the AI prompt and workflow to handle and log incoming invoices from vendors.\n*   **Bank Statement Reconciliation:** Create a separate workflow to import bank statements and automatically match them against your logged receipts.\n*   **Different Notifiers:** Easily swap Telegram for WhatsApp, Slack, or email.\n\n### Requirements 📋\n\n*   An active n8n instance (self-hosted or cloud).\n*   Credentials for Telegram, Mistral AI/Open Router/Open AI, Google Drive, and Google Sheets.\n*   A few minutes to customize the workflow with your specific IDs and preferences!\n\nTake control of your business finances and let your **Pocket Bookkeeper** turn a tedious chore into a simple, automated task.",
+  "workflow": {
+    "nodes": [
+      {
+        "name": "Format Summary Message",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1160,
+          -660
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "name": "Start: Telegram Input",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -3460,
+          -1000
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Check Invalid Input",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -760,
+          -660
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "name": "Extract Text Input",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -2580,
+          -660
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "name": "Check for Image",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -3100,
+          -860
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "name": "Input Type Check",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -3140,
+          -1000
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Receipt Parser",
+        "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "position": [
+          -1320,
+          200
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "name": "Send Error Message",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          -400,
+          -800
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "name": "Send Expense Summary",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          -400,
+          -460
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "name": "Extract Value From Image",
+        "type": "n8n-nodes-tesseractjs.tesseractNode",
+        "position": [
+          -1600,
+          -1040
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Notify User: Send Summary",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -520,
+          -560
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Handle Text Input",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2660,
+          -800
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Structure AI Output",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1620,
+          -120
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Download Receipt Image",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2660,
+          -1160
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Extract Text from Image (OCR)",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1680,
+          -1160
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Format Summary for User",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1240,
+          -780
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "AI Data Extraction",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1680,
+          -780
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Notify User: Send Error",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -520,
+          -900
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Validate Extracted Data",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -840,
+          -780
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Configure AI Model",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2040,
+          -120
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Telegram Trigger1",
+        "type": "n8n-nodes-base.telegramTrigger",
+        "position": [
+          -3400,
+          -860
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "name": "Google Gemini Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "disabled": true,
+        "position": [
+          -1840,
+          200
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Telegram",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          -2580,
+          -1040
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "name": "AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          -1660,
+          -660
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "name": "Auto-fixing Output Parser",
+        "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+        "position": [
+          -1480,
+          -20
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Simple Memory",
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "position": [
+          -1640,
+          -380
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "name": "Think",
+        "type": "@n8n/n8n-nodes-langchain.toolThink",
+        "position": [
+          -1160,
+          -380
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Date & Time",
+        "type": "n8n-nodes-base.dateTimeTool",
+        "position": [
+          -1260,
+          -380
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "name": "Mistral Cloud Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+        "position": [
+          -2000,
+          20
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Mistral Cloud Chat Model1",
+        "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+        "position": [
+          -1560,
+          200
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Send Expense Summary1",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          860,
+          -720
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "name": "Google Sheets",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          520,
+          -720
+        ],
+        "parameters": {},
+        "typeVersion": 4.6
+      },
+      {
+        "name": "Edit Fields",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          180,
+          -720
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "name": "Save Image to Cloud",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1700,
+          -1780
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "disabled": true,
+        "position": [
+          -2000,
+          200
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "name": "OpenRouter Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+        "disabled": true,
+        "position": [
+          -1840,
+          20
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Execute Workflow",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "position": [
+          820,
+          -1680
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "name": "When Executed by Another Workflow",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "position": [
+          840,
+          -1180
+        ],
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "name": "Save Receipt",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          -1620,
+          -1700
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "name": "Merge",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          160,
+          -1680
+        ],
+        "parameters": {},
+        "typeVersion": 3.2
+      },
+      {
+        "name": "Merge Data Streams",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          80,
+          -1800
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Trigger Save Workflow",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          740,
+          -1800
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Prepare Data for Sheet",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          120,
+          -840
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Save Data to Google Sheets",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          440,
+          -840
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Send Confirmation",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          780,
+          -840
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Future Ideas & Improvements",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1120,
+          -840
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Mistral Upload",
+        "type": "n8n-nodes-base.httpRequest",
+        "disabled": true,
+        "position": [
+          -1600,
+          -1360
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "name": "Mistral Signed URL",
+        "type": "n8n-nodes-base.httpRequest",
+        "disabled": true,
+        "position": [
+          -1280,
+          -1360
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "name": "Mistral DOC OCR",
+        "type": "n8n-nodes-base.httpRequest",
+        "disabled": true,
+        "position": [
+          -960,
+          -1360
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "name": "Code",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -640,
+          -1360
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "name": "Extract Text via API (OCR)",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1680,
+          -1480
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Code": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge": {
+        "main": [
+          [
+            {
+              "node": "Execute Workflow",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Think": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Format Summary Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Telegram": {
+        "main": [
+          [
+            {
+              "node": "Save Receipt",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Extract Value From Image",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Mistral Upload",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Date & Time": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Edit Fields": {
+        "main": [
+          [
+            {
+              "node": "Google Sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Save Receipt": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Sheets": {
+        "main": [
+          [
+            {
+              "node": "Send Expense Summary1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Simple Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mistral Upload": {
+        "main": [
+          [
+            {
+              "node": "Mistral Signed URL",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Receipt Parser": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "Auto-fixing Output Parser",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check for Image": {
+        "main": [
+          [
+            {
+              "node": "Telegram",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Extract Text Input",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mistral DOC OCR": {
+        "main": [
+          [
+            {
+              "node": "Code",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Telegram Trigger1": {
+        "main": [
+          [
+            {
+              "node": "Check for Image",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Text Input": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mistral Signed URL": {
+        "main": [
+          [
+            {
+              "node": "Mistral DOC OCR",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Invalid Input": {
+        "main": [
+          [
+            {
+              "node": "Send Error Message",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Send Expense Summary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Expense Summary": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Format Summary Message": {
+        "main": [
+          [
+            {
+              "node": "Check Invalid Input",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Value From Image": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Gemini Chat Model": {
+        "ai_languageModel": [
+          []
+        ]
+      },
+      "Mistral Cloud Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Auto-fixing Output Parser": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mistral Cloud Chat Model1": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Auto-fixing Output Parser",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When Executed by Another Workflow": {
+        "main": [
+          [
+            {
+              "node": "Edit Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 34,
+      "name": "Invoice Processing"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/5442",
+  "fetched_at": "2026-09-12T13:10:46Z"
+}

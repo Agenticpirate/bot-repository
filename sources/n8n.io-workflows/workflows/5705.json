@@ -1,0 +1,83 @@
+{
+  "id": 5705,
+  "name": "Record payout from Stripe in Wave Accounting",
+  "description": "# This workflow helps small business owners using Wave Apps to easily access the Wave Accounting API using n8n\nIn this example, the workflow is triggered from a new payout from Stripe. It then logs the transaction as a journal entry in Wave Accounting, helping you automate your accounting without needing to pay for expensive subscriptions!\n\n## What this workflow template does\nThis workflow triggers when a payout is paid in Stripe and sends a GraphQL request to the Wave Accounting API recording the payout as a journal entry automatically. The benefits of this worklow are to instantaneously keep your books up to date and to ensure accuracy.\n\n## How to setup\n1. Setup your Stripe credential in n8n using the native Stripe nodes.\n2. [Follow this guide](https://developer.waveapps.com/hc/en-us/articles/360018856751-Authentication) to get your Wave Apps authorization token.\n3. Setup the node with the correct header auth -&gt; **{\"Authorization\": \"Bearer TOKEN-HERE\"}**\n4. Get your account IDs from Wave\n5. The payload uses GraphQL so ensure to update it accordingly with what you are trying to achieve, the current example creates a journal entry.\n\n## Tips\n### Getting Wave account and IDs\n- It is easiest to use network logs to obtain the right account IDs from Wave, especially if you have created custom accounts (default Wave account IDs can be obtained via making that API call).\n\t- Go to Wave and make a new dummy transaction using the accounts you want to use in n8n.\n\t- Have the network logs open while you do this.\n\t- Search network logs for the name of the account you are trying to use.\n\t- You should see account IDs in the log data.\n\n### Sales tax\n- This example uses sales tax baked into the total Stripe payout amount (5%)\n- You can find the sales tax account IDs the same way as you found the Wave account IDs using network logs\n\n### Use AI to help you with your API call\n- Ask Claude or ChatGPT to draft you your ideal payload\n\n\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "885102f196e3e6f5c55109f96b6bf9975deafd09c6deb6cb58920290e883e00a"
+    },
+    "nodes": [
+      {
+        "id": "8690a0d3-8280-47f4-b60e-20f3046bebc1",
+        "name": "New Payout",
+        "type": "n8n-nodes-base.stripeTrigger",
+        "position": [
+          0,
+          0
+        ],
+        "webhookId": "01dea926-9b3e-4534-86e5-efb896621a3c",
+        "parameters": {
+          "events": [
+            "payout.paid"
+          ]
+        },
+        "credentials": {
+          "stripeApi": {
+            "id": "credential-id",
+            "name": "stripeApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3b7c1c9c-7384-48ef-a4f5-fe1bdd8ec1b9",
+        "name": "Record in Wave Accounting",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          280,
+          0
+        ],
+        "parameters": {
+          "url": "https://gql.waveapps.com/graphql/public",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n    \"query\": \"mutation ($input: MoneyTransactionCreateInput!) { moneyTransactionCreate(input: $input) { didSucceed inputErrors { path message code } transaction { id } } }\",\n    \"variables\": {\n      \"input\": {\n        \"businessId\": \"BUSINESS ID HERE\",\n        \"externalId\": \"stripe-payout-{{ $json.created.toDateTime('s').format('yyyy-MM-dd') }}\",\n        \"date\": \"{{ $json.created.toDateTime('s').format('yyyy-MM-dd') }}\",\n        \"description\": \"Payout from Stripe - ${{ ($json.data.object.amount / 100).toFixed(2) }} total\",\n        \"anchor\": {\n          \"accountId\": \"ANCHOR ACCOUNT ID HERE\",\n          \"amount\": {{ ($json.data.object.amount / 100).toFixed(2) }},\n          \"direction\": \"DEPOSIT\"\n        },\n        \"lineItems\": [\n          {\n            \"accountId\": \"DEPOSIT ACCOUNT ID HERE\",\n            \"amount\": {{ ($json.data.object.amount / 100).toFixed(2) }},\n            \"balance\": \"INCREASE\",\n            \"taxes\": [\n              {\n                \"salesTaxId\": \"SALES TAX ACCOUNT ID HERE - EXAMPLE BELOW IS 5% TAX BAKED INTO TOTAL AMOUNT\",\n                \"amount\": {{ (($json.data.object.amount / 100) - (($json.data.object.amount / 100) / 1.05)).toFixed(2) }}\n              }\n            ]\n          }\n        ]\n      }\n    }\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "New Payout": {
+        "main": [
+          [
+            {
+              "node": "Record in Wave Accounting",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 45,
+      "name": "Miscellaneous"
+    }
+  ],
+  "url": "https://n8n.io/workflows/5705",
+  "fetched_at": "2026-09-12T13:10:55Z"
+}

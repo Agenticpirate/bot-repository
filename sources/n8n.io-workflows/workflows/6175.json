@@ -1,0 +1,205 @@
+{
+  "id": 6175,
+  "name": "Send bulk WhatsApp messages from Google Sheets using WasenderAPI",
+  "description": "# WhatsApp Bulk Message Broadcast From Google Sheet (Unofficial API)\n\n## Who’s it for\n\nThis workflow is designed for marketers, small business owners, freelancers, and support teams who want to automate WhatsApp messaging using a Google Sheet without paying for the WhatsApp Business API. Ideal for those who need a budget-friendly and scalable bulk messaging solution using their personal or business WhatsApp number.\n\n## How it works / What it does\n\nThis workflow reads a Google Sheet for rows where the `Status` column is set to `pending`, sends a message via the connected WhatsApp number using the WasenderAPI, and updates the message status to `sent`. It repeats this process every 10 seconds while maintaining a safe API rate limit.\n\n## How to set up\n\n1. **Duplicate the Sample Sheet**: Use this format [Sample Sheet](https://docs.google.com/spreadsheets/d/1Ui4TzzI-Gq-bsEsrZELwW1Kyddw0IU9L1wxlHikktqw/edit?usp=sharing).\n2. **Fill contacts**: Add WhatsApp numbers, names, and messages. Set the `Status` column to `pending`.\n3. **Connect Google Sheets** in the n8n node.\n4. **Subscribe to WasenderAPI** and get your API key.\n5. **Paste API Key** into the HTTP node (if using unofficial API).\n6. **Activate your workflow** in n8n.\n\n## Requirements\n\n- Google Sheets API credentials\n- A configured Google Sheet\n- WhatsApp (Personal or Business)\n- WasenderAPI.com subscription (approx. $6/month)\n- n8n setup with credentials for Google Sheets\n\n## How to customize the workflow\n\n- **Add delay**: Insert a Wait node if you want to add custom time gaps between messages.\n- **Change message format**: Modify the HTTP/Send Template node to send different message types (text, media, etc.).\n- **Personalize content**: Use dynamic data from sheet columns (e.g., name, image URL).\n- **Add error handling**: Insert a Set or IF node after the WhatsApp send node to capture and log failed deliveries.\n\n## Workflow Highlights\n\n- Triggers every 5 Minutes\n- Reads pending messages from Google Sheets\n- Sends WhatsApp messages using WasenderAPI or WhatsApp Cloud API\n- Updates each row’s `Status` to `sent`\n\n## Support & Community\n\nNeed help setting up or customizing the workflow? Reach out here:\n\n- WhatsApp: [Chat with Support](https://wa.me/8801322827799)  \n- Discord: [Join SpaGreen Server](https://discord.gg/SsCChWEP)  \n- Facebook Group: [SpaGreen Community](https://www.facebook.com/groups/spagreenbd)  \n- Website: [SpaGreen Creative](https://spagreen.net)  \n- Envato: [SpaGreen Portfolio](https://codecanyon.net/user/spagreen/portfolio)\n\n",
+  "workflow": {
+    "id": "1ZnPRyjP4J0gq5Pw",
+    "meta": {
+      "instanceId": "281fe883012e72eba57c771d5dbf7c3138ca3fe3633c5ba2adf6169821825dd4",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Google Sheets to WhatsApp Bulk Messaging via Unofficial API",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "0037860e-fbd4-4690-8063-eb94c1aad64d",
+        "name": "Fetch All Pending Queries for Messaging",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          48,
+          32
+        ],
+        "parameters": {},
+        "notesInFlow": false,
+        "retryOnFail": false,
+        "typeVersion": 4.6
+      },
+      {
+        "id": "032d3141-2d16-4b05-b94f-94272e0c7612",
+        "name": "Change State of Rows in Sent",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          912,
+          16
+        ],
+        "parameters": {},
+        "typeVersion": 4.6
+      },
+      {
+        "id": "da162b79-1c4e-4405-ad58-e0c9ffd74dd3",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          528,
+          32
+        ],
+        "parameters": {},
+        "executeOnce": false,
+        "typeVersion": 3
+      },
+      {
+        "id": "f178aa36-8e99-4919-9320-36432a405bc5",
+        "name": "Wait",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          928,
+          192
+        ],
+        "webhookId": "7e5b1bab-e843-4f74-8462-2bf75260215e",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "17249748-0dca-40ad-a0fd-22b6948015ed",
+        "name": "Limit",
+        "type": "n8n-nodes-base.limit",
+        "position": [
+          352,
+          32
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "18ae75b8-1dc9-4bdd-98d6-b421af4691f9",
+        "name": "Trigger Every 5 Minute",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -272,
+          32
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "d92b5e28-2752-4977-8daf-1d69ca70b7cf",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1232,
+          -496
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "7a5c47a0-abab-4992-866b-55912ea23ac2",
+        "name": "Send Message Using HTTP Request",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          736,
+          192
+        ],
+        "parameters": {},
+        "executeOnce": false,
+        "typeVersion": 4.2
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "05c64115-b5bb-48b8-acc4-2091e40c6bd0",
+    "connections": {
+      "Wait": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Limit": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [
+            {
+              "node": "Change State of Rows in Sent",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Send Message Using HTTP Request",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Trigger Every 5 Minute": {
+        "main": [
+          [
+            {
+              "node": "Fetch All Pending Queries for Messaging",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Change State of Rows in Sent": {
+        "main": [
+          []
+        ]
+      },
+      "Send Message Using HTTP Request": {
+        "main": [
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch All Pending Queries for Messaging": {
+        "main": [
+          [
+            {
+              "node": "Limit",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 33,
+      "name": "Social Media"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6175",
+  "fetched_at": "2026-09-12T13:11:11Z"
+}

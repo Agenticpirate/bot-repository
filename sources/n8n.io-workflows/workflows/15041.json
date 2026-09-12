@@ -1,0 +1,248 @@
+{
+  "id": 15041,
+  "name": "Enrich HubSpot companies with multi-source B2B data from Coresignal",
+  "description": "Every time a new company is added to your HubSpot CRM, this workflow automatically enriches it with multi-source company data from Coresignal - no manual research required. It detects the creation event, fetches the company domain, queries Coresignal's database, and writes structured data (headcount, URL, city, and description) back into the HubSpot record within seconds. Ideal for sales and VC teams who need clean, complete company data the moment a record is created.\n\n## **How it works**\n- Receives a payload containing the HubSpot company ID from the Company Created trigger.\n- Waits a short buffer to ensure the company instance is fully created and accessible in HubSpot.\n- Fetches the company record from HubSpot to retrieve the company ID and domain.\n- Uses the company domain to enrich the record with multi-source company data via the Coresignal Enrich node.\n- Uses the company ID from the Get company node to locate the correct HubSpot record and update it with Coresignal's data by mapping the required fields.\n\n## Tools used\n|Tool / Node|What it does in the workflow|Free / credentials needed?|\n|-|-|-|\n|HubSpot Trigger Node|Triggers the workflow and provides the company ID|HubSpot account is free, however, prior setup within HubSpot is required|\n|Wait Node|Provides a buffer since sometimes the trigger arrives quicker than the company can be accessed on HubSpot|Free n8n node|\n|HubSpot Get Company Node|Gets created company info, such as company domain that will be used in Enrich node|HubSpot account is free, however, prior setup within HubSpot is required|\n|Coresignal Enrich Company by Website URL|Gets company data by using company domain as identifier|Requires API key to be provided|\n|HubSpot Update Company Node|Identifies a company to be updated with ID from Get Company node. Updates company data with data from Enrich Company by Website URL node. Requires mapping.|HubSpot account is free, however, prior setup within HubSpot is required|\n\n## How to set up\n\n1. First of all, a set up of HubSpot app is required. \nHere’s an n8n guide on how to set it up. https://docs.n8n.io/integrations/builtin/credentials/hubspot/\n2. Then, create a webhook within the app on HubSpot. \n3. Once the webhook is created, test the workflow and the trigger within n8n must should return the payload after the company has been created on HubSpot (you can also click test). \n4. Open the get company node and choose the company ID to be the identifier. Connect the id value from previous node to the ID field in Get company node. \n5. In Coresignal node: Find the company domain in the payload from the get a company node and connect it to website URL field in Coresignal node. \n6. In HubSpot update company node, connect the company ID from the Get a company node to the company id field and then map the fields to be updated with Coresignal’s data. \n7. Publish workflow and try creating a company to see if it works. \n\n## Why use this workflow?\n\nSales and VC teams spend hours researching companies before outreach - headcount, industry, location, professional network presence. This workflow removes that entirely. The moment a company lands in your HubSpot CRM, Coresignal's data is already written into the record, so your team opens a fully populated profile every time.\n\nIt's especially valuable for teams with high inbound volume (from form fills, integrations, or imports) where manual enrichment just doesn't scale. With Coresignal covering millions of companies globally, coverage is broad enough to handle most real-world pipelines without gaps\n\n### Customization options\n- **Add more enrichment fields** - Coresignal returns additional data beyond the defaults. Add fields like industry, founded_year, or annual_revenue to the Update company node with minimal effort.\n- **Adjust the wait time** - The default is 10 seconds. In high-latency HubSpot environments, increase this to 20–30 seconds to avoid the Get company node firing before the record is ready.\n- **Add a Slack or email notification** - Insert a Slack or Gmail node at the end to alert your team whenever a company is enriched.\n- **Filter by company size or type** - Add an IF node after Get company to only enrich records that meet certain criteria (e.g. skip companies with no domain).\n\n### Need help or want to customize this?\nReach out directly: artur@coresignal.com \nFollow for more on linkedin: https://www.linkedin.com/in/artur-mulagalijev/\n",
+  "workflow": {
+    "id": "S4eSrA9P5AIjbiGb",
+    "meta": {
+      "instanceId": "65f84d916c130fcd09acf36875a792033f0370b728a3fa45ed12ab82b7fff1e4"
+    },
+    "name": "Enriching newly created HubSpot companies with Coresignal data",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "0c47ea11-5619-4d8d-a660-3653091957fb",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          304,
+          32
+        ],
+        "parameters": {
+          "width": 480,
+          "height": 640,
+          "content": "## Enriching newly created HubSpot companies with Coresignal data\n\n### How it works\n\n1. Triggers when a new company is created in HubSpot.\n2. Waits to allow other HubSpot processes to finalize.\n3. Fetches newly created company details in HubSpot.\n4. Enriches the data using Coresignal based on the company's website URL.\n5. Updates the enriched information back into HubSpot.\n\n### Setup steps\n\n- [ ] Configure HubSpot credentials and connect the trigger node.\n- [ ] Set up Coresignal API credentials for enrichment.\n- [ ] Ensure permissible fields in HubSpot for data updates.\n\n### Customization\n\nYou can adjust the enrichment logic based on available data from Coresignal or add additional nodes to capture transformation logic before updating HubSpot."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "71b12395-6e86-48b7-ba0e-c3664f560012",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          864,
+          32
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 400,
+          "height": 336,
+          "content": "## Trigger and delay\n\nThis group monitors HubSpot for new company events and ensures there is some delay before fetching the company's information."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6a657af3-52b2-4788-bea3-969cadc9dbe6",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1312,
+          32
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 608,
+          "height": 336,
+          "content": "## Fetch, enrich, and update\n\nThis group fetches the company information from HubSpot, enriches it using Coresignal data, and updates the company record back in HubSpot."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c6a251ec-d022-4040-9939-a6b791da5d86",
+        "name": "When Company Created in HubSpot",
+        "type": "n8n-nodes-base.hubspotTrigger",
+        "position": [
+          912,
+          192
+        ],
+        "webhookId": "8f776afd-44fb-42be-b4ee-f1bc923df419",
+        "parameters": {
+          "eventsUi": {
+            "eventValues": [
+              {
+                "name": "company.creation"
+              }
+            ]
+          },
+          "additionalFields": {}
+        },
+        "credentials": {
+          "hubspotDeveloperApi": {
+            "id": "gJwaNPRIYGxNdLPx",
+            "name": "HubSpot Developer account"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "7e630504-8238-466e-9af6-2e742e37989f",
+        "name": "Fetch Details from Coresignal",
+        "type": "n8n-nodes-coresignal-api.coresignal",
+        "position": [
+          1552,
+          192
+        ],
+        "parameters": {
+          "resource": "company",
+          "operation": "enrich",
+          "websiteUrl": "={{ $json.properties.domain.value }}"
+        },
+        "credentials": {
+          "coresignalApi": {
+            "id": "wUVjwRLrGyPtsNeT",
+            "name": "Coresignal account"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3a8a8b68-8885-4523-bdd5-792306a3f5f8",
+        "name": "Update Company in HubSpot",
+        "type": "n8n-nodes-base.hubspot",
+        "position": [
+          1776,
+          192
+        ],
+        "parameters": {
+          "resource": "company",
+          "companyId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ $('Retrieve Company from HubSpot').item.json.companyId }}"
+          },
+          "operation": "update",
+          "updateFields": {
+            "city": "={{ $json.hq_city }}",
+            "description": "={{ $json.description_enriched }}",
+            "numberOfEmployees": "={{ $json.employees_count }}",
+            "linkedInCompanyPage": "={{ $json.linkedin_url }}"
+          },
+          "authentication": "oAuth2"
+        },
+        "credentials": {
+          "hubspotOAuth2Api": {
+            "id": "hc2zrRUxfCvgj27q",
+            "name": "HubSpot account"
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "b1107fdf-69d5-41aa-aea7-cee560bc8d4a",
+        "name": "Retrieve Company from HubSpot",
+        "type": "n8n-nodes-base.hubspot",
+        "position": [
+          1360,
+          192
+        ],
+        "parameters": {
+          "resource": "company",
+          "companyId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ $json.companyId }}"
+          },
+          "operation": "get",
+          "authentication": "oAuth2",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "hubspotOAuth2Api": {
+            "id": "hc2zrRUxfCvgj27q",
+            "name": "HubSpot account"
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "c1922434-c429-4be9-9ce5-a6ed132e17ca",
+        "name": "Wait 10 Seconds for Action",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          1120,
+          192
+        ],
+        "webhookId": "acefb895-9c6d-414e-a787-d4b37f3ecee2",
+        "parameters": {
+          "amount": 10
+        },
+        "typeVersion": 1.1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "binaryMode": "separate",
+      "executionOrder": "v1"
+    },
+    "versionId": "95a269bc-a530-4d19-89d0-120345cff3e4",
+    "connections": {
+      "Wait 10 Seconds for Action": {
+        "main": [
+          [
+            {
+              "node": "Retrieve Company from HubSpot",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Details from Coresignal": {
+        "main": [
+          [
+            {
+              "node": "Update Company in HubSpot",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Retrieve Company from HubSpot": {
+        "main": [
+          [
+            {
+              "node": "Fetch Details from Coresignal",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When Company Created in HubSpot": {
+        "main": [
+          [
+            {
+              "node": "Wait 10 Seconds for Action",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 37,
+      "name": "Lead Generation"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15041",
+  "fetched_at": "2026-09-12T13:15:14Z"
+}

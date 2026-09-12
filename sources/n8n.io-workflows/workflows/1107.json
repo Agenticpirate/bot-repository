@@ -1,0 +1,137 @@
+{
+  "id": 1107,
+  "name": "Enrich and manage candidates data in Notion",
+  "description": "This workflow allows you to add candidates’ profile assessments to Notion before an interview.\n\n## Prerequisites\n1. Add an input field on your Calendly Invite page where the candidate can enter their LinkedIn URL.\n2. Create credentials for your Calendly account. Follow the steps mentioned in the [documentation](https://docs.n8n.io/credentials/calendly/) to learn how to do that.\n3. Create credentials for Humantic AI following the steps mentioned [here](https://docs.n8n.io/credentials/humanticAi).\n4. Create a page on Notion similar to this [page](https://www.notion.so/n8n/464ee4ca7a5e4252ab21ea018d7450c8?v=d640406f12f24f9ea3509ff45b81a8bb).\n5. Create credentials for the Notion node by following the steps in the [documentation](https://docs.n8n.io/credentials/notion/).\n\n![workflow-screenshot](fileId:502)\n\n**Calendly Trigger node:** This node will trigger the workflow when an interview gets scheduled. Make sure to add a field to collect the candidates' LinkedIn URL on your invite page.\n\n**Humantic AI:** This node uses the LinkedIn URL received by the previous node to create a candidate profile in Humantic AI.\n\n**Humantic AI1:** This node will analyze the candidates' profile.\n\n\n**Notion node:** This node will create a new page in Notion using the information from the previous node.",
+  "workflow": {
+    "nodes": [
+      {
+        "name": "Notion",
+        "type": "n8n-nodes-base.notion",
+        "position": [
+          1050,
+          300
+        ],
+        "parameters": {
+          "blockUi": {
+            "blockValues": [
+              {
+                "textContent": "=Name: {{$json[\"display_name\"]}}\nPersonality: {{$json[\"personality_analysis\"][\"summary\"][\"ocean\"][\"description\"].join(', ')}}, {{$json[\"personality_analysis\"][\"summary\"][\"disc\"][\"description\"].join(', ')}}\nOpenness: {{$json[\"personality_analysis\"][\"ocean_assessment\"][\"openness\"][\"level\"]}} {{$json[\"personality_analysis\"][\"ocean_assessment\"][\"openness\"][\"score\"]}}\nCalculativeness: {{$json[\"personality_analysis\"][\"disc_assessment\"][\"calculativeness\"][\"level\"]}} {{$json[\"personality_analysis\"][\"disc_assessment\"][\"calculativeness\"][\"score\"]}}"
+              }
+            ]
+          },
+          "resource": "databasePage",
+          "databaseId": "",
+          "propertiesUi": {
+            "propertyValues": [
+              {
+                "key": "Name|title",
+                "title": "={{$json[\"display_name\"]}}"
+              }
+            ]
+          }
+        },
+        "credentials": {
+          "notionApi": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Humantic AI",
+        "type": "n8n-nodes-base.humanticAi",
+        "position": [
+          650,
+          300
+        ],
+        "parameters": {
+          "userId": "={{$json[\"payload\"][\"questions_and_responses\"][\"1_response\"]}}"
+        },
+        "credentials": {
+          "humanticAiApi": "humantic"
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Calendly Trigger",
+        "type": "n8n-nodes-base.calendlyTrigger",
+        "position": [
+          450,
+          300
+        ],
+        "webhookId": "6d38c1f6-42ee-4f44-b424-20943075087b",
+        "parameters": {
+          "events": [
+            "invitee.created"
+          ]
+        },
+        "credentials": {
+          "calendlyApi": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Humantic AI1",
+        "type": "n8n-nodes-base.humanticAi",
+        "position": [
+          850,
+          300
+        ],
+        "parameters": {
+          "userId": "={{$json[\"results\"][\"userid\"]}}",
+          "options": {},
+          "operation": "get"
+        },
+        "credentials": {
+          "humanticAiApi": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "connections": {
+      "Humantic AI": {
+        "main": [
+          [
+            {
+              "node": "Humantic AI1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Humantic AI1": {
+        "main": [
+          [
+            {
+              "node": "Notion",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Calendly Trigger": {
+        "main": [
+          [
+            {
+              "node": "Humantic AI",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 17,
+      "name": "HR"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/1107",
+  "fetched_at": "2026-09-12T13:08:53Z"
+}

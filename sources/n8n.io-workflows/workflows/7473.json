@@ -1,0 +1,228 @@
+{
+  "id": 7473,
+  "name": "Monitor brand reputation for negative PR on Reddit with Gemini + LangChain + Sheets",
+  "description": "# [🎥 Watch the Full Execution on YouTube](https://youtu.be/_VAOeIzC6M0?si=etrUjAGyzwXTiZ6D)\n\n# **Workflow Description (in-depth):**\n\nThis workflow automates the entire process of **monitoring online reputation** by scanning Reddit posts for negative sentiment about your company, filtering only the relevant criticism, and logging it directly into Google Sheets for easy tracking.\n\n### 🔑 **Key Features:**\n\n* **Automated Triggering:**\n  Runs on a schedule so you never miss new discussions about your brand.\n\n* **Smart Data Fetching:**\n  Uses Reddit API to pull the latest posts matching your chosen keywords (e.g., “Notion”).\n\n* **Post Processing:**\n  Breaks down bulk Reddit responses into individual posts for analysis.\n\n* **AI-Powered Filtering:**\n  A custom-built AI agent reviews the content and extracts only **genuine negative PR** (complaints, bad experiences, harmful mentions). Neutral or positive posts are ignored.\n\n* **Structured Parsing:**\n  AI responses are enforced into a clean JSON schema (ID, Title, URL, NegativeContent).... ensuring compatibility with downstream nodes.\n\n* **Noise Reduction:**\n  A code node ensures only posts with meaningful content are passed forward.\n\n* **Centralized Logging:**\n  Captures critical information (post title, negative excerpt, URL, ID) into Google Sheets.... giving teams a live dashboard of issues to address.\n\n* **Customizable & Scalable:**\n  Swap out “Notion” for your own brand, or expand to other platforms.... the flow adapts without extra overhead.\n\n### 🚀 **Why This Matters:**\n\nIn 2025, a single Reddit thread can shape brand reputation overnight. Manually monitoring is inefficient, and traditional social listening tools generate too much noise. This workflow gives you a **lean, automated, AI-powered system** to stay ahead of potential PR risks.\n\n### 🛠️ **Tech Stack:**\n\n* **n8n** for automation\n* **Reddit API** for data fetching\n* **LangChain AI Agent + Google Vertex Model** for sentiment & context analysis\n* **Google Sheets** for reporting & tracking",
+  "workflow": {
+    "meta": {
+      "instanceId": "b6731f6e46273cffeac6b5188a5b3bcb0840c00108e73b48ae2b799ac6e8e081",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "5fd46f9a-1249-425f-87be-bdf4ade9942b",
+        "name": "Schedule Trigger1",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          128,
+          96
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "222a0498-76d4-400a-a2a8-03a56a7588cd",
+        "name": "Extract Post Metadata1",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          576,
+          96
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "9738e2da-6af2-4c65-a129-dfbbadaafd01",
+        "name": "Seperate array into individual posts1",
+        "type": "n8n-nodes-base.splitOut",
+        "position": [
+          800,
+          96
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "f37847d0-7934-4a9e-aed2-3e77f0614dac",
+        "name": "Append to Google Sheets",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1728,
+          96
+        ],
+        "parameters": {},
+        "typeVersion": 4.6
+      },
+      {
+        "id": "663a5764-bb73-43b3-8fb2-131879c0f2de",
+        "name": "Code",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1488,
+          96
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "07a53cf0-3ad1-486a-bf99-7831ad1b313c",
+        "name": "Look for Latest posts",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          352,
+          96
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "92b25221-e542-48f0-ad97-1a85b39d73d2",
+        "name": "AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          1040,
+          96
+        ],
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "625b1e0a-fb13-45af-bf80-c4dd4280f26c",
+        "name": "Google Vertex Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleVertex",
+        "position": [
+          1024,
+          400
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "35e66e1d-4790-4d14-8984-5b7d461e2397",
+        "name": "Structured Output Parser",
+        "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "position": [
+          1232,
+          400
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "ccd6e80d-d6c4-4032-8498-b5cf0d34413b",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -816,
+          -192
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Code": {
+        "main": [
+          [
+            {
+              "node": "Append to Google Sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Code",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger1": {
+        "main": [
+          [
+            {
+              "node": "Look for Latest posts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Look for Latest posts": {
+        "main": [
+          [
+            {
+              "node": "Extract Post Metadata1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Post Metadata1": {
+        "main": [
+          [
+            {
+              "node": "Seperate array into individual posts1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Vertex Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Structured Output Parser": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Seperate array into individual posts1": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7473",
+  "fetched_at": "2026-09-12T13:11:55Z"
+}

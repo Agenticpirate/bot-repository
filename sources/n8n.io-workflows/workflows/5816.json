@@ -1,0 +1,297 @@
+{
+  "id": 5816,
+  "name": "Discord AI chatbot with GPT-4o-mini & Redis memory persistence",
+  "description": "**Description:**\nThis n8n workflow automates a Discord bot to fetch messages from a specified channel and send AI-generated responses in threads. It ensures smooth message processing and interaction, making it ideal for managing community discussions, customer support, or AI-based engagement. This workflow leverages Redis for memory persistence, ensuring that conversation history is maintained even if the workflow restarts, providing a seamless user experience.\n\n## How It Works\n\n- The bot listens for new messages in a specified Discord channel.\n- It sends the messages to an AI model for response generation.\n- The AI-generated reply is posted as a thread under the original message.\n- The bot runs on an Ubuntu server and is managed using PM2 for uptime stability.\n- The Discord bot (Python script) acts as the bridge, capturing messages from Discord and sending them to the n8n webhook. The n8n workflow then processes these messages, interacts with the AI model, and sends the AI's response back to Discord via the bot.\n\n## Prerequisites to host Bot\n- Sign up on [Pella](https://www.pella.app/), which is a managed hosting service for Discord Bots. (Easy Setup)\n- A Redis instance for memory persistence. Redis is an in-memory data structure store, used here to store and retrieve conversation history, ensuring that the AI can maintain context across multiple interactions. This is crucial for coherent and continuous conversations.\n\n## Set Up Steps\n\n### **1️⃣ Create a Discord Bot**\n\n1. Go to the [Discord Developer Portal](https://discord.com/developers/applications).\n2. Click **“New Application”**, enter a name, and create it.\n3. Navigate to **Bot** &gt; **Reset Token**, then copy the **Bot Token**.\n4. Enable **Privileged Gateway Intents** (Presence, Server Members, Message Content).\n5. Under **OAuth2 &gt; URL Generator**, select **bot** scope and required permissions.\n6. Copy the generated URL, open it in a browser, select your server, and click **Authorize**.\n\n### **2️⃣ Deploy the Bot on Pella**\n\n1. Create a new folder `discord-bot` and navigate into it:\n\n2. Create and configure an `.env` file to store your bot token:\n\n3. Copy the code to .env: (You can copy the webhook URL from the n8n workflow)\n    ```bash\n    TOKEN=your-bot-token-here\n    WEBHOOK_URL=[https://your-domain.tld/webhook/getmessage](https://your-domain.tld/webhook/getmessage) \n    ```\n4. Create file `main.py` copy the below code and save it:\n\n5. Copy this Bot script to `main.py`:\n    ```py\n    import discord\n    import requests\n    import json\n    import os\n    from dotenv import load_dotenv\n    \n    # Load environment variables from .env file\n    load_dotenv()\n    TOKEN = os.getenv(\"TOKEN\")\n    WEBHOOK_URL = os.getenv(\"WEBHOOK_URL\")\n    \n    # Bot Configuration\n    LISTEN_CHANNELS = [\"YOUR_CHANNEL_ID_1\", \"YOUR_CHANNEL_ID_2\"]  # Replace with your target channel IDs\n    \n    # Intents setup\n    intents = discord.Intents.default()\n    intents.messages = True  # Enable message event\n    intents.guilds = True\n    intents.message_content = True  # Required to read messages\n    \n    client = discord.Client(intents=intents)\n\n    @client.event\n    async def on_ready():\n        print(f'Logged in as {client.user}')\n    \n    @client.event\n    async def on_message(message):\n        if message.author == client.user:\n            return  # Ignore bot's own messages\n    \n        if str(message.channel.id) in LISTEN_CHANNELS:\n            try:\n                fetched_message = await message.channel.fetch_message(message.id)  # Ensure correct fetching\n                payload = {\n                    \"channel_id\": str(fetched_message.channel.id),  # Ensure it's string\n                    \"chat_message\": fetched_message.content,\n                    \"timestamp\": str(fetched_message.created_at),  # Ensure proper formatting\n                    \"message_id\": str(fetched_message.id),  # Ensure ID is a string\n                    \"user_id\": str(fetched_message.author.id)  # Ensure user ID is also string\n                }\n    \n                headers = {'Content-Type': 'application/json'}\n                response = requests.post(WEBHOOK_URL, data=json.dumps(payload), headers=headers)\n    \n                if response.status_code == 200:\n                    print(f\"Message sent successfully: {payload}\")\n                else:\n                    print(f\"Failed to send message: {response.status_code}, Response: {response.text}\")\n            except Exception as e:\n                print(f\"Error fetching message: {e}\")\n    \n    client.run(TOKEN)\n    ```\n\n6. Create `requirements.txt` and copy:\n    ```bash\n    discord\n    python-dotenv\n    ```\n### **3️⃣ Follow the video to set up the bot which will run 24/7**\n\n1. Tutorial - https://www.youtube.com/watch?v=rNnK3XlUtYU\n\nNote: Free Plan will expire after 24 hours, so please opt for the Paid Plan in Pella to keep your bot running.\n\n### **4️⃣ n8n Workflow Configuration**\n\nThe n8n workflow consists of the following nodes:\n\n-   **Get Discord Messages (Webhook):** This node acts as the entry point for messages from the Discord bot. It receives the `channel_id`, `chat_message`, `timestamp`, `message_id`, and `user_id` from Discord when a new message is posted in the configured channel. Its webhook path is `/getmessage` and it expects a POST request.\n-   **Chat Agent (Langchain Agent):** This node processes the incoming Discord message (`chat_message`). It is configured as a conversational agent, integrating the language model and memory to generate an appropriate response. It also has a prompt to keep the reply concise, under 1800 characters.\n-   **OpenAI -4o-mini (Langchain Language Model):** This node connects to the OpenAI API and uses the `gpt-4o-mini-2024-07-18` model for generating AI responses. It is the core AI component of the workflow.\n-   **Message History (Redis Chat Memory):** This node manages the conversation history using Redis. It stores and retrieves chat messages, ensuring the `Chat Agent` maintains context for each user based on their `user_id`. This is critical for coherent multi-turn conversations.\n-   **Calculator (Langchain Tool):** This node provides a calculator tool that the AI agent can utilize if a mathematical calculation is required within the conversation. This expands the capabilities of the AI beyond just text generation.\n-   **Response fromAI (Discord):** This node sends the AI-generated response back to the Discord channel. It uses the Discord Bot API credentials and replies in a thread under the original message (`message_id`) in the specified `channel_id`.\n-   **Sticky Note1, Sticky Note2, Sticky Note3, Sticky Note4, Sticky Note5, Sticky Note:** These are informational nodes within the workflow providing instructions, code snippets for the Discord bot, and setup guidance for the user. These notes guide the user on setting up the `.env` file, `requirements.txt`, the Python bot code, and general recommendations for channel configuration and adding tools.\n\n### **5️⃣ Setting up Redis**\n\n1.  **Choose a Redis Hosting Provider:** You can use a cloud provider like Redis Labs, Aiven, or set up your own Redis instance on a VPS.\n2.  **Obtain Redis Connection Details:** Once your Redis instance is set up, you will need the host, port, and password (if applicable).\n3.  **Configure n8n Redis Nodes:** In your n8n workflow, configure the \"Message History\" node with your Redis connection details. Ensure the Redis credential `✅ redis-for-n8n` is properly set up with your Redis instance details (host, port, password).\n\n### **6️⃣ Customizing the Template**\n\n-   **AI Model:** You can easily swap out the \"OpenAI -4o-mini\" node with any other AI service supported by n8n (e.g., Cohere, Hugging Face) to use a different language model. Ensure the new language model node is connected to the `ai_languageModel` input of the \"Chat Agent\" node.\n-   **Agent Prompt:** Modify the `text` parameter in the \"Chat Agent\" node to change the AI's persona, provide specific instructions, or adjust the response length.\n-   **Additional Tools:** The \"Calculator\" node is an example of an AI tool. You can add more Langchain tool nodes (e.g., search, data lookup) and connect them to the `ai_tool` input of the \"Chat Agent\" node to extend the AI's capabilities. Refer to the \"Sticky Note5\" in the workflow for a reminder.\n-   **Channel Filtering:** Adjust the `LISTEN_CHANNELS` list in the `main.py` file of your Discord bot to include or exclude specific Discord channel IDs where the bot should listen for messages.\n-   **Thread Management:** The \"Response fromAI\" node can be modified to change how threads are created or managed, or to send responses directly to the channel instead of a thread. The current setup links the response to the original message ID (`message_reference`).\n\n### **7️⃣ Testing Instructions**\n\n1.  **Start the Discord Bot:** Ensure your `main.py` script is running on Pella.\n2.  **Activate the n8n Workflow:** Make sure your n8n workflow is active and listening for webhooks.\n3.  **Send a Message in Discord:** Go to one of the `LISTEN_CHANNELS` in your Discord server and send a message.\n4.  **Verify Response:** The bot should capture the message, send it to n8n, receive an AI-generated response, and post it as a thread under your original message.\n5.  **Check Redis:** Verify that the conversation history is being stored and updated correctly in your Redis instance. Look for keys related to user IDs.\n\n✅ **Now your bot is running in the background!** 🚀",
+  "workflow": {
+    "meta": {
+      "instanceId": "88bf9d043fa4afdfb9ba1170aff0be979b18f135494b39a8b59f9dbeb5bf011c",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "1a8503cb-7d8f-4160-b9aa-bfe5c75f02e0",
+        "name": "Calculator",
+        "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+        "position": [
+          1000,
+          520
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "8dab1d16-0d0d-47fe-9675-017827a0188c",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -640,
+          40
+        ],
+        "parameters": {
+          "width": 953.4544277976706,
+          "content": "## .env for Discord bot\n```md\nTOKEN=your-bot-token-here\nWEBHOOK_URL=https://your-domain.tld/webhook/getmessage\n```"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b83c3a70-fe5e-4f90-8177-e6fbefc1af2a",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -640,
+          1220
+        ],
+        "parameters": {
+          "width": 949,
+          "height": 100,
+          "content": "## requirements.txt,txt\ndiscord\npython-dotenv"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8c4b3445-005e-4418-9ad0-e89c53b077b4",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -640,
+          220
+        ],
+        "parameters": {
+          "width": 953.7499545009089,
+          "height": 974.8320906053484,
+          "content": "## Discord Bot Code\n\n```py\nimport discord\nimport requests\nimport json\nimport os\nfrom dotenv import load_dotenv\n\n# Load environment variables from .env file\nload_dotenv()\nTOKEN = os.getenv(\"TOKEN\")\nWEBHOOK_URL = os.getenv(\"WEBHOOK_URL\")\n\n# Bot Configuration\nLISTEN_CHANNELS = [123456789012345678]  # Replace with your target channel IDs\n\n# Intents setup\nintents = discord.Intents.default()\nintents.messages = True  # Enable message event\nintents.guilds = True\nintents.message_content = True  # Required to read messages\n\nclient = discord.Client(intents=intents)\n\n@client.event\nasync def on_ready():\n    print(f'Logged in as {client.user}')\n\n@client.event\nasync def on_message(message):\n    if message.author == client.user:\n        return  # Ignore bot's own messages\n    \n    if message.channel.id in LISTEN_CHANNELS:\n        try:\n            fetched_message = await message.channel.fetch_message(message.id)  # Ensure correct fetching\n            payload = {\n                \"channel_id\": str(fetched_message.channel.id),  # Ensure it's string\n                \"chat_message\": fetched_message.content,\n                \"timestamp\": str(fetched_message.created_at),  # Ensure proper formatting\n                \"message_id\": str(fetched_message.id),  # Ensure ID is a string\n                \"user_id\": str(fetched_message.author.id)  # Ensure user ID is also string\n            }\n            \n            headers = {'Content-Type': 'application/json'}\n            response = requests.post(WEBHOOK_URL, data=json.dumps(payload), headers=headers)\n            \n            if response.status_code == 200:\n                print(f\"Message sent successfully: {payload}\")\n            else:\n                print(f\"Failed to send message: {response.status_code}, Response: {response.text}\")\n        except Exception as e:\n            print(f\"Error fetching message: {e}\")\n\nclient.run(TOKEN)\n\n```"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1187dd59-d4d9-4916-8b91-49e5e0756cc1",
+        "name": "Response fromAI",
+        "type": "n8n-nodes-base.discord",
+        "position": [
+          1120,
+          220
+        ],
+        "webhookId": "735bc71f-14ae-48ff-b145-f2620466a3d0",
+        "parameters": {
+          "content": "={{ $json.output }}",
+          "guildId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "697416344865472593",
+            "cachedResultUrl": "https://discord.com/channels/697416344865472593",
+            "cachedResultName": "server"
+          },
+          "options": {
+            "message_reference": "={{ $('Get Discord Messages').item.json.body.message_id }}"
+          },
+          "resource": "message",
+          "channelId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1336754177824653423",
+            "cachedResultUrl": "https://discord.com/channels/697416344865472593/1336754177824653423",
+            "cachedResultName": "assistant"
+          }
+        },
+        "credentials": {
+          "discordBotApi": {
+            "id": "credential-id",
+            "name": "discordBotApi Credential"
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "51199d60-0549-43a6-affd-e0056fba36f5",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          420,
+          120
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 220,
+          "height": 260,
+          "content": "Get the Production Webhook URL for .env"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "af7b7213-e586-4ca0-9caf-38ba91a74092",
+        "name": "OpenAI -4o-mini ",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          640,
+          520
+        ],
+        "parameters": {
+          "model": "gpt-4o-mini-2024-07-18",
+          "options": {
+            "maxTokens": 2000
+          }
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "credential-id",
+            "name": "openAiApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "0788c61b-ae58-446a-a5fe-06bf15b2c2f3",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1020,
+          120
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 300,
+          "height": 260,
+          "content": "Change the Channel According to you. \n( Recommend to make it Private if you are using it for personal Chat )"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6c2cc2e2-0123-45ac-ae8c-2f6f2d294c14",
+        "name": "Get Discord Messages",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          480,
+          220
+        ],
+        "webhookId": "4c80241d-69ca-4394-8e09-d1f72cd0878f",
+        "parameters": {
+          "path": "getmessage",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "874ba5fd-2d34-4621-a147-0a3f161fb9a1",
+        "name": "Message History",
+        "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+        "position": [
+          800,
+          520
+        ],
+        "parameters": {
+          "sessionKey": "={{ $('Get Discord Messages').item.json.body.user_id}}",
+          "sessionIdType": "customKey"
+        },
+        "credentials": {
+          "redis": {
+            "id": "credential-id",
+            "name": "redis Credential"
+          }
+        },
+        "typeVersion": 1.4
+      },
+      {
+        "id": "2f228d84-3ee6-4050-a7f3-3d0e6a70c4fc",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          940,
+          480
+        ],
+        "parameters": {
+          "width": 280,
+          "height": 220,
+          "content": "\n\n\n\n\n\n\n\n\n\n\n\nAdd additional necessary Tools based on you requirements."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b2dd03bf-e52e-4046-a94b-1020ccc3709d",
+        "name": "Chat Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          700,
+          220
+        ],
+        "parameters": {
+          "text": "={{ $json.body.chat_message }} \n\nKeep the Reply Max and under 1800 characters.",
+          "agent": "conversationalAgent",
+          "options": {},
+          "promptType": "define"
+        },
+        "typeVersion": 1.6
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Calculator": {
+        "ai_tool": [
+          [
+            {
+              "node": "Chat Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Chat Agent": {
+        "main": [
+          [
+            {
+              "node": "Response fromAI",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Message History": {
+        "ai_memory": [
+          [
+            {
+              "node": "Chat Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI -4o-mini ": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Chat Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Discord Messages": {
+        "main": [
+          [
+            {
+              "node": "Chat Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 40,
+      "name": "Support Chatbot"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/5816",
+  "fetched_at": "2026-09-12T13:10:58Z"
+}

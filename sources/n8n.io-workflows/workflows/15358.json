@@ -1,0 +1,557 @@
+{
+  "id": 15358,
+  "name": "Create Notion knowledge pages from webinars with WayinVideo and GPT-4o-mini",
+  "description": "### Description\n\nPaste any webinar, training, or lecture recording URL into a simple form along with the title, speaker name, topic category, and date and the workflow builds your knowledge base automatically. [WayinVideo](https://wayin.ai/api/) transcribes the full session with speaker labels and timestamps, then GPT-4o-mini identifies 3 to 8 distinct topics covered and writes a complete structured page for each one — summary, key insights, action items, notable quotes, timestamps, and tags. One Notion page is created per topic and every page is logged to Google Sheets with its Notion URL for easy team access. Built for teams, educators, consultants, and agencies who want a searchable knowledge base from every webinar without watching recordings or taking notes manually.\n\n---\n\n## What This Workflow Does\n\n- **Transcribes webinars with speaker labels** — WayinVideo processes the full session and returns every segment attributed to the correct speaker with timestamps, giving GPT full context\n- **Identifies 3 to 8 distinct topics automatically** — GPT-4o-mini reads the transcript and determines how many meaningful topics were covered — no manual segmentation needed\n- **Writes a complete knowledge page per topic** — Each topic gets a summary, up to five key insights, action items with checkboxes, notable quotes, timestamp range, and relevant tags\n- **Creates one Notion page per topic** — Each knowledge page is published directly to your Notion database with the webinar title and topic title as the page name\n- **Polls automatically until transcription is ready** — Waits 90 seconds then checks every 30 seconds until the transcript is available, with no manual monitoring required\n- **Logs every created page to Google Sheets** — Appends a row with the Notion page ID, Notion page URL, topic title, speaker, tags, and Status set to Published\n- **Saves all webinar metadata to every page** — Speaker name, webinar date, duration, target team, and recording URL are embedded in every Notion page for full context\n\n---\n\n## Setup Requirements\n\n### Tools Needed\n- n8n instance (self-hosted or cloud)\n- WayinVideo account with API access\n- OpenAI account with GPT-4o-mini API access\n- Notion account with a connected database\n- Google Sheets (one sheet with a tab named **Knowledge Base Log**)\n\n### Credentials Required\n- WayinVideo API key (pasted into **2. WayinVideo — Submit Transcription** and **4. WayinVideo — Get Transcript Results**)\n- OpenAI API key\n- Notion OAuth credential\n- Google Sheets OAuth2\n\n&gt; ⚠️ **WayinVideo API key appears in 2 steps** — replace `YOUR_WAYINVIDEO_API_KEY` in both **2. WayinVideo — Submit Transcription** and **4. WayinVideo — Get Transcript Results**. Missing either one will cause the workflow to fail.\n\n**Estimated Setup Time: 20–25 minutes**\n\n---\n\n## Step-by-Step Setup\n\n1. **Import the workflow** — Open n8n → Workflows → Import from JSON → paste the workflow JSON → click Import\n\n2. **Get your WayinVideo API key** — Log in to your WayinVideo account → go to Account Settings → copy your API key\n\n3. **Add your WayinVideo API key to node 2** — Open node **2. WayinVideo — Submit Transcription** → find the `Authorization` header value `Bearer YOUR_WAYINVIDEO_API_KEY` → replace `YOUR_WAYINVIDEO_API_KEY` with your actual key\n\n4. **Add your WayinVideo API key to node 4** — Open node **4. WayinVideo — Get Transcript Results** → find the same `Authorization` header → replace `YOUR_WAYINVIDEO_API_KEY` with the same key\n\n5. **Connect OpenAI** — Open node **9. OpenAI — GPT-4o-mini Model** → click the credential dropdown → add your OpenAI API key → test the connection\n\n6. **Set up your Notion database** — In Notion, create a database (or use an existing one) where the knowledge pages will be created → open the database in a browser → copy the database ID from the URL (the 32-character string after your workspace name and before the `?`)\n\n7. **Connect Notion** — Open node **11. Notion — Create Topic Page** → click the credential dropdown → add Notion OAuth → complete the OAuth flow to authorize n8n access → in the `pageId` field, paste your Notion database URL or ID\n\n8. **Create your Google Sheet tab** — Open your Google Sheet → add a tab named exactly **Knowledge Base Log** → add these 10 column headers in row 1: `Webinar Title`, `Topic Title`, `Speaker`, `Topic Category`, `Webinar Date`, `Notion Page ID`, `Notion Page URL`, `Tags`, `Created On`, `Status`\n\n9. **Connect Google Sheets** — Open node **12. Google Sheets — Log Created Pages** → click the document field → replace `YOUR_GOOGLE_SHEET_LOG_ID` by selecting your spreadsheet or entering the Sheet ID (the string between `/d/` and `/edit` in your Sheet URL) → click the credential dropdown → add Google Sheets OAuth2 → authorize access\n\n10. **Activate the workflow** — Toggle the workflow to Active → copy the Form URL from node **1. Form — Webinar URL + Details** → open it in a browser to submit your first webinar\n\n---\n\n## How It Works (Step by Step)\n\n**Step 1 — Form: Webinar URL + Details**\nYou open the form URL in a browser and fill in six fields: the webinar or recording URL (Zoom, YouTube, Vimeo, or any direct link), the webinar title, the speaker or presenter name, the topic category (e.g. SEO, Marketing, AI), the webinar date, and optionally the target team or department. Submitting the form starts the workflow.\n\n**Step 2 — HTTP: WayinVideo — Submit Transcription**\nThe webinar URL is sent to the WayinVideo transcription API with the target language set to English. WayinVideo accepts the job and returns a task ID confirming transcription has started.\n\n**Step 3 — Wait: 90 Seconds**\nThe workflow pauses for 90 seconds before the first status check. This is longer than shorter video workflows because webinar recordings are typically 45–90 minutes and need more initial processing time.\n\n**Step 4 — HTTP: WayinVideo — Get Transcript Results**\nA GET request checks the WayinVideo results endpoint using the task ID from step 2. It returns the current processing status and, once complete, the full speaker-labeled transcript.\n\n**Step 5 — IF: Transcription Complete?**\nThis is the polling gate. If the status equals `SUCCEEDED` (YES path), the transcript is ready and the workflow moves forward to formatting. If still processing (NO path), the workflow routes to **6. Wait — 30 Seconds Retry** which pauses 30 seconds then loops back to step 4 to check again. This repeats until SUCCEEDED.\n\n**Step 6 — Wait: 30 Seconds Retry**\nWhen the transcript is not yet ready, the workflow waits 30 seconds then returns to step 4 for another check. The loop continues automatically.\n\n**Step 7 — Code: Format Transcript**\nEach segment is formatted as `[Speaker Name | MM:SS] text`. Total duration in minutes, word count, and unique speaker names are calculated. All form inputs — webinar title, speaker name, topic category, webinar date, target team, and recording URL — are packaged here for the AI prompt.\n\n**Step 8 — AI Agent: Extract Knowledge Topics**\nGPT-4o-mini receives the formatted transcript and a detailed system prompt. It identifies between 3 and 8 distinct topics from the webinar and for each topic returns a structured JSON object with: a 5–8 word topic title, a 2–3 sentence summary, up to five key insights, action items, notable quotes, an approximate timestamp range, and 2–4 tags. The output is a clean JSON array. GPT is instructed to write only from what was actually said in the transcript.\n\n**Step 9 — OpenAI: GPT-4o-mini Model**\nThis is the language model powering the knowledge extraction. It runs with default settings for consistent, structured output.\n\n**Step 10 — Code: Parse Topics and Build Notion Content**\nThe AI output JSON is cleaned (any accidental markdown backticks removed) and parsed. If parsing fails, the step throws a clear error. Each topic in the array is returned as an individual row. For each topic, a full Notion-ready markdown page is assembled with sections for Summary, Key Insights, Action Items (with checkbox syntax), Notable Quotes (in blockquote format), and Webinar Details. All webinar metadata is embedded in every page.\n\n**Step 11 — Notion: Create Topic Page**\nOne Notion page is created per topic. The page title is formatted as \"Webinar Title — Topic Title\". The full markdown content built in step 10 is written into the page body. Notion returns the new page's ID and URL.\n\n**Step 12 — Google Sheets: Log Created Pages**\nAfter each Notion page is created, one row is appended to your Knowledge Base Log tab. The row includes webinar title, topic title, speaker, topic category, webinar date, the Notion page ID, the Notion page URL, the tags as a comma-separated string, the creation timestamp, and Status set to Published. Your team now has a direct link to every knowledge page from one sheet.\n\n---\n\n## Key Features\n\n✅ **90-second initial wait for long recordings** — The workflow uses a longer first pause suited to webinar-length content rather than short video clips\n✅ **3 to 8 topics per webinar — auto-detected** — GPT decides how many meaningful topics are present based on the actual content, not a fixed number\n✅ **Action items formatted as Notion checkboxes** — Every action item is written with `- [ ]` syntax so they render as real checkboxes in Notion — ready to assign and complete\n✅ **Notable quotes in blockquote format** — Speaker quotes are wrapped in Notion blockquote syntax so they visually stand out on the page\n✅ **Webinar metadata embedded in every page** — Speaker, date, duration, target team, and recording URL are written into each page so the context is always visible without referencing a separate document\n✅ **Notion page URL logged immediately** — Every page URL is saved to Google Sheets the moment it is created so your team can access any page directly without opening Notion\n✅ **JSON parsing with fallback protection** — The code step strips any accidental markdown formatting from GPT output before parsing, reducing the chance of a JSON parse failure on well-formed responses\n\n---\n\n## Customisation Options\n\n**Increase the maximum number of topics** — In node **8. AI Agent — Extract Knowledge Topics**, change \"maximum 8 topics\" in the system prompt to a higher number — useful for long full-day workshop recordings that cover more than 8 distinct areas.\n\n**Add a Slack notification after all pages are created** — After node **12. Google Sheets — Log Created Pages** (on the last topic row), add a Slack step that posts the webinar title, number of pages created, and a link to your Knowledge Base Log sheet so your team is notified without checking Sheets.\n\n**Filter which topics get a Notion page** — After node **10. Code — Parse Topics and Build Notion Content**, add an IF check that only proceeds to Notion creation if the number of key insights is 3 or more — skipping thin topics that GPT extracted with limited content.\n\n**Add a Notion tag property** — In node **11. Notion — Create Topic Page**, add a multi-select property mapping that sends the `tags` array to a Tags property in your Notion database — making pages filterable and searchable by tag directly in Notion.\n\n**Send a summary email after all pages are created** — After node **12. Google Sheets — Log Created Pages** (last row only), add a Gmail step that sends an email with the webinar title, number of pages created, and a direct link to the Knowledge Base Log sheet so the submitter gets a confirmation.\n\n---\n\n## Troubleshooting\n\n**WayinVideo returning an error on submission:**\n- Confirm `YOUR_WAYINVIDEO_API_KEY` in node **2. WayinVideo — Submit Transcription** is replaced with your actual API key — not the placeholder text\n- Confirm the same replacement was made in node **4. WayinVideo — Get Transcript Results** — both steps require the key\n- Check the execution log of node 2 for the raw error — a 401 means wrong key, a 422 means the URL format is not supported by WayinVideo\n\n**Workflow stuck in the polling loop:**\n- Check that the webinar URL is publicly accessible — Zoom recordings with password protection, private YouTube videos, or expired Zoom links will not be processed\n- Open the execution log of node **4. WayinVideo — Get Transcript Results** and check the raw response — WayinVideo may have returned a FAILED status with a specific error message\n- Very long recordings (over 2 hours) may take longer than the polling loop can handle — consider increasing the retry wait from 30 to 60 seconds in node **6. Wait — 30 Seconds Retry**\n\n**GPT not returning valid JSON or extracting zero topics:**\n- Confirm the API key is connected in node **9. OpenAI — GPT-4o-mini Model** and your account has available credits\n- Check the execution log of node **8. AI Agent — Extract Knowledge Topics** for the raw GPT output — the code step in node 10 will show a parse error with the first 200 characters of the bad output\n- If GPT is consistently returning markdown-wrapped JSON (with backticks), node 10 strips these automatically — but if the output has additional explanation text before the array, the JSON extraction regex should still find it\n\n**Notion pages not being created:**\n- Confirm the Notion OAuth credential in node **11. Notion — Create Topic Page** is connected and that the integration has been added to the target database in Notion — go to your Notion database → three-dot menu → Add connections → find your n8n integration\n- Confirm the `pageId` field in node 11 points to a valid Notion database URL — this must be a database, not a regular page\n- Check the execution log of node 11 for the Notion API error — a 404 means the database ID is incorrect\n\n**Google Sheets not logging rows:**\n- Confirm `YOUR_GOOGLE_SHEET_LOG_ID` in node **12. Google Sheets — Log Created Pages** is replaced with your actual sheet ID from the URL\n- Confirm the tab is named **Knowledge Base Log** exactly and all 10 column headers in row 1 match exactly\n- Check that the Google Sheets OAuth2 credential is connected and not expired — re-authorize if needed\n\n---\n\n## Support\n\nNeed help setting this up or want a custom version built for your team or agency?\n\n📧 Email: [info@isawow.com](info@isawow.com)\n🌐 Website: [https://isawow.com/](https://isawow.com/)",
+  "workflow": {
+    "meta": {
+      "instanceId": "bc8ca75c203589705ae2e446cad7181d6f2a7cc1766f958ef9f34810e53b8cb2",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "2fce2331-d37d-4384-9ae1-6f53f5225eb7",
+        "name": "Overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -3184,
+          -768
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 524,
+          "height": 1060,
+          "content": "## Webinar Recording to Notion Knowledge Base Builder — WayinVideo + GPT-4o-mini + Notion + Sheets\n\nFor teams, educators, consultants, and agencies who run or attend webinars and want to build a searchable knowledge base without manually watching recordings or taking notes. Paste any webinar, training, or lecture recording URL via the form. WayinVideo transcribes the full session with speaker labels and timestamps. GPT-4o-mini reads the transcript and identifies 3 to 8 distinct topics covered — then for each topic writes a complete structured knowledge page with summary, key insights, action items, notable quotes, timestamps, and tags. One Notion page is created per topic. Every created page is also logged to Google Sheets with the Notion page URL for easy team access.\n\n## How it works\n- **1. Form — Webinar URL + Details** collects the recording URL, webinar title, speaker name, topic category, date, and target team\n- **2. WayinVideo — Submit Transcription** submits the URL for speaker-labeled transcription\n- **3. Wait — 90 Seconds** gives the API longer initial processing time for webinar-length recordings\n- **4. WayinVideo — Get Transcript Results** polls for the task result\n- **5. IF — Transcription Complete?** checks for SUCCEEDED — if not, retries via 30-second wait\n- **7. Code — Format Transcript** formats each segment with speaker labels and timestamps\n- **8. AI Agent — Extract Knowledge Topics** uses GPT-4o-mini to extract 3–8 topics as a JSON array — each with summary, key insights, action items, notable quotes, timestamps, and tags\n- **10. Code — Parse Topics and Build Notion Content** parses the JSON array, adds webinar metadata, builds markdown content per topic, and returns one item per topic\n- **11. Notion — Create Topic Page** creates one Notion page per topic with full structured content\n- **12. Google Sheets — Log Created Pages** logs each page with the Notion page ID and URL\n\n## Set up steps\n1. In **2. WayinVideo — Submit Transcription** and **4. WayinVideo — Get Transcript Results** — replace YOUR_WAYINVIDEO_API_KEY\n2. In **9. OpenAI — GPT-4o-mini Model** — connect your OpenAI credential\n3. In **11. Notion — Create Topic Page** — connect your Notion OAuth credential and set the parent database ID\n4. In **12. Google Sheets — Log Created Pages** — connect your Google Sheets OAuth2 credential and replace YOUR_GOOGLE_SHEET_LOG_ID\n5. Create a Google Sheet tab named Knowledge Base Log with columns: Webinar Title, Topic Title, Speaker, Topic Category, Webinar Date, Notion Page ID, Notion Page URL, Tags, Created On, Status"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f1edf4fe-2f80-43e5-8480-62bce6dab8bb",
+        "name": "Section — Form Input",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2624,
+          -416
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 324,
+          "height": 308,
+          "content": "## Form Input\nUser submits webinar URL, title, speaker name, topic category, date, and optional target team. All fields feed into the transcript formatter and AI prompt."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "7cd29961-648f-4601-a6b1-76ccb44cecb4",
+        "name": "Section — Transcription Submit and Poll",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2256,
+          -432
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 660,
+          "height": 356,
+          "content": "## WayinVideo Transcription Submit and Poll\nSubmits the webinar URL for speaker-labeled transcription. Waits 90 seconds for initial processing — longer than short videos. Polls the results endpoint until status equals SUCCEEDED."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "31c012ef-e906-4ff2-86ca-ad1db9da5900",
+        "name": "Section — Status Check and Retry Loop",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1568,
+          -496
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 292,
+          "height": 628,
+          "content": "## Transcription Status Check and Retry Loop\nIF checks for SUCCEEDED status. TRUE proceeds to transcript formatting. FALSE waits 30 seconds and polls again. Loop continues until the transcript is ready."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "7356d83e-faab-4784-924a-1034058a085e",
+        "name": "Section — Transcript Formatting and AI Knowledge Extraction",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1232,
+          -608
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 516,
+          "height": 884,
+          "content": "## Transcript Formatting and AI Knowledge Extraction\nFormats transcript with speaker labels and timestamps. GPT-4o-mini identifies 3–8 distinct topics and returns a JSON array — each topic includes summary, key insights, action items, notable quotes, timestamps, and tags."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "fd9c1e5c-8ceb-4aa5-add4-35701581969d",
+        "name": "Section — Topic Parsing, Notion Creation, and Sheet Logging",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -672,
+          -432
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 756,
+          "height": 436,
+          "content": "## Topic Parsing, Notion Page Creation, and Sheet Logging\nParses the JSON array and returns one item per topic with full markdown content. Notion creates one page per topic. Google Sheets logs every created page with the Notion URL for easy team access."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "7beefd82-26d7-4cf8-937d-51d4632035d6",
+        "name": "1. Form — Webinar URL + Details",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          -2496,
+          -288
+        ],
+        "webhookId": "f873e8f2-49b8-4d7b-abe6-6e656420d835",
+        "parameters": {
+          "options": {},
+          "formTitle": "Webinar to Notion Knowledge Base Builder",
+          "formFields": {
+            "values": [
+              {
+                "fieldLabel": "Webinar / Recording URL",
+                "placeholder": "https://zoom.us/rec/xxxxxxx or YouTube/Vimeo link",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Webinar Title",
+                "placeholder": "e.g. Advanced SEO Strategies for 2025 — Webinar",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Speaker / Presenter Name",
+                "placeholder": "e.g. John Smith, Jane Doe",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Topic Category",
+                "placeholder": "e.g. SEO, Marketing, AI, Leadership, Sales, Product",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Webinar Date",
+                "placeholder": "e.g. 2025-04-28",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "Target Team / Department",
+                "placeholder": "e.g. Marketing Team, Sales Team, All Staff"
+              }
+            ]
+          },
+          "formDescription": "Paste your webinar or training recording URL. AI will transcribe the full session and automatically build a structured knowledge base in Notion — one page per topic covered."
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "f10ebfae-7b0a-44b7-a8cf-86005212e44f",
+        "name": "2. WayinVideo — Submit Transcription",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -2208,
+          -288
+        ],
+        "parameters": {
+          "url": "https://wayinvideo-api.wayin.ai/api/v2/transcripts",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n  \"video_url\": \"{{ $json['Webinar / Recording URL'] }}\",\n  \"target_lang\": \"en\"\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              },
+              {
+                "name": "x-wayinvideo-api-version",
+                "value": "v2"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "00ecb380-5493-4ae2-ae89-b60a5f9a7ddc",
+        "name": "3. Wait — 90 Seconds",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          -1968,
+          -288
+        ],
+        "webhookId": "wait-notion-transcribe-90s",
+        "parameters": {
+          "amount": 90
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "69146826-aa68-4d7c-98e3-29f986bf3033",
+        "name": "4. WayinVideo — Get Transcript Results",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -1712,
+          -288
+        ],
+        "parameters": {
+          "url": "=https://wayinvideo-api.wayin.ai/api/v2/transcripts/results/{{ $('2. WayinVideo — Submit Transcription').item.json.data.id }}",
+          "options": {},
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              },
+              {
+                "name": "x-wayinvideo-api-version",
+                "value": "v2"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "02894262-1e20-4c42-9cb7-fe2922bed7fd",
+        "name": "5. IF — Transcription Complete?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -1488,
+          -288
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 3,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "status-check",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.data.status }}",
+                "rightValue": "SUCCEEDED"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "cac5a801-7c09-464c-8242-a2a2af2d460d",
+        "name": "6. Wait — 30 Seconds Retry",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          -1488,
+          -80
+        ],
+        "webhookId": "wait-notion-retry-30s",
+        "parameters": {
+          "amount": 30
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "44b30f43-e9de-4e6b-8ada-b04ca3b9fe64",
+        "name": "7. Code — Format Transcript",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1200,
+          -304
+        ],
+        "parameters": {
+          "jsCode": "// Get transcript segments from WayinVideo response\nconst segments = $('4. WayinVideo — Get Transcript Results').item.json.data.transcript || [];\n\nif (segments.length === 0) {\n  throw new Error('Transcript is empty — check if the video URL is valid and publicly accessible.');\n}\n\n// Format transcript with speaker labels and timestamps for GPT\nconst formattedTranscript = segments\n  .map(s => {\n    const timeInSeconds = Math.floor(s.start / 1000);\n    const minutes = Math.floor(timeInSeconds / 60);\n    const seconds = timeInSeconds % 60;\n    const timestamp = `${minutes}:${seconds.toString().padStart(2, '0')}`;\n    return `[${s.speaker} | ${timestamp}] ${s.text.trim()}`;\n  })\n  .join('\\n');\n\n// Calculate duration\nconst lastSegment = segments[segments.length - 1];\nconst totalDurationMs = lastSegment?.end || 0;\nconst totalMinutes = Math.round(totalDurationMs / 60000);\n\n// Unique speakers\nconst speakers = [...new Set(segments.map(s => s.speaker))];\n\n// Word count\nconst wordCount = segments.map(s => s.text).join(' ').split(/\\s+/).length;\n\nreturn [{\n  json: {\n    formattedTranscript,\n    wordCount,\n    totalMinutes,\n    speakerCount: speakers.length,\n    speakers: speakers.join(', '),\n    webinarTitle: $('1. Form — Webinar URL + Details').item.json['Webinar Title'],\n    speakerName: $('1. Form — Webinar URL + Details').item.json['Speaker / Presenter Name'],\n    topicCategory: $('1. Form — Webinar URL + Details').item.json['Topic Category'],\n    webinarDate: $('1. Form — Webinar URL + Details').item.json['Webinar Date'],\n    targetTeam: $('1. Form — Webinar URL + Details').item.json['Target Team / Department'] || 'All Teams',\n    videoUrl: $('1. Form — Webinar URL + Details').item.json['Webinar / Recording URL']\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "83717c32-44d5-44ea-990a-e12061e3ff5a",
+        "name": "8. AI Agent — Extract Knowledge Topics",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          -960,
+          -304
+        ],
+        "parameters": {
+          "text": "={{ $json.formattedTranscript }}",
+          "options": {
+            "systemMessage": "=You are an expert knowledge manager who specializes in extracting structured knowledge from webinar and training transcripts.\n\nYour job is to read this webinar transcript and extract the key topics covered — then for each topic, write a detailed structured knowledge page ready to save in Notion.\n\n---\n\n## WEBINAR DETAILS\n- Webinar Title: {{ $json.webinarTitle }}\n- Speaker / Presenter: {{ $json.speakerName }}\n- Topic Category: {{ $json.topicCategory }}\n- Date: {{ $json.webinarDate }}\n- Duration: {{ $json.totalMinutes }} minutes\n- Target Team: {{ $json.targetTeam }}\n- Recording URL: {{ $json.videoUrl }}\n\n---\n\n## YOUR TASK\n1. First identify all the distinct topics covered in the webinar (minimum 3, maximum 8 topics)\n2. For each topic, write a complete structured knowledge page\n3. Base EVERYTHING only on what was actually said in the transcript — no invented content\n\n---\n\n## OUTPUT FORMAT\nReturn a valid JSON array only — no text before or after, no markdown backticks.\n\nEach item in the array represents one topic page:\n\n[\n  {\n    \"topic_title\": \"Short clear topic title (5-8 words)\",\n    \"topic_summary\": \"2-3 sentence summary of what was covered on this topic. Write in plain English. No jargon.\",\n    \"key_insights\": [\n      \"First key insight from the transcript on this topic — one sentence each\",\n      \"Second key insight\",\n      \"Third key insight\",\n      \"Fourth key insight (if applicable)\",\n      \"Fifth key insight (if applicable)\"\n    ],\n    \"action_items\": [\n      \"First specific action item or recommendation mentioned by the speaker\",\n      \"Second action item\",\n      \"Third action item (if mentioned)\"\n    ],\n    \"notable_quotes\": [\n      \"Exact or near-exact quote from the speaker that best captures this topic\"\n    ],\n    \"timestamps\": \"Approximate time range where this topic was discussed — e.g. 5:00 - 15:30\",\n    \"tags\": [\"tag1\", \"tag2\", \"tag3\"]\n  }\n]\n\n---\n\n## RULES\n- Return ONLY the JSON array — nothing else\n- Do not invent content — extract only from transcript\n- Keep key_insights short and actionable — one clear idea per insight\n- Keep action_items practical — what should someone DO after watching this\n- Tags should be 2-4 lowercase single words relevant to the topic\n- If a notable quote cannot be found for a topic, use an empty array []\n\nNow read the transcript and return the JSON array:"
+          },
+          "promptType": "define"
+        },
+        "typeVersion": 3.1
+      },
+      {
+        "id": "b6b708f7-8f64-4af5-9a48-69fac0782e73",
+        "name": "9. OpenAI — GPT-4o-mini Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          -960,
+          -96
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4o-mini"
+          },
+          "options": {},
+          "builtInTools": {}
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "7271ab3b-79ff-466f-bc6b-546aebf40fb8",
+        "name": "10. Code — Parse Topics and Build Notion Content",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -608,
+          -304
+        ],
+        "parameters": {
+          "jsCode": "// Parse AI output — extract JSON array of topics\nconst output = $input.first().json.output || '';\n\nlet topics = [];\ntry {\n  // Strip any markdown formatting if present\n  const cleaned = output\n    .replace(/```json/gi, '')\n    .replace(/```/g, '')\n    .trim();\n\n  // Find JSON array in output\n  const match = cleaned.match(/\\[\\s*\\{[\\s\\S]*\\}\\s*\\]/);\n  if (match) {\n    topics = JSON.parse(match[0]);\n  } else {\n    topics = JSON.parse(cleaned);\n  }\n} catch (e) {\n  throw new Error('Could not parse AI output as JSON. Check the AI prompt output: ' + output.substring(0, 200));\n}\n\nif (!Array.isArray(topics) || topics.length === 0) {\n  throw new Error('No topics extracted from AI output.');\n}\n\n// Add webinar metadata to each topic\nconst webinarTitle = $('7. Code — Format Transcript').item.json.webinarTitle;\nconst speakerName = $('7. Code — Format Transcript').item.json.speakerName;\nconst topicCategory = $('7. Code — Format Transcript').item.json.topicCategory;\nconst webinarDate = $('7. Code — Format Transcript').item.json.webinarDate;\nconst targetTeam = $('7. Code — Format Transcript').item.json.targetTeam;\nconst videoUrl = $('7. Code — Format Transcript').item.json.videoUrl;\nconst totalMinutes = $('7. Code — Format Transcript').item.json.totalMinutes;\n\nreturn topics.map((topic, index) => ({\n  json: {\n    // Topic data\n    topicTitle: topic.topic_title || `Topic ${index + 1}`,\n    topicSummary: topic.topic_summary || '',\n    keyInsights: Array.isArray(topic.key_insights) ? topic.key_insights : [],\n    actionItems: Array.isArray(topic.action_items) ? topic.action_items : [],\n    notableQuotes: Array.isArray(topic.notable_quotes) ? topic.notable_quotes : [],\n    timestamps: topic.timestamps || '',\n    tags: Array.isArray(topic.tags) ? topic.tags : [],\n\n    // Webinar metadata\n    webinarTitle,\n    speakerName,\n    topicCategory,\n    webinarDate,\n    targetTeam,\n    videoUrl,\n    totalMinutes,\n    topicIndex: index + 1,\n\n    // Build Notion page content in Markdown\n    notionPageContent: [\n      `## Summary`,\n      topic.topic_summary || '',\n      ``,\n      `## Key Insights`,\n      ...(topic.key_insights || []).map(insight => `- ${insight}`),\n      ``,\n      `## Action Items`,\n      ...(topic.action_items || []).map(action => `- [ ] ${action}`),\n      ``,\n      ...(topic.notable_quotes && topic.notable_quotes.length > 0 ? [\n        `## Notable Quotes`,\n        ...topic.notable_quotes.map(quote => `> \"${quote}\"`),\n        ``\n      ] : []),\n      `## Webinar Details`,\n      `- **Webinar:** ${webinarTitle}`,\n      `- **Speaker:** ${speakerName}`,\n      `- **Date:** ${webinarDate}`,\n      `- **Duration:** ${totalMinutes} minutes`,\n      `- **Timestamps in recording:** ${topic.timestamps || 'N/A'}`,\n      `- **Target Team:** ${targetTeam}`,\n      `- **Recording URL:** ${videoUrl}`\n    ].join('\\n')\n  }\n}));"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "acdd4623-c957-49fe-b6ac-3bbb1ef5f141",
+        "name": "11. Notion — Create Topic Page",
+        "type": "n8n-nodes-base.notion",
+        "position": [
+          -336,
+          -304
+        ],
+        "parameters": {
+          "title": "={{ $json.webinarTitle }} — {{ $json.topicTitle }}",
+          "pageId": {
+            "__rl": true,
+            "mode": "url",
+            "value": ""
+          },
+          "blockUi": {
+            "blockValues": [
+              {
+                "textContent": "={{ $json.notionPageContent }}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "af26ec34-6fa6-4f61-8300-49f7ac40c489",
+        "name": "12. Google Sheets — Log Created Pages",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -96,
+          -304
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "Tags": "={{ $('10. Code — Parse Topics and Build Notion Content').item.json.tags.join(', ') }}",
+              "Status": "Published",
+              "Speaker": "={{ $('10. Code — Parse Topics and Build Notion Content').item.json.speakerName }}",
+              "Created On": "={{ $now.toFormat('dd MMMM yyyy HH:mm') }}",
+              "Topic Title": "={{ $('10. Code — Parse Topics and Build Notion Content').item.json.topicTitle }}",
+              "Webinar Date": "={{ $('10. Code — Parse Topics and Build Notion Content').item.json.webinarDate }}",
+              "Webinar Title": "={{ $('10. Code — Parse Topics and Build Notion Content').item.json.webinarTitle }}",
+              "Notion Page ID": "={{ $json.id }}",
+              "Topic Category": "={{ $('10. Code — Parse Topics and Build Notion Content').item.json.topicCategory }}",
+              "Notion Page URL": "={{ $json.url }}"
+            },
+            "schema": [],
+            "mappingMode": "defineBelow",
+            "matchingColumns": []
+          },
+          "options": {},
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "Knowledge Base Log"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "YOUR_GOOGLE_SHEET_LOG_ID"
+          }
+        },
+        "typeVersion": 4.5
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "3. Wait — 90 Seconds": {
+        "main": [
+          [
+            {
+              "node": "4. WayinVideo — Get Transcript Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "6. Wait — 30 Seconds Retry": {
+        "main": [
+          [
+            {
+              "node": "4. WayinVideo — Get Transcript Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "7. Code — Format Transcript": {
+        "main": [
+          [
+            {
+              "node": "8. AI Agent — Extract Knowledge Topics",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "9. OpenAI — GPT-4o-mini Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "8. AI Agent — Extract Knowledge Topics",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "11. Notion — Create Topic Page": {
+        "main": [
+          [
+            {
+              "node": "12. Google Sheets — Log Created Pages",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "1. Form — Webinar URL + Details": {
+        "main": [
+          [
+            {
+              "node": "2. WayinVideo — Submit Transcription",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "5. IF — Transcription Complete?": {
+        "main": [
+          [
+            {
+              "node": "7. Code — Format Transcript",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "6. Wait — 30 Seconds Retry",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2. WayinVideo — Submit Transcription": {
+        "main": [
+          [
+            {
+              "node": "3. Wait — 90 Seconds",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "4. WayinVideo — Get Transcript Results": {
+        "main": [
+          [
+            {
+              "node": "5. IF — Transcription Complete?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "8. AI Agent — Extract Knowledge Topics": {
+        "main": [
+          [
+            {
+              "node": "10. Code — Parse Topics and Build Notion Content",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "10. Code — Parse Topics and Build Notion Content": {
+        "main": [
+          [
+            {
+              "node": "11. Notion — Create Topic Page",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 35,
+      "name": "Document Extraction"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15358",
+  "fetched_at": "2026-09-12T13:15:23Z"
+}

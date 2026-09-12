@@ -1,0 +1,1124 @@
+{
+  "id": 19351,
+  "name": "Route AI voice call webhooks to WhatsApp and Google Sheets with OpenAI",
+  "description": "## Quick overview\nYour voice agent ends a call, fires a webhook, and nobody reads it until the customer rings back annoyed. This one reads every call, works out which are actually urgent from the model's own fields, and puts those on the owner's WhatsApp. Everything gets logged.\n\n## How it works\n1. Receives a POST webhook when a voice call ends, containing the call metadata plus an optional transcript and summary.\n2. Normalizes the incoming payload into consistent fields (call ID, end reason, transcript/summary text, and caller phone) and checks whether the call has usable text based on known failure end reasons.\n3. If the call is unprocessable (for example no transcript/summary or a failure end reason), creates an “unprocessable” record and appends it to the Google Sheets “Call Log” tab.\n4. If the call has usable text, sends the transcript/summary to OpenAI to extract structured facts such as caller name/phone, intent, sentiment, urgency, summary, requested action, and any follow-up date.\n5. Decides whether the call is urgent using the extracted urgency/sentiment plus keyword matching against your configured urgent keyword list.\n6. Appends the call to Google Sheets as either an urgent or routine record, and optionally sends a WhatsApp message to the business owner with the urgent call details.\n\n## Setup\n1. Copy the webhook URL from the “Voice Call Ended” trigger and configure your voice agent platform to POST its end-of-call payload to that URL.\n2. Add an OpenAI credential for the extraction model and select the model you want to use.\n3. Add a WhatsApp Business Cloud credential, set your WhatsApp Business phone number ID, and fill in the business owner’s WhatsApp number in the handoff settings.\n4. Add a Google Sheets credential and replace the placeholder spreadsheet IDs and sheet/tab names for “Call Log”, “Urgent calls”, and “Routine calls” (or swap these logging steps for your CRM nodes).\n5. Review and customize the urgent keyword list and the WhatsApp auto-send switch in the handoff settings before activating the workflow.",
+  "workflow": {
+    "name": "[FHQ-TPL] Hand off AI voice calls to WhatsApp and your CRM without losing urgent ones",
+    "nodes": [
+      {
+        "id": "99a79fba-7bfc-4a6c-9657-90610e332f31",
+        "name": "Voice Call Ended",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          280,
+          460
+        ],
+        "webhookId": "03b7fd6f-a19c-4edc-b4fe-f027b0714e53",
+        "parameters": {
+          "path": "voice-call-ended",
+          "options": {
+            "noResponseBody": false
+          },
+          "httpMethod": "POST",
+          "responseMode": "onReceived",
+          "authentication": "none"
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "ba97e35b-bc4c-483b-87fb-fad1a68ca599",
+        "name": "Handoff Settings",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          600,
+          460
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "owner-whatsapp",
+                "name": "businessOwnerWhatsAppNumber",
+                "type": "string",
+                "value": "<__PLACEHOLDER_VALUE__The BUSINESS OWNER's own WhatsApp number, e.g. +1234567890 - this receives the alert, NEVER the caller's number__>"
+              },
+              {
+                "id": "urgent-keywords",
+                "name": "urgentKeywords",
+                "type": "array",
+                "value": "={{ [\"emergency\",\"urgent\",\"asap\",\"right now\",\"today\",\"flood\",\"fire\",\"gas leak\",\"injured\",\"no heat\",\"burst pipe\",\"cannot wait\"] }}"
+              },
+              {
+                "id": "auto-whatsapp",
+                "name": "sendWhatsAppAutomatically",
+                "type": "boolean",
+                "value": true
+              },
+              {
+                "id": "crm-system",
+                "name": "crmSystem",
+                "type": "string",
+                "value": "<__PLACEHOLDER_VALUE__Name of the CRM this logs to, e.g. HubSpot or your Google Sheet - for reference only, wire the Sheets/CRM nodes below to the real system__>"
+              }
+            ]
+          },
+          "includeOtherFields": true
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "7dc923ad-cbee-4d06-b0f7-68123fd49d72",
+        "name": "Normalise Call Payload",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          920,
+          460
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const rows = [];\nfor (const item of $input.all()) {\n  const body = item.json.body ?? item.json;\n  const call = body.call ?? {};\n  const customer = body.customer ?? call.customer ?? {};\n  const callId = String(call.id ?? body.callId ?? body.call_id ?? '').trim();\n  const endedReason = String(call.endedReason ?? body.endedReason ?? body.ended_reason ?? '').trim();\n  const transcript = String(body.transcript ?? call.transcript ?? '').trim();\n  const summary = String(body.summary ?? call.summary ?? body.analysis?.summary ?? '').trim();\n  const callerPhoneFromPlatform = String(customer.number ?? body.callerPhone ?? body.from ?? '').trim();\n  rows.push({ json: {\n    callId,\n    endedReason,\n    transcript,\n    summary,\n    callerPhoneFromPlatform,\n    receivedAt: new Date().toISOString()\n  } });\n}\nreturn rows;",
+          "language": "javaScript"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "6fbb09ff-aed8-49b5-8316-984b9b255301",
+        "name": "Check Call Usability",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1240,
+          460
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const FAILURE_ENDED_REASONS = ['no-answer','voicemail','customer-did-not-give-microphone-permission','customer-did-not-answer','busy','customer-busy','error','pipeline-error','assistant-error','call-start-error-neither-assistant-nor-server-set','silence-timed-out','exceeded-max-duration','dial-busy','dial-no-answer'];\nconst rows = [];\nfor (const item of $input.all()) {\n  const data = item.json;\n  const reason = String(data.endedReason || '').toLowerCase();\n  const transcriptText = String(data.transcript || data.summary || '').trim();\n  const hasWords = transcriptText.length > 0;\n  const isFailureReason = FAILURE_ENDED_REASONS.indexOf(reason) !== -1;\n  const hasUsableTranscript = hasWords && !isFailureReason;\n  const reasons = [];\n  if (!hasWords) { reasons.push('no transcript or summary text on the payload'); }\n  if (isFailureReason) { reasons.push('endedReason is \"' + (reason || 'unknown') + '\", a known failure code'); }\n  rows.push({ json: Object.assign({}, data, {\n    hasUsableTranscript,\n    unprocessableReason: reasons.join('; ')\n  }) });\n}\nreturn rows;",
+          "language": "javaScript"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "6b8c18eb-d8e7-4d79-89e0-5dddb9f2fe29",
+        "name": "Has Usable Transcript?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1560,
+          460
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "usable",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                },
+                "leftValue": "={{ $json.hasUsableTranscript }}",
+                "rightValue": ""
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "4a860fa3-7c25-4f32-a048-40cec8ad49cf",
+        "name": "Extract Call Details",
+        "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+        "position": [
+          1880,
+          380
+        ],
+        "parameters": {
+          "text": "=Call ended reason: {{ $json.endedReason }}\nTranscript: {{ $json.transcript }}\nCall summary: {{ $json.summary }}\nCaller phone on file: {{ $json.callerPhoneFromPlatform }}",
+          "options": {
+            "systemPromptTemplate": "You extract facts from a phone call transcript or summary for a small business. Only use what was actually said in the text you are given. Never invent a name, a phone number, a date, or any detail that is not present - use null for anything you cannot find. You do not decide what should happen next: do not recommend an action, do not set a priority label beyond the urgency field, and do not write instructions. Routing is decided elsewhere by code, not by you."
+          },
+          "attributes": {
+            "attributes": [
+              {
+                "name": "callerName",
+                "type": "string",
+                "required": false,
+                "description": "The caller name if they said it out loud. Return null if it was never mentioned - never invent one."
+              },
+              {
+                "name": "callerPhone",
+                "type": "string",
+                "required": false,
+                "description": "A phone number the caller gave verbally, if different from the number on file. Return null if none was given."
+              },
+              {
+                "name": "intent",
+                "type": "string",
+                "required": false,
+                "description": "A short plain-English phrase for what the caller wanted, based only on the transcript."
+              },
+              {
+                "name": "sentiment",
+                "type": "string",
+                "required": true,
+                "description": "One of: positive, neutral, negative. Judge only from what was said. Default to neutral if unclear."
+              },
+              {
+                "name": "urgency",
+                "type": "string",
+                "required": true,
+                "description": "One of: low, medium, high. Use high only when the caller explicitly describes an emergency, a safety issue, or says it cannot wait. Never invent urgency from tone alone - if you are not genuinely confident, use low."
+              },
+              {
+                "name": "summary",
+                "type": "string",
+                "required": true,
+                "description": "One or two plain sentences summarising the call for a human reading a log."
+              },
+              {
+                "name": "actionRequested",
+                "type": "string",
+                "required": false,
+                "description": "The specific thing the caller asked for, if any. Return null if nothing specific was requested."
+              },
+              {
+                "name": "followUpDate",
+                "type": "string",
+                "required": false,
+                "description": "A date the caller mentioned for a callback or visit, in YYYY-MM-DD if you can tell. Return null if no date was mentioned."
+              }
+            ]
+          },
+          "schemaType": "fromAttributes"
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "1b52f9c9-fc93-4689-8646-52db68c7fdb1",
+        "name": "Extraction Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          1880,
+          200
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-5-mini"
+          },
+          "options": {
+            "temperature": 0.1
+          }
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "ed0fe1ee-08e3-4c1f-ba7d-b2fec139205b",
+        "name": "Decide Routing",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2200,
+          380
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const settings = $('Handoff Settings').first().json;\nconst original = $('Normalise Call Payload').first().json;\nconst urgentKeywords = Array.isArray(settings.urgentKeywords) ? settings.urgentKeywords : [];\nconst rows = [];\nfor (const item of $input.all()) {\n  const extracted = item.json.output ? item.json.output : item.json;\n  const sentiment = String(extracted.sentiment || 'neutral').toLowerCase();\n  const urgency = String(extracted.urgency || 'low').toLowerCase();\n  const summary = String(extracted.summary || '').trim();\n  const intent = String(extracted.intent || '').trim();\n  const haystack = (summary + ' ' + intent).toLowerCase();\n  const matchedKeywords = urgentKeywords.filter(function (word) {\n    return haystack.indexOf(String(word).toLowerCase()) !== -1;\n  });\n  const reasons = [];\n  if (urgency === 'high') { reasons.push('model marked urgency high'); }\n  if (sentiment === 'negative') { reasons.push('model marked sentiment negative'); }\n  if (matchedKeywords.length > 0) { reasons.push('summary/intent matched keyword(s): ' + matchedKeywords.join(', ')); }\n  const urgent = reasons.length > 0;\n  rows.push({ json: {\n    callId: original.callId,\n    endedReason: original.endedReason,\n    transcript: String(original.transcript || '').slice(0, 500),\n    callerName: extracted.callerName || null,\n    callerPhone: extracted.callerPhone || original.callerPhoneFromPlatform || null,\n    intent,\n    sentiment,\n    urgency,\n    summary,\n    actionRequested: extracted.actionRequested || null,\n    followUpDate: extracted.followUpDate || null,\n    urgent,\n    urgentReason: reasons.join('; '),\n    routingOutcome: urgent ? 'urgent' : 'routine',\n    businessOwnerWhatsAppNumber: settings.businessOwnerWhatsAppNumber,\n    sendWhatsAppAutomatically: settings.sendWhatsAppAutomatically === true,\n    crmSystem: settings.crmSystem,\n    checkedAt: new Date().toISOString()\n  } });\n}\nreturn rows;",
+          "language": "javaScript"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "8d5a7405-4355-4cdf-8ef2-8babf9b5e4ef",
+        "name": "Is Urgent?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          2520,
+          380
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "urgent-flag",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                },
+                "leftValue": "={{ $json.urgent }}",
+                "rightValue": ""
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "d3e85eb5-83cf-41a7-8c03-c1264f44b5fc",
+        "name": "Log Urgent Call to CRM",
+        "type": "n8n-nodes-base.googleSheets",
+        "onError": "continueRegularOutput",
+        "position": [
+          2840,
+          180
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "Intent": "={{ $json.intent }}",
+              "Call ID": "={{ $json.callId }}",
+              "Summary": "={{ $json.summary }}",
+              "Urgency": "={{ $json.urgency }}",
+              "Sentiment": "={{ $json.sentiment }}",
+              "Checked at": "={{ $json.checkedAt }}",
+              "Caller name": "={{ $json.callerName }}",
+              "Caller phone": "={{ $json.callerPhone }}",
+              "Follow up date": "={{ $json.followUpDate }}",
+              "Routing outcome": "={{ $json.routingOutcome }}",
+              "Action requested": "={{ $json.actionRequested }}"
+            },
+            "schema": [
+              {
+                "id": "Checked at",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Checked at",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Call ID",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Call ID",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Caller name",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Caller name",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Caller phone",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Caller phone",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Intent",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Intent",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Sentiment",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Sentiment",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Urgency",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Urgency",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Summary",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Summary",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Action requested",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Action requested",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Follow up date",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Follow up date",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Routing outcome",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Routing outcome",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow"
+          },
+          "options": {},
+          "resource": "sheet",
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "Urgent calls"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "<__PLACEHOLDER_VALUE__Your Google Sheet ID (or swap this node for your CRM)__>"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "e8231d5f-3617-4715-9cd8-b2abf6f0482e",
+        "name": "Log Routine Call to CRM",
+        "type": "n8n-nodes-base.googleSheets",
+        "onError": "continueRegularOutput",
+        "position": [
+          2840,
+          540
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "Intent": "={{ $json.intent }}",
+              "Call ID": "={{ $json.callId }}",
+              "Summary": "={{ $json.summary }}",
+              "Urgency": "={{ $json.urgency }}",
+              "Sentiment": "={{ $json.sentiment }}",
+              "Checked at": "={{ $json.checkedAt }}",
+              "Caller name": "={{ $json.callerName }}",
+              "Caller phone": "={{ $json.callerPhone }}",
+              "Follow up date": "={{ $json.followUpDate }}",
+              "Routing outcome": "={{ $json.routingOutcome }}",
+              "Action requested": "={{ $json.actionRequested }}"
+            },
+            "schema": [
+              {
+                "id": "Checked at",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Checked at",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Call ID",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Call ID",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Caller name",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Caller name",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Caller phone",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Caller phone",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Intent",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Intent",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Sentiment",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Sentiment",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Urgency",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Urgency",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Summary",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Summary",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Action requested",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Action requested",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Follow up date",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Follow up date",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Routing outcome",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Routing outcome",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow"
+          },
+          "options": {},
+          "resource": "sheet",
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "Routine calls"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "<__PLACEHOLDER_VALUE__Your Google Sheet ID (or swap this node for your CRM)__>"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "52aa5ccf-7398-46ee-893a-00ce196575f6",
+        "name": "Prepare Unprocessable Record",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1880,
+          920
+        ],
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "id": "routing-outcome",
+                "name": "routingOutcome",
+                "type": "string",
+                "value": "unprocessable"
+              },
+              {
+                "id": "caller-name",
+                "name": "callerName",
+                "type": "string",
+                "value": ""
+              },
+              {
+                "id": "caller-phone",
+                "name": "callerPhone",
+                "type": "string",
+                "value": "={{ $json.callerPhoneFromPlatform }}"
+              },
+              {
+                "id": "intent",
+                "name": "intent",
+                "type": "string",
+                "value": ""
+              },
+              {
+                "id": "sentiment",
+                "name": "sentiment",
+                "type": "string",
+                "value": ""
+              },
+              {
+                "id": "urgency",
+                "name": "urgency",
+                "type": "string",
+                "value": ""
+              },
+              {
+                "id": "summary",
+                "name": "summary",
+                "type": "string",
+                "value": "={{ $json.unprocessableReason }}"
+              },
+              {
+                "id": "action-requested",
+                "name": "actionRequested",
+                "type": "string",
+                "value": ""
+              },
+              {
+                "id": "follow-up-date",
+                "name": "followUpDate",
+                "type": "string",
+                "value": ""
+              },
+              {
+                "id": "urgent-flag",
+                "name": "urgent",
+                "type": "boolean",
+                "value": false
+              },
+              {
+                "id": "urgent-reason",
+                "name": "urgentReason",
+                "type": "string",
+                "value": ""
+              },
+              {
+                "id": "checked-at",
+                "name": "checkedAt",
+                "type": "string",
+                "value": "={{ $now.toISO() }}"
+              }
+            ]
+          },
+          "includeOtherFields": true
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "218c3bcc-d371-4ac0-9207-76ae58c1ca93",
+        "name": "Log Every Call to Call Log",
+        "type": "n8n-nodes-base.googleSheets",
+        "onError": "continueRegularOutput",
+        "position": [
+          2520,
+          920
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "Intent": "={{ $json.intent }}",
+              "Call ID": "={{ $json.callId }}",
+              "Summary": "={{ $json.summary }}",
+              "Urgency": "={{ $json.urgency }}",
+              "Sentiment": "={{ $json.sentiment }}",
+              "Checked at": "={{ $json.checkedAt }}",
+              "Caller name": "={{ $json.callerName }}",
+              "Caller phone": "={{ $json.callerPhone }}",
+              "Ended reason": "={{ $json.endedReason }}",
+              "Urgent reason": "={{ $json.urgentReason }}",
+              "Follow up date": "={{ $json.followUpDate }}",
+              "Routing outcome": "={{ $json.routingOutcome }}",
+              "Action requested": "={{ $json.actionRequested }}",
+              "Transcript excerpt": "={{ $json.transcript }}"
+            },
+            "schema": [
+              {
+                "id": "Checked at",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Checked at",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Call ID",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Call ID",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Ended reason",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Ended reason",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Transcript excerpt",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Transcript excerpt",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Caller name",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Caller name",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Caller phone",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Caller phone",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Intent",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Intent",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Sentiment",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Sentiment",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Urgency",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Urgency",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Summary",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Summary",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Action requested",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Action requested",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Follow up date",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Follow up date",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Routing outcome",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Routing outcome",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Urgent reason",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "Urgent reason",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow"
+          },
+          "options": {},
+          "resource": "sheet",
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "Call Log"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "<__PLACEHOLDER_VALUE__Your Google Sheet ID for the master Call Log tab__>"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "53558bf5-5f0a-43a1-bb5e-f3eb118fa181",
+        "name": "WhatsApp Alerts On?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          2840,
+          -60
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "switch-on",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                },
+                "leftValue": "={{ $json.sendWhatsAppAutomatically }}",
+                "rightValue": ""
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "28dc59ad-caad-4239-bf76-123aded4c31a",
+        "name": "Alert Business Owner via WhatsApp",
+        "type": "n8n-nodes-base.whatsApp",
+        "onError": "continueRegularOutput",
+        "position": [
+          3160,
+          -60
+        ],
+        "webhookId": "131727fe-1d05-4311-b73c-fb7c649a92c8",
+        "parameters": {
+          "resource": "message",
+          "textBody": "=Urgent call, needs you.\nFrom: {{ $json.callerName || \"unknown caller\" }} ({{ $json.callerPhone }})\nSummary: {{ $json.summary }}\nWhy flagged: {{ $json.urgentReason }}\nRequested: {{ $json.actionRequested }}",
+          "operation": "send",
+          "messageType": "text",
+          "phoneNumberId": "<__PLACEHOLDER_VALUE__Your WhatsApp Business phone number ID__>",
+          "recipientPhoneNumber": "={{ $json.businessOwnerWhatsAppNumber }}"
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "98f15d15-6197-44e2-8a98-c2cca054165e",
+        "name": "Sticky Note 45efc701",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -680,
+          -260
+        ],
+        "parameters": {
+          "width": 900,
+          "height": 1500,
+          "content": "## Hand off AI voice calls to WhatsApp and your CRM without losing urgent ones\n\nAI voice agents (Vapi, ElevenLabs, Retell and the rest) all do the same thing at the end of a call: they fire a webhook with a transcript and hang up. What happens to that webhook is usually nothing. Nobody reads it until a customer calls back annoyed that nobody followed up.\n\nI built this workflow to give that webhook one job: never let a call disappear. It reads the transcript, works out what the caller actually needed, and gets the urgent ones in front of a human on WhatsApp within seconds. Every single call, however it ended, gets one row in a log, and nothing is quietly dropped just because a transcript was empty or a call rang out.\n\n**Who's it for**\nThis is for anyone running an AI voice agent in front of a real business: a trades firm taking after-hours calls, a clinic, a small agency screening enquiries. I built it so that if your voice agent can already talk to customers, somebody still sees the ones that matter.\n\n**How it works**\nThe webhook receives the end-of-call payload. A failed or empty call - no answer, voicemail, no transcript - is logged as unprocessable straight away and never reaches the AI, because there is nothing there worth paying for a model call over. A usable call goes to the model, which only extracts facts: who called, what they wanted, their sentiment and urgency, nothing else. It is told explicitly not to decide what happens next.\nThat decision is made by plain code reading the model's own structured fields - never by asking the model what it thinks should happen. A call is urgent if the model marked urgency high, sentiment negative, or the summary matches one of your own keywords. Urgent calls can message the business owner on WhatsApp (never the caller) and get tagged in the CRM. Routine calls get logged with a follow-up date. Every path - urgent, routine, unprocessable - writes one row to the master Call Log, so you can always see exactly what came in and what happened to it.\n\n**How to set up**\n1. Point your voice agent's end-of-call webhook at this workflow's URL.\n2. Fill in Handoff Settings: the business owner's own WhatsApp number, your urgent keywords, and whether WhatsApp alerts should send automatically.\n3. Connect an OpenAI credential on the Extraction Model node.\n4. Connect WhatsApp Business Cloud on the alert node, and Google Sheets (or swap in your CRM) on the three logging nodes.\n5. Point all four sheet nodes at your own spreadsheet and tabs.\n6. Send a test payload with a full transcript and one with an empty transcript, and check both land where you expect in the Call Log.\n\n**Requirements**\nAn OpenAI key, a WhatsApp Business Cloud connection, and somewhere to log to (Google Sheets ships wired up; any CRM node works the same way).\n\n**How to customise**\nYour urgent keyword list and the WhatsApp switch both live in Handoff Settings - change them there, not in the code. The failure reasons that mark a call unprocessable live at the top of Check Call Usability if your voice platform uses different codes. Swap the three Sheets nodes for HubSpot, Airtable or Postgres without touching anything upstream of them.\n\n---\nBuilt by **Fractional HQ** · https://fractionalhq.uk\nWant this wired into your own stack instead of a generic voice bot? Send us a brief at https://fractionalhq.uk/brief and I will take a look."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "sec-44364138",
+        "name": "Sticky 1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          240,
+          224
+        ],
+        "parameters": {
+          "width": 820,
+          "height": 436,
+          "content": "### 1. Take the call in\nThe webhook receives your voice platform's end-of-call payload. Handoff Settings is the only node you edit: the owner's WhatsApp number, your urgent keywords, and whether alerts send automatically. Normalise reads the common payload shapes so Vapi, Retell and the rest all land in the same fields."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "sec-41546141",
+        "name": "Sticky 2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1200,
+          246
+        ],
+        "parameters": {
+          "width": 500,
+          "height": 414,
+          "content": "### 2. Stop the empty ones before they cost anything\nA no-answer, a voicemail or an empty transcript is caught here and never reaches the model, so you are not paying for a call with nothing in it."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "sec-34844897",
+        "name": "Sticky 3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1840,
+          -14
+        ],
+        "parameters": {
+          "width": 820,
+          "height": 594,
+          "content": "### 3. Extract the facts, then decide in plain code\nThe model reads the transcript and returns who called, what they wanted, sentiment and urgency. It is told not to decide what happens next. Decide Routing reads those fields plus your own keyword list, so a call is never routed on the model's opinion alone."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "sec-25810979",
+        "name": "Sticky 4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2800,
+          -296
+        ],
+        "parameters": {
+          "width": 500,
+          "height": 1036,
+          "content": "### 4. Urgent reaches a person, routine reaches the sheet\nAn urgent call messages the business owner on WhatsApp, never the caller, and the alert is gated by a switch you control. Routine calls skip the message and just get logged with a follow-up date."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "sec-58290948",
+        "name": "Sticky 5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1840,
+          728
+        ],
+        "parameters": {
+          "width": 820,
+          "height": 392,
+          "content": "### 5. Nothing is dropped, even what could not be read\nEvery path writes one row to the master Call Log, including the calls the model could not read. Those are logged rather than alerted, so check this sheet as well as your WhatsApp."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "settings": {
+      "availableInMCP": true,
+      "executionOrder": "v1"
+    },
+    "connections": {
+      "Is Urgent?": {
+        "main": [
+          [
+            {
+              "node": "Log Urgent Call to CRM",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "WhatsApp Alerts On?",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Log Routine Call to CRM",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Decide Routing": {
+        "main": [
+          [
+            {
+              "node": "Is Urgent?",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Log Every Call to Call Log",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extraction Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Extract Call Details",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Handoff Settings": {
+        "main": [
+          [
+            {
+              "node": "Normalise Call Payload",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Voice Call Ended": {
+        "main": [
+          [
+            {
+              "node": "Handoff Settings",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "WhatsApp Alerts On?": {
+        "main": [
+          [
+            {
+              "node": "Alert Business Owner via WhatsApp",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Call Usability": {
+        "main": [
+          [
+            {
+              "node": "Has Usable Transcript?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Call Details": {
+        "main": [
+          [
+            {
+              "node": "Decide Routing",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Has Usable Transcript?": {
+        "main": [
+          [
+            {
+              "node": "Extract Call Details",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Prepare Unprocessable Record",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalise Call Payload": {
+        "main": [
+          [
+            {
+              "node": "Check Call Usability",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Unprocessable Record": {
+        "main": [
+          [
+            {
+              "node": "Log Every Call to Call Log",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 41,
+      "name": "Ticket Management"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/19351",
+  "fetched_at": "2026-09-12T13:17:23Z"
+}

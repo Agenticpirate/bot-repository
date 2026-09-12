@@ -1,0 +1,390 @@
+{
+  "id": 16490,
+  "name": "Capture website intelligence report, screenshot, PDF and markdown with Microlink",
+  "description": "## Quick overview\nThis workflow runs manually to capture a screenshot and extract a Markdown representation of a webpage using Microlink. It also can convert any url into PDF, extract logos, color palette and more...\n\n## How it works\n1. Runs when you manually execute the workflow in n8n.\n2. Calls the Microlink API to generate a JSON screenshot response for https://apple.com.\n3. Calls the Microlink API again to fetch a Markdown version of the same page and returns it as text. Plus, it calls another url to get the pdf version of it.\n\n## Setup\n1. Add your Microlink API credentials in n8n. They're optional, you can use the free endpoint.\n2. Update the target URL in both Microlink steps if you want to capture a different webpage.\n3. Choose where to send or store the screenshot/Markdown output if you want to use the results outside the workflow execution data.\n\n## Additional info\nRead the https://microlink.io/docs to see all the options the API can return from and url.",
+  "workflow": {
+    "id": "ITD2q7Gm0cA5qhm8",
+    "meta": {
+      "instanceId": "0c66bfbdb42a1d074f1a776668f60bc158ae0d8b5f738941cb9bcdb5b67ead89"
+    },
+    "name": "Website Intelligence Report (Microlink)",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "bdb2e32a-116c-4c43-ac5f-0087afc8a044",
+        "name": "Manual Trigger",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          0,
+          512
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "c5f081ae-ab6d-44ec-b801-92fe66f72cc6",
+        "name": "Config",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          240,
+          512
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "assign-url",
+                "name": "url",
+                "type": "string",
+                "value": "https://microlink.io"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "c4841a10-6a53-471c-b54d-c2b00be524bc",
+        "name": "Microlink - Extract",
+        "type": "n8n-nodes-microlink.microlink",
+        "onError": "continueRegularOutput",
+        "position": [
+          560,
+          512
+        ],
+        "parameters": {
+          "url": "={{ $('Config').item.json.url }}",
+          "options": {},
+          "responseMode": "json"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ce27c9a7-bd56-466a-9d44-aa7ea995057e",
+        "name": "Microlink - Insights",
+        "type": "n8n-nodes-microlink.microlink",
+        "onError": "continueRegularOutput",
+        "position": [
+          800,
+          512
+        ],
+        "parameters": {
+          "url": "={{ $('Config').item.json.url }}",
+          "options": {},
+          "operation": "insights",
+          "responseMode": "json"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "20ba1391-c144-4513-9865-8544755e0057",
+        "name": "Microlink - Markdown",
+        "type": "n8n-nodes-microlink.microlink",
+        "onError": "continueRegularOutput",
+        "position": [
+          1040,
+          512
+        ],
+        "parameters": {
+          "url": "={{ $('Config').item.json.url }}",
+          "options": {},
+          "operation": "markdown"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "60a3c9e0-06b9-45d0-9c33-5987a355574f",
+        "name": "Microlink - PDF",
+        "type": "n8n-nodes-microlink.microlink",
+        "onError": "continueRegularOutput",
+        "position": [
+          1280,
+          512
+        ],
+        "parameters": {
+          "url": "={{ $('Config').item.json.url }}",
+          "options": {
+            "pdfFormat": "A4"
+          },
+          "operation": "pdf",
+          "responseMode": "json"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "97b02b38-e93f-462e-8e13-1e9452d0c458",
+        "name": "Microlink - Screenshot",
+        "type": "n8n-nodes-microlink.microlink",
+        "onError": "continueRegularOutput",
+        "position": [
+          1520,
+          512
+        ],
+        "parameters": {
+          "url": "={{ $('Config').item.json.url }}",
+          "options": {
+            "colorScheme": "dark",
+            "screenshotType": "png",
+            "screenshotFullPage": false,
+            "screenshotOverlayBrowser": "dark",
+            "screenshotOverlayBackground": "linear-gradient(225deg, #FF057C 0%, #8D0B93 50%, #321575 100%)"
+          },
+          "operation": "screenshot",
+          "responseMode": "json"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c1b8c179-cadc-4713-aeb3-9f7d6a16ef9a",
+        "name": "Assemble Report",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1840,
+          512
+        ],
+        "parameters": {
+          "jsCode": "// Consolidate every Microlink output into one clean report record.\nconst cfg = $('Config').first().json;\nconst extract = $('Microlink - Extract').first().json?.data ?? {};\nconst insights = $('Microlink - Insights').first().json?.data?.insights ?? {};\nconst cats = insights.lighthouse?.categories ?? {};\n// Lighthouse scores arrive as 0-1 floats under categories.<name>.score; normalize to 0-100.\nconst score = (c) => (typeof c?.score === 'number' ? Math.round(c.score * 100) : null);\nconst md = $('Microlink - Markdown').first().json?.data ?? '';\n\nconst report = {\n  url: cfg.url,\n  fetchedAt: new Date().toISOString(),\n  title: extract.title ?? null,\n  description: extract.description ?? null,\n  author: extract.author ?? null,\n  publisher: extract.publisher ?? null,\n  date: extract.date ?? null,\n  lang: extract.lang ?? null,\n  image: extract.image?.url ?? null,\n  logo: extract.logo?.url ?? null,\n  lighthouse: {\n    performance: score(cats.performance),\n    accessibility: score(cats.accessibility),\n    bestPractices: score(cats['best-practices']),\n    seo: score(cats.seo),\n  },\n  technologies: Array.isArray(insights.technologies)\n    ? insights.technologies.map((t) => t?.name ?? t).slice(0, 20)\n    : [],\n  markdownExcerpt: typeof md === 'string' ? md.slice(0, 10000) : '',\n};\n\n// Carry the screenshot + PDF binaries into the final item.\nconst binary = {};\nconst shot = $('Microlink - Screenshot').first().binary;\nif (shot) Object.assign(binary, shot);\nconst pdf = $('Microlink - PDF').first().binary;\nif (pdf) Object.assign(binary, pdf);\n\nreturn [{ json: report, binary }];\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "e0d0de2c-3aba-427c-8a4a-2de7a0233f46",
+        "name": "Append to Google Sheets",
+        "type": "n8n-nodes-base.googleSheets",
+        "disabled": true,
+        "position": [
+          2272,
+          512
+        ],
+        "parameters": {
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": ""
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "url",
+            "value": ""
+          }
+        },
+        "typeVersion": 4.5
+      },
+      {
+        "id": "e83df7d0-85b2-487b-965e-897a7c00b827",
+        "name": "Notify in Slack",
+        "type": "n8n-nodes-base.slack",
+        "disabled": true,
+        "position": [
+          2272,
+          736
+        ],
+        "webhookId": "cb4cb29a-5f7b-4f4b-9e60-60f4e527f572",
+        "parameters": {
+          "text": "=📊 *{{ $json.title }}*\n{{ $json.description }}\n\n⚡ Performance: {{ $json.lighthouse.performance }} · 🔍 SEO: {{ $json.lighthouse.seo }}\n🔗 {{ $json.url }}",
+          "select": "channel",
+          "channelId": {
+            "__rl": true,
+            "mode": "name",
+            "value": ""
+          },
+          "otherOptions": {}
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "4f1d29b4-0361-4708-9f50-bdc002fbd106",
+        "name": "Sticky - Title",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -80,
+          -400
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 2624,
+          "height": 352,
+          "content": "# 🔗 Website Intelligence Report — powered by Microlink\n\nTurn **any URL** into a full company brief in one run: **metadata · logo · branded screenshot · SEO / performance insights · tech stack · clean Markdown · PDF archive**.\n\n**💡 Use it to build rich context about a company or platform** — feed the Markdown, image, logo and technical data to an **LLM** to generate an in-depth company profile, power **personalized marketing email campaigns**, or arm **sales reps** with the screenshot, PDF and talking points for their outreach scripts.\n\n**▶ To test:** press **Test workflow**. It analyzes the URL set in the **Config** node using the free `api.microlink.io` endpoint (no credentials needed). *PDF* and *Insights* may require a Microlink API key — those nodes continue on error, so a run never breaks.\n\nMade by Microlink · https://microlink.io/screenshot"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c4ea67c2-d38b-472b-8e0b-c2ca9c75b191",
+        "name": "Sticky - Input",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -80,
+          32
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 528,
+          "height": 384,
+          "content": "## 1 · Input\n\n**Config** holds the URL to analyze (default: `microlink.io`).\n\n**Swap the trigger for production:**\n\n- **Form Trigger** → let anyone submit a URL\n- **Schedule + Sheets** → batch-audit a list\n- **Webhook** → call it from your app"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "0130a08c-b75d-450b-8a02-47d2035b3db7",
+        "name": "Sticky - Capabilities",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          480,
+          32
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 1184,
+          "height": 384,
+          "content": "## 2 · Microlink capabilities\n\nFive operations run in sequence. Each one reads the URL from **Config** via `$('Config').item.json.url`.\n\n- **Extract** — title, description, image, logo, author, publisher, language\n- **Insights** — Lighthouse performance / SEO / accessibility scores + tech stack *(API key)*\n- **Markdown** — clean, LLM-ready page content, ready to pipe into an AI node\n- **PDF** — pixel-perfect archive of the page *(API key)*\n- **Screenshot** — branded capture with dark browser frame and gradient overlay\n\n💡 Add **Microlink API** credentials on any node to raise rate limits and unlock PDF + Insights."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a8476ba0-5c8c-4ae5-ad87-82e47999cb73",
+        "name": "Sticky - Consolidate",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1696,
+          32
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 384,
+          "height": 384,
+          "content": "## 3 · Consolidate\n\n**Assemble Report** merges every Microlink output into one clean JSON record and attaches the screenshot + PDF as binaries.\n\nEdit the field paths in the Code node to keep more or fewer Microlink fields."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9f25f629-8add-4d90-bdca-fe1b1e81ba2e",
+        "name": "Sticky - Deliver",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2112,
+          32
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 432,
+          "height": 384,
+          "content": "## 4 · Deliver\n\n*Both nodes below are disabled — enable the one you need.*\n\n- **Google Sheets** → append the report as a row\n- **Slack** → post a rich summary card\n\nAdd the node credentials and you have an automated URL-audit pipeline. **Notion**, **Airtable**, **Email** or an **AI Summary** node drop in just as easily."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "binaryMode": "separate",
+      "availableInMCP": false,
+      "executionOrder": "v1"
+    },
+    "versionId": "bf64cdd6-ca14-4eb2-95a4-90df0cdc9d4f",
+    "connections": {
+      "Config": {
+        "main": [
+          [
+            {
+              "node": "Microlink - Extract",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Manual Trigger": {
+        "main": [
+          [
+            {
+              "node": "Config",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Assemble Report": {
+        "main": [
+          [
+            {
+              "node": "Append to Google Sheets",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Notify in Slack",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Microlink - PDF": {
+        "main": [
+          [
+            {
+              "node": "Microlink - Screenshot",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Microlink - Extract": {
+        "main": [
+          [
+            {
+              "node": "Microlink - Insights",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Microlink - Insights": {
+        "main": [
+          [
+            {
+              "node": "Microlink - Markdown",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Microlink - Markdown": {
+        "main": [
+          [
+            {
+              "node": "Microlink - PDF",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Microlink - Screenshot": {
+        "main": [
+          [
+            {
+              "node": "Assemble Report",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    }
+  ],
+  "url": "https://n8n.io/workflows/16490",
+  "fetched_at": "2026-09-12T13:15:58Z"
+}

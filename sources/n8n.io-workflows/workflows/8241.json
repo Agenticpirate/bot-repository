@@ -1,0 +1,193 @@
+{
+  "id": 8241,
+  "name": "Weekly meal planner: AI-generated grocery lists with price comparison to WhatsApp",
+  "description": "## Weekly Meal Planner with Auto Grocery Lists using Fillout, FluentC AI & WhatsApp 🍽️  \n### *Automate Your Weekly Family Meal Planning with AI and WhatsApp*\n\nSay goodbye to mealtime stress. This workflow automates your entire weekly meal planning process — from family input to a WhatsApp-sent grocery list — using AI and no-code tools.\n\nPerfect for:\n- Homemakers managing household routines\n- Solopreneurs balancing business and family\n- Parents who want to reduce decision fatigue\n\nThe workflow:\n1. 🗳️ Collects meal preferences via a **Fillout form**\n2. 🤖 Uses **FluentC AI** to generate a 5-day dinner plan and categorized grocery list\n3. 🛒 Checks prices using **Scrappey** (Walmart, Target, etc.)\n4. 📄 Generates a printable **PDF grocery list** with **PDF4me**\n5. 📲 Sends the list to your spouse or family group via **WhatsApp** using **WhatsAble**\n\nFully automated, beginner-friendly, and designed to bring calm to your home.\n\n---\n\n## Setup Requirements\n\nBefore using this workflow, ensure you have the following accounts and tools:\n\n| Service | Purpose | Free Tier Available? |\n|--------|--------|----------------------|\n| [Fillout](https://fillout.com) | Collect family meal preferences | Yes |\n| [FluentC AI](https://fluentc.ai) or OpenAI | AI-powered meal and grocery list generation | Yes (if using OpenAI) |\n| [Scrappey](https://scrappey.com) | Scrape real-time prices from stores | Yes (150 free scrapes) |\n| [PDF4me](https://pdf4me.com) | Generate clean, printable PDFs | Yes |\n| [WhatsAble](https://whatsable.com) | Send WhatsApp messages via API | Yes |\n| [n8n](https://n8n.io) | Orchestrate the automation | Yes |\n\n💡 You’ll need API keys for: FluentC, Scrappey, PDF4me, WhatsAble  \n🔐 All credentials should be stored securely in n8n\n\n---\n\n## Step-by-Step Setup Instructions\n\n### 1. Create Your Fillout Form\nYour form must include the following **fields** to work with this workflow:\n\n| Field Name | Type | Example |\n|----------|------|--------|\n| `Meal Choices` | Multiple Choice or Long Text | “Pasta, Tacos, Stir Fry” |\n| `Dietary Notes` | Short Text (Optional) | “No dairy, vegetarian” |\n| `Preferred Days` | Checkbox | Mon, Tue, Wed |\n| `Submit Timestamp` | Hidden Field | Auto-generated |\n\n📌 **Tip**: Name your form “Weekly Family Meal Poll” and set it to auto-save responses.\n\n🔗 After publishing, copy the **form URL** and add it to the Fillout node in n8n.\n\n---\n\n### 2. Import the Workflow into n8n\n1. Go to your n8n dashboard.\n2. Click **Workflows &gt; Create from JSON**.\n3. Paste the provided JSON.\n4. Click **Import**.\n\n---\n\n### 3. Set Up Credentials\nFor each service, go to **Credentials &gt; Add New** and enter your API key:\n- **FluentC AI** (or OpenAI)\n- **Scrappey**\n- **PDF4me**\n- **WhatsAble**\n- **Fillout**\n\n🔐 Never hardcode keys — always use n8n’s credential system.\n\n---\n\n### 4. Configure the AI Prompt\nIn the **FluentC: Generate Meal Plan** node:\n- Edit the prompt to include dietary needs and output structure:\n  ```text\n  Based on these meal preferences: {{ $json[\"Meal Choices\"] }}.\n  Create a 5-day dinner plan (Mon-Fri) with simple, family-friendly recipes. Then generate a categorized grocery list. Consider dietary notes: {{ $json[\"Dietary Notes\"] }}.\n  Use a warm, friendly tone.\n\n  Output format:\n  {\n    \"mealPlan\": \"Monday: Creamy Garlic Pasta\\nTuesday: Black Bean Tacos...\",\n    \"groceryList\": \"Produce: Bell peppers, onions, spinach\\nPantry: Canned black beans, pasta, olive oil...\"\n  }",
+  "workflow": {
+    "meta": {
+      "templateCreatedBy": {
+        "id": "template-creator",
+        "name": "n8n Template Creator"
+      },
+      "templateCredentials": [
+        "httpHeaderAuth",
+        "openAiApi",
+        "telegramApi"
+      ]
+    },
+    "name": "Weekly Meal Planner → PDF → Telegram",
+    "nodes": [
+      {
+        "id": "ManualTrigger",
+        "name": "Trigger: Weekly Meal Workflow",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          220,
+          320
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "StickyNote1",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          180,
+          180
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "FilloutHTTP",
+        "name": "Fetch Fillout Submission (HTTP)",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          460,
+          320
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "PrepPrompt",
+        "name": "Prep Prompt from Fillout",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          700,
+          320
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "OpenAIHTTP",
+        "name": "OpenAI Chat (HTTP)",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          940,
+          320
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "ValidateJSON",
+        "name": "Validate & Shape Plan",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1180,
+          320
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "BuildHTML",
+        "name": "Build HTML for PDF",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1420,
+          320
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "PDF4meHTTP",
+        "name": "PDF4me: HTML to PDF",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1660,
+          320
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1",
+    "connections": {
+      "Build HTML for PDF": {
+        "main": [
+          [
+            {
+              "node": "PDF4me: HTML to PDF",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat (HTTP)": {
+        "main": [
+          [
+            {
+              "node": "Validate & Shape Plan",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validate & Shape Plan": {
+        "main": [
+          [
+            {
+              "node": "Build HTML for PDF",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prep Prompt from Fillout": {
+        "main": [
+          [
+            {
+              "node": "OpenAI Chat (HTTP)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Trigger: Weekly Meal Workflow": {
+        "main": [
+          [
+            {
+              "node": "Fetch Fillout Submission (HTTP)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Fillout Submission (HTTP)": {
+        "main": [
+          [
+            {
+              "node": "Prep Prompt from Fillout",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 43,
+      "name": "Personal Productivity"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8241",
+  "fetched_at": "2026-09-12T13:12:22Z"
+}

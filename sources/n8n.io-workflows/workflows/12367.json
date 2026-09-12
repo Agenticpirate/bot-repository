@@ -1,0 +1,451 @@
+{
+  "id": 12367,
+  "name": "Analyze and improve Zoho CRM sales cycles with GPT-4, Google Sheets and Slack",
+  "description": "# Zoho CRM Sales Cycle Performance Analyzer & Improver\n\nThis workflow automatically analyzes your Zoho CRM deal cycles with **AI-powered intelligence**, compares them against historical performance data from Google Sheets, and delivers actionable insights to Slack. It identifies bottlenecks, predicts outcomes, analyzes sentiment, generates smart recommendations, creates data visualizations, and builds a historical dataset for future intelligence—all without manual reporting.\n\n### Quick Implementation Steps\n\n1.  **Connect Accounts**: Set up credentials for Zoho CRM, Google Sheets, Slack, and **OpenAI** in n8n.\n2.  **Prepare Sheet**: Create a Google Sheet with headers: `Deal_Name`, `Stage`, `Created_Time`, `Closed_Time` (or `Modified_Time`).\n3.  **Configure Nodes**:\n    *   **Zoho Trigger**: Ensure it pulls your deals.\n    *   **Google Sheets**: Link your \"Historical Data\" sheet to both the \"Fetch\" and \"Log\" nodes.\n    *   **OpenAI Nodes**: Configure your OpenAI API key for AI analysis.\n    *   **Slack**: Select your `#sales-insights` channel.\n4.  **Activate**: Turn on the workflow to start receiving **AI-enhanced** real-time insights on deal closure.\n\n\n## What It Does\n\nThis n8n workflow serves as an **AI-powered automated data analyst** for your sales team. Whenever a deal is fetched from Zoho CRM, the workflow first filters for relevance (e.g., recently closed or modified deals). It then cross-references this specific deal against your historical sales data stored in Google Sheets to calculate key performance metrics like \"Days to Close\" and \"Stage Dwell Time.\"\n\n**🤖 AI-Enhanced Features:**\n\n- **Sentiment Analysis**: Analyzes deal descriptions and communications for emotional tone and risk indicators\n- **Predictive Analytics**: Uses historical patterns to predict win probability and expected close dates\n- **Smart Recommendations**: Generates AI-powered, data-driven process improvement suggestions\n- **Data Visualization**: Creates charts and trend analysis for performance metrics\n- **Performance Scoring**: Calculates comprehensive performance scores and risk levels\n\nBeyond simple calculations, the workflow applies **AI intelligence** to generate human-readable insights. It determines if a deal was faster or slower than average, identifies which stage caused delays, analyzes sentiment for risk assessment, predicts outcomes, and suggests specific process improvements based on the data.\n\nFinally, it closes the loop by broadcasting these **AI-enhanced** focused insights to a Slack channel for immediate team visibility and logging the new deal's performance back into Google Sheets. This ensures your historical dataset grows richer and more accurate with every closed deal, continuously improving the quality of future AI predictions.\n\n\n## Who’s It For\n\n*   **Sales Managers**: To monitor team performance and identify coaching opportunities without digging into CRM reports.\n*   **RevOps Professionals**: To automate the collection of cycle-time data and spot process bottlenecks.\n*   **Small Business Owners**: To get enterprise-grade sales analytics without hiring a data analyst.\n*   **Sales Teams**: To get immediate feedback on their wins and losses, fostering a culture of continuous improvement.\n\n\n## Prerequisites\n\n*   **n8n Instance**: A self-hosted or cloud version of n8n.\n*   **Zoho CRM Account**: With permission to read Deals.\n*   **Google Account**: Access to Google Sheets.\n*   **Slack Workspace**: Permission to post messages to channels.\n*   **OpenAI Account**: API access for GPT-4 model integration.\n*   **Google Sheet**: A formatted sheet to store and retrieve historical deal data.\n\n\n## How to Use & Setup\n\n### 1. Google Sheet Setup\n\nCreate a new Google Sheet. In the first row, add the following headers (the workflow tries to match various case formats, but these are recommended):\n*   `Deal_Name`\n*   `Stage`\n*   `Created_Time`\n*   `Closed_Time`\n*   `Stage_History` (Optional, for advanced dwell time analysis)\n\n### 2. Configure Credentials\n\nIn your n8n dashboard, ensure you have authenticated:\n*   Zoho CRM\n*   Google Sheets\n*   Slack\n*   **OpenAI** (for AI-powered analysis)\n\n### 3. Node Configuration\n\n*   **Zoho CRM - Deal Trigger**: This node is set to \"Get All\" deals. You might want to adjust this to a Trigger node that listens for \"Deal Updated\" or \"Deal Created\" events for real-time automation, or keep it as a scheduled poll.\n*   **Filter Recent Deals (Code Node)**: Currently configured to process deals closed in the last 7 days and limit to 10 items. No changes needed unless you want to process larger batches.\n*   **Fetch Historical Averages (Google Sheets)**:\n    *   Select your Credential.\n    *   **Resource**: Document -&gt; Select your prepared Sheet.\n    *   **Operation**: Get Many (\"GetAll\" or \"Read\").\n    *   **Return All**: True.\n*   **AI Sentiment Analysis (OpenAI)**:\n    *   Select your OpenAI Credential.\n    *   **Model**: GPT-4 (recommended for best results).\n    *   Automatically analyzes deal sentiment and emotional tone.\n*   **AI Predictive Analytics (OpenAI)**:\n    *   Uses historical data to predict outcomes and win probabilities.\n    *   Provides risk assessment and expected close dates.\n*   **AI Smart Recommendations (OpenAI)**:\n    *   Generates intelligent, context-aware recommendations.\n    *   Prioritizes suggestions based on impact and feasibility.\n*   **Advanced Data Visualization**:\n    *   Creates charts for cycle trends, stage distribution, and performance metrics.\n    *   Generates data for visual analysis and reporting.\n*   **Slack Notification**:\n    *   Select your Credential.\n    *   **Channel**: Enter the name of your channel (e.g., `#sales-insights`).\n    *   Now includes **AI-enhanced insights** in the message format.\n*   **Log to Historical Sheet (Google Sheets)**:\n    *   Select your Credential.\n    *   **Resource**: Document -&gt; Select the *same* sheet as above.\n    *   **Operation**: Append.\n\n### 4. Running the Workflow\n\n*   **Test**: Click \"Execute Workflow\" manually to test with the \"Zoho CRM - Deal Trigger\" (conceptually acting as a manual fetch here).\n*   **Production**: Switch the trigger to a legitimate *Schedule Trigger* (e.g., run every morning) or a *Zoho CRM Trigger* (Real-time) to automate the process.\n\n\n## How To Customize Nodes\n\n### Adjusting the Risk/Insight Logic\n\nThe core intelligence lives in the **Analyze Cycle** code node. You can modify the JavaScript here to change thresholds.\n*   **Change \"Slow\" Threshold**: Look for `if (totalDays &gt; avgDays * 1.25)`. Change `1.25` to `1.5` to only flag deals that are 50% slower than average.\n*   **custom Suggestions**: Add new `if` statements in the `// Process improvement suggestions` section to add your own coaching advice based on specific stages or owners.\n\n### Customizing AI Prompts\n\nThe AI nodes use specific prompts that can be customized:\n*   **AI Sentiment Analysis**: Modify the prompt in the OpenAI node to focus on specific aspects (e.g., competitor mentions, pricing concerns).\n*   **AI Predictive Analytics**: Adjust the prediction criteria or add custom factors relevant to your business.\n*   **AI Smart Recommendations**: Customize the recommendation style or focus on specific business objectives.\n\n### Changing the Output Format\n\nThe **Slack Notification** node uses a template. You can customize the message layout by editing the `Text` field. You can use standard Slack markdown (e.g., `*bold*`, `_italics_`) and add variables from specific fields in your CRM (like \"Lead Source\" or \"Competitor\").\n\n### AI Model Configuration\n\n*   **Model Selection**: Change from GPT-4 to GPT-3.5-turbo for faster processing (slightly less accurate).\n*   **Temperature Adjustment**: Modify creativity level in AI responses (0.0 = deterministic, 1.0 = highly creative).\n*   **Token Limits**: Adjust response length for more detailed or concise AI outputs.\n\n\n## Add‑ons\n\nTo extend the functionality of this workflow, consider adding:\n*   **Weekly Report Email**: Add an \"Email\" node at the end to send a summary digest to the CEO every Friday.\n*   **Manager Alert**: Add an `IF` node before Slack to tag the Sales Manager (`@user`) only if the `totalDays` exceeds 60 days or if AI risk level is \"High\".\n*   **CRM Update**: Write the calculated \"Days to Close\" and **AI predictions** back into custom fields in Zoho CRM so you can report on it directly inside Zoho.\n*   **Dashboard Integration**: Send visualization data to tools like Grafana or Power BI for real-time dashboards.\n*   **Competitor Analysis**: Add AI node to analyze deal descriptions for competitor mentions and market trends.\n\n## Use Case Examples\n\n### 1. Post-Mortem on Lost Deals\nWhen a deal is marked \"Closed Lost,\" the workflow calculates how long it sat in each stage. **AI sentiment analysis** detects negative communication patterns, and the Slack alert highlights this bottleneck, prompting a review of the negotiation strategy.\n\n### 2. Celebrating Efficiency\nA deal closes in 15 days when the average is 45. The workflow identifies this anomaly, calculates it is \"66% faster than average,\" **AI predicts high success factors**, and posts a celebratory message, asking the rep to share what worked.\n\n### 3. Reviewing Stalled Deals\nBy changing the trigger to look for *open* deals, you can use this logic to flag active deals that have already exceeded the average winning cycle time, signaling they are \"at risk.\" **AI predictive analytics** provides win probability for each stalled deal.\n\n### 4. Onboarding Usage\nNew sales reps can see immediate feedback on their deals compared to the company historical average, helping them calibrate their pace without constant manager intervention. **AI recommendations** provide personalized coaching tips.\n\n### 5. Product/Service Specific Analysis\nDuplicate the workflow and filter by \"Product Type\" in the Code node. Maintain separate Google Sheets for \"Enterprise\" vs \"SMB\" deal cycles to get more accurate baselines for different business lines. **AI sentiment analysis** can identify product-specific communication patterns.\n\n### 6. AI-Enhanced Deal Scoring\n**NEW**: The workflow now provides AI-powered deal scoring, sentiment-based risk assessment, and predictive win probabilities, enabling sales teams to prioritize high-potential deals and focus resources effectively.\n\n## Troubleshooting Guide\n\n| Issue | Possible Cause | Solution |\n| :--- | :--- | :--- |\n| **No insights generated** | Google Sheet is empty or headers don't match. | Ensure your Google Sheet has at least one row of valid historical data with matching headers (`Created_Time`, `Closed_Time`). |\n| **\"Invalid Date\" errors** | Date formats in Zoho or Sheets are inconsistent. | Check that your system regional settings match. The Code node expects standard date strings. |\n| **Slack message is empty** | `Deal_Name` or sensitive data is missing. | The \"Check Valid Data\" node filters out incomplete records. Ensure your test deals have a Name and timestamps. |\n| **Workflow times out** | Too many deals being processed. | The \"Filter Recent Deals\" node limits to 10 items. If you remove this limit, n8n may timeout on large datasets. Keep the batch size small. |\n| **Google Sheets Error** | Authentication or Sheet ID missing. | Re-authenticate your Google account and re-select the Document and Sheet from the list in the node settings. |\n| **AI nodes not working** | OpenAI API key missing or invalid. | Configure your OpenAI credentials in n8n settings and ensure the API key has sufficient credits. |\n| **AI responses too slow** | Using GPT-4 with large datasets. | Switch to GPT-3.5-turbo for faster processing, or reduce the amount of data sent to AI nodes. |\n| **Sentiment analysis inaccurate** | Limited deal description data. | Ensure your Zoho deals have meaningful descriptions and communication logs for better sentiment analysis. |\n| **Predictions seem wrong** | Insufficient historical data. | AI predictions improve with more historical data. Ensure at least 50+ historical deals for accurate predictions. |\n\n\n## Need Help?\nSetting up custom analytics or complex logic in Code nodes can be tricky. If you need help tailoring this workflow to your specific business rules, creating advanced Add-ons or integrating with other CRMs:\n\n[**Contact WeblineIndia**](https://www.weblineindia.com/contact-us.html)\n\nWe specialize in building robust business process automation solutions. Whether you need a simple tweak or a fully custom enterprise automation suite, our experts are ready to assist.\n\nReach out to us today to unlock the full potential of your sales data!",
+  "workflow": {
+    "meta": {
+      "instanceId": "14e4c77104722ab186539dfea5182e419aecc83d85963fe13f6de862c875ebfa",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "193106dc-e2ae-4981-ba25-a2b7741f21be",
+        "name": "When clicking 'Execute workflow'",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          96,
+          496
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "4782dc05-0b1c-4a96-bbb0-2563156981c5",
+        "name": "Zoho CRM - Deal Trigger",
+        "type": "n8n-nodes-base.zohoCrm",
+        "position": [
+          320,
+          496
+        ],
+        "parameters": {
+          "options": {},
+          "resource": "deal",
+          "operation": "getAll"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "846c23e1-ebf1-4e9b-85ab-a873d02201f1",
+        "name": "Filter Recent Deals",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          544,
+          496
+        ],
+        "parameters": {
+          "jsCode": "// Filter: Only process deals closed in last 7 days to avoid spam\nconst sevenDaysAgo = new Date();\nsevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);\n\nconst filtered = items.filter(item => {\n  const deal = item.json;\n  const closedTime = deal.Closed_Time ? new Date(deal.Closed_Time) : null;\n  const modifiedTime = deal.Modified_Time ? new Date(deal.Modified_Time) : null;\n  \n  // Use Closed_Time if available, otherwise Modified_Time\n  const relevantTime = closedTime || modifiedTime;\n  \n  if (!relevantTime) return false;\n  \n  // Only process if closed/modified in last 7 days\n  return relevantTime >= sevenDaysAgo;\n});\n\n// Limit to first 10 deals to prevent overwhelming Slack\nreturn filtered.slice(0, 10).map(item => ({ json: item.json }));"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "909c5e09-f39f-4b27-bed4-e4f45553fcf4",
+        "name": "Fetch Historical Averages",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          768,
+          496
+        ],
+        "parameters": {
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": ""
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": ""
+          }
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "0d17d548-a0ef-432b-a9d3-ccad42321265",
+        "name": "Analyze Cycle",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          992,
+          496
+        ],
+        "parameters": {
+          "jsCode": "// Get deal from Zoho trigger (first item from filtered deals)\nconst deal = $item(0).$node[\"Filter Recent Deals\"].json || $item(0).$node[\"Zoho CRM - Deal Trigger\"].json || {};\nconst created = deal.Created_Time ? new Date(deal.Created_Time) : null;\nconst closed = deal.Closed_Time ? new Date(deal.Closed_Time) : (deal.Modified_Time ? new Date(deal.Modified_Time) : null);\nconst totalDays = created && closed ? Math.max(1, Math.ceil((closed - created) / (1000 * 60 * 60 * 24))) : null;\n\n// Historical rows from Google Sheet (expects headers: Created_Time, Closed_Time, Stage, or similar)\nconst sheetRows = items.map(i => i.json).filter(r => r && (r.Created_Time || r['Created Time'] || r.created_time));\n\n// Normalize column names (handle different formats)\nconst normalizeRow = (row) => {\n  return {\n    Created_Time: row.Created_Time || row['Created Time'] || row.created_time || row.CreatedTime,\n    Closed_Time: row.Closed_Time || row['Closed Time'] || row.closed_time || row.ClosedTime,\n    Stage: row.Stage || row.stage || row.STAGE || row.Status || row.status,\n    Deal_Name: row.Deal_Name || row['Deal Name'] || row.deal_name || row.DealName,\n    Stage_History: row.Stage_History || row['Stage History'] || row.stage_history || null\n  };\n};\n\nconst rows = sheetRows.map(normalizeRow).filter(r => r.Created_Time && r.Closed_Time);\n\n// Calculate cycle times from historical data\nconst cycles = rows.map(r => {\n  try {\n    const c = new Date(r.Created_Time);\n    const cl = new Date(r.Closed_Time);\n    if (isNaN(c.getTime()) || isNaN(cl.getTime())) return null;\n    return Math.max(1, Math.ceil((cl - c) / (1000 * 60 * 60 * 24)));\n  } catch (e) {\n    return null;\n  }\n}).filter(c => c !== null);\n\nconst avgDays = cycles.length ? +(cycles.reduce((a, b) => a + b, 0) / cycles.length).toFixed(1) : null;\nconst sortedCycles = [...cycles].sort((a, b) => a - b);\nconst medianDays = cycles.length ? sortedCycles[Math.floor(sortedCycles.length / 2)] : null;\nconst p90Days = cycles.length ? sortedCycles[Math.floor(sortedCycles.length * 0.9)] : null;\n\n// Best close day-of-week from historical wins\nconst winRows = rows.filter(r => {\n  const stage = (r.Stage || '').toLowerCase();\n  return stage.includes('won') || stage.includes('closed won');\n});\n\nconst dowCount = winRows.reduce((acc, r) => {\n  try {\n    const d = new Date(r.Closed_Time);\n    if (isNaN(d.getTime())) return acc;\n    const key = d.toLocaleDateString('en-US', { weekday: 'short' });\n    acc[key] = (acc[key] || 0) + 1;\n  } catch (e) {\n    // Skip invalid dates\n  }\n  return acc;\n}, {});\n\nconst bestCloseDay = Object.entries(dowCount).sort((a, b) => b[1] - a[1])[0]?.[0] || null;\n\n// Stage-dwell analysis (if Stage_History is available as JSON string or comma-separated)\nlet longestDwellStage = null;\nlet longestDwellDays = 0;\n\nif (deal.Stage_History || deal['Stage History']) {\n  try {\n    const history = typeof deal.Stage_History === 'string' ? JSON.parse(deal.Stage_History) : deal.Stage_History;\n    if (Array.isArray(history) && history.length > 1) {\n      let maxDwell = 0;\n      let maxStage = null;\n      \n      for (let i = 1; i < history.length; i++) {\n        const prev = new Date(history[i-1].timestamp || history[i-1].date);\n        const curr = new Date(history[i].timestamp || history[i].date);\n        if (!isNaN(prev.getTime()) && !isNaN(curr.getTime())) {\n          const dwell = Math.ceil((curr - prev) / (1000 * 60 * 60 * 24));\n          if (dwell > maxDwell) {\n            maxDwell = dwell;\n            maxStage = history[i-1].stage || history[i-1].Stage || 'Unknown';\n          }\n        }\n      }\n      \n      longestDwellStage = maxStage;\n      longestDwellDays = maxDwell;\n    }\n  } catch (e) {\n    // Stage history not in expected format, skip\n  }\n}\n\n// Calculate average stage dwell from historical data (if available)\nlet avgStageDwells = {};\nif (rows.some(r => r.Stage_History)) {\n  const stageDwells = {};\n  rows.forEach(r => {\n    try {\n      if (r.Stage_History) {\n        const history = typeof r.Stage_History === 'string' ? JSON.parse(r.Stage_History) : r.Stage_History;\n        if (Array.isArray(history)) {\n          for (let i = 1; i < history.length; i++) {\n            const stage = history[i-1].stage || history[i-1].Stage || 'Unknown';\n            const prev = new Date(history[i-1].timestamp || history[i-1].date);\n            const curr = new Date(history[i].timestamp || history[i].date);\n            if (!isNaN(prev.getTime()) && !isNaN(curr.getTime())) {\n              const dwell = Math.ceil((curr - prev) / (1000 * 60 * 60 * 24));\n              if (!stageDwells[stage]) stageDwells[stage] = [];\n              stageDwells[stage].push(dwell);\n            }\n          }\n        }\n      }\n    } catch (e) {\n      // Skip invalid history\n    }\n  });\n  \n  Object.keys(stageDwells).forEach(stage => {\n    const dwells = stageDwells[stage];\n    avgStageDwells[stage] = +(dwells.reduce((a, b) => a + b, 0) / dwells.length).toFixed(1);\n  });\n}\n\n// Build insights\nconst insights = [];\n\nif (totalDays && avgDays) {\n  if (totalDays > avgDays * 1.25) {\n    insights.push(`Slow cycle: ${totalDays}d vs avg ${avgDays}d (+${(totalDays - avgDays).toFixed(1)}d)`);\n  } else if (totalDays < avgDays * 0.75) {\n    insights.push(`Fast cycle: ${totalDays}d vs avg ${avgDays}d (-${(avgDays - totalDays).toFixed(1)}d)`);\n  } else {\n    insights.push(`Normal cycle: ${totalDays}d (avg ${avgDays}d)`);\n  }\n}\n\nif (medianDays) insights.push(`Median historical cycle: ${medianDays}d`);\nif (p90Days) insights.push(`90th percentile: ${p90Days}d`);\nif (bestCloseDay) insights.push(`Best close day: ${bestCloseDay}`);\n\nif (longestDwellStage && longestDwellDays > 0) {\n  insights.push(`Longest stage dwell: ${longestDwellStage} (${longestDwellDays}d)`);\n  \n  // Compare to historical average for that stage\n  if (avgStageDwells[longestDwellStage]) {\n    const avgDwell = avgStageDwells[longestDwellStage];\n    if (longestDwellDays > avgDwell * 1.5) {\n      insights.push(`${longestDwellStage} took ${longestDwellDays}d (avg ${avgDwell}d) - bottleneck detected!`);\n    }\n  }\n}\n\n// Process improvement suggestions\nconst suggestions = [];\nif (totalDays && avgDays && totalDays > avgDays * 1.25) {\n  suggestions.push('Schedule immediate follow-up within 24h to unblock progress');\n}\nif (longestDwellStage && longestDwellDays > 7) {\n  suggestions.push(`Review ${longestDwellStage} stage process - consider early alignment with approval/legal`);\n}\nif (bestCloseDay) {\n  suggestions.push(`Replicate patterns from ${bestCloseDay} closes for future deals`);\n}\nif (p90Days && totalDays && totalDays > p90Days) {\n  suggestions.push('This deal exceeded 90th percentile - conduct post-mortem review');\n}\nif (suggestions.length === 0) {\n  suggestions.push('Continue current process - performance is within expected range');\n}\n\nif (!insights.length) insights.push(' No historical insights available - check sheet data format');\n\nreturn [{ \n  json: { \n    deal, \n    totalDays, \n    avgDays, \n    medianDays, \n    p90Days, \n    bestCloseDay, \n    longestDwellStage,\n    longestDwellDays,\n    insights,\n    suggestions,\n    hasData: cycles.length > 0\n  } \n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "8edc9a91-451f-4747-9cf4-9405928b9843",
+        "name": "Check Valid Data",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          2112,
+          496
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "check-deal-data",
+                "operator": {
+                  "type": "string",
+                  "operation": "isNotEmpty"
+                },
+                "leftValue": "={{ $json.deal && $json.deal.Deal_Name }}",
+                "rightValue": ""
+              },
+              {
+                "id": "check-cycle-data",
+                "operator": {
+                  "type": "number",
+                  "operation": "larger"
+                },
+                "leftValue": "={{ $json.totalDays }}",
+                "rightValue": 0
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "25a13331-afb3-4897-8467-bfa066ff1c43",
+        "name": "Slack Notification",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          2336,
+          400
+        ],
+        "parameters": {
+          "text": "=*AI-Powered Sales Cycle Insights*\n\n*Deal:* {{$json.deal.Deal_Name || 'Unknown'}}\n*Owner:* {{$json.deal.Owner?.name || $json.deal.Owner || 'Unassigned'}}\n*Outcome:* {{$json.deal.Stage}}\n*Value:* {{$json.deal.Amount || 'N/A'}}\n\n*Cycle Analysis:*\n• Total Cycle: *{{$json.totalDays || 'n/a'}} days* (Avg: {{$json.avgDays || 'n/a'}}d)\n• Performance Score: *{{$json.performanceScore || 'N/A'}}/100*\n• Risk Level: *{{$json.riskLevel || 'Unknown'}}*\n{{ $json.insights ? $json.insights.map(i => '• ' + i).join('\\n') : '• No insights available' }}\n\n*AI Intelligence:*\n• Sentiment: *{{$json.sentimentAnalysis?.sentiment || $json.sentimentAnalysis || 'N/A'}}*\n• Win Probability: *{{$json.predictiveAnalytics?.winProbability || $json.predictiveAnalytics || 'N/A'}}*\n• Expected Close: *{{$json.predictiveAnalytics?.expectedCloseDate || 'N/A'}}*\n\n*AI Smart Recommendations:*\n{{$json.text || ($json.suggestions ? $json.suggestions.map(s => '• ' + s).join('\\n') : '• Processing recommendations...') }}\n\n*Visualizations:* {{$json.chartSummary || 'Charts generated'}}\n\n---\n_Generated: {{$now}} | AI-Enhanced Analysis_",
+          "channel": "#sales-insights",
+          "attachments": [],
+          "otherOptions": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2168b744-8893-4922-8e92-b4717ff62fe2",
+        "name": "Log to Historical Sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          2336,
+          592
+        ],
+        "parameters": {
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": ""
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": ""
+          }
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "69ae8a3f-e21e-473c-8e47-e66bc4e0ccc0",
+        "name": "Main Overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -320,
+          -64
+        ],
+        "parameters": {
+          "color": "yellow",
+          "width": 448,
+          "height": 496,
+          "content": "## How it works\n\nThis workflow automatically analyzes sales cycle performance for closed deals (won/lost) from Zoho CRM. It compares each deal to historical averages, identifies bottlenecks, calculates optimal timing patterns, and suggests process improvements. Results are sent to Slack and logged to Google Sheets for continuous optimization.\n\n## Setup steps\n\n1. Configure Zoho CRM credentials in the \"Zoho CRM - Deal Trigger\" node\n2. Set up Google Sheets credentials and configure \"Fetch Historical Averages\" with your sheet ID and range\n3. Configure \"Log to Historical Sheet\" to append new deals to your historical data\n4. Update Slack channel in \"Slack Notification\" node (default: #sales-insights)\n5. Ensure your Google Sheet has headers: Created_Time, Closed_Time, Stage, Deal_Name (or similar)\n6. Optionally replace Manual Trigger with Schedule Trigger for automatic daily/hourly runs"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "fdc158ac-d7e8-49a0-a756-b1012e00e493",
+        "name": "Section - Data Collection",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          256,
+          192
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 656,
+          "height": 560,
+          "content": "## Data Collection\n\nFetches closed deals (won/lost) from Zoho CRM, filters to recent deals (last 7 days, max 10), and retrieves historical cycle data from Google Sheets for comparison and analysis."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "07e73147-cbed-4229-86be-cfc5cbd57aa1",
+        "name": "AI Sentiment Analysis",
+        "type": "n8n-nodes-base.openAi",
+        "position": [
+          1216,
+          400
+        ],
+        "parameters": {
+          "model": "gpt-4",
+          "prompt": "Analyze the sentiment and emotional tone of this deal information. Provide: 1) Overall sentiment (positive/neutral/negative), 2) Confidence score (0-100%), 3) Key emotional indicators, 4) Risk level based on sentiment. Deal Data: {{ JSON.stringify($json.deal) }}",
+          "options": {},
+          "requestOptions": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f3ae52ce-85c1-4dab-a121-1e6fd9806af9",
+        "name": "AI Predictive Analytics",
+        "type": "n8n-nodes-base.openAi",
+        "position": [
+          1216,
+          592
+        ],
+        "parameters": {
+          "model": "gpt-4",
+          "prompt": "Based on historical deal patterns and current deal data, predict the outcome probability. Analyze: 1) Win probability (0-100%), 2) Expected close date, 3) Risk factors, 4) Confidence level. Historical Context: {{ JSON.stringify($json.historicalData) }} Current Deal: {{ JSON.stringify($json.deal) }}",
+          "options": {},
+          "requestOptions": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "fcd95efa-793c-46a8-a940-7e05f51d330d",
+        "name": "AI Smart Recommendations",
+        "type": "n8n-nodes-base.openAi",
+        "position": [
+          1888,
+          496
+        ],
+        "parameters": {
+          "model": "gpt-4",
+          "prompt": "You are a sales intelligence expert. Based on the comprehensive analysis below, generate 3-5 prioritized, actionable recommendations. Consider: 1) Historical patterns, 2) Sentiment analysis insights, 3) Predictive analytics, 4) Performance metrics, 5) Risk factors. Format each recommendation with: [PRIORITY] Recommendation text (Expected Impact).\n\nDeal Analysis: {{ JSON.stringify($json) }}\n\nSentiment Analysis: {{ $json.sentimentAnalysis || 'Not available' }}\n\nPredictive Analytics: {{ $json.predictiveAnalytics || 'Not available' }}",
+          "options": {},
+          "requestOptions": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "156892fd-de90-4c3d-9278-6db6e01fb279",
+        "name": "AI Data Aggregation",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1440,
+          496
+        ],
+        "parameters": {
+          "jsCode": "// MERGE all AI outputs before sending to recommendations\n// This node aggregates data from parallel AI branches\nconst mainData = $input.first().json || {};\nconst sentimentData = $input.item(1)?.json || {};\nconst predictiveData = $input.item(2)?.json || {};\n\n// Extract AI responses\nlet sentimentAnalysis = sentimentData.text || sentimentData.sentimentAnalysis || sentimentData;\nlet predictiveAnalytics = predictiveData.text || predictiveData.predictiveAnalytics || predictiveData;\n\n// Try to parse JSON responses\ntry {\n  if (typeof sentimentAnalysis === 'string') {\n    const parsed = JSON.parse(sentimentAnalysis);\n    sentimentAnalysis = parsed;\n  }\n} catch (e) {\n  // Keep as string\n}\n\ntry {\n  if (typeof predictiveAnalytics === 'string') {\n    const parsed = JSON.parse(predictiveAnalytics);\n    predictiveAnalytics = parsed;\n  }\n} catch (e) {\n  // Keep as string\n}\n\n// Create merged dataset for AI Smart Recommendations\nconst mergedData = {\n  ...mainData,\n  sentimentAnalysis: sentimentAnalysis,\n  predictiveAnalytics: predictiveAnalytics,\n  // Ensure suggestions array exists for Slack template\n  suggestions: mainData.suggestions || []\n};\n\nreturn { json: mergedData };"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "d3c41db7-516e-4b4f-977f-5c485c5d5adc",
+        "name": "Advanced Data Visualization",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1664,
+          496
+        ],
+        "parameters": {
+          "jsCode": "// Generate advanced data visualization data for charts and trends\nconst deal = $json.deal || {};\nconst historical = $json.historicalData || [];\n\n// Prepare data for different chart types\nconst visualizationData = {\n  // Cycle time trend over time\n  cycleTimeTrend: historical.map((item, index) => ({\n    period: `Period ${index + 1}`,\n    cycleTime: item.totalDays || 0,\n    dealValue: item.deal?.Amount || 0\n  })),\n  \n  // Stage distribution\n  stageDistribution: historical.reduce((acc, item) => {\n    const stage = item.deal?.Stage || 'Unknown';\n    acc[stage] = (acc[stage] || 0) + 1;\n    return acc;\n  }, {}),\n  \n  // Performance metrics\n  performanceMetrics: {\n    avgCycleTime: $json.avgDays || 0,\n    currentCycleTime: $json.totalDays || 0,\n    winRate: historical.filter(h => h.deal?.Stage?.toLowerCase().includes('won')).length / historical.length * 100,\n    totalValue: historical.reduce((sum, h) => sum + (h.deal?.Amount || 0), 0)\n  },\n  \n  // Risk heatmap data\n  riskFactors: {\n    sentimentRisk: $json.sentimentAnalysis?.riskLevel || 'Low',\n    cycleRisk: $json.totalDays > ($json.avgDays * 1.5) ? 'High' : 'Low',\n    predictionRisk: $json.predictiveAnalytics?.winProbability < 50 ? 'High' : 'Low'\n  }\n};\n\n// Generate chart configurations\nconst charts = {\n  cycleTrendChart: {\n    type: 'line',\n    data: visualizationData.cycleTimeTrend,\n    title: 'Sales Cycle Time Trend'\n  },\n  stagePieChart: {\n    type: 'pie',\n    data: Object.entries(visualizationData.stageDistribution).map(([stage, count]) => ({\n      label: stage,\n      value: count\n    })),\n    title: 'Deal Distribution by Stage'\n  },\n  performanceGauge: {\n    type: 'gauge',\n    data: visualizationData.performanceMetrics.winRate,\n    title: 'Win Rate %'\n  }\n};\n\nreturn {\n  json: {\n    ...$json,\n    visualizationData,\n    charts,\n    chartSummary: `Generated ${Object.keys(charts).length} visualizations: cycle trends, stage distribution, and performance metrics`\n  }\n};"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "6c70e97f-a929-4a29-b0ac-16d3b1d88b46",
+        "name": "Section - AI Intelligence",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          960,
+          192
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 1056,
+          "height": 560,
+          "content": "## AI-Powered Intelligence Layer\n\nThis section adds advanced AI capabilities: sentiment analysis for emotional intelligence, predictive analytics for outcome forecasting, smart recommendations for process optimization, and data visualization for trend analysis."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8b85fed8-8944-4d43-a381-021738147b2f",
+        "name": "Section - Notifications & Logging",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2064,
+          192
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 544,
+          "height": 560,
+          "content": "## Notifications & Logging\n\nValidates data quality, then sends formatted insights to Slack channel and automatically logs the analyzed deal to Google Sheets for building historical dataset over time."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Analyze Cycle": {
+        "main": [
+          [
+            {
+              "node": "AI Sentiment Analysis",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "AI Predictive Analytics",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Valid Data": {
+        "main": [
+          [
+            {
+              "node": "Slack Notification",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Log to Historical Sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Data Aggregation": {
+        "main": [
+          [
+            {
+              "node": "Advanced Data Visualization",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter Recent Deals": {
+        "main": [
+          [
+            {
+              "node": "Fetch Historical Averages",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Sentiment Analysis": {
+        "main": [
+          [
+            {
+              "node": "AI Data Aggregation",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Predictive Analytics": {
+        "main": [
+          [
+            {
+              "node": "AI Data Aggregation",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Zoho CRM - Deal Trigger": {
+        "main": [
+          [
+            {
+              "node": "Filter Recent Deals",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Smart Recommendations": {
+        "main": [
+          [
+            {
+              "node": "Check Valid Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Historical Averages": {
+        "main": [
+          [
+            {
+              "node": "Analyze Cycle",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Advanced Data Visualization": {
+        "main": [
+          [
+            {
+              "node": "AI Smart Recommendations",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When clicking 'Execute workflow'": {
+        "main": [
+          [
+            {
+              "node": "Zoho CRM - Deal Trigger",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 39,
+      "name": "CRM"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/12367",
+  "fetched_at": "2026-09-12T13:14:09Z"
+}

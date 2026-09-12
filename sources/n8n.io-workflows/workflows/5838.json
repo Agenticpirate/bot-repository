@@ -1,0 +1,240 @@
+{
+  "id": 5838,
+  "name": "Daily & on-demand weather reports with OpenWeatherMap to Telegram",
+  "description": "This powerful **n8n automation** sends you **daily weather updates** directly to your **Telegram chat** using **live data from OpenWeatherMap**. It supports **automatic daily updates** and **manual lookups** via form input.\n\n---\n\n## ✅ Prerequisites\n\nBefore you begin, make sure you have:\n\n* A working **n8n instance** (v1.0 or later recommended).\n* An account with **OpenWeatherMap** (free plan is sufficient).\n* A **Telegram Bot** created via [@BotFather](https://t.me/botfather).\n* Your **Telegram user ID** or **chat ID**.\n\n---\n\n## 🔐 API & Bot Setup\n\n### 🧩 OpenWeatherMap API\n\n1. Go to [https://openweathermap.org/api](https://openweathermap.org/api)\n2. Sign up and verify your account.\n3. Navigate to **API Keys** in your account dashboard.\n4. Copy your **API key** (used later in the HTTP Request node).\n\n### 🤖 Telegram Bot\n\n1. Open [@BotFather](https://t.me/botfather) in Telegram.\n2. Run `/newbot` and follow the prompts:\n\n   * Choose a name and username for your bot.\n   * You’ll get a **bot token** (copy this).\n3. Start a chat with your new bot to activate it.\n4. To get your **Telegram User ID**, use [@userinfobot](https://t.me/userinfobot) or an n8n Telegram Trigger node.\n\n---\n\n## 🔄 Trigger Options\n\n### ⏰ Schedule Trigger (Automatic)\n\n* Runs **daily at 8:00 AM IST**.\n* Ideal for consistent, passive updates.\n\n### 📝 Form Trigger (Manual)\n\n* Input 🌆 **City** and 🌍 **Country** manually.\n* Instantly receive weather info in Telegram.\n\n---\n\n## 🧠 How the Flow Works\n\n1. **Trigger Activated** (Scheduled or Form)\n2. **City & Country fetched** (default or from form)\n3. **HTTP Request** sent to OpenWeatherMap with API key\n4. **Weather Data Parsed & Formatted**:\n\n   * 📅 Current Date\n   * 📍 City & Country\n   * 🌤️ Weather Description\n   * 🌡️ Temperature (°C)\n   * 💧 Humidity (%)\n   * 🌬️ Wind Speed (m/s)\n   * 🔼 Atmospheric Pressure\n   * 🌅 Sunrise Time (IST)\n   * 🌇 Sunset Time (IST)\n5. **Message Sent to Telegram**\n\n---\n\n## 🧰 Nodes Used\n\n* **Schedule Trigger** – Runs every day at 8:00 AM IST\n* **Form Trigger** – Accepts user input\n* **Set Node** – Default city/country values and date formatting\n* **HTTP Request** – Calls OpenWeatherMap API\n* **Function Node** – Converts timestamps to IST\n* **Telegram Node** – Sends formatted weather message\n\n---\n\n## 📦 Example Telegram Output\n\n```\n📅 Wednesday, 10 July 2025  \n🌤 Weather in Mumbai, IN:  \nCondition: Clear sky  \nTemperature: 30°C  \n💧 Humidity: 70%  \n🌬 Wind Speed: 3 m/s  \n🔼 Pressure: 1013 hPa  \n🌅 Sunrise: 5:57:12 AM  \n🌇 Sunset: 6:53:45 PM\n```\n\n---\n\n## 🛠️ Customization Tips\n\n### 🏙️ Change Default City/Country\n\n* Locate the **Set Node** (used before the API call).\n* Replace `\"Mumbai\"` and `\"IN\"` with your preferred location.\n* Or connect the **Form Trigger** input to allow dynamic values.\n\n### 🕗 Change Schedule Time\n\n* Open the **Schedule Trigger** node.\n* Adjust to your preferred time zone and daily timing (e.g., 7 AM IST).\n\n### 🧪 Add Extra Data\n\n* OpenWeatherMap returns more fields like visibility, UV index, etc.\n* You can include these in your Telegram message via the **Function Node** and **Set Node**.\n\n---\n",
+  "workflow": {
+    "id": "EtMbMlSmiCmshLlm",
+    "meta": {
+      "instanceId": "00137a678c70b895ffbf480dac6a13dc8f053e854d987464a615f9ea30d97eee",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Daily Weather Bot",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "d5d3309c-a736-4244-8973-ee8bb4df9e5e",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -20,
+          -100
+        ],
+        "parameters": {
+          "width": 460,
+          "height": 140,
+          "content": "## Schedule Trigger (08:00 AM daily)\n   ⮕ HTTP Request (OpenWeatherMap)\n      ⮕ Set (Format message with weather + atmosphere + IST)\n         ⮕ Telegram "
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "75c18662-b969-4f48-8a05-1429c2f81567",
+        "name": "Get Weather Data",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          20,
+          340
+        ],
+        "parameters": {
+          "url": "=https://api.openweathermap.org/data/2.5/weather?q={{ $json['City Name'] }},{{ $json['Country Name'] }}&APPID=key&units=metric",
+          "options": {}
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "3b84cd51-bf28-4a3d-af86-f2acbe1bf097",
+        "name": "Format Weather Message",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          240,
+          340
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "bb388fef-4f43-468e-bdb2-1a65c40f5194",
+                "name": "message",
+                "type": "string",
+                "value": "={{ \n  (() => {\n    const desc = $json.weather[0].description;\n    const temp = $json.main.temp;\n    const hum = $json.main.humidity;\n    const pres = $json.main.pressure;\n    const wind = $json.wind.speed;\n    const city = $json.name;\n    const country = $json.sys.country;\n\n    // Convert UNIX timestamps to IST (Asia/Kolkata)\n    const sunrise = new Date($json.sys.sunrise * 1000).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });\n    const sunset = new Date($json.sys.sunset * 1000).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });\n\n    // Format current date in IST\n    const now = new Date();\n    const dateStr = now.toLocaleDateString('en-IN', {\n      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',\n      timeZone: 'Asia/Kolkata'\n    });\n\n    return `📅 ${dateStr}\n🌤 Weather in ${city}, ${country}:\nCondition: ${desc}\nTemperature: ${temp}°C\n💧 Humidity: ${hum}%\n🌬 Wind Speed: ${wind} m/s\n🔼 Pressure: ${pres} hPa\n🌅 Sunrise: ${sunrise}\n🌇 Sunset: ${sunset}`;\n  })()\n}}\n"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "c601e86a-28d1-4cc1-b643-ca95e14573b2",
+        "name": "Send Telegram Message",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          460,
+          340
+        ],
+        "webhookId": "7285e616-e38d-4b2a-bb06-3cbbe1a65fb6",
+        "parameters": {
+          "text": "={{ $json.message }}",
+          "chatId": "telegramChatId",
+          "additionalFields": {
+            "appendAttribution": false
+          }
+        },
+        "credentials": {
+          "telegramApi": {
+            "id": "credential-id",
+            "name": "telegramApi Credential"
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "ebf95ad7-5156-4032-87a4-11e85eb0c582",
+        "name": "On form submission",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          -220,
+          220
+        ],
+        "webhookId": "9f30d988-032d-41cc-993c-600414c5f5b3",
+        "parameters": {
+          "options": {},
+          "formTitle": "Daily Weather Bot",
+          "formFields": {
+            "values": [
+              {
+                "fieldLabel": "City Name"
+              },
+              {
+                "fieldLabel": "Country Name"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "2d425b50-6bfc-433d-8baf-172384bd3181",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          380,
+          720
+        ],
+        "parameters": {
+          "height": 120,
+          "content": "## Telegram Output\n-Bot Setting"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3108b92c-6f97-4fee-b4bb-7140b2419f5d",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          20,
+          720
+        ],
+        "parameters": {
+          "width": 150,
+          "height": 260,
+          "content": "## api calling \nopenweathermap"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a7031c56-09ac-4d05-95fa-9ff7d82a6314",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -380,
+          720
+        ],
+        "parameters": {
+          "width": 200,
+          "height": 260,
+          "content": "## Daily Schudule \nTrigger Mode: Every Day\n\nTime:\nHour: 08\nMinute: 00\n\nThis means the workflow will run once per day at 08:00 AM."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a757108c-961a-4cd2-8fa4-e583c26120ea",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -220,
+          460
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "triggerAtHour": 8
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "bb82186d-3706-43b7-b69c-1a526777461d",
+    "connections": {
+      "Get Weather Data": {
+        "main": [
+          [
+            {
+              "node": "Format Weather Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Get Weather Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "On form submission": {
+        "main": [
+          [
+            {
+              "node": "Get Weather Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Weather Message": {
+        "main": [
+          [
+            {
+              "node": "Send Telegram Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 43,
+      "name": "Personal Productivity"
+    }
+  ],
+  "url": "https://n8n.io/workflows/5838",
+  "fetched_at": "2026-09-12T13:10:59Z"
+}

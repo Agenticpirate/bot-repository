@@ -1,0 +1,239 @@
+{
+  "id": 7031,
+  "name": "Extract links and URLs from PDF documents using PDF.co",
+  "description": "## 📝 Description\n\nThis workflow allows you to **extract all links (URLs) contained in a PDF file** by converting it to HTML via **PDF.co** and then extracting the URLs present in the resulting HTML.\n\nUnlike the traditional `Read PDF` node, which only returns visible link text, this flow provides the **full active URLs**, making further processing and analysis easier.\n\n---\n\n## 📌 Use Cases\n\n* Extract all hyperlinks from PDF documents.\n* Automate URL verification and monitoring within documents.\n* Extract links from reports, contracts, catalogs, newsletters, or manuals.\n* Prepare URLs for validation, classification, or storage.\n\n---\n\n## 🔗 Workflow Overview\n\n1. User uploads a PDF file via a web form.\n2. The PDF is uploaded to PDF.co.\n3. The PDF is converted to HTML (preserving links).\n4. The converted HTML is downloaded.\n5. URLs are extracted from the HTML using a custom code node.\n\n---\n\n## ⚙️ Node Breakdown\n\n### 1. **Load PDF** (`formTrigger`)\n\n* Uploads a `.pdf` file.\n* Single file upload.\n\n### 2. **Upload** (`PDF.co API`)\n\n* Uploads the PDF file to PDF.co using binary data.\n\n### 3. **PDF to HTML** (`PDF.co API`)\n\n* Converts the uploaded PDF to HTML using its URL.\n\n### 4. **Get HTML** (`HTTP Request`)\n\n* Downloads the converted HTML from PDF.co.\n\n### 5. **Code1** (`Function / Code`)\n\n* Parses the HTML content to extract all URLs (http, https, www).\n* Uses a regex to identify URLs within the HTML text.\n* Outputs an array of objects containing the extracted URLs.\n\n---\n\n## 📎 Requirements\n\n* Active **[PDF.co](https://pdf.co/)** account with API key.\n* Set up PDF.co credentials in n8n (`PDF.co account`).\n* Enable webhook to expose the upload form.\n\n---\n\n## 🛠️ Suggested Next Steps\n\n* Add nodes to validate extracted URLs (e.g., HTTP requests to check status).\n* Store URLs in a database, spreadsheet, or send via email.\n* Extend the flow to filter URLs by domain, type, or pattern.\n\n---\n\n## 📤 Importing the Template\n\nImport this workflow into n8n via **Import workflow** and paste the provided JSON.\n\n---\n\nIf you want help adding extra steps or optimizing the URL extraction, just ask!\n\n---\n\nIf you want, I can also prepare this as a Canva visual template for you. Would you like that?\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "8396a2c42d7edc37401c19b3909f25edcb0e4a6dc3914c824fddd73a329a575c",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "f6e71b74-1ecb-43e8-baa2-bf05536d01b7",
+        "name": "Load PDF",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          -2224,
+          -384
+        ],
+        "webhookId": "a919be0e-e4c8-4b9c-b8e9-b1ffdd6ef9fb",
+        "parameters": {
+          "options": {},
+          "formTitle": "pdf",
+          "formFields": {
+            "values": [
+              {
+                "fieldType": "file",
+                "fieldLabel": "data",
+                "multipleFiles": false,
+                "acceptFileTypes": ".pdf"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "f24dd98b-b3c4-47f1-8345-10097e53803d",
+        "name": "Upload",
+        "type": "n8n-nodes-pdfco.PDFco Api",
+        "position": [
+          -2016,
+          -384
+        ],
+        "parameters": {
+          "name": "test",
+          "operation": "Upload File to PDF.co",
+          "binaryData": true
+        },
+        "credentials": {
+          "pdfcoApi": {
+            "id": "credential-id",
+            "name": "pdfcoApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b354cde6-5354-4052-9a6c-d66c328a946f",
+        "name": "PDF to HTML",
+        "type": "n8n-nodes-pdfco.PDFco Api",
+        "position": [
+          -1776,
+          -384
+        ],
+        "parameters": {
+          "url": "={{ $json.url }}",
+          "operation": "Convert from PDF",
+          "advancedOptions": {}
+        },
+        "credentials": {
+          "pdfcoApi": {
+            "id": "credential-id",
+            "name": "pdfcoApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e15b5c0d-5a46-4faa-828f-25e56cfce322",
+        "name": "Get HTML",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -1568,
+          -384
+        ],
+        "parameters": {
+          "url": "={{ $json.url }}",
+          "options": {}
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "73506c94-6265-4d89-b386-e908285d14e0",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2288,
+          -448
+        ],
+        "parameters": {
+          "width": 208,
+          "height": 240,
+          "content": "## Load PDF\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6d23ab8a-5bae-4317-b73e-fb1b2ba8ff16",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2080,
+          -448
+        ],
+        "parameters": {
+          "color": 2,
+          "height": 240,
+          "content": "## Upload to PDF.CO \n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "72be2279-3028-4c24-8973-00879cff375a",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1840,
+          -448
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 224,
+          "height": 240,
+          "content": "## PDF to HTML"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "cebf4aeb-549c-4c9e-84eb-41d880834fb5",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1616,
+          -448
+        ],
+        "parameters": {
+          "width": 192,
+          "height": 240,
+          "content": "## Get HTML"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8f6d9763-dece-45f6-a78b-1b5f6891f2fa",
+        "name": "Code1",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1360,
+          -384
+        ],
+        "parameters": {
+          "jsCode": "// Recorrer todos los items que entran al nodo\nconst resultados = [];\n\nfor (const item of $input.all()) {\n  const texto = item.json.data || '';\n  // Regex para URLs (http, https, www)\n  const regexUrl = /(https?:\\/\\/[^\\s]+)|(www\\.[^\\s]+)/gi;\n  \n  // Extraer URLs, si no hay ninguna, el resultado es []\n  const urls = texto.match(regexUrl) || [];\n  \n  // Por cada URL encontrada, crear un nuevo item con la URL\n  for (const url of urls) {\n    resultados.push({ json: { url } });\n  }\n}\n\n// Devolver un array de objetos con las URLs extraídas\nreturn resultados;\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "0c49f98f-0b3c-4c47-ad34-b60b02c5f3a5",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1424,
+          -448
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 208,
+          "height": 240,
+          "content": "## Get URL's \n"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Upload": {
+        "main": [
+          [
+            {
+              "node": "PDF to HTML",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get HTML": {
+        "main": [
+          [
+            {
+              "node": "Code1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Load PDF": {
+        "main": [
+          [
+            {
+              "node": "Upload",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "PDF to HTML": {
+        "main": [
+          [
+            {
+              "node": "Get HTML",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 35,
+      "name": "Document Extraction"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7031",
+  "fetched_at": "2026-09-12T13:11:41Z"
+}

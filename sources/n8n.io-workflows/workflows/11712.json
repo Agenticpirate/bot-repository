@@ -1,0 +1,337 @@
+{
+  "id": 11712,
+  "name": "Send welcome WhatsApp messages to new HubSpot contacts with Beex templates",
+  "description": "## Summary\nThis workflow listens for HubSpot contact creation events via a webhook, standardizes the data, and sends a WhatsApp message using a predefined first contact template from Beex.\n\n## How It Works\n1. **Configure Webhook**: The workflow is triggered when HubSpot fires the `On Contact Created` event.\n2. **Get Contact**: Retrieves the contact's ID and extracts relevant data from the HubSpot event.\n3. **Validate Contact**: Filters contacts to ensure they meet the requirements in this case, having valid (non-null) email and phone numbers.\n4. **Set Fields**: Transforms the HubSpot data by selecting only relevant fields, renaming them for clarity, and preparing them for the template. Key tasks include extracting the `phone_number` and `country_code` (removing the \"+\" symbol) and setting the `associated_values` as required by the template. The exact template name must be specified manually in this node.![f2.jpg](fileId:3629)\n5. **Send Template**: Sends a welcome message via WhatsApp using the template configured in Beex. This node requires a `Queue ID`, which is generated based on the template configuration in Beex (see the setup section below for details).\n\n## Setup Instructions\n1. **Install Beex Nodes**: Before importing the template, install the Beex trigger and node packages using the following package name:\n```\nn8n-nodes-beex\n```\n2. **Configure HubSpot Credentials**: Set up your HubSpot connection with the following:\n   - Access Token (typically from a private app)\n   - Read permissions for **Contacts** objects\n   - Configured webhook URL (usually from a private application)\n   - *Note: The webhook URL can be found in the initial node. Make sure to distinguish between test mode and production mode.*\n![f4.jpg](fileId:3640)\n3. **Configure Beex Credentials**: For Beex users with platform access (for trial requests, contact frank@beexcc.com):\n   - Navigate to **Platform Settings** → **API Key & Callback**.\n   - Copy your API key and paste it into the Beex node (Send Template) in n8n.\n![beex_api_key_7463929f3e.jpg](fileId:3638)\n\n4. **Configure Template in Beex**:\n   - On the Beex platform, go to the *Connections* section in the side menu and select *Templates*.![beex_template_1.jpg](fileId:3625)\n   - Select an identifier (a number through which the WhatsApp template will be sent to your contacts).![beex_template_2.jpg](fileId:3624)\n   - Click to request a new template.![beex_template_3.jpg](fileId:3636)\n   - Enter a **Template Name** and **Display Name**. The \"Template Name\" is what you'll reference in your workflow's Set Fields node.![beex_template_4.jpg](fileId:3627)\n   - Complete any additional required fields.![beex_template_5.jpg](fileId:3628)\n   - Configure the template message content. Note that associated values are wrapped in `{{1}}`, which corresponds to the configurable parameter set in the Set Fields node.\n![beex_template_6.jpg](fileId:3639)\n   - Optionally, add buttons to the template. \n   - Once the template request is submitted, wait for approval. After approval, associate the template with a campaign and queue to obtain the **Queue ID** needed for the Send Template node.![beex_template_8.jpg](fileId:3626)\n## Requirements\n\n- **HubSpot**: An account with a private application token and read permissions for **Contacts** objects.\n- **HubSpot**: A private application with a configured webhook.\n- **Beex**: An account with permissions to send templates.\n- **Beex**: A properly configured and approved template with an associated Queue ID.\n\n## Customization Options\n- **Additional Filtering**: You can add a filter immediately after the webhook that receives the contact creation event to limit the sources from which you obtain new contacts (for example, contacts from a specific HubSpot form).\n- **Get Contact**: For this workflow, the contact's first name is used in the template. If your template requires additional associated values, you can retrieve more properties from the HubSpot node by adding them to the properties list.\n- **Contact Filtering**: Add filters to control which contacts should trigger the WhatsApp template based on your business logic.\n- **Set Fields**: Use this node to further customize and transform the data received from HubSpot. For example, you can standardize phone numbers by region or add custom logic for field mapping.\n- **Send Template**: The WhatsApp template is fully customizable within Beex. Refer to the template configuration section to ensure all associated values are properly mapped.",
+  "workflow": {
+    "id": "nEADiHBUjZQOL5Ro",
+    "meta": {
+      "instanceId": "ac2da03b571df9a735ad2de1e61d5f202359008d03eb1b0f3a16081cfda79307",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Beex First Contact for HubSpot (WhatsApp)",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "989de3cd-3c38-41c5-acc2-810dd27c317f",
+        "name": "Get Contact",
+        "type": "n8n-nodes-base.hubspot",
+        "notes": "HubSpot",
+        "position": [
+          -1248,
+          -1376
+        ],
+        "parameters": {
+          "contactId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ $json.body[0].objectId }}"
+          },
+          "operation": "get",
+          "authentication": "appToken",
+          "additionalFields": {
+            "propertiesCollection": {
+              "propertiesValues": {
+                "properties": [
+                  "email",
+                  "phone",
+                  "hs_whatsapp_phone_number",
+                  "firstname"
+                ],
+                "propertyMode": "valueOnly"
+              }
+            }
+          }
+        },
+        "credentials": {
+          "hubspotAppToken": {
+            "id": "credential-id",
+            "name": "hubspotAppToken Credential"
+          }
+        },
+        "notesInFlow": true,
+        "typeVersion": 2.2
+      },
+      {
+        "id": "d0f4f123-dd48-4fb3-86dd-3ecfa9ea8205",
+        "name": "Send Template",
+        "type": "n8n-nodes-beex.beex",
+        "notes": "WhatsApp",
+        "position": [
+          -576,
+          -1376
+        ],
+        "parameters": {
+          "queue_id": "38",
+          "resource": "templates",
+          "operation": "post",
+          "code_country": "={{ $json.country_code }}",
+          "phone_number": "={{ $json.phone_number }}",
+          "template_name": "={{ $json.template_name }}",
+          "template_values": "={{ $json.associated_values }}",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "beexApi": {
+            "id": "credential-id",
+            "name": "beexApi Credential"
+          }
+        },
+        "notesInFlow": true,
+        "typeVersion": 1
+      },
+      {
+        "id": "7b3b8ea3-ab3d-486f-977f-100a657c83cd",
+        "name": "Validate Contact",
+        "type": "n8n-nodes-base.filter",
+        "notes": "Filter",
+        "position": [
+          -1024,
+          -1376
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "51ab152e-99cc-48a4-b33c-918d8331c635",
+                "operator": {
+                  "type": "string",
+                  "operation": "exists",
+                  "singleValue": true
+                },
+                "leftValue": "={{    \n  $json.properties   \n  .email.value  \n}}",
+                "rightValue": ""
+              },
+              {
+                "id": "4d37451f-27ef-4916-8ee1-abc12065a214",
+                "operator": {
+                  "type": "string",
+                  "operation": "exists",
+                  "singleValue": true
+                },
+                "leftValue": "={{    \n  $json.properties.   \n  hs_calculated_phone_number.value  \n}}",
+                "rightValue": ""
+              },
+              {
+                "id": "ff701d37-8a51-41e2-a41a-0d8a0b44d5a8",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty",
+                  "singleValue": true
+                },
+                "leftValue": "={{ \n  $json.properties\n  .email.value \n}}",
+                "rightValue": ""
+              },
+              {
+                "id": "b6378ec3-c433-4799-86b4-ab891f2fe2db",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty",
+                  "singleValue": true
+                },
+                "leftValue": "={{ \n  $json.properties.\n  hs_calculated_phone_number.value \n}}",
+                "rightValue": ""
+              }
+            ]
+          }
+        },
+        "notesInFlow": true,
+        "typeVersion": 2.2
+      },
+      {
+        "id": "07b78bba-4bd7-493c-8a35-4ac667e6fbfc",
+        "name": "Set Fields",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -800,
+          -1376
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "7c008509-c454-4e63-b8fd-a16f12826033",
+                "name": "country_code",
+                "type": "string",
+                "value": "={{  \n    $json.properties.hs_calculated_phone_number\n    .value.slice(1,3) \n}}"
+              },
+              {
+                "id": "fff55f5c-9161-486c-b99c-f0495c644d26",
+                "name": "phone_number",
+                "type": "string",
+                "value": "={{ \n  $json.properties.hs_calculated_phone_number\n  .value.slice(3) \n}}"
+              },
+              {
+                "id": "b51ade5a-433a-4a70-9632-cdf81eb71f73",
+                "name": "template_name",
+                "type": "string",
+                "value": "n8n_beex"
+              },
+              {
+                "id": "464d6f01-56a8-40ff-ab1a-8cb5f009972f",
+                "name": "associated_values",
+                "type": "string",
+                "value": "=[\"{{ $json.properties.firstname.value }}\"]"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "bf98b76b-708e-4bff-bb77-f2e570d6bb1c",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2224,
+          -2000
+        ],
+        "parameters": {
+          "width": 592,
+          "height": 1376,
+          "content": "## Beex First Contact for HubSpot (WhatsApp)\n\n> **Note:** This workflow requires the community node `n8n-nodes-beex`.\n\n### Watch This Tutorial\n@[youtube](oX6UxcBDlI0)\n\n\n### Overview\n\nThis workflow listens for HubSpot contact creation events via a webhook, standardizes the data, and sends a WhatsApp message using a predefined template.\n\n### How it Works\n\n1. **Webhook**  \n   Receives the contact creation event from HubSpot (configured through a custom app).\n\n2. **Get Contact**  \n   Uses the received contact ID to fetch key properties such as email and phone number.\n\n3. **Validate Contact**  \n   Ensures the contact meets the minimum requirements (valid phone number and email).\n\n4. **Set Fields**  \n   Normalizes the fields needed for the WhatsApp message. Make sure to correctly configure `country_code` and `phone_number` based on your region.\n\n5. **Send Template**  \n   Sends the WhatsApp template (e.g., template_name → `n8n_beex`) using the processed fields.\n\n### Requirements\n\n- **HubSpot account** with an app token and read permissions for Contacts.\n- **Beex account** with permission to send message templates.\n- **Valid Beex bearer token** configured in the Beex node (`YOUR_TOKEN_HERE`).\n\n### Usage\n\n- Configure the webhook in your HubSpot custom app to notify contact creation events.\n- Ensure all contacts include an email address and phone number.\n- Adjust the fields in the **Set Fields** node according to your region and workflow logic."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "cb9c4c2e-ee1b-4f3c-a6be-0b3b6d0332c0",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -656,
+          -1472
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 256,
+          "height": 256,
+          "content": "## Warning\n- Configure template in Beex"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "595dd782-facb-4cb7-81a7-71124d8a01b6",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -880,
+          -1600
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 480,
+          "height": 384,
+          "content": "## Set Fields\n- The contact fields are extracted and transformed as needed for use in the template submission node."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "cbe3c81b-7f10-4319-a939-eb2404ea8dd3",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1536,
+          -1600
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 672,
+          "height": 384,
+          "content": "## Trigger Node (HubSpot Webhook + Get Data)\n- Link the webhook **URL** on the CRM HubSpot\n- Get HubSpot contact properties by ID\n- Validate contact (email and phone number)\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "483f6d1f-8cc7-4deb-a276-895ac9b866de",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "notes": "On Contact Created",
+        "position": [
+          -1472,
+          -1376
+        ],
+        "webhookId": "3757267f-2176-4a9c-b564-9615d4574262",
+        "parameters": {
+          "path": "3757267f-2176-4a9c-b564-9615d4574262",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "notesInFlow": true,
+        "typeVersion": 2.1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1558ee3e-5aa5-42e5-9894-375a9c79c641",
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Get Contact",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Fields": {
+        "main": [
+          [
+            {
+              "node": "Send Template",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Contact": {
+        "main": [
+          [
+            {
+              "node": "Validate Contact",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Template": {
+        "main": [
+          []
+        ]
+      },
+      "Validate Contact": {
+        "main": [
+          [
+            {
+              "node": "Set Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 38,
+      "name": "Lead Nurturing"
+    }
+  ],
+  "url": "https://n8n.io/workflows/11712",
+  "fetched_at": "2026-09-12T13:13:52Z"
+}

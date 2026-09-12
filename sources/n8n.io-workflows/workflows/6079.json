@@ -1,0 +1,249 @@
+{
+  "id": 6079,
+  "name": "Reddit freelance job monitor with Google Sheets tracking and Telegram alerts",
+  "description": "\n## What It Does\n\nThis n8n workflow monitors Reddit for freelance job posts related to n8n and sends alerts via Telegram while logging relevant data in Google Sheets. It filters out duplicates and only stores unique, paid opportunities.\n\n---\n\n## Workflow Steps\n\n### 1. **Schedule Trigger**\n\nRuns every 5 minutes.\n\n### 2. **Reddit Search**\n\nSends a query to Reddit API for freelance-related keywords.\n\n### 3. **Extract Post Metadata**\n\nParses out relevant data from Reddit response.\n\n### 4. **Separate Posts**\n\nSplits array into individual post items.\n\n### 5. **Filter Paid Jobs**\n\nMatches posts with keywords like \"hiring\", \"paid\", \"job\", etc.\n\n### 6. **Check Existing Records**\n\nPulls already logged post IDs from Google Sheets.\n\n### 7. **Filter Unique Posts**\n\nUses JavaScript to compare incoming posts with the existing ones and filters out duplicates.\n\n### 8. **Get UTC Date**\n\nConverts Reddit `created_utc` timestamp into readable format.\n\n### 9. **Save to Google Sheets**\n\nAppends unique posts with these fields:\n\n* `id`\n* `title`\n* `url`\n* `flair`\n* `created_utc`\n\n### 10. **Send Telegram Alert**\n\nSends a formatted notification with clickable links and meta info.\n\n---\n\n## Required Credentials\n\n* **Reddit OAuth2** (application with access to `search`)\n* **Google Sheets API** (via service account)\n* **Telegram Bot API** (bot token, chat ID)\n\n---\n\n## Google Sheet Configuration\n\nMake sure the sheet has these columns:\n\n* `id` (used for deduplication)\n* `title`\n* `url`\n* `flair`\n* `created_utc`\n\n&gt; First row must be the header.\n\n---\n\n## How to Set It Up\n\n### Reddit API\n\n1. Create a Reddit App at [https://www.reddit.com/prefs/apps](https://www.reddit.com/prefs/apps)\n2. Set up OAuth2 credentials in n8n with correct scopes\n\n### Google Sheets\n\n1. Create a new Google Sheet\n2. Share with your service account email\n3. Add required columns in the first row\n\n### Telegram\n\n1. Create a bot via [BotFather](https://t.me/BotFather)\n2. Copy the bot token\n3. Use a private chat or group, get the chat ID\n\n---\n\n## Notes\n\n* **Interval**: Adjust schedule node to change frequency\n* **Search Query**: You can customize keywords in the Reddit API URL\n* **Profanity**: Clean output only; no slang or offensive words\n\n---\n\n## Final Output\n\n* **Google Sheets**: A log of all new freelance Reddit posts\n* **Telegram**: Instant lead alerts for new job posts\n\n---",
+  "workflow": {
+    "meta": {
+      "instanceId": "b6731f6e46273cffeac6b5188a5b3bcb0840c00108e73b48ae2b799ac6e8e081",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "f1342627-4d31-4f16-a020-cda26f14748c",
+        "name": "Run Every 5 Minutes",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          240,
+          120
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "2ae99530-e45a-46b4-9a88-24fb5c54bf8b",
+        "name": "Look for freelance requirement posts",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          460,
+          120
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "80f04d39-58c3-4342-9729-ba9f073db667",
+        "name": "Extract Post Metadata",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          680,
+          120
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "541383f1-5ed9-4033-978b-442276908247",
+        "name": "Make sure the requirement is paid",
+        "type": "n8n-nodes-base.filter",
+        "position": [
+          1260,
+          340
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "f75740b3-480f-42bd-9033-192c9817be3f",
+        "name": "Get UTC of Post",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          2060,
+          560
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "61ed2ab7-9cb3-4f70-ab00-0afa578f1b42",
+        "name": "Check present Rows",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1480,
+          340
+        ],
+        "parameters": {},
+        "executeOnce": true,
+        "typeVersion": 4.6,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "ab92c8aa-79f3-45b6-8651-2cfea0372e8b",
+        "name": "Filter Unique Posts",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1700,
+          340
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "853ef1e0-a238-4e4c-ab5e-459d9a75233b",
+        "name": "Save in sheets",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          2280,
+          560
+        ],
+        "parameters": {},
+        "typeVersion": 4.6
+      },
+      {
+        "id": "71efa8e6-8e1a-4042-ae9f-2d41f195c93c",
+        "name": "Inform User in telegram",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          2500,
+          560
+        ],
+        "webhookId": "b033adda-57ee-46ee-97e2-96de0b3e598e",
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "da33c131-b34b-402a-8ecd-20432a3cabd6",
+        "name": "Seperate array into individual posts",
+        "type": "n8n-nodes-base.splitOut",
+        "position": [
+          900,
+          120
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "c2aac5ed-06d3-4582-99da-bb4b1da7d845",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -780,
+          0
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Save in sheets": {
+        "main": [
+          [
+            {
+              "node": "Inform User in telegram",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get UTC of Post": {
+        "main": [
+          [
+            {
+              "node": "Save in sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check present Rows": {
+        "main": [
+          [
+            {
+              "node": "Filter Unique Posts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter Unique Posts": {
+        "main": [
+          [
+            {
+              "node": "Get UTC of Post",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Run Every 5 Minutes": {
+        "main": [
+          [
+            {
+              "node": "Look for freelance requirement posts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Post Metadata": {
+        "main": [
+          [
+            {
+              "node": "Seperate array into individual posts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Make sure the requirement is paid": {
+        "main": [
+          [
+            {
+              "node": "Check present Rows",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Look for freelance requirement posts": {
+        "main": [
+          [
+            {
+              "node": "Extract Post Metadata",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Seperate array into individual posts": {
+        "main": [
+          [
+            {
+              "node": "Make sure the requirement is paid",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 37,
+      "name": "Lead Generation"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6079",
+  "fetched_at": "2026-09-12T13:11:08Z"
+}

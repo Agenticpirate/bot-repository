@@ -1,0 +1,1227 @@
+{
+  "id": 8138,
+  "name": "Filter URLs with AI-powered robots.txt compliance & source verification",
+  "description": "# URL Officer - Respect robots.txt and Avoid Undesirable Sources\n\n## 🎬 Overview\n**Version** : 1.0\n\nThe URL Officer workflow automates the filtering of URLs by checking them against a database of forbidden sources and the rules defined in robots.txt files. It proactively respects robot exclusion protocols and user-defined banned sources to aid in lawful and ethical web automation. Designed primarily as a sub-workflow, it serves automation pipelines with robust URL validation to avoid undesirable or restricted sources.\n\n\n## ✨ Features\n\n- **Dual-layer URL Filtering**: Checks URLs against a manually maintained forbidden sources list and robots.txt restrictions.\n- **Automated robots.txt Retrieval & Update**: Automatically fetches and updates robots.txt content for new or outdated sources (older than 3 days).\n- **AI-backed robots.txt Interpretation**: Uses AI models to interpret robots.txt comments and restrictions, ensuring nuanced compliance.\n- **Configurable User-Agent Identification**: Allows customization of User-Agent strings that are checked against robots.txt directives.\n- **Sub-Workflow Ready**: Easily integrates as a sub-workflow for link validation in larger automation pipelines.\n- **Multi-Model AI Support**: Supports mistral, groq, and gemini AI models for enhanced robots.txt compliance checks.\n- **Detailed Diagnostic Outputs**: Returns comprehensive link allowance statuses and metadata for use in downstream processing.\n- **Database Integration**: Utilizes PostgreSQL to store and manage robots.txt content and banned source lists.\n\n\n## 👤 Who is this for?\n\nIdeal for developers, data engineers, researchers, or businesses implementing web crawlers, scrapers, or any automation that processes URLs. This workflow helps your compliance with source restrictions and avoids content from blacklisted sites, reducing legal exposure and promoting ethical data use.\n\n\n## 💡 What problem does this solve?\n\nURL Officer addresses the challenge of automating URL validation by combining manual blacklist filtering with automated and AI-assisted robots.txt parsing. It prevents accidental scraping or processing from undesirable or disallowed sources, helping automate respect for webmasters' policies and legal boundaries.\n\n\n## 🔍 What this workflow does\n\nWhen given a URL, the workflow:\n\n- Extracts the base URL.\n- Checks the URL against a manually configured banned sources list (stored in database).\n- Fetches robots.txt for new or stale sources (older than 3 days).\n- Performs a programmatic parse and check of robots.txt directives against the URL using the specified User-Agent.\n- Runs an AI model to analyze robots.txt content and confirm if the URL is allowed, taking into account any special comments or prohibitions relevant to the automation goal.\n- Returns a final \"allow or disallow\" determination for both the URL and its base URL, along with metadata about the robots.txt fetch status and timing.\n\n\n## 🔄 Workflow Steps\n\n### 1. Input Parsing & Base URL Extraction\n\n- Accepts workflow arguments including the URL, User-Agent information, automation goal, and AI model choice.\n- Extracts and normalizes the base URL for processing.\n\n### 2. Forbidden Source Check\n\n- Queries PostgreSQL tables containing banned sources.\n- Immediately rejects URLs matching forbidden sources.\n\n### 3. robots.txt Handling\n\n- Checks if robots.txt content for the source is in the database and is recent (under 3 days old).\n- If missing or outdated, fetches the robots.txt file from the base URL and updates the database.\n\n### 4. Code-Based robots.txt Analysis\n\n- Parses robots.txt directives, matching the User-Agent to appropriate groups.\n- Checks if the URL and base URL paths are allowed according to the parsed rules.\n- Uses a conservative URL and agent matching algorithm for prefix-based allow/disallow checks.\n\n### 5. AI-Based robots.txt Verification\n\n- Uses the selected AI model (mistral, groq, or gemini) to analyze robots.txt content and comments regarding allowed automation use.\n- Applies AI understanding to confirm or override automated code checks based on the automation's goal.\n\n### 6. Output Preparation\n\n- Produces output indicating permission statuses (`allow_link` and `allow_baseUrl`), original URLs, User-Agent info, fetch timestamps, and whether robots.txt was successfully retrieved.\n- Designed to be consumed by other workflows as a validation step.\n\n\n## 🔀 Expected Input / Configuration\n\nThe workflow is configured primarily via workflow input arguments:\n\n| Parameter         | Description                                                                                           | Type    |\n|-------------------|---------------------------------------------------------------------------------------------------|---------|\n| `link`            | The URL to be checked.                                                                              | String  |\n| `userAgent`       | User-Agent string representing your automation, used for robots.txt checks.                        | String  |\n| `userAgent_extra` | Additional User-Agent information such as version or contact info.                                 | String  |\n| `automationGoal`  | Description of your automation’s purpose, used by the AI to verify suitability against robots.txt. | String  |\n| `model`           | AI model to use for the robots.txt compliance check. Options: mistral, groq, gemini.               | String  |\n\n### Database Requirements\n\n- PostgreSQL database configured with credentials accessible to the workflow.\n- Two tables: one for banned sources (manually maintained) and one for robots.txt content with timestamps.\n- The workflow auto-creates and manages these tables.\n- Recommended to use a containerized PostgreSQL instance (Podman or Docker).\n\n\n## 📦 Expected Output\n\nA structured JSON object containing:\n\n| Output Key      | Description                                                     |\n|-----------------|-----------------------------------------------------------------|\n| `link`          | The URL that was checked.                                       |\n| `baseUrl`       | The base URL of the checked link.                              |\n| `allow_link`    | Boolean indicating if the link is allowed according to checks.|\n| `allow_baseUrl` | Boolean indicating if the base URL is allowed.                |\n| `userAgent`     | User-Agent string used in the check.                            |\n| `userAgent_extra`| Additional User-Agent metadata.                                |\n| `robots_fetched`| Boolean, true if robots.txt content was successfully fetched.  |\n| `fetched_at`    | Timestamp of the last robots.txt content fetch.                |\n\n\n## 📌 Example\n\nExample input payload:\n![printscreenurlofficer_example.png](fileId:2295)\n![printscreen1.png](fileId:2296)\n![printscreen2.png](fileId:2297)\n![printscreen3.png](fileId:2298)\n\n\n## ⚙️ n8n Setup Used\n\n- **n8n version:** 1.108.2  \n- **Platform:** Podman 4.3.1 on Linux  \n- **PostgreSQL:** Running in Podman 4.3.1 container  \n- **LLM Models:** mistral-small-latest, llama-3.1-8b-instant (Groq), gemini-2.5-flash  \n- **Date:** 2025-08-29  \n\n\n## ⚡ Requirements to Use / Setup\n\n- Self-hosted or cloud n8n instance with database connectivity.\n- PostgreSQL database configured and accessible by n8n.\n- Setup PostgreSQL using the recommended containerized deployment or your preferred method.\n- Configure database credentials inside the workflow.\n- Provide API credentials for your chosen AI model (mistral, groq, gemini).\n- Manually maintain the banned sources list in the database.\n- Familiarity with n8n variables and sub-workflow integration is recommended.\n- Internet connectivity for fetching robots.txt files.\n\n\n## ⚠️ Notes, Assumptions & Warnings\n\n- Database tables used by this workflow are automatically created and managed by the workflow.\n- robots.txt refresh interval is set to every 3 days; this can be adjusted by modifying the workflow.\n- The robots.txt parser is relatively simple and does not support wildcard (*) or end-of-string ($) rules.\n- User-Agent matching is substring-based and longer string matches take precedence.\n- AI analysis adds a human-like understanding of robots.txt comments and prohibitions but depends on the quality and capability of the chosen AI model.\n- This workflow does NOT handle:\n  - Terms of Service compliance.\n  - Preference for official APIs over HTML scraping.\n  - Rate-limiting or request throttling.\n  - Handling paywalled or restricted content.\n  - De-duplication or filtering beyond the banned sources list.\n  - Encryption or secure storage.\n- You remain responsible for ensuring your automation complies with legal, ethical, and platform-specific rules.\n- The workflow is designed as a sub-workflow; integrate it into larger automation processes to validate URLs.\n\n\n## 🛠 PostgreSQL Setup Instructions (Self-Hosted Route)\n\nAvailable inside the Workflow Notes, alongside podman commands.\n\n\n## ℹ️ About Us\n\nThis workflow was developed by the Hybroht team. Our goal is to create tools that harness the possibilities of technology and more. We aim to continuously improve and expand functionalities based on community feedback and evolving use cases.\n\n\nFor questions, support, or feedback, please contact us at: [contact@hybroht.com](mailto:contact@hybroht.com)\n\n---\n\n### ⚖️ Warranty & Legal Notice\n\nThis workflow is provided \"as-is\" without warranties of any kind. By using this workflow, you agree that you are responsible for complying with all applicable laws, regulations, and terms of service related to your data sources and automations. Please review all relevant legal terms and use this workflow responsibly.\n\nHybroht disclaims any liability arising from use or misuse of this workflow. This tool assists with robots.txt compliance but is not a substitute for full legal or compliance advice.\n\nYou can view the full license terms [here](https://hybroht.com/docs/policies/licenses/n8n_workflows/general_workflow_license_v1_0.md). Please review them before making your purchase.\n\n**By purchasing this product, you agree to these terms.**\n\n---\n",
+  "workflow": {
+    "id": "t2udGMy6bOMxXL5U",
+    "meta": {
+      "instanceId": "c8661626eeda758e004fa6cdc30e89de83810c1ff0923b0bb91a200abd0100f3",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "URL Officer - Respect robots.txt and Avoid Undesirable Sources",
+    "tags": [
+      {
+        "id": "7Ebg06QToXQ2UrOO",
+        "name": "WHITE LABEL",
+        "createdAt": "2025-07-17T18:04:33.197Z",
+        "updatedAt": "2025-07-17T18:04:33.197Z"
+      },
+      {
+        "id": "JK3I68rY6cIlUP5Z",
+        "name": "V1.0",
+        "createdAt": "2025-06-20T18:01:10.400Z",
+        "updatedAt": "2025-06-20T18:01:10.400Z"
+      },
+      {
+        "id": "KZ42bKkSj4CtvjFI",
+        "name": "URL Officer",
+        "createdAt": "2025-08-29T20:37:29.507Z",
+        "updatedAt": "2025-09-01T15:56:46.990Z"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "daeab820-0a77-494f-a896-d0747cf21ddf",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "disabled": true,
+        "position": [
+          -3856,
+          2224
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "efdbe387-11a0-4668-8aa3-e7366ddaf16e",
+        "name": "Get Base URL",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -3392,
+          2512
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "6a35aa4f-3742-4df3-925d-115f2fe7a337",
+        "name": "Prepare Robots.txt Check",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -1376,
+          2544
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "9d8bbd76-e54d-46f6-a12e-99fe34a2f446",
+        "name": "Assume Disallow",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          704,
+          2560
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "b4885c74-307c-4657-821a-16c3bd554779",
+        "name": "Information Extractor",
+        "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+        "onError": "continueErrorOutput",
+        "position": [
+          -64,
+          1504
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "0a01931e-70ea-4c9b-8b00-0e0c856f8520",
+        "name": "Model Selector",
+        "type": "@n8n/n8n-nodes-langchain.modelSelector",
+        "position": [
+          -48,
+          1712
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "fb07971a-0f59-4da3-a701-61d820dd9c3a",
+        "name": "Mistral Cloud Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+        "position": [
+          -176,
+          1904
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "c9a01ad2-e49e-425d-947b-6023207938da",
+        "name": "Groq Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+        "position": [
+          16,
+          1920
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "bd67e5db-aa76-4faa-ba64-36676f68d43b",
+        "name": "Google Gemini Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "position": [
+          224,
+          1920
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "c3ad9920-4175-441d-a4c7-e5c602dc3623",
+        "name": "Get Robots.txt",
+        "type": "n8n-nodes-base.httpRequest",
+        "onError": "continueErrorOutput",
+        "position": [
+          -1152,
+          2544
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "1039bda1-7cb2-49fd-9252-c6d3b53e4fa2",
+        "name": "Check Robots.txt",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -720,
+          2096
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "d77b0884-a2c4-4b28-b279-16e67afb0510",
+        "name": "Prepare Robots.txt Check 2",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -912,
+          2096
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "516d7465-76d6-4134-bc17-cbaf7c112ff0",
+        "name": "If Link Allowed",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -528,
+          2096
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "bb0e20fd-3f1d-419d-a328-05f4ad5eb339",
+        "name": "Prepare Output for Link Disallowed",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          704,
+          2112
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "0d4a5f55-92e6-4a66-97bb-f1ec049b728b",
+        "name": "If Link Allowed 2",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          352,
+          1296
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "69654ff0-7546-4692-a575-a88a05293ca0",
+        "name": "Create robots.txt Table",
+        "type": "n8n-nodes-base.postgres",
+        "position": [
+          -2064,
+          2528
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "81b09054-43a3-48ba-b119-f5cbb49374d6",
+        "name": "Check robots.txt Table",
+        "type": "n8n-nodes-base.postgres",
+        "position": [
+          -1856,
+          2528
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "07a403eb-65cb-4da3-845c-7b1b5de6c3a8",
+        "name": "If robots.txt Found and Updated",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -1632,
+          2112
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "f53dc919-cd77-4802-ba3a-fef47ca38b74",
+        "name": "Output",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1536,
+          2112
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "9c3cabef-1da9-4102-95b4-9cbfc8bb8160",
+        "name": "Prepare Output",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1088,
+          2112
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "588b1506-9f2c-40bf-abfa-df0c69411e9d",
+        "name": "Prepare Output for Link Allowed",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          736,
+          1280
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "252ca896-b873-4758-ba5e-deb1a56f2b22",
+        "name": "Upsert robots.txt Table",
+        "type": "n8n-nodes-base.postgres",
+        "position": [
+          1312,
+          2112
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "c80bc608-19fc-40e0-a198-8211dc6ff0fc",
+        "name": "Delete robots.txt Table",
+        "type": "n8n-nodes-base.postgres",
+        "disabled": true,
+        "position": [
+          -1824,
+          3696
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "f8ce0f78-2abf-4a5b-89f1-f65ace69816f",
+        "name": "Start",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "position": [
+          -3648,
+          2512
+        ],
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "c299b34c-fa35-4eb8-9c71-9f06ec7eae98",
+        "name": "Check all robots.txt Table",
+        "type": "n8n-nodes-base.postgres",
+        "disabled": true,
+        "position": [
+          -1744,
+          3280
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "9f0168e4-f2d3-41c5-be7e-74e341e17c4b",
+        "name": "Assume False Output",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          336,
+          1520
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "86938ca3-c65f-4d84-82e9-ce93d796c7eb",
+        "name": "Create forbidden urls table",
+        "type": "n8n-nodes-base.postgres",
+        "position": [
+          -3120,
+          2512
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "e44e9e41-b671-4293-9c67-8c291d6e6dc3",
+        "name": "Check forbidden urls table",
+        "type": "n8n-nodes-base.postgres",
+        "position": [
+          -2880,
+          2512
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "bc407192-b22d-4971-98f7-ce13ed09fc98",
+        "name": "If forbidden url Detected",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -2656,
+          2512
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "2d710898-c723-4d42-92ec-c491a0c07f37",
+        "name": "Return Disallow",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -2432,
+          2304
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "9914c26d-fd5b-4546-b00b-255b10250792",
+        "name": "Check all forbidden urls Table",
+        "type": "n8n-nodes-base.postgres",
+        "disabled": true,
+        "position": [
+          -2576,
+          3296
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "9b5ccc40-00ff-4076-91c9-7e96be6bfb7d",
+        "name": "Delete forbidden urls Table",
+        "type": "n8n-nodes-base.postgres",
+        "disabled": true,
+        "position": [
+          -2752,
+          3696
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "03f80a39-6047-45a8-8d52-e346f387afc1",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -3024,
+          3504
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f400b614-2206-46ad-b498-51b07a504874",
+        "name": "Manual Upsert robots.txt Table",
+        "type": "n8n-nodes-base.postgres",
+        "disabled": true,
+        "position": [
+          -1744,
+          3072
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "425ee181-432f-41c9-867e-5271c52c34f3",
+        "name": "Manual Upsert forbidden urls Table",
+        "type": "n8n-nodes-base.postgres",
+        "disabled": true,
+        "position": [
+          -2576,
+          3056
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "fde71fdd-2914-49ca-b5b2-b614a32bee6a",
+        "name": "Start (Tests)",
+        "type": "n8n-nodes-base.set",
+        "disabled": true,
+        "position": [
+          -3648,
+          2224
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "93bd916d-7788-46c9-93ee-834b59c9b8d1",
+        "name": "Manual Create forbidden urls table",
+        "type": "n8n-nodes-base.postgres",
+        "disabled": true,
+        "position": [
+          -2896,
+          3184
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "1cfe5dce-3499-4e55-9151-9dc8be7d9f6c",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -3024,
+          2944
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "85c3de20-fdf1-4cbe-92e9-2fe1c6ab3624",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -3904,
+          2112
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "09434f92-9a9d-48af-8987-755dfc7766da",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -3936,
+          1920
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5b2d5cc7-7065-4deb-b145-03f5f7b3e9ce",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2128,
+          1184
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5674db3e-5bcc-443b-9b88-1c369f2f0e23",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1024,
+          1520
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "52f6e748-31a5-44b0-b23b-b51f4d09b7ad",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2512,
+          2224
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b5d5574d-66e4-4726-8615-ab8c6f9cf194",
+        "name": "Sticky Note7",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          288,
+          1456
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a5fa3997-5a9f-4970-b464-21e9b55cdf2f",
+        "name": "Sticky Note15",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -3328,
+          1008
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "d4794547-77c1-40fc-8a52-e0191a9bd404",
+        "name": "Sticky Note31",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2496,
+          1088
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "22e102af-193b-4b38-80c3-b2c333709dc4",
+        "name": "Sticky Note34",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -3792,
+          1200
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "75e8933b-543e-42ea-8ff7-0a521b0ad32e",
+        "name": "Sticky Note8",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -4208,
+          2944
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9107b51b-e2a1-4270-945d-38a9df86b5f3",
+        "name": "Sticky Note9",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -3200,
+          2416
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "705a2acb-3a24-4a00-8d84-1d3ce621b4c4",
+        "name": "Sticky Note10",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1424,
+          2448
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f1912a96-427e-4db1-b394-be408b4cbb9a",
+        "name": "Sticky Note11",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2112,
+          2448
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "15b38c36-35a7-41fd-9fa0-e01c8298fab5",
+        "name": "Sticky Note12",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1008,
+          1920
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "d414091e-811f-463e-838d-58a8491d564b",
+        "name": "Sticky Note13",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -336,
+          1232
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f95a62e2-4d31-4492-8624-d936424b0490",
+        "name": "Sticky Note28",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -3264,
+          2048
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "fea72690-55dc-4625-af83-ef77ede6357d",
+        "name": "Manually Create robots.txt Table",
+        "type": "n8n-nodes-base.postgres",
+        "disabled": true,
+        "position": [
+          -1984,
+          3200
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "9dd3216b-879f-40a6-81c4-3d63b86c5292",
+        "name": "Sticky Note29",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1072,
+          2320
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f361c438-ef17-41f0-a5a9-d33f7984fcef",
+        "name": "Sticky Note30",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -992,
+          1472
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "583d53e0-f5d5-4607-8fa6-58724fda1ac6",
+        "name": "Sticky Note32",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -768,
+          2624
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ab679ee0-bb40-4c81-85ea-ef4071b95c4b",
+        "name": "Sticky Note33",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -320,
+          1296
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ad3b7618-63c5-480a-a41a-e6da3ab943a6",
+        "name": "Sticky Note35",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1216,
+          1712
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5d992230-3914-4579-8713-69d9e3fbd04d",
+        "name": "Sticky Note36",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1792,
+          1616
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b232978b-dc4e-43aa-b574-ced3df444a64",
+        "name": "Sticky Note37",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1360,
+          2960
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "77f6075d-165e-4670-a240-c71126398f05",
+        "name": "Sticky Note38",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1200,
+          3056
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "d930904c-89ba-4898-9476-dae2b2b155b2",
+        "name": "Sticky Note39",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -144,
+          3056
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8ae3aeaa-63e0-42b4-a1ce-97f1c0670314",
+        "name": "Sticky Note40",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1200,
+          3360
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5b172243-840f-4e72-9d7c-7cc828d60dd6",
+        "name": "Sticky Note41",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -144,
+          3360
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "80fb378d-92bf-4850-a108-e85ec8c991b4",
+        "name": "Sticky Note42",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1200,
+          3648
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ffb39f67-e930-47c5-b1a2-5f2a2492b1cb",
+        "name": "Sticky Note43",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -144,
+          3648
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8a774b6c-e37b-4ec2-a12f-0085806655f4",
+        "name": "Sticky Note44",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          368,
+          1744
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9bff1640-c69e-49c0-a0a5-2426823965f6",
+        "name": "Sticky Note14",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -288,
+          2208
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "callerPolicy": "workflowsFromSameOwner",
+      "executionOrder": "v1",
+      "executionTimeout": 900
+    },
+    "versionId": "d95d2e5a-836f-4b5c-adad-0ee7f9a4b68c",
+    "connections": {
+      "Start": {
+        "main": [
+          [
+            {
+              "node": "Get Base URL",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Base URL": {
+        "main": [
+          [
+            {
+              "node": "Create forbidden urls table",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Start (Tests)": {
+        "main": [
+          []
+        ]
+      },
+      "Get Robots.txt": {
+        "main": [
+          [
+            {
+              "node": "Prepare Robots.txt Check 2",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Assume Disallow",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Model Selector": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Information Extractor",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Output": {
+        "main": [
+          [
+            {
+              "node": "Upsert robots.txt Table",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Assume Disallow": {
+        "main": [
+          [
+            {
+              "node": "Prepare Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Groq Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Model Selector",
+              "type": "ai_languageModel",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "If Link Allowed": {
+        "main": [
+          [
+            {
+              "node": "Information Extractor",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Prepare Output for Link Disallowed",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Robots.txt": {
+        "main": [
+          [
+            {
+              "node": "If Link Allowed",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Start (Tests)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If Link Allowed 2": {
+        "main": [
+          [
+            {
+              "node": "Prepare Output for Link Allowed",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Prepare Output for Link Disallowed",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Information Extractor": {
+        "main": [
+          [
+            {
+              "node": "If Link Allowed 2",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Assume False Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check robots.txt Table": {
+        "main": [
+          [
+            {
+              "node": "If robots.txt Found and Updated",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create robots.txt Table": {
+        "main": [
+          [
+            {
+              "node": "Check robots.txt Table",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Upsert robots.txt Table": {
+        "main": [
+          [
+            {
+              "node": "Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Gemini Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Model Selector",
+              "type": "ai_languageModel",
+              "index": 2
+            }
+          ]
+        ]
+      },
+      "Mistral Cloud Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Model Selector",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Robots.txt Check": {
+        "main": [
+          [
+            {
+              "node": "Get Robots.txt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If forbidden url Detected": {
+        "main": [
+          [
+            {
+              "node": "Return Disallow",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Create robots.txt Table",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check forbidden urls table": {
+        "main": [
+          [
+            {
+              "node": "If forbidden url Detected",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Robots.txt Check 2": {
+        "main": [
+          [
+            {
+              "node": "Check Robots.txt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create forbidden urls table": {
+        "main": [
+          [
+            {
+              "node": "Check forbidden urls table",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If robots.txt Found and Updated": {
+        "main": [
+          [
+            {
+              "node": "Prepare Robots.txt Check 2",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Prepare Robots.txt Check",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Output for Link Allowed": {
+        "main": [
+          [
+            {
+              "node": "Prepare Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Output for Link Disallowed": {
+        "main": [
+          [
+            {
+              "node": "Prepare Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 29,
+      "name": "SecOps"
+    },
+    {
+      "id": 48,
+      "name": "AI RAG"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8138",
+  "fetched_at": "2026-09-12T13:12:18Z"
+}

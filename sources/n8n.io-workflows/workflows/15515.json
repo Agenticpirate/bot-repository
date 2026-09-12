@@ -1,0 +1,464 @@
+{
+  "id": 15515,
+  "name": "Send AI stock risk alerts from Google Sheets with Twelve Data and Groq",
+  "description": "# Google Sheets + Twelve Data + Groq AI Stock Risk Alert Workflow\n\n&gt; Smart Stock Risk Alerts in Minutes\n\nThis workflow automatically reads your stock portfolio from Google Sheets, fetches real-time prices via API, calculates risk metrics (price drops and volatility) and sends AI-generated email alerts **only when risks are detected**. It helps you stay informed without being overwhelmed by unnecessary notifications.\n\n### Quick Implementation Steps\n\n1. Connect your **Google Sheets** account and prepare your portfolio sheet.\n2. Add your **Twelve Data API key** in the HTTP Request node.\n3. Connect your **Gmail account** for sending alerts.\n4. Configure thresholds in the **Edit Fields – Config & Thresholds** node.\n5. Set up a **Cron (Schedule Trigger)** instead of manual execution.\n6. [Run the workflow and monitor alerts](https://n8n.partnerlinks.io/om1efg2qgvwi).\n\n\n## What It Does\n\nThis workflow automates stock portfolio monitoring by combining spreadsheet data, real-time market prices and AI-powered summaries. It reads your portfolio data from Google Sheets and processes each stock by fetching its current market price through an external API.\n\nOnce the data is enriched, the workflow calculates key risk indicators such as percentage price change and volatility. Based on predefined thresholds, it flags stocks that may require attention. Instead of sending raw data, it uses an AI model to generate a clean, human-readable summary.\n\nThe workflow ensures efficiency by sending alerts **only when necessary**, reducing noise and helping you focus on meaningful risks.\n\n\n## Who It's For\n\n- Retail investors tracking personal portfolios  \n- Financial analysts monitoring stock risks  \n- Traders who want automated alerts  \n- Anyone using Google Sheets for stock tracking  \n- Users looking to integrate AI into financial workflows  \n\n\n## Requirements\n\nTo use this workflow, you need:\n\n- [**n8n account** (self-hosted or cloud)](https://n8n.partnerlinks.io/om1efg2qgvwi)\n- **Google Sheets account** (OAuth2 connection required)\n- **Gmail account** (OAuth2 connection required)\n- **Twelve Data API key** (mandatory)\n- **Groq API access** (for AI summary generation)\n\n\n## How It Works & Setup Guide\n\n### Step 1: Prepare Google Sheets\n\n- Use a sheet named: `Portfolio`\n- Range: `A:E`\n- Required columns (in order):\n\n| Column | Field Name   | Description |\n|--------|-------------|-------------|\n| A      | symbol      | Stock ticker (e.g., AAPL) |\n| B      | avg_price   | Average purchase price |\n| C      | quantity    | Number of shares |\n| D      | sector      | Industry sector |\n| E      | notes       | Optional notes |\n\n\n### Step 2: Connect Google Sheets\n\n- Open **Read Portfolio from Google Sheets** node  \n- Authenticate using Google OAuth2  \n- Ensure:\n  - Sheet ID is correct\n  - Range is set to `Portfolio!A:E`\n\n\n### Step 3: Configure API (MANDATORY)\n\n⚠️ **This is a required setup step. The workflow will NOT work without it.**\n\n- Open **Fetch Stock Prices** node  \n- Update URL:\n\n    ``` https://api.twelvedata.com/price?symbol={{$json.symbol}}&apikey=YOUR_API_KEY ```\n\n- Replace `YOUR_API_KEY` with your Twelve Data API key  \n\n\n### Step 4: Configure Email Alerts (MANDATORY)\n\n⚠️ You must configure the recipient email manually.\n\n- Open **Send Risk Alert Notification** node  \n- Set:\n  - `sendTo` → your email address  \n  - Subject is already set: `Daily Stock Risk Alert`\n\n\n### Step 5: Configure Thresholds\n\n- Open **Edit Fields – Config & Thresholds** node  \n- Default values:\n  - `drop_threshold = -5` → triggers alert if price drops ≥ 5%\n  - `volatility_threshold = 3` → triggers alert if volatility ≥ 3%\n\nAdjust these based on your risk tolerance.\n\n\n### Step 6: Enable Scheduling\n\nThe workflow is designed for scheduled execution.\n\n- Replace **Manual Trigger** with **Cron Node**\n- Example schedule:\n  - Daily at 9 AM\n  - Every hour during market hours\n\n\n### Step 7: Execute Workflow\n\n- Run once manually for testing  \n- Activate workflow for automation  \n\n\n## How It Works (Flow Summary)\n\n1. Reads portfolio data from Google Sheets  \n2. Adds configuration thresholds  \n3. Loops through each stock  \n4. Fetches real-time prices (with delay to avoid rate limits)  \n5. Merges portfolio + price data  \n6. Computes:\n   - Price change %\n   - Volatility  \n7. Flags risky stocks  \n8. Filters only flagged items  \n9. Formats data into readable text  \n10. Uses AI (Groq model) to generate summary  \n11. Sends email alert  \n\n\n## How To Customize Nodes\n\n- **Edit Fields – Config & Thresholds**  \n  Adjust sensitivity of alerts  \n\n- **Wait 8 Seconds Before request**  \n  Modify delay based on API rate limits  \n\n- **Compute Risk Logic**  \n  Add new conditions (e.g., stop-loss, sector-based alerts)\n\n- **Generate Risk Summary**  \n  Customize prompt for different tone or format  \n\n- **Send Risk Alert Notification**  \n  Change subject or email structure  \n\n\n## Add-ons (Extend This Workflow)\n\n- Add **Slack/Telegram alerts** instead of email  \n- Store alerts in a **database (PostgreSQL / Airtable)**  \n- Add **historical tracking & charts**  \n- Integrate **multiple APIs for redundancy**  \n- Add **portfolio performance analytics dashboard**  \n- Enable **multi-user alerts**  \n\n\n## Use Case Examples\n\n1. **Daily Portfolio Monitoring**  \n   \nAutomatically receive alerts for risky stocks each day  \n\n2. **Intraday Risk Tracking**  \n   \nRun hourly to track sudden market movements  \n\n3. **High Volatility Detection**  \n   \nIdentify stocks with unstable price behavior  \n\n4. **Loss Prevention Alerts**  \n   Get notified when stocks drop beyond safe thresholds  \n\n5. **Sector-Based Monitoring**  \n   Track risk exposure across industries  \n\nThere can be many more use cases depending on how you customize thresholds and logic.\n\n\n## Troubleshooting Guide\n\n| Issue | Possible Cause | Solution |\n|------|--------------|----------|\n| No data fetched from Google Sheets | Incorrect sheet ID or range | Verify Sheet ID and `Portfolio!A:E` |\n| API not returning prices | Missing API key | Add `apikey` in HTTP Request node |\n| Workflow stops unexpectedly | API rate limit | Increase wait time |\n| No email received | `sendTo` field empty | Add recipient email |\n| No alerts triggered | Thresholds too strict | Adjust drop/volatility values |\n| AI summary not generated | Groq API issue | Check API credentials |\n| Incorrect risk calculation | Data format issue | Ensure numeric values in sheet |\n\n\n## Need Help?\n\nIf you need assistance with:\n\n- Setting up this workflow  \n- Customizing risk logic  \n- Adding advanced features  \n- Integrating additional APIs  \n- Building similar automation workflows  \n\nWe’re here to help!\n\n👉 Contact our [n8n developes at **WeblineIndia**](https://n8n.partnerlinks.io/om1efg2qgvwi) for expert support in building scalable, AI-powered automation solutions tailored to your needs.",
+  "workflow": {
+    "id": "4Z7beGBJ3MSo6W4X",
+    "meta": {
+      "instanceId": "fc379942a368a74cbfbb284e40689a9d53f77a0f4739fa7d156699ddfcf813a3",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Risk Alert Generator",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "709245f2-e7a2-4627-accb-ab6e9408cf95",
+        "name": "Read Portfolio from Google Sheets",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          208,
+          0
+        ],
+        "parameters": {
+          "range": "Portfolio!A:E",
+          "options": {},
+          "sheetId": "1KA65Fzm1uP4kP8UiCN7rlQxUmcCv5ESxhivfxfDui2s"
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "p0jmTspOBsGsL8FK",
+            "name": "Google Sheets account"
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "fd7fd453-1605-40eb-b211-bd33b1c0cb18",
+        "name": "Edit Fields – Config & Thresholds",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          400,
+          0
+        ],
+        "parameters": {
+          "values": {
+            "number": [
+              {
+                "name": "drop_threshold",
+                "value": -5
+              },
+              {
+                "name": "volatility_threshold",
+                "value": 3
+              }
+            ],
+            "boolean": [
+              {
+                "name": "alert_enabled",
+                "value": true
+              }
+            ]
+          },
+          "options": {}
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "bfd44777-cb5a-4b27-aea9-ce0cb544d2de",
+        "name": "Filter – Only Flagged Risks",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1200,
+          -208
+        ],
+        "parameters": {
+          "conditions": {
+            "string": [
+              {
+                "value1": "={{$json.risks.length}}",
+                "value2": "0",
+                "operation": "notEqual"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4c93a63b-bfe3-474e-93c0-d9de5f17ccf1",
+        "name": "When clicking ‘Execute workflow’",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "89ec7fd7-41a1-42e6-875d-41d3767b4124",
+        "name": "Send Risk Alert Notification",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          1872,
+          -224
+        ],
+        "webhookId": "36f9ccbd-2c79-4ac8-8733-01bb3cd3b9f8",
+        "parameters": {
+          "sendTo": "",
+          "message": "={{ $json.output }}",
+          "options": {},
+          "subject": "Daily Stock Risk Alert"
+        },
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "Hkd677gqvQERB2uU",
+            "name": "Gmail OAuth2 API"
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "ca20c72d-0721-41ef-8209-c88871391e81",
+        "name": "Wait 8 Seconds Before request",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          784,
+          176
+        ],
+        "webhookId": "8b46b2a7-3d2e-408c-9977-81f39987ef37",
+        "parameters": {
+          "amount": 8
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "d3915664-c776-4817-b42f-9980bd7bc1ce",
+        "name": "Compute Risk Logic",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          992,
+          -208
+        ],
+        "parameters": {
+          "functionCode": "// First, collect all input items from the previous node\nconst allItems = $items(); // $items() gives all input items as an array\n\n// Separate stocks (first half) and prices (second half)\nconst stocks = allItems.slice(0, 5).map(item => item.json);\nconst prices = allItems.slice(5, 10).map(item => parseFloat(item.json.price));\n\n// Combine stock with its corresponding price\nreturn stocks.map((stock, i) => {\n    const currentPrice = prices[i];\n    const avgPrice = parseFloat(stock.avg_price);\n    const changePercent = ((currentPrice - avgPrice) / avgPrice) * 100;\n    const volatility = Math.abs(changePercent);\n\n    const risks = [];\n    if (changePercent <= stock.drop_threshold) risks.push(\"Large Price Drop\");\n    if (volatility >= stock.volatility_threshold) risks.push(\"High Volatility\");\n\n    return {\n        json: {\n            ...stock,\n            current_price: currentPrice,\n            change_percent: changePercent.toFixed(2),\n            volatility: volatility.toFixed(2),\n            risks\n        }\n    };\n});"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "874debab-4fbd-4685-9ad4-e5163c15b93f",
+        "name": "Generate Risk Summary",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          1584,
+          -224
+        ],
+        "parameters": {
+          "text": "=You are a stock risk assistant. \n\nBelow is the list of flagged stocks, if any. Generate a **clear, concise plain-text summary** for an email alert. Use natural sentences, not just raw tables or code. Include only relevant info: symbol, current price, average price, change %, volatility %, quantity, sector, notes and risks.\n\n- If there are no flagged stocks, output: \"No stocks meet the risk criteria today. No email alert is necessary.\"\n- Otherwise, generate a **single, readable paragraph per stock**.\n- Do not use Markdown, symbols like ** or _ or HTML.\n\nFlagged Stocks:\n{{$json.output}}",
+          "options": {},
+          "promptType": "define"
+        },
+        "typeVersion": 3.1
+      },
+      {
+        "id": "16fec3d5-8fe4-49ff-aedb-2473ac806ee7",
+        "name": "Groq Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+        "position": [
+          1584,
+          -32
+        ],
+        "parameters": {
+          "model": "openai/gpt-oss-120b",
+          "options": {}
+        },
+        "credentials": {
+          "groqApi": {
+            "id": "FiqFVjecGr7P2IG0",
+            "name": "Groq account"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2e78d5d2-fe9d-43dd-aa2a-b3a1c5446f2d",
+        "name": "Collect Flagged Stocks",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1392,
+          -224
+        ],
+        "parameters": {
+          "jsCode": "// Collect all input items\nconst allItems = $items(); // gives array of all input items\n\n// Map over items to format each stock\nconst flaggedStocksText = allItems.map(item => {\n  const stock = item.json;\n  return `Symbol: ${stock.symbol}\nCurrent Price: ${stock.current_price}\nAverage Price: ${stock.avg_price}\nChange Percent: ${stock.change_percent}%\nVolatility: ${stock.volatility}%\nQuantity: ${stock.quantity}\nSector: ${stock.sector}\nNotes: ${stock.notes}\nRisks: ${stock.risks.join(\", \")}`;\n}).join(\"\\n\\n\"); // double newline for readability\n\n// Return as single output\nreturn [{ json: { output: flaggedStocksText } }];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "8a3c1984-5e31-4c24-bb56-2de9a1394901",
+        "name": "Loop: Fetch Current Prices",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          608,
+          0
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "ffe6e92a-4b02-4b51-bbbf-9d5afb9ff726",
+        "name": "Fetch Stock Prices",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          992,
+          176
+        ],
+        "parameters": {
+          "url": "=https://api.twelvedata.com/price?symbol={{$json.symbol}}",
+          "options": {}
+        },
+        "typeVersion": 4.4
+      },
+      {
+        "id": "79f13e81-092d-4be1-9018-b388a45847a8",
+        "name": "Merge Portfolio & Prices",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          784,
+          -208
+        ],
+        "parameters": {},
+        "typeVersion": 3.2
+      },
+      {
+        "id": "f63ddc9e-8294-404a-ab1f-1e6515e6a782",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -304,
+          -720
+        ],
+        "parameters": {
+          "width": 368,
+          "height": 416,
+          "content": "## Risk Alert Generator\n\n### How It Works:\nThis workflow reads your stock portfolio from Google Sheets, fetches current prices via API, calculates risk metrics (price drops & volatility), identifies flagged stocks and generates a concise AI-written summary. Only flagged stocks trigger an email alert, keeping notifications relevant.\n\n### Setup Steps:\n1. Connect your Google Sheets account and specify the portfolio sheet and range.\n2. Connect your Gmail account to send alerts.\n3. Configure alert thresholds in the Set Config & Thresholds node.\n4. Provide a stock price API key in the HTTP Request node.\n5. Test by executing the workflow manually or schedule it as needed."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "fb047815-2223-4df3-ae6f-56c4de0ba3f7",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          144,
+          -416
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 384,
+          "height": 816,
+          "content": "## Portfolio Input & Thresholds\nReads portfolio data from Google Sheets, adds configuration parameters like drop thresholds and volatility limits and enables/disables alerts. Prepares a structured dataset for the subsequent risk computation steps. Ensures that only relevant fields are passed downstream."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "89d519d7-3f80-4c4e-a6b2-049d289c4552",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          544,
+          -416
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 608,
+          "height": 816,
+          "content": "## Fetch Prices & Compute Risks\nLoops through each stock, retrieves live prices via API with a small delay to respect rate limits, merges original portfolio data and calculates risk metrics (percentage change, volatility). Flags stocks exceeding thresholds, producing a clean dataset for flagged risk analysis."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ceb2a706-b5f1-448e-9556-7b048be5af2e",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1168,
+          -416
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 848,
+          "height": 816,
+          "content": "## Summarize & Notify\nFilters only stocks with flagged risks, formats them into a readable summary and passes the data to the AI node for generating plain-text email content. Sends email notifications only when risks exist, ensuring alerts are meaningful and avoiding unnecessary emails."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "binaryMode": "separate",
+      "executionOrder": "v1"
+    },
+    "versionId": "21c59cee-37ad-4273-bf3e-2854448a59d0",
+    "connections": {
+      "Groq Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Generate Risk Summary",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Compute Risk Logic": {
+        "main": [
+          [
+            {
+              "node": "Filter – Only Flagged Risks",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Stock Prices": {
+        "main": [
+          [
+            {
+              "node": "Loop: Fetch Current Prices",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Risk Summary": {
+        "main": [
+          [
+            {
+              "node": "Send Risk Alert Notification",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Collect Flagged Stocks": {
+        "main": [
+          [
+            {
+              "node": "Generate Risk Summary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge Portfolio & Prices": {
+        "main": [
+          [
+            {
+              "node": "Compute Risk Logic",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop: Fetch Current Prices": {
+        "main": [
+          [
+            {
+              "node": "Merge Portfolio & Prices",
+              "type": "main",
+              "index": 1
+            }
+          ],
+          [
+            {
+              "node": "Wait 8 Seconds Before request",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter – Only Flagged Risks": {
+        "main": [
+          [
+            {
+              "node": "Collect Flagged Stocks",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait 8 Seconds Before request": {
+        "main": [
+          [
+            {
+              "node": "Fetch Stock Prices",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read Portfolio from Google Sheets": {
+        "main": [
+          [
+            {
+              "node": "Edit Fields – Config & Thresholds",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Edit Fields – Config & Thresholds": {
+        "main": [
+          [
+            {
+              "node": "Loop: Fetch Current Prices",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Merge Portfolio & Prices",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When clicking ‘Execute workflow’": {
+        "main": [
+          [
+            {
+              "node": "Read Portfolio from Google Sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 44,
+      "name": "Crypto Trading"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15515",
+  "fetched_at": "2026-09-12T13:15:27Z"
+}

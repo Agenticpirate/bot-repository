@@ -1,0 +1,447 @@
+{
+  "id": 8121,
+  "name": "Convert news headlines to audio newsletters with Claude, GPT-4o & OpenAI TTS",
+  "description": "# Generate daily audio newsletters from news headlines with AI\n\n## Who's it for\n\nPerfect for **content creators, podcasters, news enthusiasts, and busy professionals** who want to create automated audio news content or stay informed through personalized audio briefings. Ideal for social media managers, newsletter creators, and anyone building audio-first content experiences.\n\n## How it works\n\nThis workflow creates a fully automated news-to-audio pipeline:\n\n1. **Schedule trigger** fetches the latest news headlines from NewsAPI daily\n2. **AI processing** rewrites each article into newsletter-style content using Claude\n3. **Content aggregation** combines all processed articles into a cohesive newsletter\n4. **Script generation** transforms the newsletter into a 2-minute audio-ready script\n5. **Text-to-speech** converts the script into high-quality audio using OpenAI's voice models\n6. **Email delivery** sends the audio newsletter as an attachment to subscribers\n\nThe workflow runs automatically on your chosen schedule, delivering fresh audio content without any manual intervention.\n\n## How to set up\n\n### Requirements\n\n- **NewsAPI account** with API key (free tier available)\n- **OpenRouter API access** for Claude model\n- **OpenAI API account** for text-to-speech functionality\n- **Gmail account** with OAuth2 access for email delivery\n- **Basic understanding** of audio file handling (optional)\n\n### Step-by-step setup\n**1. Set Your Schedule trigger**\n- Configure the Schedule Trigger for your preferred timing (daily at 7 AM recommended)\n- Consider your audience timezone and optimal delivery times\n- Set up monitoring to ensure consistent execution\n\n**2. Configure News Source**\n- Sign up for NewsAPI at newsapi.org (free tier includes 100 requests/day)\n- Replace `YOUR_NEWSAPI_KEY` with your actual API key in the HTTP Request node\n- Customize the news query parameters (country, category, sources) to match your audience interests\n- Test the API endpoint to ensure it returns expected data\n\n**3. Extract Individual Articles(Split Out)**\n- Takes the articles array from NewsAPI response\n- Creates separate items for each news article\n- Enables individual processing of each story\n- Prepares data for AI content generation\n\n**4. Set Up AI Model Credentials**\n- Create an OpenRouter account for Claude access\n- Add your OpenRouter API credentials in n8n\n- Alternatively, replace with OpenAI GPT-4 if you prefer (update the model node accordingly)\n- Configure rate limits and usage monitoring\n\n**5. Combine Newsletter Content\" (Aggregate)**\n- Collects output from all processed articles\n- Renames field to news for easy reference\n- Prepares combined content for script generation\n- Ensures no articles are lost in processing\n\n**6. Audio Script Generation**\n - GPT-4 creates 2-minute audio-ready script from newsletter content.\n - Creates script with \"Max\" presenter persona\n###### Script features:\n   - 2-minute target duration\n   - Audio-friendly text (no special characters)\n   - Natural speaking flow and transitions\n   - Engaging introduction and conclusion\n\n**7. Configure OpenAI Text-to-Speech**\n- Add your OpenAI API credentials in n8n\n- Choose your preferred voice model (options: alloy, echo, fable, onyx, nova, shimmer)\n- Set audio quality preferences (standard vs HD)\n- Test voice output with sample text\n\n**8. Customize Email Delivery**\n- Add your Gmail OAuth2 credentials\n- Replace `YOUR_EMAIL@example.com` with your actual recipient email\n- Update the sender name and business information in email template\n- Configure attachment settings for audio files\n\n**9. Test the Complete Pipeline**\n- Run a manual execution to test all components\n- Verify news data is properly fetched and processed\n- Check audio quality and duration\n- Confirm email delivery with audio attachment\n\n## How to customize the workflow\n\n### Advanced News Filtering\n- **Custom sources**: Replace NewsAPI with RSS feeds from specific publications\n- **Topic filtering**: Add keyword filtering to focus on specific industries or topics\n- **Multi-country support**: Fetch news from multiple regions and merge content\n- **Sentiment analysis**: Filter out negative news or categorize by sentiment\n- **Trending topics**: Integrate with social media APIs to include trending discussions\n\n### AI Content Enhancement\n- **Voice persona**: Customize the AI prompt to create different presenter personalities (professional, casual, expert)\n- **Length control**: Adjust script length for different formats (1-minute updates, 5-minute deep dives)\n- **Multi-language support**: Generate newsletters in different languages based on subscriber preferences\n- **Fact-checking**: Add verification steps to ensure accuracy of AI-generated content\n- **Source attribution**: Include proper citations and links to original articles\n\n### Audio Production Features\n- **Voice variety**: Rotate between different OpenAI voices for engaging content\n- **Background music**: Add intro/outro music using audio editing APIs\n- **Speed control**: Adjust playback speed based on content type\n- **Chapter markers**: Add timestamps for different news segments\n- **Quality optimization**: Implement audio normalization and enhancement\n\n### Distribution Enhancements\n- **Multi-channel delivery**: Send to Slack, Discord, or team communication platforms\n- **Podcast publishing**: Automatically upload to podcast platforms via RSS\n- **Social media**: Post audio clips to Twitter, LinkedIn, or Instagram\n- **Website integration**: Embed audio player on your website automatically\n- **Mobile app push**: Send notifications to mobile apps with audio links\n\n### Subscriber Management\n- **Mailchimp integration**: Build and manage subscriber lists automatically\n- **Preference tracking**: Allow subscribers to choose news categories or frequency\n- **Analytics tracking**: Monitor open rates, listening duration, and engagement\n- **A/B testing**: Test different voice styles, content lengths, or delivery times\n- **Segmentation**: Send different newsletters to different subscriber segments\n\n### Content Workflow Customization\n- **Editorial review**: Add approval steps before content distribution\n- **Content calendar**: Integrate with planning tools for scheduled content themes\n- **Collaborative editing**: Include team review processes for content quality\n- **Version control**: Maintain archives of previous newsletters for reference\n- **Performance metrics**: Track which content types perform best\n\n## Webhook Integration Examples\n\n### Website Integration\n```javascript\n// Add this to your website for manual newsletter requests\nfetch('/webhook/trigger-newsletter', {\n  method: 'POST',\n  headers: {'Content-Type': 'application/json'},\n  body: JSON.stringify({\n    subscriber_email: 'user@example.com',\n    topics: ['technology', 'business'],\n    urgency: 'normal'\n  })\n});\n```\n\n### Slack Command Integration\n- Create slash commands to trigger newsletter generation on demand\n- Allow team members to request specific topic newsletters\n- Integrate with Slack workflows for automated team briefings\n\n### Mobile App Integration\n- Use webhooks to trigger newsletters from mobile app interactions\n- Create push notification systems for breaking news alerts\n- Build in-app audio players for seamless listening experience\n\n## Troubleshooting\n\n### Common Issues and Solutions\n\n**NewsAPI quota exceeded:**\n- Monitor your daily API usage in NewsAPI dashboard\n- Implement caching to reduce redundant requests\n- Consider upgrading to paid plan for higher limits\n- Add fallback RSS feeds when API limits are reached\n\n**AI model rate limiting:**\n- Implement exponential backoff for API requests\n- Monitor token usage across Claude and OpenAI services\n- Add queue systems for high-volume processing\n- Consider switching to different models during peak times\n\n**Audio generation failures:**\n- Check OpenAI text-to-speech quotas and billing\n- Validate text input for special characters that might cause issues\n- Implement retry logic for failed audio generation\n- Add fallback to text-only newsletters when audio fails\n\n**Email delivery problems:**\n- Verify Gmail API quotas and sending limits\n- Check audio file size limits (Gmail has 25MB attachment limit)\n- Implement compression for large audio files\n- Consider cloud storage links instead of direct attachments\n\n**Content quality issues:**\n- Fine-tune AI prompts for more consistent output\n- Add content validation steps to check for accuracy\n- Implement editorial guidelines in AI instructions\n- Create feedback loops to improve content over time\n\n### Performance Optimization\n\n**Workflow efficiency:**\n- Process news articles in parallel where possible\n- Implement smart caching for repeated content\n- Optimize API calls to reduce latency\n- Monitor execution times and identify bottlenecks\n\n**Cost management:**\n- Track API costs across all services (NewsAPI, OpenRouter, OpenAI)\n- Implement budget alerts and automatic shutoffs\n- Optimize content length to reduce text-to-speech costs\n- Consider batch processing during off-peak hours\n\n**Scalability preparation:**\n- Design for multiple subscriber support\n- Plan for increased news volume during major events\n- Prepare backup systems for service outages\n- Document processes for team handoffs\n\n### Security and Compliance\n\n**API key protection:**\n- Never expose API keys in workflow exports\n- Use n8n's credential management exclusively\n- Implement key rotation policies\n- Monitor for unauthorized API usage\n\n**Content compliance:**\n- Review AI-generated content for accuracy and bias\n- Implement content filtering for inappropriate material\n- Ensure proper attribution to original news sources\n- Maintain editorial standards and fact-checking processes",
+  "workflow": {
+    "meta": {
+      "instanceId": "cbbe3d07d282d90d2165a7ab7800571be416166e6eb660e7a28cfe9b84473f49",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "39081db1-dab2-4453-beac-af3217697b44",
+        "name": "Get Latest News",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          128,
+          -144
+        ],
+        "parameters": {
+          "url": "https://newsapi.org/v2/top-headlines?country=us&apiKey=YOUR_TOKEN_HERE",
+          "options": {}
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "8c1ccc13-3ec3-486d-b087-77cb36d74ec9",
+        "name": "Split Out",
+        "type": "n8n-nodes-base.splitOut",
+        "position": [
+          352,
+          -144
+        ],
+        "parameters": {
+          "options": {},
+          "fieldToSplitOut": "articles"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3ec09b1c-bbc6-4508-b96d-7c90f8275e92",
+        "name": "Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+        "position": [
+          176,
+          192
+        ],
+        "parameters": {
+          "model": "anthropic/claude-3.7-sonnet",
+          "options": {}
+        },
+        "credentials": {
+          "openRouterApi": {
+            "id": "credential-id",
+            "name": "openRouterApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e2058424-6d9c-49e4-be50-5d59ec6d1a78",
+        "name": "Aggregate",
+        "type": "n8n-nodes-base.aggregate",
+        "position": [
+          416,
+          112
+        ],
+        "parameters": {
+          "options": {},
+          "fieldsToAggregate": {
+            "fieldToAggregate": [
+              {
+                "renameField": true,
+                "outputFieldName": "news",
+                "fieldToAggregate": "output"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a71b5a13-55d3-4b8e-9cee-98366151c66c",
+        "name": "Daily News Extractor",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          -112,
+          112
+        ],
+        "parameters": {
+          "text": "=News Details:\nAuthor -  {{ $json.author }}\ntitle - {{ $json.title }}\ndescription - {{ $json.description }}\ncontent - {{ $json.content }}\npublish date - {{ $json.publishedAt }}\n\n",
+          "options": {
+            "systemMessage": "take the details and rewrite a newsletter post\n\ninclude the date, and author too, let it blend in\n"
+          },
+          "promptType": "define"
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "aaf4f384-e63e-4eb3-a1a9-a55e0ad90c99",
+        "name": "Newsletter Agent",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "position": [
+          -144,
+          448
+        ],
+        "parameters": {
+          "modelId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4o-mini",
+            "cachedResultName": "GPT-4O-MINI"
+          },
+          "options": {},
+          "messages": {
+            "values": [
+              {
+                "content": "={{ $json.news.toJsonString() }}"
+              },
+              {
+                "role": "assistant",
+                "content": "=Rewrite all this newsletter into a 2-minute script that will be transcribe into audio \n\ndont put spcial characters, because a audio will transcribe the text to audio\n\nyou can start with Max here bring you the top new around the world"
+              }
+            ]
+          }
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "credential-id",
+            "name": "openAiApi Credential"
+          }
+        },
+        "typeVersion": 1.8
+      },
+      {
+        "id": "414c2613-c7f7-4548-a756-767729a17b23",
+        "name": "Transcribe Newsletter",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "position": [
+          176,
+          448
+        ],
+        "parameters": {
+          "input": "={{ $json.message.content }}",
+          "options": {},
+          "resource": "audio"
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "credential-id",
+            "name": "openAiApi Credential"
+          }
+        },
+        "typeVersion": 1.8
+      },
+      {
+        "id": "9dcb3abc-bfad-434f-b951-7326ad78c03c",
+        "name": "Notify Subscriber",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          432,
+          448
+        ],
+        "webhookId": "5ce3da89-caad-4f21-a6bf-3acf3b80b4f0",
+        "parameters": {
+          "sendTo": "user@example.com",
+          "message": "=Dear Sir,\n\n\nKindly Find the Latest News for {{ $now.format('yyyy-MM-dd') }}\n\n\nRegards,\nMax,\nYour business name",
+          "options": {
+            "attachmentsUi": {
+              "attachmentsBinary": [
+                {}
+              ]
+            },
+            "appendAttribution": false
+          },
+          "subject": "=Top News Headline for {{ $now.format('yyyy-MM-dd') }}",
+          "emailType": "text"
+        },
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "credential-id",
+            "name": "gmailOAuth2 Credential"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "958391a6-215a-4c51-9209-82a3d465bbbd",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1024,
+          -256
+        ],
+        "parameters": {
+          "width": 800,
+          "height": 848,
+          "content": "\n# 📰 Automated Daily News to Audio Newsletter.\n\n### 🎯 What This Does\nTransforms daily news headlines into personalized audio newsletters automatically:\n• **Fetches latest news** from NewsAPI on schedule\n• **AI content creation** rewrites articles into newsletter format using Claude\n• **Script generation** creates 2-minute audio-ready scripts with GPT-4\n• **Text-to-speech** converts scripts to high-quality audio using OpenAI\n• **Email delivery** sends audio newsletters as attachments\n\n### ⚡ How It Works\n1. Scheduled trigger runs daily (customizable timing)\n2. Fetches top US headlines from NewsAPI\n3. Claude AI rewrites each article for newsletter format\n4. GPT-4 creates cohesive 2-minute audio script\n5. OpenAI converts text to natural-sounding speech\n6. Audio newsletter emailed to subscribers automatically\n\n### 🛠️ Setup Required\n**Before using this workflow:**\n1. Get NewsAPI key and replace `YOUR_NEWSAPI_KEY`\n2. Configure OpenRouter credentials for Claude access  \n3. Add OpenAI API key for text-to-speech\n4. Update recipient email address\n5. Customize news sources and AI prompts\n6. Test audio quality and email delivery\n\n### 💡 Perfect For\n• Content creators building audio-first content\n• Busy professionals wanting daily news briefings\n• Podcasters creating automated content segments  \n• Teams needing internal news updates\n• Anyone interested in AI-powered media automation"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "def6a9ac-6cfd-48d0-958d-5c98084daf4c",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -96,
+          -144
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {}
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "5f453ec6-55dc-4b2b-b0b1-2a31c36fa41d",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -192,
+          -272
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 256,
+          "height": 272,
+          "content": "### Step 1: Daily News Schedule\n\nAutomatically triggers news collection at your chosen time.\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8137fa81-242a-4ccf-91bc-9b24b11b5cb7",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          80,
+          -272
+        ],
+        "parameters": {
+          "color": 3,
+          "height": 272,
+          "content": "### Step 2: Fetch News Headlines\n\nRetrieves latest news from NewsAPI."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4c9d24e5-ce3d-41e2-b90a-990abb66a9e0",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          336,
+          -272
+        ],
+        "parameters": {
+          "color": 4,
+          "height": 272,
+          "content": "### Step 3: Data Extraction\n\nExtract Th important details from the API"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4f750a45-2f6f-4d25-a050-6c3920413dd4",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -192,
+          16
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 512,
+          "height": 272,
+          "content": "### Step 4: AI Content Processing\n\nClaude AI rewrites news articles into newsletter format.\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "d33eb059-8c5c-4ac9-9796-25198bd8e56c",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          336,
+          16
+        ],
+        "parameters": {
+          "color": 2,
+          "height": 272,
+          "content": "### Step 5: Data Transformation\nMerge all the News into a single list\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "77a05457-303d-425a-a7d7-2ec9d07b437b",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -192,
+          304
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 304,
+          "height": 320,
+          "content": "### Step 6:  Script Generation\n\nGPT-4 creates 2-minute audio-ready script.\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a27adfed-7bd7-4321-b955-fcfedede7718",
+        "name": "Sticky Note7",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          128,
+          304
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 192,
+          "height": 320,
+          "content": "### Step 7: Text-to-Speech Conversion.\n\nOpenAI converts script to natural-sounding audio."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "809ec6c2-b8d6-42ac-ad1c-ecb34ee06fe7",
+        "name": "Sticky Note8",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          336,
+          304
+        ],
+        "parameters": {
+          "color": 6,
+          "height": 320,
+          "content": "### Step 8: Email Delivery\n\nSends audio newsletter to subscribers."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Daily News Extractor",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Aggregate": {
+        "main": [
+          [
+            {
+              "node": "Newsletter Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split Out": {
+        "main": [
+          [
+            {
+              "node": "Daily News Extractor",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Latest News": {
+        "main": [
+          [
+            {
+              "node": "Split Out",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Newsletter Agent": {
+        "main": [
+          [
+            {
+              "node": "Transcribe Newsletter",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Get Latest News",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Daily News Extractor": {
+        "main": [
+          [
+            {
+              "node": "Aggregate",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Transcribe Newsletter": {
+        "main": [
+          [
+            {
+              "node": "Notify Subscriber",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 31,
+      "name": "Content Creation"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8121",
+  "fetched_at": "2026-09-12T13:12:18Z"
+}

@@ -1,0 +1,211 @@
+{
+  "id": 6294,
+  "name": "Automate monthly finance reports with Google Sheets, GPT-4 analysis and Gmail",
+  "description": "## How It Works ⚙️\n\nThis workflow is designed to streamline your monthly financial reporting, turning raw transaction data into actionable insights automatically. Here's a step-by-step breakdown of its operation:\n\n1.  **Trigger (Cron Node):** ⏰ The workflow kicks off automatically on a pre-defined schedule, typically the 1st day of every month, ensuring timely report generation without manual intervention.\n2.  **Get Finance Transactions (Google Sheets):** 📊 The first functional node connects to your designated Google Sheet. It reads all the transaction data from the specified range (e.g., 'FinanceSummary!A:E'), acting as the primary data input for the report.\n3.  **Filter Previous Month Transactions (Function):** 🧹 Once the data is retrieved, this custom JavaScript function meticulously filters out only those transactions that occurred in the complete previous month. This ensures your report is always focused on the most relevant, recently concluded period.\n4.  **Generate AI Financial Insights (OpenAI):** 🧠 The filtered transaction data is then passed to OpenAI's GPT-4 model. Here, the AI acts as your personal finance assistant, analyzing the data to:\n    * Calculate the total income.\n    * Calculate the total expense.\n    * Generate 3 concise, key financial insights in bullet points, helping you quickly grasp the financial health and trends.\n5.  **Send Monthly Finance Report Email (Gmail):** 📧 Finally, all the processed information comes together. This node constructs a comprehensive email, embedding:\n    * A table summarizing all the previous month's transactions.\n    * The valuable AI-generated total income, total expense, and key insights.\n    The email is then automatically sent to your designated finance recipients, delivering the report directly to their inbox.\n\n## Set Up Steps 🚀\n\nFollow these steps carefully to get your \"Finance Monthly Report with AI Insight\" workflow up and running:\n\n1.  **Import Workflow JSON:**\n    * Open your n8n instance.\n    * Click on 'Workflows' in the left sidebar.\n    * Click the '+' button or 'New' to create a new workflow.\n    * Click the '...' (More Options) icon in the top right.\n    * Select 'Import from JSON' and paste the provided workflow JSON code.\n\n2.  **Configure Credentials:**\n    * **Google Sheets Node (\"1. Get Finance Transactions\"):**\n        * Click on this node.\n        * Under 'Authentication', select your existing Google Sheets OAuth2 credential or click 'Create New' to set one up.\n        * **Important:** Replace `&lt;YOUR_GOOGLE_SHEET_ID_HERE&gt;` in the 'Sheet ID' field with the actual ID of your Google Sheet.\n    * **OpenAI Node (\"3. Generate AI Financial Insights\"):**\n        * Click on this node.\n        * Under 'Authentication', select your existing OpenAI API Key credential or create a new one if you haven't already.\n    * **Gmail Node (\"4. Send Monthly Finance Report Email\"):**\n        * Click on this node.\n        * Under 'Authentication', select your existing Gmail OAuth2 credential or create a new one.\n\n3.  **Customize Email Details:**\n    * **Gmail Node (\"4. Send Monthly Finance Report Email\"):**\n        * Replace `&lt;YOUR_SENDER_EMAIL_HERE&gt;` with the email address you want the report to be sent *from*.\n        * Replace `&lt;YOUR_RECIPIENT_EMAIL_HERE&gt;` with the email address(es) you want the report to be sent *to* (multiple emails can be separated by commas).\n        * You can also adjust the 'Subject' if needed.\n\n4.  **Add & Configure Cron Trigger:**\n    * Click the '+' icon at the very beginning of the workflow (where it says \"first step...\").\n    * Search for \"Cron\" and select the 'Cron' node.\n    * **Connect:** Drag a connection from the Cron node to \"1. Get Finance Transactions (Google Sheets)\".\n    * **Schedule:** Configure the Cron node to your desired monthly schedule. For example:\n        * Set 'Mode' to 'Every Month'.\n        * Set 'On Day of Month' to '1' (to run on the first day of each month).\n        * Set 'At Time' to a specific time (e.g., '09:00' for 9 AM).\n\n5.  **Review and Activate:**\n    * Thoroughly review all node configurations to ensure all placeholders are replaced and settings are correct.\n    * Click the 'Save' button in the top right corner.\n    * Finally, toggle the 'Inactive' switch to 'Active' to enable your workflow. 🟢 Your automated monthly finance report is now live!\n\n**Troubleshooting Tip:** If the workflow fails, check the 'Executions' tab in n8n for detailed error messages. Common issues include incorrect sheet IDs, invalid API keys, or data format mismatches in your Google",
+  "workflow": {
+    "id": "bUnFjkLevdnP1zo7",
+    "meta": {
+      "instanceId": "a287613f1596da776459594685fbf4e2b4a12124f80ab8c8772f5e37bff103ae",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Finance Monthly Report with AI Insight",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "c9b7416f-8164-4869-8c8a-3ae49f868334",
+        "name": "1. Get Finance Transactions (Google Sheets)",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          380,
+          140
+        ],
+        "parameters": {
+          "range": "FinanceSummary!A:E",
+          "options": {},
+          "sheetId": "<YOUR_GOOGLE_SHEET_ID_HERE>"
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleSheetsOAuth2Api Credential"
+          }
+        },
+        "description": "Reads monthly finance transaction data from the specified Google Sheet.",
+        "typeVersion": 2
+      },
+      {
+        "id": "6b2dbe34-e3f0-4ca3-b5ca-3a6c3e027ad2",
+        "name": "2. Filter Previous Month Transactions",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          600,
+          140
+        ],
+        "parameters": {
+          "functionCode": "// Filter transactions for the previous month\nconst rows = items.map(item => item.json);\n\nconst now = new Date();\nconst lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1); // First day of previous month\nconst lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);   // Last day of previous month\n\nconst filtered = rows.filter(row => {\n  // Ensure 'Date' column exists and is a valid date format\n  if (!row.Date) return false;\n  const date = new Date(row.Date); \n  return date >= lastMonthStart && date <= lastMonthEnd;\n});\n\nreturn filtered.map(row => ({ json: row }));"
+        },
+        "description": "Filters the raw data to only include transactions from the previous full month.",
+        "typeVersion": 1
+      },
+      {
+        "id": "869519eb-0879-4f0d-8a21-4035b69df097",
+        "name": "3. Generate AI Financial Insights",
+        "type": "n8n-nodes-base.openAi",
+        "position": [
+          820,
+          140
+        ],
+        "parameters": {
+          "model": "gpt-4",
+          "prompt": "You are a finance assistant. Analyze the following transaction data. Calculate the total income and total expense for the period. Then, provide 3 concise bullet-point financial insights based on the data. Structure your output clearly:\n\nTotal Income: [Amount]\nTotal Expense: [Amount]\nKey Insights:\n- [Insight 1]\n- [Insight 2]\n- [Insight 3]\n\nTransactions:\n{{JSON.stringify($json, null, 2)}}",
+          "options": {},
+          "requestOptions": {}
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "credential-id",
+            "name": "openAiApi Credential"
+          }
+        },
+        "description": "Uses OpenAI (GPT-4) to generate a summary of income, expenses, and key financial insights.",
+        "typeVersion": 1
+      },
+      {
+        "id": "d8d4588b-9761-4bef-a427-ff3282c1b12e",
+        "name": "4. Send Monthly Finance Report Email",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          1040,
+          140
+        ],
+        "parameters": {
+          "subject": "Monthly Finance Summary and AI Insights",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "credential-id",
+            "name": "gmailOAuth2 Credential"
+          }
+        },
+        "description": "Composes and sends the monthly finance report email, including transaction details and AI insights.",
+        "typeVersion": 1
+      },
+      {
+        "id": "f7d8accf-7532-4289-b564-4d2e566ff83b",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          160,
+          140
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "months"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "9931672d-4382-490b-8ed8-68f84aba39c2",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          60,
+          80
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 1220,
+          "height": 240,
+          "content": "## Flow\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "31db7ae7-de61-4b2e-b38b-89d33bf0ee5c",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1300,
+          80
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 680,
+          "height": 1680,
+          "content": "# Workflow Documentation: Finance Monthly Report with AI Insight\n\n## Problem\n\nMany businesses struggle with manual, time-consuming financial reporting processes. This often leads to:\n* Delayed access to critical financial insights.\n* Lack of proactive decision-making due to retrospective data analysis.\n* Inaccurate or inconsistent reports due to human error in data compilation.\n* Underutilization of financial data for strategic planning.\n\n## Solution\n\nThis n8n workflow automates the monthly financial reporting process by:\n1.  **Extracting Data:** Automatically pulls transaction data from Google Sheets.\n2.  **Filtering & Processing:** Filters the data to focus on the previous month's transactions.\n3.  **AI-Powered Insights:** Utilizes OpenAI (GPT-4) to analyze filtered data and generate a summary of income, expenses, along with key financial insights.\n4.  **Automated Delivery:** Compiles the raw data (previous month's transactions) and the AI-generated insights into a well-formatted email and sends it to the designated recipients.\n\nThis ensures timely, accurate, and insightful financial reporting with minimal manual effort.\n\n## For Who\n\nThis workflow is ideal for:\n* **Small to Medium-sized Businesses (SMBs):** Who need regular financial oversight but lack dedicated finance teams or extensive ERP systems.\n* **Startup Founders:** Needing quick and reliable financial summaries to monitor burn rate and performance.\n* **Finance Managers/Accountants:** Looking to automate routine reporting tasks to focus on more strategic analysis.\n* **E-commerce Businesses:** To quickly understand monthly revenue and expenditure trends.\n\n## Scope\n\n* **Input Data Source:** Google Sheets (specifically configured for finance transaction data with 'Date', 'Category', 'Description', 'Amount', 'Type' columns).\n* **AI Model:** OpenAI's GPT-4 (requires an OpenAI API Key).\n* **Output Medium:** Email (via Gmail integration).\n* **Frequency:** Designed to run monthly (configurable via Cron trigger).\n* **Output Content:** Previous month's transaction table, total income, total expense, and 3 AI-generated financial insights.\n\n## How to Set Up\n\n1.  **Import Workflow:** Import this JSON into your n8n instance.\n2.  **Configure Google Sheets Node:**\n    * Connect your Google Sheets account credential.\n    * Update `sheetId` to your specific Google Sheet ID.\n    * Ensure your sheet contains relevant columns (e.g., Date, Category, Description, Amount, Type) in the 'FinanceSummary' tab or adjust the `range` if your sheet name/range differs.\n3.  **Configure OpenAI Node:**\n    * Connect your OpenAI API Key credential.\n    * (Optional) Adjust the prompt for different insights or output formats.\n4.  **Configure Gmail Node:**\n    * Connect your Gmail account credential.\n    * Update `fromEmail` and `toEmail` with your desired sender and recipient addresses.\n5.  **Add Cron Trigger Node:**\n    * Add a `Cron` node as the first step.\n    * Configure it to run on the desired schedule (e.g., 'every month', 'on the 1st day of the month').\n6.  **Activate Workflow:** Save and activate the workflow.\n\n**Important Notes:**\n* Ensure your Google Sheet data format is consistent for accurate filtering and AI analysis.\n* Monitor your OpenAI token usage to manage costs.\n* Consider adding error handling (e.g., sending an alert email if the workflow fails)."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "fbd3aed3-1704-40c9-a85c-55cfec0e33bc",
+    "connections": {
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "1. Get Finance Transactions (Google Sheets)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "3. Generate AI Financial Insights": {
+        "main": [
+          [
+            {
+              "node": "4. Send Monthly Finance Report Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2. Filter Previous Month Transactions": {
+        "main": [
+          [
+            {
+              "node": "3. Generate AI Financial Insights",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "1. Get Finance Transactions (Google Sheets)": {
+        "main": [
+          [
+            {
+              "node": "2. Filter Previous Month Transactions",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 35,
+      "name": "Document Extraction"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6294",
+  "fetched_at": "2026-09-12T13:11:16Z"
+}

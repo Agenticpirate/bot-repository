@@ -1,0 +1,456 @@
+{
+  "id": 12060,
+  "name": "Real-time uptime alerts to Jira with smart Slack on-call routing",
+  "description": "# Real-Time Uptime Alerts to Jira with Smart Slack On-Call Routing\n\nThis workflow automatically converts uptime monitoring alerts received via webhook into Jira incident tasks and intelligently notifies an available on-call team member on Slack based on their real-time presence status. It ensures critical service outages never go unnoticed by selecting an active responder and sending a detailed direct message immediately.\n\n### ⚡ Quick Implementation Steps\n\n1. Import the workflow JSON into n8n.  \n2. Configure your **Webhook**, **Slack**, and **Jira** credentials.  \n3. Update the IF node to filter for `status = down` (already configured).  \n4. Set the Jira project and issue type as required.  \n5. Connect your Slack on-call channel.  \n6. Activate the workflow and send a test alert using Postman or your monitoring tool.\n\n\n## What It Does\n\nThis automation listens for incoming alerts from any uptime monitoring service. When a system or service goes down, the workflow instantly validates whether the alert is critical (status = *down*). Once validated, it automatically creates a detailed Jira Task containing all relevant service details such as timestamp, downtime duration, error code, customer impact and priority.\n\nAfter the Jira incident is created, the workflow retrieves a list of all members from a dedicated Slack on-call rotation channel. It checks each member’s Slack presence (active, away, offline) and uses smart selection logic to choose the best person to notify. The selected team member then receives a richly formatted direct Slack message containing all incident details and a link to the Jira ticket.\n\nThis ensures the alert is not only logged properly but also reaches the right responder at the right time.\n\n\n## Who’s It For\n\nThis workflow is perfect for:\n\n- DevOps teams managing uptime & system reliability.\n- Support teams responsible for incident response.\n- SRE teams using Jira and Slack.\n- Organizations with an on-call rotation setup.\n- Teams wanting automated escalation for downtime alerts.\n\n\n## Requirements to Use This Workflow\n\n- **n8n installed** (self-hosted or cloud)  \n- **Slack API credentials** with permission to read user presence and send direct messages  \n- **Jira Software Cloud** credentials allowing issue creation  \n- **A monitoring system** capable of sending webhook alerts (e.g., UptimeRobot, Uptime Kuma, StatusCake, custom system, etc.)  \n- Access to a Slack channel that includes your on-call rotation members  \n\n\n## How It Works & How to Set Up\n\n### Step 1: Receive Alert from Uptime Monitoring Tool\n\n- The workflow starts with the **Webhook node** (`Receive Uptime Alert`).  \n- Your monitoring tool must send a POST request with JSON payload including fields like:\n  - `serviceName`\n  - `status`\n  - `timestamp`\n  - `customerImpact`\n  - `errorCode`\n  - `priority`\n  - etc.\n\n### Step 2: Filter for Critical Status\n\n- The **IF node** (`Filter for Critical Status`) checks:\n- Only when the service is *down* does the workflow continue to create a Jira incident.\n\n### Step 3: Create Jira Incident Task\n\n- The **Create New Jira Incident** node generates a Jira **Task** with:\n- Summary: `serviceName + timestamp`\n- Description: dynamic fields based on the alert payload  \n- Set your Jira **Project** and **Issue Type** as needed.\n\n### Step 4: Fetch Slack On-Call Channel Members\n\n- The workflow calls Slack API to retrieve all user IDs in a designated channel (e.g., `#on-call-team`).\n\n### Step 5: Loop Through Each Member\n\n- **Split In Batches Node** loops each Slack member individually.\n- For each user, their Slack **presence** is fetched using:\n\n### Step 6: Build Final Data for Each User\n\n- The **Set node** (`Collect & Set Final Data`) stores:\n- presence  \n- member ID  \n- service details  \n- Jira ticket ID  \n- downtime info  \n- and more  \n\n### Step 7: Select the Best On-Call User\n\nA custom **Code node** uses presence-based logic:\n\n#### Selection Logic\n\n1. If one or more users are **active** → randomly pick one active user.  \n2. If only one user is active → pick that user.  \n3. If **no users are active** → default to the **first** member from the channel.  \n\nThis ensures you always get a responder.\n\n### Step 8: Notify Selected User\n\n- The **Slack Notify Node** sends a formatted direct message with:\n- service status  \n- downtime duration  \n- error code  \n- customer impact  \n- Jira ticket link  \n- priority  \n\nThe selected on-call responder receives everything they need to act immediately.\n\n\n## How to Customize Nodes\n\n### Webhook Node\n\n- Change the path to something meaningful (e.g., `/uptime-alerts`).\n- Customize expected fields based on your monitoring tool's payload.\n\n### IF Node\n\n- Modify status condition for:\n- `\"critical\"`  \n- `\"error\"`  \n- or multiple conditions  \n\n### Jira Node\n\nYou can customize:\n- Issue type (Incident, Bug, Task)\n- Priority field mapping\n- Project ID\n- Custom fields or labels\n\n### Slack Retrieval Node\n\n- Change the channel to your team's actual on-call rotation channel.\n\n### Slack Message Node\n\n- Modify message formatting, tone, emojis, or add links.\n- Add @mentions or tags.\n- Include escalation instructions.\n\n\n## Add-Ons (Optional Extensions)\n\nEnhance the workflow by adding:\n\n### 1. Escalation Logic\n\nIf the selected user doesn’t respond within X minutes, notify next user.\n\n### 2. PagerDuty / OpsGenie Integration\n\nTrigger paging systems for SEV-1 incidents.\n\n### 3. Status Page Updates\n\nAutomatically update public status pages.\n\n### 4. Auto-Resolution\n\nWhen service status returns to *up*, automatically:\n\n- Update Jira ticket  \n- Notify the team  \n- Close the incident  \n\n### 5. Logging & Analytics\n\nStore incidents in Google Sheets, Notion, or a database.\n\n\n## Use Case Examples\n\nThis workflow can support multiple real-world scenarios:\n\n1. **Website Uptime Monitoring**  \n If your main website goes down, instantly create a Jira incident and notify your on-call engineer.\n\n2. **API Downtime Alerting**  \n When an API endpoint fails health checks, alert active developers only.\n\n3. **Microservices Monitoring**  \n Each microservice alert triggers a consistent, automated incident creation and notification.\n\n4. **Infrastructure Failure Detection**  \n When servers, containers, or VMs become unreachable, escalate to your infrastructure team.\n\n5. **Database Performance Degradation**  \n If DB uptime drops or error rate spikes, create a Jira ticket and ping the database admin.\n\nAnd many more variations of outage, error, and performance monitoring events.\n\n\n## Troubleshooting Guide\n\n| Issue | Possible Cause | Solution |\n|-------|----------------|----------|\n| Workflow not triggering | Webhook URL not updated in monitoring tool | Copy n8n webhook URL and update in monitoring source |\n| No Jira ticket created | Invalid Jira credentials or missing project permissions | Reauthorize Jira credentials and verify permissions |\n| Slack users not found | Wrong channel ID or bot not added to channel | Ensure bot is invited to the Slack channel |\n| Slack presence not returning | Slack app lacks presence permission (`users:read.presence`) | Update Slack API scopes and reinstall |\n| No user receives notification | Presence logic always returns empty list | Test Slack presence API and verify real-time presence |\n| Wrong user selected | Intended selection logic differs | Update the JS logic in the code node |\n| Jira fields not populated | Alert payload fields missing | Verify webhook payload structure and match expected fields |\n\n\n## Need Help?\n\nIf you need assistance setting up this workflow, customizing integrations, building escalations or extending the logic with add-ons — **WeblineIndia is here to help**.\n\nWe can assist with:\n- Custom Slack/Jira/Monitoring automation  \n- On-call rotation logic enhancements  \n- Cloud deployment & workflow optimization  \n- Any custom n8n automation  \n- Production-grade monitoring workflows  \n\n👉 **Contact WeblineIndia for professional support, implementation and [custom workflow development](https://www.weblineindia.com/n8n-automation/).**",
+  "workflow": {
+    "id": "EB7D5DQptLGKDK6k",
+    "meta": {
+      "instanceId": "14e4c77104722ab186539dfea5182e419aecc83d85963fe13f6de862c875ebfa"
+    },
+    "name": "Real-Time Uptime Alerts to Jira with Smart Slack On-Call Routing",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "1b1c8bc3-c0ad-4112-9e4c-8fa1d7a7514f",
+        "name": "Receive Uptime Alert",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          576,
+          720
+        ],
+        "webhookId": "7347e828-de5e-4368-9222-d53d9815789b",
+        "parameters": {
+          "path": "7347e828-de5e-4368-9222-d53d9815789b",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "924594ee-fcb0-42ba-8113-418935b4ce39",
+        "name": "Filter for Critical Status",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          784,
+          720
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "6af7299d-4509-4dd6-b34e-caac621ba719",
+                "operator": {
+                  "name": "filter.operator.equals",
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.body.status }}",
+                "rightValue": "=down"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "ff37c0a2-3cc3-4514-9572-abe46fa6acd1",
+        "name": "Create New Jira Incident",
+        "type": "n8n-nodes-base.jira",
+        "position": [
+          1072,
+          704
+        ],
+        "parameters": {
+          "project": {
+            "__rl": true,
+            "mode": "list",
+            "value": "10000",
+            "cachedResultName": "n8n sample project"
+          },
+          "summary": "={{ $json.body.serviceName }} {{ $json.body.timestamp }}",
+          "issueType": {
+            "__rl": true,
+            "mode": "list",
+            "value": "10003",
+            "cachedResultName": "Task"
+          },
+          "additionalFields": {
+            "description": "=Service name :  {{ $json.body.serviceName }}\nstatus : {{ $json.body.status }}\ntime stamp : {{ $json.body.timestamp }}\ncustomer impact : {{ $json.body.customerImpact }}\nservice owner : {{ $json.body.serviceName }}\ndowntime duration : {{ $json.body.downtimeDuration }}\nerror code: {{ $json.body.errorCode }}\npriority : {{$json.body.priority }}\n"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "40afe805-f9ea-48f1-abe6-a7aca33ba35f",
+        "name": "Get On-Call Channel Members",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          1328,
+          688
+        ],
+        "webhookId": "d884c3b2-5c0c-43c4-a8fb-493857ad5adf",
+        "parameters": {
+          "resource": "channel",
+          "channelId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "C09S57E2JQ2",
+            "cachedResultName": "n8n"
+          },
+          "operation": "member"
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "46c30b16-3c56-4831-b55f-61ede1a4574e",
+        "name": "Split/Process Each Member",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          1520,
+          704
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "92d91b30-466d-4cef-8094-a5e5b72faa1c",
+        "name": "Check Slack User Presence",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          1760,
+          704
+        ],
+        "webhookId": "e69866a0-2779-49df-bfda-bf5192660f5d",
+        "parameters": {
+          "user": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ $json.member }}"
+          },
+          "resource": "user",
+          "operation": "getPresence"
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "d30ac6d3-233d-4d26-b89f-5f4eb1ba8f91",
+        "name": "Collect & Set Final Data",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          2000,
+          704
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "4c0eb9e9-c1c4-43e9-936e-e8d1336e346e",
+                "name": "presence",
+                "type": "string",
+                "value": "={{ $json.presence }}"
+              },
+              {
+                "id": "9ea973a2-fb23-42a3-895e-582281ad2ae4",
+                "name": "member id",
+                "type": "string",
+                "value": "={{ $('Split/Process Each Member').item.json.member }}"
+              },
+              {
+                "id": "76298576-27b3-4a2b-a6fc-a260f46cfb21",
+                "name": "service name",
+                "type": "string",
+                "value": "={{ $('Filter for Critical Status').item.json.body.serviceName }}"
+              },
+              {
+                "id": "db52e6ca-d380-4497-ace6-ee32547a73b6",
+                "name": "status",
+                "type": "string",
+                "value": "={{ $('Filter for Critical Status').item.json.body.status }}"
+              },
+              {
+                "id": "b4f16d01-d76a-4167-b670-aead1866a198",
+                "name": "time stamp",
+                "type": "string",
+                "value": "={{ $('Filter for Critical Status').item.json.body.timestamp }}"
+              },
+              {
+                "id": "42824bf6-ca13-43fa-82bf-2a1099028dd5",
+                "name": "customer impact",
+                "type": "string",
+                "value": "={{ $('Filter for Critical Status').item.json.body.customerImpact }}"
+              },
+              {
+                "id": "27dafc94-0372-4401-82c6-7c9f2582bfd7",
+                "name": "last notified",
+                "type": "string",
+                "value": "={{ $('Filter for Critical Status').item.json.body.lastNotified }}"
+              },
+              {
+                "id": "55dd4347-574d-407c-9866-b6e23ef62fbf",
+                "name": "downtime duration",
+                "type": "string",
+                "value": "={{ $('Filter for Critical Status').item.json.body.downtimeDuration }}"
+              },
+              {
+                "id": "78bbc0c1-7196-49ec-b058-ce64b1922919",
+                "name": "error code",
+                "type": "string",
+                "value": "={{ $('Filter for Critical Status').item.json.body.errorCode }}"
+              },
+              {
+                "id": "1f9d6f1d-0584-4560-bd84-0d50009bb2a9",
+                "name": "priority",
+                "type": "string",
+                "value": "={{ $('Filter for Critical Status').item.json.body.priority }}"
+              },
+              {
+                "id": "027b146f-393a-4408-af1b-62563bbd2fce",
+                "name": "jira ticket",
+                "type": "string",
+                "value": "={{ $('Create New Jira Incident').item.json.key }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "86f6e01f-fed3-4628-88d2-bc942ab008a9",
+        "name": "Notify Selected User",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          1920,
+          272
+        ],
+        "webhookId": "d1468dbc-b5c7-4795-8b01-4cbba4dbda1c",
+        "parameters": {
+          "text": "=:warning: *Service Alert - {{ $json[\"service name\"] }} is {{ $json.status }}!*\n\n*Status:* {{ $json.status }}\n*Downtime Duration:* {{ $json[\"downtime duration\"] }}\n*Customer Impact:* {{ $json[\"customer impact\"] }}\n*Error Code:* {{ $json[\"error code\"] }}\n*Jira Ticket:* {{ $json[\"jira ticket\"] }}\n*Last Notified:* {{ $json[\"last notified\"] }}\n*Priority:* {{ $json.priority }}\n\nPlease investigate immediately. \n",
+          "user": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ $json[\"member id\"] }}"
+          },
+          "select": "user",
+          "otherOptions": {
+            "includeLinkToWorkflow": false
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "654ccbc6-335d-4380-b365-cbb22da35c86",
+        "name": "Select Active On-Call User",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1728,
+          272
+        ],
+        "parameters": {
+          "jsCode": "// items = array of users with presence and member id + additional data\nconst users = items.map(item => item.json);\n\n// Filter active users\nconst activeUsers = users.filter(u => u.presence === 'active');\n\nlet selectedUser;\n\n// Case 1 & 2: If any active user exists\nif (activeUsers.length > 0) {\n  // Pick random active user\n  const randomIndex = Math.floor(Math.random() * activeUsers.length);\n  selectedUser = activeUsers[randomIndex];\n} else {\n  // Case 3: No active users, pick first user as fallback\n  selectedUser = users[0];\n}\n\n// Return all details for selected user\nreturn [{ json: selectedUser }];\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "32ec235e-bdc6-4fa7-a1ef-af39bb012563",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          528,
+          496
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 416,
+          "height": 400,
+          "content": "###  Start Alert & Check Status\nThe workflow is triggered by an external webhook alert containing incident details. It immediately filters the incoming payload based on the alert's status (e.g., 'down') to ensure only critical, actionable events proceed to the next stage."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "52a2a324-a6be-4d04-9910-34b7ce07d0b1",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          976,
+          496
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 272,
+          "height": 400,
+          "content": "### Create Ticket in Jira\nUpon validation, a detailed Jira incident is instantly created. It uses dynamic data from the alert, including service name, downtime duration, and error code, to ensure all necessary context is logged in a new ticket for tracking."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c71adc98-0dda-4c72-bc20-ffa13229146c",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1280,
+          496
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 896,
+          "height": 400,
+          "content": "### Find Available Team Member\nThe workflow fetches all member IDs from the designated on-call Slack channel. It then loops through each individual member ID to check their current Slack presence status (active or away), preparing a filtered list for routing."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "d001bdb7-b00e-4453-8a30-6632d6dce3b6",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1632,
+          128
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 480,
+          "height": 320,
+          "content": "### Send Alert to User\nAll incident data and user statuses are combined for processing. A JavaScript code node implements the rotation logic to select a single active user. Finally, a direct Slack message is sent to that chosen on-call team member for immediate action."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4a68b834-c4ef-4e30-833e-25576266ef33",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "width": 448,
+          "height": 608,
+          "content": "## How it Work\nThis workflow starts when your uptime monitoring tool sends a webhook alert to n8n. The alert payload is checked to ensure the service status is down. Only critical outages pass through to the next stage. Once the alert is validated, a Jira Task is automatically created using all the incident details such as service name, downtime duration, error code, customer impact, and timestamp.\n\nAfter creating the Jira incident, the workflow retrieves all member IDs from your designated Slack on-call rotation channel. Each member’s Slack presence is checked individually. The workflow then applies smart selection logic: if multiple users are active, it randomly picks one; if only one is active, that user is selected; and if no one is active, it falls back to the first member.\n\n## Setup Steps\n1.Import the workflow JSON into n8n.\n2.Configure your Webhook, Slack, and Jira credentials.\n3.Update the IF node to match your desired critical status (already set to \"down\").\n4.Set your Jira project and issue type.\n5.Select your Slack on-call channel.\n6.Activate the workflow and send a test alert using Postman or your monitoring tool."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "6674b6f5-7199-4b81-9e6e-1b751762a748",
+    "connections": {
+      "Receive Uptime Alert": {
+        "main": [
+          [
+            {
+              "node": "Filter for Critical Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Collect & Set Final Data": {
+        "main": [
+          [
+            {
+              "node": "Split/Process Each Member",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create New Jira Incident": {
+        "main": [
+          [
+            {
+              "node": "Get On-Call Channel Members",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Slack User Presence": {
+        "main": [
+          [
+            {
+              "node": "Collect & Set Final Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split/Process Each Member": {
+        "main": [
+          [
+            {
+              "node": "Select Active On-Call User",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Check Slack User Presence",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter for Critical Status": {
+        "main": [
+          [
+            {
+              "node": "Create New Jira Incident",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Select Active On-Call User": {
+        "main": [
+          [
+            {
+              "node": "Notify Selected User",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get On-Call Channel Members": {
+        "main": [
+          [
+            {
+              "node": "Split/Process Each Member",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 16,
+      "name": "DevOps"
+    }
+  ],
+  "url": "https://n8n.io/workflows/12060",
+  "fetched_at": "2026-09-12T13:14:01Z"
+}

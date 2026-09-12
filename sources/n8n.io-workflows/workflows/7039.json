@@ -1,0 +1,348 @@
+{
+  "id": 7039,
+  "name": "Send school fee reminders with payment links via email & WhatsApp",
+  "description": "# 📚 Automated School Fee Reminder Workflow with Payment Link\n\nAutomatically sends fee reminders (via email and WhatsApp) to parents with secure payment links, 3 days before the due date.\n\n\n## 🔧 Main Components\n\n* **Daily Fee Check – 8 AM**\n  Scheduled trigger that starts the workflow daily at 8 AM.\n\n* **Read Pending Fees**\n  Fetches student fee records from an Excel sheet (using `getAll` method).\n\n* **Process Fee Reminders**\n  Filters records to find pending fees due within the next 3 days.\n\n* **Prepare Email Reminder**\n  Generates personalized email messages with payment links.\n\n* **Wait for Email Preparation**\n  Adds delay/wait condition for email logic readiness.\n\n* **Send Email Reminder**\n  Sends the fee reminder email with a secure payment link to the parent.\n\n* **Prepare WhatsApp Reminder**\n  Generates WhatsApp-friendly messages with fee and payment details.\n\n* **Wait for WhatsApp Preparation**\n  Waits for WhatsApp message logic to complete.\n\n* **Send WhatsApp Message**\n  Sends the message to the parent’s WhatsApp number using a message API.\n\n* **Update Reminder Status**\n  Updates the Excel file to mark reminders as sent to avoid duplicates.\n\n\n## 🧩 Channels Used\n\n* 📧 **Email** – with personalized payment link\n* 💬 **WhatsApp** – formatted reminder message\n\n\n## 🔐 Payment Integration\n\nSecure payment links are auto-generated per student to enable direct and safe online fee payments.\n\n\n## ✅ Essential Prerequisites\n\n* Excel sheet with fee records (`student_fee_data.xlsx`)\n* SMTP credentials for sending email\n* WhatsApp API or provider integration (like Twilio or Gupshup)\n* Access to a payment gateway or service for link generation\n* File storage access to update reminder status in Excel\n\n\n## 📁 Required Excel File Structure (`student_fee_data.xlsx`)\n\n| Student ID | Name | Email | Phone | Fee Due Date | Amount | Reminder Sent |\n| ---------- | ---- | ----- | ----- | ------------ | ------ | ------------- |\n\n\n## 🧾 Expected Input Format Example\n\n```json\n{\n  \"studentId\": \"ST123\",\n  \"name\": \"Ria Mehta\",\n  \"email\": \"ria.mehta@example.com\",\n  \"phone\": \"+919123456789\",\n  \"dueDate\": \"2025-08-10\",\n  \"amount\": \"₹5000\",\n  \"reminderSent\": \"No\"\n}\n```\n\n\n## 🚀 Key Features\n\n* ⏰ **Scheduled Daily Execution** – Fully automated at 8 AM\n* 🧮 **Due-Date Filtering** – Only targets fees due in the next 3 days\n* 💬 **Multi-Channel Notifications** – Sends reminders via both Email and WhatsApp\n* 🔗 **Secure Payment Links** – Auto-generated for each student\n* 🔄 **Reminder Tracking** – Prevents duplicate reminders by updating status\n\n\n## ⚙️ Quick Setup Guide\n\n1. **Import Workflow JSON** into your n8n instance.\n2. Configure **schedule** in the “Daily Fee Check” node (default: 8 AM).\n3. Set **Excel file path** in the “Read Pending Fees” node.\n4. Update your **fee processing logic** in the “Process Fee Reminders” node.\n5. Add **email credentials** in the “Send Email Reminder” node.\n6. Integrate **WhatsApp provider** API in the “Send message” node.\n7. Define how you **generate secure payment links**.\n8. Test with sample data and activate workflow.\n\n\n## 🛠️ Parameters to Configure\n\n| Parameter          | Description                                |\n| ------------------ | ------------------------------------------ |\n| `excel_file_path`  | Path to the fee tracking Excel file        |\n| `smtp_host`        | SMTP server for sending email reminders    |\n| `smtp_user`        | Email username                             |\n| `smtp_password`    | Email password                             |\n| `whatsapp_api_key` | WhatsApp API key for sending messages      |\n| `payment_api_url`  | URL for generating payment links           |\n| `admin_email`      | (Optional) Admin email for error reporting |\n\n\n",
+  "workflow": {
+    "id": "Pq2ofdKSIXGjpA4G",
+    "meta": {
+      "instanceId": "dd69efaf8212c74ad206700d104739d3329588a6f3f8381a46a481f34c9cc281",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Automated School Fee Reminder Workflow with Payment Link",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "a4054030-d07a-4d6c-831a-ab4feb752d28",
+        "name": "Daily Fee Check - 8 AM",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          40,
+          340
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "triggerAtHour": 8
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "4f2d2d48-1816-47ea-a5e3-763a47fb5153",
+        "name": "Read Pending Fees",
+        "type": "n8n-nodes-base.microsoftExcel",
+        "position": [
+          260,
+          340
+        ],
+        "parameters": {
+          "filters": {
+            "fields": [
+              {
+                "value": "Pending",
+                "column": "Status"
+              }
+            ]
+          },
+          "resource": "worksheet",
+          "workbook": {
+            "__rl": true,
+            "mode": "id",
+            "value": "=fee-records-workbook"
+          }
+        },
+        "credentials": {
+          "microsoftExcelOAuth2Api": {
+            "id": "credential-id",
+            "name": "microsoftExcelOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "abdbf0e0-202e-4a77-bade-0923c269bd47",
+        "name": "Process Fee Reminders",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          480,
+          340
+        ],
+        "parameters": {
+          "jsCode": "const currentDate = new Date();\nconst reminderDate = new Date();\nreminderDate.setDate(currentDate.getDate() + 3);\n\nconst feeRecords = $input.all();\nconst reminders = [];\n\nfor (const record of feeRecords) {\n  const feeData = record.json;\n  const dueDate = new Date(feeData.dueDate);\n  \n  if (dueDate <= reminderDate && dueDate > currentDate) {\n    const paymentLink = `https://payments.school.edu/pay?student=${feeData.studentId}&amount=${feeData.amount}&ref=${feeData.feeId}`;\n    \n    reminders.push({\n      studentName: feeData.studentName,\n      parentName: feeData.parentName,\n      parentEmail: feeData.parentEmail,\n      parentPhone: feeData.parentPhone,\n      feeType: feeData.feeType,\n      amount: feeData.amount,\n      dueDate: feeData.dueDate,\n      feeId: feeData.feeId,\n      paymentLink: paymentLink,\n      daysRemaining: Math.ceil((dueDate - currentDate) / (1000 * 60 * 60 * 24))\n    });\n  }\n}\n\nreturn reminders.map(item => ({ json: item }));"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "4d9a3063-7660-4f5e-bae3-43264b93d500",
+        "name": "Prepare Email Reminder",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          700,
+          240
+        ],
+        "parameters": {
+          "jsCode": "const feeData = $input.first().json;\n\nconst emailSubject = `Fee Reminder: ${feeData.feeType} Due in ${feeData.daysRemaining} days`;\nconst emailBody = `Dear ${feeData.parentName},\n\nThis is a friendly reminder that the ${feeData.feeType} for ${feeData.studentName} is due on ${feeData.dueDate}.\n\nFee Details:\n- Student: ${feeData.studentName}\n- Fee Type: ${feeData.feeType}\n- Amount: $${feeData.amount}\n- Due Date: ${feeData.dueDate}\n- Days Remaining: ${feeData.daysRemaining}\n\n💳 PAY NOW: ${feeData.paymentLink}\n\nTo avoid late fees, please complete payment before the due date. If you have any questions, contact our finance office.\n\nThank you,\nSchool Finance Office`;\n\nreturn [{\n  json: {\n    to: feeData.parentEmail,\n    subject: emailSubject,\n    body: emailBody,\n    parentName: feeData.parentName,\n    studentName: feeData.studentName,\n    paymentLink: feeData.paymentLink\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "00e52e34-38e0-449c-aeb7-ebd7abad5d19",
+        "name": "Prepare WhatsApp Reminder",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          700,
+          440
+        ],
+        "parameters": {
+          "jsCode": "const feeData = $input.first().json;\n\nconst whatsappMessage = `🏫 *Fee Reminder*\\n\\nDear ${feeData.parentName},\\n\\n💰 ${feeData.feeType} for *${feeData.studentName}*\\n💵 Amount: $${feeData.amount}\\n📅 Due: ${feeData.dueDate}\\n⏰ ${feeData.daysRemaining} days remaining\\n\\n🔗 *Pay Now:* ${feeData.paymentLink}\\n\\n_Please pay before due date to avoid late fees._\\n\\nSchool Finance Office`;\n\nreturn [{\n  json: {\n    phone: feeData.parentPhone,\n    message: whatsappMessage,\n    parentName: feeData.parentName,\n    studentName: feeData.studentName,\n    paymentLink: feeData.paymentLink\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "feb3bb1d-09c8-4f3d-93d7-5f8a290610e0",
+        "name": "Send Email Reminder",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          1140,
+          240
+        ],
+        "webhookId": "ec15504f-ec8a-4e65-aeab-350fdde894aa",
+        "parameters": {
+          "text": "={{$json.body}}",
+          "options": {},
+          "subject": "={{$json.subject}}",
+          "toEmail": "={{$json.to}}",
+          "fromEmail": "user@example.com",
+          "emailFormat": "text"
+        },
+        "credentials": {
+          "smtp": {
+            "id": "credential-id",
+            "name": "smtp Credential"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "5ba21990-c355-4c14-b9a8-30289b096b33",
+        "name": "Update Reminder Status",
+        "type": "n8n-nodes-base.microsoftExcel",
+        "position": [
+          1360,
+          340
+        ],
+        "parameters": {
+          "options": {},
+          "dataMode": "autoMap",
+          "resource": "worksheet",
+          "workbook": {
+            "__rl": true,
+            "mode": "id",
+            "value": "=fee-records-workbook"
+          },
+          "operation": "update",
+          "worksheet": {
+            "__rl": true,
+            "mode": "id",
+            "value": "=345yhhgt43wedf"
+          },
+          "columnToMatchOn": "=name"
+        },
+        "credentials": {
+          "microsoftExcelOAuth2Api": {
+            "id": "credential-id",
+            "name": "microsoftExcelOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "d8213541-6f43-4550-b8f8-c3ff32a5892a",
+        "name": "Workflow Info",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -40,
+          -240
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 540,
+          "height": 400,
+          "content": "### **Fee Reminder Workflow**\n\n**⏰ Daily Check:** Runs at 8 AM\n\n**🔍 Process:**\n1. Read pending fees from Excel\n2. Filter fees due in 3 days\n3. Generate payment links\n4. Send email & WhatsApp reminders\n5. Update reminder status\n\n**📧 Channels:**\n- Email with payment link\n- WhatsApp with formatted message\n\n**🔗 Payment Integration:**\nAutomatically generates secure payment links for each fee reminder."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8f415190-7c68-43fe-b9ac-8259fe14bce8",
+        "name": "Wait For Prepare Reminder",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          920,
+          240
+        ],
+        "webhookId": "b0bb8dc9-00fc-4852-881b-666558e014f2",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "08cea390-d569-4399-b1de-f84d9397c218",
+        "name": "Wait For Prepare Reminder for WhatsApp",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          920,
+          440
+        ],
+        "webhookId": "b0bb8dc9-00fc-4852-881b-666558e014f2",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "0c791c6b-f9c1-47ce-8dd2-a5f84afa51dd",
+        "name": "Send message",
+        "type": "n8n-nodes-base.whatsApp",
+        "position": [
+          1140,
+          440
+        ],
+        "webhookId": "2cc05be0-40ea-4c21-b903-c26193603d20",
+        "parameters": {
+          "textBody": "={{$json.body}}",
+          "operation": "send",
+          "phoneNumberId": "=+919988776655",
+          "additionalFields": {},
+          "recipientPhoneNumber": "={{$json.toforwp}}"
+        },
+        "credentials": {
+          "whatsAppApi": {
+            "id": "credential-id",
+            "name": "whatsAppApi Credential"
+          }
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "439c53c8-91d7-41ec-8903-0c266343961d",
+    "connections": {
+      "Send message": {
+        "main": [
+          [
+            {
+              "node": "Update Reminder Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read Pending Fees": {
+        "main": [
+          [
+            {
+              "node": "Process Fee Reminders",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Email Reminder": {
+        "main": [
+          [
+            {
+              "node": "Update Reminder Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Process Fee Reminders": {
+        "main": [
+          [
+            {
+              "node": "Prepare Email Reminder",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Prepare WhatsApp Reminder",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Daily Fee Check - 8 AM": {
+        "main": [
+          [
+            {
+              "node": "Read Pending Fees",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Email Reminder": {
+        "main": [
+          [
+            {
+              "node": "Wait For Prepare Reminder",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare WhatsApp Reminder": {
+        "main": [
+          [
+            {
+              "node": "Wait For Prepare Reminder for WhatsApp",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait For Prepare Reminder": {
+        "main": [
+          [
+            {
+              "node": "Send Email Reminder",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait For Prepare Reminder for WhatsApp": {
+        "main": [
+          [
+            {
+              "node": "Send message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 34,
+      "name": "Invoice Processing"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7039",
+  "fetched_at": "2026-09-12T13:11:41Z"
+}

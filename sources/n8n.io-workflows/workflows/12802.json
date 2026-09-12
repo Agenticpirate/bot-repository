@@ -1,0 +1,559 @@
+{
+  "id": 12802,
+  "name": "Monitor Azure subscription resources with cost and usage tracking and reports",
+  "description": "# Monitor Azure subscription resources with cost and usage tracking\n\n## Template Name\nMonitor Azure subscription resources with cost and usage tracking\n\n## Description\n\nAutomatically connect to your Azure subscription to retrieve all resources and track costs. Generates formatted reports with total spending, top expensive resources, and cost breakdown by type.\n\n## Who's it for\n\nDevOps Engineers, Cloud Architects, Finance Teams, IT Managers, and organizations implementing FinOps practices.\n\n## How it works\n\n1. **Authentication**: OAuth2 Service Principal with Azure\n2. **Resource Discovery**: Queries Azure Resource Graph API\n3. **Cost Retrieval**: Fetches data from Cost Management API\n4. **Data Processing**: Merges resources with costs\n5. **Report Generation**: Creates text/HTML reports\n6. **Output**: Excel export, Power BI streaming, or API/Webhook response\n\n## Set up steps\n\n### Prerequisites\n\n- Azure Subscription with appropriate permissions\n- Azure Service Principal with Reader and Cost Management Reader roles\n\n### Setup\n\n**1. Create Azure Service Principal**\n\nAzure CLI:\n```bash\naz ad sp create-for-rbac --name \"n8n-cost-monitor\" --role \"Reader\" --scopes /subscriptions/{sub-id}\naz role assignment create --assignee {client-id} --role \"Cost Management Reader\" --scope /subscriptions/{sub-id}\n```\n\nOr use Azure Portal: Azure AD → App registrations → New registration → Assign roles\n\n**2. Configure n8n OAuth2 Credential**\n\n- Credentials → OAuth2 API\n- Grant Type: Client Credentials\n- Access Token URL: `https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token`\n- Scope: `https://management.azure.com/.default`\n\n**3. Update Workflow Configuration**\n\n- Open \"Set Configuration\" node\n- Update `subscriptionId` and `tenantId`\n- Set `timeRange` (see options below)\n- Assign OAuth2 credential to HTTP nodes\n\n**Time Range Options:**\n- `currentMonth` - Current billing month (default)\n- `lastMonth` - Previous full month\n- `last30Days` - Last 30 days\n- `last90Days` - Last 90 days (3 months)\n- `last6Months` - Last 6 months\n- `yearToDate` - From Jan 1 to today\n- `lastYear` - Full previous year (365 days)\n- `custom` - Manually set startDate and endDate\n\n**4. Enable Output Options (Optional)**\n\n- **Excel**: Enable \"Export to Excel\" node for .xlsx downloads\n- **Power BI**: Enable \"Prepare Power BI Data\" and \"Send to Power BI\" nodes with Push URL\n- **API/Webhook**: Enable \"Respond to Webhook\" node and change trigger to Webhook\n\n**5. Schedule (Optional)**\n\nReplace Manual Trigger with Schedule Trigger (daily: `0 9 * * *`)\n\n## Requirements\n\n### Azure Requirements\n- Active Azure subscription\n- Permissions to create Service Principal\n- Permissions to assign Reader and Cost Management Reader roles\n\n### n8n Requirements\n- n8n instance (cloud or self-hosted version 1.0+)\n- Ability to create OAuth2 credentials\n\n### Optional Requirements\n- Slack workspace (for Slack notifications)\n- Email service credentials (for email reports)\n- Database instance (for data storage)\n\n## How to customize the workflow\n\n### Enable Output Options\n\nThe workflow includes three disabled output nodes. To enable them:\n\n1. Click on the node (Excel Export, Power BI, or Webhook Response)\n2. Click the three dots menu → Enable\n3. Configure the node settings as needed\n\n### Excel Export Configuration\n\nThe Excel export node is pre-configured but disabled. To use it:\n\n```javascript\n// Already configured to export:\n- All resources with their costs\n- Formatted as Excel (.xlsx)\n- Filename includes current date\n- Headers included automatically\n```\n\nTo customize:\n- Change filename pattern in the node settings\n- Add/remove columns by modifying the data mapping\n- Export to CSV instead by changing the file extension\n\n### Power BI Integration\n\n**Step 1: Create Power BI Streaming Dataset**\n\n1. Go to Power BI workspace\n2. Create New → Streaming dataset → API\n3. Define schema:\n```json\n{\n  \"summary\": {\n    \"totalCost\": \"string\",\n    \"resourceCount\": \"number\",\n    \"period\": \"string\"\n  },\n  \"resources\": [\n    {\n      \"resourceName\": \"string\",\n      \"resourceType\": \"string\",\n      \"cost\": \"string\"\n    }\n  ],\n  \"timestamp\": \"datetime\",\n  \"reportType\": \"string\"\n}\n```\n4. Copy the Push URL\n\n**Step 2: Configure n8n Workflow**\n\n1. Enable \"Prepare Power BI Data\" node\n2. Enable \"Send to Power BI\" node\n3. Update the URL in \"Send to Power BI\" node with your Push URL\n4. Test the workflow\n\n**Step 3: Create Power BI Dashboard**\n\n- Create visualizations from the streaming dataset\n- Add cards for Total Cost, Resource Count\n- Add tables for Top Resources\n- Add charts for Cost by Type\n\n### API Response / Webhook Mode\n\nTo use the workflow as an API endpoint:\n\n**Step 1: Change Trigger**\n\n1. Delete \"Manual Trigger\" node\n2. Add \"Webhook\" trigger node\n3. Choose GET or POST method\n4. Copy the webhook URL\n\n**Step 2: Enable Response Node**\n\n- Azure subscription with Service Principal permissions\n- n8n 1.0+ (cloud or self-hosted)\n- OAuth2 credentials capability\nimport requests\nresponse = requests.get(\"https://your-n8n-instance.com/webhook/azure-cost-report\")\ndata = response.json()\nprint(f\"Total Cost: ${data['data']['totalCost']}\")\n```\n\n**Response Format:**\n\n```json\n{\n  \"status\": \"success\",\n  \"data\": {\n\n### Enable Output Options\n\nRight-click disabled nodes → Enable → Configure settings\n\n### Filter Resources\n\nModify query in \"Query Azure Resources\" node:\n\n```kusto\nResources\n| where resourceGroup contains 'production'\n| project name, type, location, resourceGroup, tags, id\n```\n\n### Change Time Range\n\nSet `timeRange` in \"Set Configuration\" node:\n\n```javascript\ntimeRange: \"last30Days\"     // Last 30 days\ntimeRange: \"last90Days\"     // Last quarter\ntimeRange: \"last6Months\"    // Last 6 months\ntimeRange: \"yearToDate\"     // YTD from Jan 1\ntimeRange: \"lastYear\"       // Previous 365 days\ntimeRange: \"custom\"         // Use custom dates\n```\n\nFor custom periods, set timeRange to \"custom\" and manually update:\n```javascript\nstartDate: \"2026-01-01\"\nendDate: \"2026-01-31\"\n```\n\n### Add Cost Alerts\n\n```javascript\n{{ parseFloat($json.summary.totalCost) &gt; 1000 }}\n```\n\n## Troubleshooting\n\n### Common Issues\n\n**\"Authentication failed\"**\n- Verify your Tenant ID is correct\n- Check that Client ID and Secret are valid\n- Ensure the Service Principal has the required roles\n\n**\"No resources returned\"**\n- Verify the Subscription ID is correct\n- Check that Service Principal has Reader role\n- Try running the query in Azure Resource Graph Explorer first\n\n**\"No cost data available\"**\n- Cost data may take 24-48 hours to appear\n- VeAdjust Cost Period\n\nIn \"Set Configuration\" node:\n\n```javascript\n// Last 7 days\nstartDate: {{ $now.minus({days: 7}).format('yyyy-MM-dd') }}\nendDate: {{ $now.format('yyyy-MM-dd') }}\n```\n\n### Add Cost Alerts\n\nAdd IF node after \"Format Report\":\n\n```javascript\n{{ parseFloat($json.summary.totalCost) &gt; 1000 }2. **Microsoft.Sql/servers/databases** - 3 resources - $345.67\n...\n\n---\n_Generated by n8n on 1/19/2026, 10:30:00 AM_\n```\n\n### HTML Report Format\n\nIncludes styled HTML with:\n- Professional color scheme (Azure blue #0078D4)\n- Responsive tables\n- Summary cards with highlighted metrics\n- Sortable columns\n- Even row highlighting for readability\n\n### Excel Export Columns\n\n| Column | Type | Description |\n|--------|------|-------------|\n| resourceName | String | Name of the Azure resource |\n| resourceType | String | Full resource type (e.g., Microsoft.Compute/virtualMachines) |\n| resourceGroup | String | Resource group name |\n| location | String | Azure region (e.g., eastus, westus2) |\n| sku | Object | SKU information (name, tier) |\n| tags | Object | All resource tags |\n| cost | Number | Total cost for the period |\n| costDetails | Array | Detailed daily cost breakdown |\n\n### Power BI Data Schema\n\nRecommended Power BI measures:\n\n```dax\nTotal Cost = SUM('CostData'[cost])\nAvg Cost Per Resource = DIVIDE([Total Cost], COUNT('CostData'[resourceName]))\nCost Variance = [Total Cost] - CALCULATE([Total Cost], DATEADD('CostData'[timestamp], -1, MONTH))\nTop 5 Expensive Resources = TOPN(5, 'CostData', 'CostData'[cost], DESC)\n```\n\n## Integration Examples\n\n### Python Integration\n\n```python\nimport requests\nimport pandas as pd\n\n# Call the n8n webhook\nurl = \"https://your-n8n-instance.com/webhook/azure-cost-report\"\nresponse = requests.get(url)\ndata = response.json()\n\n# Convert to DataFrame\nresources_df = pd.DataFrame(data['data']['summary']['allResources'])\n\n# Analyze costs\nprint(f\"Total Cost: ${data['data']['totalCost']}\")\nprint(f\"Most expensive resource: {resources_df.iloc[0]['resourceName']}\")\n\n# Export to local Excel\nresources_df.to_excel('azure_costs.xlsx', index=False)\n```\n\n### PowerShell Integration\n\n```powershell\n# Call the webhook\n$url = \"https://your-n8n-instance.com/webhook/azure-cost-report\"\n$response = Invoke-RestMethod -Uri $url -Method Get\n\n# Display summary\nWrite-Host \"Total Cost: $($response.data.totalCost)\" -ForegroundColor Green\nWrite-Host \"Resource Count: $($response.data.resourceCount)\"\n\n# Export to CSV\n$response.data.summary.allResources | \n    Export-Csv -Path \"azure-costs.csv\" -NoTypeInformation\n\n# Send alert if cost exceeds threshold\nif ([decimal]$response.data.totalCost -gt 1000) {\n    Send-MailMessage -To \"admin@company.com\" `\n        -Subject \"Azure Cost Alert\" `\n        -Body \"Current costs: $($response.data.totalCost)\" `\n        -SmtpServer \"smtp.company.com\"\n}\n```\n\n### JavaScript/Node.js Integration\n\n```javascript\nconst axios = require('axios');\n\n**\"Authentication failed\"**: Verify Tenant ID, Client ID, Secret, and Service Principal roles\n\n**\"No resources returned\"**: Check Subscription ID and Reader role assignment\n\n**\"No cost data\"**: Cost data takes 24-48 hours to appear. Verify Cost Management Reader role.\n\n**\"Rate limiting (429)\"**: Add Wait node between API calls or reduce query frequency\n\n## Resources\n\n- [Azure Resource Graph](https://learn.microsoft.com/azure/governance/resource-graph/)\n- [Cost Management API](https://learn.microsoft.com/rest/api/cost-management/)\n- [n8n Documentation](https://docs.n8n.io/---\n\n**Category**: Cloud Management, DevOps, FinOps  \n**Difficulty**: Intermediate  \n**Setup Time**: 10-15 minutes  \n**n8n Version**: 1.0+",
+  "workflow": {
+    "name": "Monitor Azure subscription resources with cost and usage tracking",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "sticky-main-overview",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          240,
+          240
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 480,
+          "height": 460,
+          "content": "## How it works\n\nThis workflow connects to your Azure subscription via OAuth2 and queries two main APIs. It uses Azure Resource Graph to get all resources (VMs, databases, storage, etc.) and Cost Management API for spending data in your billing period.\n\nIt merges the data to find top-cost resources, calculates totals by type, and makes reports in text, HTML, and Excel with top 10 expensive items and breakdowns.\n\n## Setup steps\n\n1. **Create Service Principal**: In Azure AD, make an App Registration with 'Reader' and 'Cost Management Reader' roles. Note Client ID, Secret, Tenant ID.\n\n2. **Configure OAuth2 Credentials**: In n8n, set up OAuth2 with Client Credentials grant, URL 'https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token', scope 'https://management.azure.com/.default'.\n\n3. **Update Configuration**: In 'Set Configuration', put your subscription ID and tenant ID. Adjust dates as needed."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "sticky-config",
+        "name": "Sticky Note - Config",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          800,
+          240
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 340,
+          "height": 180,
+          "content": "## Configuration\n\nSet your subscription ID, tenant ID, and billing period dates. The workflow defaults to the current month but can be customized for any date range."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "sticky-data-collection",
+        "name": "Sticky Note - Data Collection",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1240,
+          240
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 340,
+          "height": 180,
+          "content": "## Data Collection\n\nQueries Azure Resource Graph for all resources and Cost Management API for spending data. Both calls execute in parallel for faster results."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "sticky-processing",
+        "name": "Sticky Note - Processing",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1920,
+          240
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 340,
+          "height": 180,
+          "content": "## Processing & Reporting\n\nMerges resource data with cost information, calculates totals, identifies top expensive resources, and generates formatted text and HTML reports."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "sticky-outputs",
+        "name": "Sticky Note - Outputs",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2640,
+          240
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 340,
+          "height": 180,
+          "content": "## Output Options\n\nExport to Excel, send to Power BI dashboards, or return JSON via webhook. Enable the nodes you need (currently disabled)."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "manual-trigger",
+        "name": "Manual Trigger",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          820,
+          680
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "set-configuration",
+        "name": "Set Configuration",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1040,
+          680
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "subscription-id",
+                "name": "subscriptionId",
+                "type": "string",
+                "value": "=YOUR_SUBSCRIPTION_ID"
+              },
+              {
+                "id": "tenant-id",
+                "name": "tenantId",
+                "type": "string",
+                "value": "=YOUR_TENANT_ID"
+              },
+              {
+                "id": "billing-period",
+                "name": "billingPeriod",
+                "type": "string",
+                "value": "={{ $now.format('yyyyMM') }}"
+              },
+              {
+                "id": "start-date",
+                "name": "startDate",
+                "type": "string",
+                "value": "={{ $now.startOf('month').format('yyyy-MM-dd') }}"
+              },
+              {
+                "id": "end-date",
+                "name": "endDate",
+                "type": "string",
+                "value": "={{ $now.endOf('day').format('yyyy-MM-dd') }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.3
+      },
+      {
+        "id": "query-azure-resources",
+        "name": "Query Azure Resources",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1480,
+          680
+        ],
+        "parameters": {
+          "url": "=https://management.azure.com/subscriptions/{{ $json.subscriptionId }}/providers/Microsoft.ResourceGraph/resources?api-version=2021-03-01",
+          "options": {},
+          "jsonBody": "={\n  \"query\": \"Resources | project name, type, location, resourceGroup, tags, sku, properties, id\",\n  \"subscriptions\": [\"{{ $json.subscriptionId }}\"]\n}",
+          "sendBody": true,
+          "specifyBody": "json",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "oAuth2Api"
+        },
+        "credentials": {
+          "oAuth2Api": {
+            "id": "credential-id",
+            "name": "Azure OAuth2 API"
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "get-cost-data",
+        "name": "Get Cost Data",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1480,
+          880
+        ],
+        "parameters": {
+          "url": "=https://management.azure.com/subscriptions/{{ $('Set Configuration').item.json.subscriptionId }}/providers/Microsoft.CostManagement/query?api-version=2023-11-01",
+          "options": {},
+          "jsonBody": "={\n  \"type\": \"ActualCost\",\n  \"timeframe\": \"Custom\",\n  \"timePeriod\": {\n    \"from\": \"{{ $('Set Configuration').item.json.startDate }}\",\n    \"to\": \"{{ $('Set Configuration').item.json.endDate }}\"\n  },\n  \"dataset\": {\n    \"granularity\": \"Daily\",\n    \"aggregation\": {\n      \"totalCost\": {\n        \"name\": \"Cost\",\n        \"function\": \"Sum\"\n      },\n      \"totalCostUSD\": {\n        \"name\": \"CostUSD\",\n        \"function\": \"Sum\"\n      }\n    },\n    \"grouping\": [\n      {\n        \"type\": \"Dimension\",\n        \"name\": \"ResourceId\"\n      },\n      {\n        \"type\": \"Dimension\",\n        \"name\": \"ServiceName\"\n      },\n      {\n        \"type\": \"Dimension\",\n        \"name\": \"ResourceType\"\n      }\n    ]\n  }\n}",
+          "sendBody": true,
+          "specifyBody": "json",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "oAuth2Api"
+        },
+        "credentials": {
+          "oAuth2Api": {
+            "id": "credential-id",
+            "name": "Azure OAuth2 API"
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "merge-and-process-data",
+        "name": "Merge and Process Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1920,
+          780
+        ],
+        "parameters": {
+          "jsCode": "const resourcesData = $input.first().json.data;\nconst resources = resourcesData.rows.map(row => {\n  const columns = resourcesData.columns.map(col => col.name);\n  let resource = {};\n  columns.forEach((col, idx) => {\n    resource[col] = row[idx];\n  });\n  return resource;\n});\n\nconst costData = $input.last().json.properties;\nconst costs = costData.rows.map(row => {\n  const columns = costData.columns.map(col => col.name);\n  let cost = {};\n  columns.forEach((col, idx) => {\n    cost[col] = row[idx];\n  });\n  return cost;\n});\n\nconst merged = resources.map(resource => {\n  const resourceCosts = costs.filter(cost => \n    cost.ResourceId && cost.ResourceId.toLowerCase().includes(resource.name.toLowerCase())\n  );\n  \n  const totalCost = resourceCosts.reduce((sum, cost) => sum + (cost.Cost || 0), 0);\n  \n  return {\n    resourceName: resource.name,\n    resourceType: resource.type,\n    resourceGroup: resource.resourceGroup,\n    location: resource.location,\n    sku: resource.sku,\n    tags: resource.tags,\n    cost: totalCost.toFixed(2),\n    costDetails: resourceCosts\n  };\n});\n\nmerged.sort((a, b) => parseFloat(b.cost) - parseFloat(a.cost));\n\nconst totalCost = merged.reduce((sum, r) => sum + parseFloat(r.cost), 0);\nconst resourceCount = merged.length;\nconst topCostResources = merged.slice(0, 10);\n\nconst costByType = {};\nmerged.forEach(r => {\n  const type = r.resourceType;\n  if (!costByType[type]) {\n    costByType[type] = { count: 0, cost: 0 };\n  }\n  costByType[type].count++;\n  costByType[type].cost += parseFloat(r.cost);\n});\n\nconst summary = {\n  totalCost: totalCost.toFixed(2),\n  resourceCount: resourceCount,\n  period: `${$('Set Configuration').item.json.startDate} to ${$('Set Configuration').item.json.endDate}`,\n  topCostResources: topCostResources.map(r => ({\n    name: r.resourceName,\n    type: r.resourceType,\n    cost: r.cost\n  })),\n  costByType: Object.entries(costByType)\n    .map(([type, data]) => ({\n      type,\n      count: data.count,\n      cost: data.cost.toFixed(2)\n    }))\n    .sort((a, b) => parseFloat(b.cost) - parseFloat(a.cost))\n};\n\nreturn [{\n  json: {\n    summary,\n    allResources: merged\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "format-report",
+        "name": "Format Report",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2160,
+          780
+        ],
+        "parameters": {
+          "jsCode": "const data = $input.first().json;\nconst summary = data.summary;\n\nlet report = `# Azure Resource & Cost Report\\n\\n`;\nreport += `**Period:** ${summary.period}\\n`;\nreport += `**Total Cost:** $${summary.totalCost}\\n`;\nreport += `**Total Resources:** ${summary.resourceCount}\\n\\n`;\nreport += `## Top 10 Most Expensive Resources\\n\\n`;\nsummary.topCostResources.forEach((r, idx) => {\n  report += `${idx + 1}. **${r.name}** (${r.type}) - $${r.cost}\\n`;\n});\nreport += `\\n## Cost by Resource Type\\n\\n`;\nsummary.costByType.slice(0, 10).forEach((t, idx) => {\n  report += `${idx + 1}. **${t.type}** - ${t.count} resources - $${t.cost}\\n`;\n});\nreport += `\\n---\\n_Generated by n8n on ${new Date().toLocaleString()}_`;\n\nlet htmlReport = `\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; margin: 20px; }\n    h1 { color: #0078D4; }\n    h2 { color: #333; margin-top: 30px; }\n    table { border-collapse: collapse; width: 100%; margin-top: 10px; }\n    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }\n    th { background-color: #0078D4; color: white; }\n    tr:nth-child(even) { background-color: #f2f2f2; }\n    .summary { background-color: #e7f3ff; padding: 15px; border-radius: 5px; margin: 20px 0; }\n  </style>\n</head>\n<body>\n  <h1>Azure Resource & Cost Report</h1>\n  <div class=\"summary\">\n    <p><strong>Period:</strong> ${summary.period}</p>\n    <p><strong>Total Cost:</strong> $${summary.totalCost}</p>\n    <p><strong>Total Resources:</strong> ${summary.resourceCount}</p>\n  </div>\n  <h2>Top 10 Most Expensive Resources</h2>\n  <table>\n    <tr><th>#</th><th>Resource Name</th><th>Type</th><th>Cost</th></tr>\n`;\nsummary.topCostResources.forEach((r, idx) => {\n  htmlReport += `    <tr><td>${idx + 1}</td><td>${r.name}</td><td>${r.type}</td><td>$${r.cost}</td></tr>\\n`;\n});\nhtmlReport += `\n  </table>\n  <h2>Cost by Resource Type</h2>\n  <table>\n    <tr><th>#</th><th>Resource Type</th><th>Count</th><th>Total Cost</th></tr>\n`;\nsummary.costByType.slice(0, 10).forEach((t, idx) => {\n  htmlReport += `    <tr><td>${idx + 1}</td><td>${t.type}</td><td>${t.count}</td><td>$${t.cost}</td></tr>\\n`;\n});\nhtmlReport += `\n  </table>\n  <p style=\"margin-top: 30px; color: #666; font-size: 12px;\">Generated by n8n on ${new Date().toLocaleString()}</p>\n</body>\n</html>\n`;\n\nreturn [{\n  json: {\n    textReport: report,\n    htmlReport: htmlReport,\n    summary: summary,\n    allData: data\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "check-if-data-exists",
+        "name": "Check If Data Exists",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          2400,
+          780
+        ],
+        "parameters": {
+          "conditions": {
+            "string": [
+              {
+                "value1": "={{ $json.summary.totalCost }}",
+                "operation": "isNotEmpty"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "output-report",
+        "name": "Output Report",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          2640,
+          680
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "output",
+                "name": "report",
+                "type": "string",
+                "value": "={{ $json.textReport }}"
+              },
+              {
+                "id": "html",
+                "name": "htmlReport",
+                "type": "string",
+                "value": "={{ $json.htmlReport }}"
+              },
+              {
+                "id": "total-cost",
+                "name": "totalCost",
+                "type": "string",
+                "value": "={{ $json.summary.totalCost }}"
+              },
+              {
+                "id": "resource-count",
+                "name": "resourceCount",
+                "type": "number",
+                "value": "={{ $json.summary.resourceCount }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.3
+      },
+      {
+        "id": "export-to-excel",
+        "name": "Export to Excel",
+        "type": "n8n-nodes-base.spreadsheetFile",
+        "disabled": true,
+        "position": [
+          2880,
+          580
+        ],
+        "parameters": {
+          "json": "={{ $json.allData.allResources }}",
+          "mode": "jsonToSpreadsheet",
+          "options": {
+            "fileName": "azure-cost-report-{{ $now.format('yyyy-MM-dd') }}.xlsx",
+            "headerRow": true
+          },
+          "operation": "toJson"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "prepare-powerbi-data",
+        "name": "Prepare Power BI Data",
+        "type": "n8n-nodes-base.set",
+        "disabled": true,
+        "position": [
+          2880,
+          720
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "summary",
+                "name": "summary",
+                "type": "object",
+                "value": "={{ $json.allData.summary }}"
+              },
+              {
+                "id": "resources",
+                "name": "resources",
+                "type": "array",
+                "value": "={{ $json.allData.allResources }}"
+              },
+              {
+                "id": "timestamp",
+                "name": "timestamp",
+                "type": "string",
+                "value": "={{ $now.toISO() }}"
+              },
+              {
+                "id": "reportType",
+                "name": "reportType",
+                "type": "string",
+                "value": "azure-cost-analysis"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.3
+      },
+      {
+        "id": "send-to-powerbi",
+        "name": "Send to Power BI",
+        "type": "n8n-nodes-base.httpRequest",
+        "disabled": true,
+        "position": [
+          3120,
+          720
+        ],
+        "parameters": {
+          "url": "https://api.powerbi.com/beta/YOUR_WORKSPACE/datasets/YOUR_DATASET/rows?key=YOUR_TOKEN_HERE",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={{ $json }}",
+          "sendBody": true,
+          "specifyBody": "json"
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "respond-to-webhook",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "disabled": true,
+        "position": [
+          2880,
+          860
+        ],
+        "parameters": {
+          "options": {
+            "responseCode": 200,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                }
+              ]
+            }
+          },
+          "respondWith": "json",
+          "responseBody": "={{ { \"status\": \"success\", \"data\": { \"summary\": $json.summary, \"totalCost\": $json.totalCost, \"resourceCount\": $json.resourceCount, \"report\": $json.report }, \"timestamp\": $now.toISO() } }}"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "no-data-found",
+        "name": "No Data Found",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          2640,
+          880
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "error",
+                "name": "error",
+                "type": "string",
+                "value": "No cost data found for the specified period"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.3
+      }
+    ],
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "updatedAt": "2026-01-19T00:00:00.000Z",
+    "versionId": "3",
+    "staticData": null,
+    "connections": {
+      "Format Report": {
+        "main": [
+          [
+            {
+              "node": "Check If Data Exists",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Cost Data": {
+        "main": [
+          [
+            {
+              "node": "Merge and Process Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Output Report": {
+        "main": [
+          [
+            {
+              "node": "Export to Excel",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Prepare Power BI Data",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Manual Trigger": {
+        "main": [
+          [
+            {
+              "node": "Set Configuration",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Configuration": {
+        "main": [
+          [
+            {
+              "node": "Query Azure Resources",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Get Cost Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check If Data Exists": {
+        "main": [
+          [
+            {
+              "node": "Output Report",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "No Data Found",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Power BI Data": {
+        "main": [
+          [
+            {
+              "node": "Send to Power BI",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Query Azure Resources": {
+        "main": [
+          [
+            {
+              "node": "Merge and Process Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge and Process Data": {
+        "main": [
+          [
+            {
+              "node": "Format Report",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "triggerCount": 0
+  },
+  "categories": [
+    {
+      "id": 16,
+      "name": "DevOps"
+    }
+  ],
+  "url": "https://n8n.io/workflows/12802",
+  "fetched_at": "2026-09-12T13:14:18Z"
+}

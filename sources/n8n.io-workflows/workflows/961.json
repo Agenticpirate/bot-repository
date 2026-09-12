@@ -1,0 +1,101 @@
+{
+  "id": 961,
+  "name": "Create a campaign, add a contact, and get the campaign from Emelia",
+  "description": "This workflow allows you to create a campaign, add a contact, and get the campaign from Emelia.\n\n![workflow-screenshot](fileId:424)\n\n**Emelia node:** This node will create a new campaign in Emelia.\n\n**Emelia1 node:** This node will add a contact to the campaign that we created in the previous node. Based on your use-case, you can add a Google Sheets node or an Airtable node to get the email address of the contact.\n\n**Emelia2 node:** This node will get the information about the campaign that we created earlier.",
+  "workflow": {
+    "nodes": [
+      {
+        "name": "Emelia",
+        "type": "n8n-nodes-base.emelia",
+        "position": [
+          530,
+          310
+        ],
+        "parameters": {
+          "operation": "create",
+          "campaignName": "n8n-docs"
+        },
+        "credentials": {
+          "emeliaApi": {
+            "id": "credential-id",
+            "name": "emeliaApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Emelia1",
+        "type": "n8n-nodes-base.emelia",
+        "position": [
+          730,
+          310
+        ],
+        "parameters": {
+          "operation": "addContact",
+          "campaignId": "603dfd70cbe34c3c9730fd09",
+          "contactEmail": "user@example.com",
+          "additionalFields": {
+            "firstName": "NAME"
+          }
+        },
+        "credentials": {
+          "emeliaApi": {
+            "id": "credential-id",
+            "name": "emeliaApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Emelia2",
+        "type": "n8n-nodes-base.emelia",
+        "position": [
+          930,
+          310
+        ],
+        "parameters": {
+          "campaignId": "={{$node[\"Emelia\"].json[\"_id\"]}}"
+        },
+        "credentials": {
+          "emeliaApi": {
+            "id": "credential-id",
+            "name": "emeliaApi Credential"
+          }
+        },
+        "typeVersion": 1
+      }
+    ],
+    "connections": {
+      "Emelia": {
+        "main": [
+          [
+            {
+              "node": "Emelia1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Emelia1": {
+        "main": [
+          [
+            {
+              "node": "Emelia2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 33,
+      "name": "Social Media"
+    }
+  ],
+  "url": "https://n8n.io/workflows/961",
+  "fetched_at": "2026-09-12T13:08:51Z"
+}

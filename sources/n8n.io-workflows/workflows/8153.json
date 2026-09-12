@@ -1,0 +1,336 @@
+{
+  "id": 8153,
+  "name": "🌸 CFO sunrise — Soft-Tech morning brief for household CEOs (n8n template)",
+  "description": "🌸 **Overview**\n\n**Serene CFO Sunrise** is a gentle morning brief for Household CEOs — founders who run a business and a home. At **8:00 AM local time**, it gathers bank balances, last-24h shop orders, open/overdue invoices, and today’s calendar, then sends one elegant email (optional Telegram). Calm and family-hour friendly.\n\n✨ **Perfect For**\nReal estate pros, insurance & tax advisors, Shopify/Etsy owners, and homemaker-entrepreneurs who prefer graceful soft tech over dashboards and data chaos.\n\n🧠 **What It Does**\n\nPulls bank balances (Mercury/Relay/Plaid via HTTP)\n\nSummarizes Shopify orders (last 24h)\n\nLists Stripe invoices (open/overdue)\n\nReads Google Calendar (today)\n\n(Optional) Uses OpenAI to draft “Top 3 Priorities”\n\nSends a soft-styled morning email (+ optional Telegram)\n\n🔐 **Requirements**\n\nBank API via HTTP (Mercury/Relay/Plaid)\n\nShopify Admin API\n\nStripe API\n\nGoogle Calendar (OAuth2)\n\nSMTP or Gmail\n\n(Optional) Telegram Bot, OpenAI API\n\n🧩 Placeholders to Update\n\nYOUR_BANK_API_TOKEN\n\nYOUR_SHOP (yourshop.myshopify.com)\n\nYOUR_SHOPIFY_TOKEN\n\nYOUR_STRIPE_SECRET\n\nYOUR_FROM_EMAIL, YOUR_TO_EMAIL\n\nYOUR_TELEGRAM_CHAT_ID (optional)\n\n🛠️**Setup (5–10 min)**\n\nAdd credentials (HTTP Header Auth for Stripe/Shopify/Bank, Google Calendar OAuth2, SMTP/Gmail, optional Telegram, optional OpenAI).\n\nReplace placeholders listed above.\n\nSet the Cron to your preferred hour (default 08:00, local timezone).\n\nRun once manually to confirm each section, then enable.\n\n🔄 **Flow (Node Map)**\n\nCron (08:00) → Time Window →\nHTTP (Bank) + HTTP (Shopify) + HTTP (Stripe) + Google Calendar →\nAssemble Snapshot → (Optional) OpenAI “Top 3” → Build Message (soft HTML + text) →\nEmail Send (+ optional Telegram)\n\n🧪 **Testing Tips**\n\nTemporarily set Cron to Every Minute.\n\nUse Stripe test mode keys.\n\nIn Shopify, set created_at_min to a recent ISO time to force sample orders.\n\nAdd a dummy event to Google Calendar for today.\n\nCheck “Assemble Snapshot” output for metrics before sending.\n\n🎨 **Brand & Tone**\n\nThis template includes a Brand Settings block (brandName, signature, accentEmoji) so your brief feels on-voice without edits to the logic.\n\n✅ **Template Notes**\n\nUse Sticky Notes for setup/testing (included).\n\nNo hardcoded API keys — store in credentials.\n\nKeep Markdown headings (##) in this description.\n\nOriginal use case; practical, production-ready.\n\n🧯**Failure Handling**\n\nEach data source is optional — if one API fails, the brief still sends the remaining sections so your morning stays calm.",
+  "workflow": {
+    "meta": {
+      "templateCredsNote": "Use credentials for HTTP Header Auth (Stripe, Shopify, Bank), Google OAuth2, SMTP, Telegram."
+    },
+    "name": "Serene CFO Sunrise — Soft‑Tech Morning Brief (Household CEO) 🌸",
+    "nodes": [
+      {
+        "id": "Cron1",
+        "name": "Start (Cron @ 08:00)",
+        "type": "n8n-nodes-base.cron",
+        "position": [
+          260,
+          260
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "Note0",
+        "name": "🗒️ Sticky — Submission",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          260,
+          40
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "NoteBrand",
+        "name": "🗒️ Sticky — Brand",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          720,
+          40
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "NoteSetup",
+        "name": "🗒️ Sticky — Setup & Testing",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1100,
+          40
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "SetBrand",
+        "name": "Brand Settings",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          560,
+          260
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "FuncTime",
+        "name": "Time Window",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          840,
+          260
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "HTTPBank",
+        "name": "Bank Balances (HTTP)",
+        "type": "n8n-nodes-base.httpRequest",
+        "notes": "Swap URL/provider for Relay/Plaid as needed. Keep tokens in credentials.",
+        "position": [
+          1140,
+          180
+        ],
+        "parameters": {},
+        "notesInFlow": true,
+        "typeVersion": 3
+      },
+      {
+        "id": "HTTPShopify",
+        "name": "Shopify Orders (HTTP)",
+        "type": "n8n-nodes-base.httpRequest",
+        "notes": "Prefer native Shopify node if you like.",
+        "position": [
+          1140,
+          260
+        ],
+        "parameters": {},
+        "notesInFlow": true,
+        "typeVersion": 3
+      },
+      {
+        "id": "HTTPStripe",
+        "name": "Stripe Invoices (Open)",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1140,
+          340
+        ],
+        "parameters": {},
+        "notesInFlow": true,
+        "typeVersion": 3
+      },
+      {
+        "id": "GCal",
+        "name": "Google Calendar — Today",
+        "type": "n8n-nodes-base.googleCalendar",
+        "position": [
+          1140,
+          420
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "Assemble",
+        "name": "Assemble Snapshot",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          1400,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "OpenAI",
+        "name": "Draft Top 3 (OpenAI)",
+        "type": "n8n-nodes-base.openAi",
+        "position": [
+          1600,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 4
+      },
+      {
+        "id": "BuildMsg",
+        "name": "Build Message (Soft HTML)",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          1800,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "EmailSend",
+        "name": "Send Email",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          2000,
+          260
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "Telegram",
+        "name": "Send Telegram (optional)",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          2000,
+          340
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      }
+    ],
+    "pinData": {},
+    "version": 2,
+    "settings": {
+      "timezone": "America/Los_Angeles"
+    },
+    "connections": {
+      "Time Window": {
+        "main": [
+          [
+            {
+              "node": "Bank Balances (HTTP)",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Shopify Orders (HTTP)",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Stripe Invoices (Open)",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Google Calendar — Today",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Brand Settings": {
+        "main": [
+          [
+            {
+              "node": "Time Window",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Assemble Snapshot": {
+        "main": [
+          [
+            {
+              "node": "Draft Top 3 (OpenAI)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Bank Balances (HTTP)": {
+        "main": [
+          [
+            {
+              "node": "Assemble Snapshot",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Draft Top 3 (OpenAI)": {
+        "main": [
+          [
+            {
+              "node": "Build Message (Soft HTML)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Start (Cron @ 08:00)": {
+        "main": [
+          [
+            {
+              "node": "Brand Settings",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Shopify Orders (HTTP)": {
+        "main": [
+          [
+            {
+              "node": "Assemble Snapshot",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Stripe Invoices (Open)": {
+        "main": [
+          [
+            {
+              "node": "Assemble Snapshot",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Message (Soft HTML)": {
+        "main": [
+          [
+            {
+              "node": "Send Email",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Send Telegram (optional)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Calendar — Today": {
+        "main": [
+          [
+            {
+              "node": "Assemble Snapshot",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 43,
+      "name": "Personal Productivity"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8153",
+  "fetched_at": "2026-09-12T13:12:19Z"
+}

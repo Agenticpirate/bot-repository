@@ -1,0 +1,445 @@
+{
+  "id": 14896,
+  "name": "Monitor Google reviews and draft GPT-4o-mini replies via Gmail daily",
+  "description": "You activate this workflow once and it checks your Google reviews every morning at 9AM without any action from you. It fetches your latest reviews, classifies them as positive or negative, and uses GPT-4o-mini to write a personalised reply draft for each one. You receive a clean daily email with all drafts ready to copy and paste straight into your Google Business Profile. Built for local business owners, agencies, and reputation managers who want to stay on top of reviews without checking manually every day.\n\n---\n\n## What This Workflow Does\n\n**Fetches live reviews daily** — Pulls your latest Google reviews from the Places API every morning so you never miss a new one.\n\n**Classifies each review automatically** — Separates positive reviews (4–5 stars) from negative reviews (1–3 stars) so the AI writes the right tone for each.\n\n**Skips days with no activity** — If no reviews exist for your business, the workflow stops cleanly and sends no email — no noise in your inbox.\n\n**Generates personalised reply drafts** — GPT-4o-mini writes a unique reply for every review, referencing the reviewer's name and specific comments.\n\n**Handles negative reviews professionally** — Negative replies include a sincere apology and an offline resolution offer — never defensive or argumentative.\n\n**Delivers a formatted daily digest** — Gmail sends one clean email with a summary count and all reply drafts — plus step-by-step instructions for posting them.\n\n---\n\n## Setup Requirements\n\n### Tools and accounts needed:\n- n8n instance (self-hosted or cloud)\n- Google Cloud account with Places API enabled (for fetching reviews)\n- Your Google Place ID (identifies your specific business listing)\n- OpenAI account with API access (for GPT-4o-mini)\n- Gmail account for sending the daily digest (OAuth2 credential)\n\n**Estimated Setup Time: 12–18 minutes**\n\n---\n\n## Step-by-Step Setup\n\n1. **Import the workflow** — Open n8n → Workflows → Import from JSON. Paste the workflow JSON and import. Confirm all 9 nodes are connected in sequence.\n\n2. **Find your Google Place ID** — Go to developers.google.com/maps/documentation/places/web-service/place-id and use the Place ID Finder. Search for your business name and copy the Place ID shown. You will paste this into the config step below.\n\n3. **Get your Google Places API key** — Go to console.cloud.google.com. Create or select a project. Enable the **Places API**. Go to APIs & Services → Credentials → Create Credentials → API Key. Copy your new API key.\n\n4. **Edit your config values** — Open the **2. Set — Config Values** node. This is the only node you need to change. Replace all five placeholders:\n\n   | Field | What to enter |\n   |---|---|\n   | `YOUR_GOOGLE_PLACE_ID` | Your Place ID from step 2 |\n   | `YOUR_GOOGLE_PLACES_API_KEY` | Your API key from step 3 |\n   | `YOUR BUSINESS NAME` | Your business name as it appears on Google |\n   | `owner@yourbusiness.com` | The email address to receive daily reports |\n   | `YOUR NAME` | Your name — appears at the end of every reply draft |\n\n   &gt; ⚠️ The Google Places API key is used directly in the URL of the **3. HTTP — Fetch Google Places Reviews** node via the config values. Ensure you replace it in **2. Set — Config Values** only — it flows through automatically.\n\n5. **Connect your OpenAI API key** — Go to Credentials → New → OpenAI API in n8n. Paste your API key from platform.openai.com. Open the **7. OpenAI — GPT-4o-mini Model** node and select this credential.\n\n6. **Connect your Gmail credential** — Go to Credentials → New → Gmail OAuth2 in n8n. Complete the OAuth flow with the Gmail account you want to send reports from. Open the **9. Gmail — Send Review Report** node and select this credential.\n\n7. **Activate the workflow** — Toggle the workflow to Active. It will now run automatically every day at 9AM.\n\n---\n\n## How It Works (Step by Step)\n\n**Step 1 — Schedule Trigger (Every Day 9AM)**\nThe workflow fires automatically each morning using a daily cron schedule. No manual action is needed once the workflow is active.\n\n**Step 2 — Set (Config Values)**\nFive configuration values are stored here: your Place ID, Google Places API key, business name, owner email, and owner name. Every other step in the workflow reads from this single location.\n\n**Step 3 — HTTP Request (Google Places API)**\nA GET request is sent to the Google Places Details API using your Place ID and API key. It asks for the business name, overall star rating, and all available reviews. The raw response is passed to the next step.\n\n**Step 4 — Code (Parse and Classify Reviews)**\nA script reads the raw API response and extracts every review. It separates reviews into two groups: positive (4–5 stars) and negative (1–3 stars). It also builds a clean numbered text summary of all reviews — including author name, star rating, review text, and recency — ready for the AI to read. If the API returns zero reviews, the step sets a `hasReviews: false` flag and passes a fallback message forward.\n\n**Step 5 — IF Check (Are There Reviews?)**\nThis step checks the `hasReviews` flag from Step 4. If it is true, the workflow continues to the AI reply generation. If it is false — meaning no reviews were found — the workflow stops here completely and no email is sent. This prevents empty or useless emails on quiet days.\n\n**Step 6 — AI Agent (Generate Reply Drafts)**\nGPT-4o-mini receives the full review summary along with your business name, overall rating, and owner name. It writes one reply draft for every review in the list. Positive reply drafts thank the reviewer by name, reference something specific they mentioned, and invite them back. Negative reply drafts open with a sincere apology, acknowledge the concern without excuses, and offer to resolve the issue offline. Every reply ends with your name in a `Best regards,` sign-off.\n\n**Step 7 — OpenAI Model (GPT-4o-mini)**\nThis is the language model powering the AI Agent in Step 6. It runs at a temperature of 0.7 for natural, human-sounding replies and has a 1,000-token output limit — enough for a full set of reply drafts.\n\n**Step 8 — Set (Prepare Email Fields)**\nThe AI-generated reply drafts, email subject line, recipient address, and review counts are assembled into one item. The subject line dynamically includes your business name, the total number of reviews found, and your current overall star rating.\n\n**Step 9 — Gmail (Send Review Report)**\nGmail sends the final daily digest to your inbox. The email opens with a summary showing how many positive and negative reviews were found. It then lists all reply drafts one after another, each labelled with the review number, sentiment, and reviewer name. The email closes with a three-step guide for posting replies on Google Business Profile.\n\n---\n\n## Key Features\n\n✅ **Zero-maintenance daily monitoring** — Checks your reviews every morning at 9AM with no login or manual trigger required.\n\n✅ **Smart stop on quiet days** — The IF check ensures no email is sent when there are no reviews — your inbox only receives reports that matter.\n\n✅ **Tone-matched reply drafts** — Positive reviews get warmth and appreciation. Negative reviews get calm professionalism. The AI uses the right tone automatically.\n\n✅ **Reviewer name personalisation** — Every reply draft opens by addressing the reviewer by their actual name — not a generic greeting.\n\n✅ **Review count in subject line** — The email subject dynamically shows how many reviews were found and your current rating — you know what to expect before opening it.\n\n✅ **Copy-paste ready format** — Drafts are delivered in a clean numbered format with posting instructions included — no reformatting needed before you use them.\n\n✅ **Single config node** — All five business-specific values live in one place. Switching this workflow to a different business takes under two minutes.\n\n---\n\n## Customisation Options\n\n**Change the daily send time** — In the **1. Schedule — Every Day 9AM** node, edit the cron expression `0 9 * * *` to any time you prefer. For example, `0 7 * * *` sends at 7AM, or `0 18 * * *` sends at 6PM.\n\n**Adjust the negative review word limit** — In the **6. AI Agent — Generate Reply Drafts** node, change `under 70 words` in the prompt to any length that fits your brand voice — shorter for a concise tone, longer for a more detailed response.\n\n**Add a CC recipient** — In the **9. Gmail — Send Review Report** node, expand the options and add a CC email address to copy an agency manager or team member on every daily digest.\n\n**Filter only new reviews by date** — In the **4. Code — Parse and Classify Reviews** step, add a date filter using the `time` field from each review object to only process reviews posted in the last 24 hours — avoiding repeat drafts for old reviews.\n\n**Deploy for multiple locations** — Duplicate the workflow in n8n and update the **2. Set — Config Values** node for each business or location. Each copy runs independently on the same daily schedule.\n\n---\n\n## Troubleshooting\n\n**HTTP node returns a 403 or REQUEST_DENIED error:**\n- Check that the Places API is enabled in your Google Cloud Console project\n- Verify that `YOUR_GOOGLE_PLACES_API_KEY` has been replaced in **2. Set — Config Values** with your actual API key\n- Confirm your API key has no IP or referrer restrictions that would block n8n server requests\n\n**No reviews found even though reviews exist on Google:**\n- Verify that `YOUR_GOOGLE_PLACE_ID` is correct — search for your exact business at developers.google.com/maps/documentation/places/web-service/place-id and re-copy the ID\n- Note that the Google Places API returns a maximum of 5 most recent reviews — this is an API limitation, not a workflow issue\n- Run the workflow manually and inspect the output of **3. HTTP — Fetch Google Places Reviews** to view the raw API response\n\n**AI Agent produces empty or broken reply drafts:**\n- Confirm the **7. OpenAI — GPT-4o-mini Model** credential is valid and your OpenAI account has available API credits\n- Check the execution log for **6. AI Agent — Generate Reply Drafts** for any OpenAI error messages\n- If the review text field is empty for some reviews, the AI may produce shorter or generic replies — this is expected\n\n**Gmail node fails to send the digest:**\n- Confirm your Gmail OAuth2 credential is connected and not expired in the **9. Gmail — Send Review Report** node\n- Check that `owner@yourbusiness.com` has been replaced with a valid real email address in **2. Set — Config Values**\n- Re-authenticate the Gmail credential if you see an authorisation error\n\n**Workflow does not run at 9AM:**\n- Confirm the workflow is toggled to **Active** — saved workflows do not run on schedule unless activated\n- Check your n8n instance timezone settings — the 9AM schedule runs based on your server's timezone, not your local time\n\n---\n\n## Support\n\nNeed help setting this up or want a custom version built for your team or agency?\n\n📧 Email:[info@isawow.com](info@isawow.com)\n🌐 Website:[https://isawow.com](https://isawow.com)",
+  "workflow": {
+    "meta": {
+      "instanceId": "bc8ca75c203589705ae2e446cad7181d6f2a7cc1766f958ef9f34810e53b8cb2",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "af722205-903b-44c0-b21f-5587111117b6",
+        "name": "Overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          272,
+          144
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 476,
+          "height": 904,
+          "content": "## Google Reviews Monitor — Auto Reply Drafts via GPT-4o-mini + Gmail\n\nFor local business owners, agencies, and reputation managers who want to automatically monitor Google reviews every day and receive AI-written reply drafts by email. The workflow runs daily at 9AM, fetches the latest reviews from Google Places API, classifies them as positive or negative, and uses GPT-4o-mini to write a personalised reply for each one. Gmail delivers a clean digest with all drafts ready to copy and paste.\n\n## How it works\n- **1. Schedule — Every Day 9AM** triggers the workflow automatically each morning\n- **2. Set — Config Values** stores your Place ID, API key, business name, email, and name\n- **3. HTTP — Fetch Google Places Reviews** calls the Google Places Details API to get recent reviews\n- **4. Code — Parse and Classify Reviews** separates positive (4–5 stars) from negative (1–3 stars)\n- **5. IF — Are There Reviews?** stops the workflow if no reviews are found\n- **6. AI Agent — Generate Reply Drafts** writes a personalised reply for each review\n- **8. Set — Prepare Email Fields** assembles the subject, recipient, and body\n- **9. Gmail — Send Review Report** delivers the digest with all reply drafts to the owner\n\n## Set up steps\n1. In **2. Set — Config Values** — replace YOUR_GOOGLE_PLACE_ID, YOUR_GOOGLE_PLACES_API_KEY, YOUR BUSINESS NAME, owner@yourbusiness.com, and YOUR NAME\n2. In **7. OpenAI — GPT-4o-mini Model** — connect your OpenAI credential\n3. In **9. Gmail — Send Review Report** — connect your Gmail OAuth2 credential\n4. Activate the workflow — it will run every day at 9AM automatically"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c6446563-93b5-470c-a71b-b6d40f9dabf2",
+        "name": "Section — Schedule and Config",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          800,
+          192
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 436,
+          "height": 372,
+          "content": "## Schedule and Config\nWorkflow triggers every day at 9AM. All config values — Place ID, API key, business name, recipient email, and owner name — are set here once and used throughout."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "fdbcba27-a5dc-439a-917c-6ae3fcf976f9",
+        "name": "Section — Review Fetch and Classification",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1248,
+          192
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 612,
+          "height": 372,
+          "content": "## Review Fetch and Classification\nFetches the latest reviews from Google Places API. Parses the response, separates positive (4–5 stars) from negative (1–3 stars), and checks if any reviews exist before continuing."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "fb96ebc4-88d4-450f-b4f0-e4ee4671d62e",
+        "name": "Section — AI Reply Generation",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1920,
+          192
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 280,
+          "height": 612,
+          "content": "## AI Reply Generation\nGPT-4o-mini reads all review texts and writes a personalised reply draft for each one. Positive reviews get a warm thank-you. Negative reviews get a professional apology with an offline resolution offer."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "73297ab7-2d9e-4d52-ae5d-d09262e9b122",
+        "name": "Section — Email Delivery",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2288,
+          192
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 420,
+          "height": 436,
+          "content": "## Email Delivery\nAssembles the email subject, recipient, and body with all reply drafts. Gmail sends the daily digest to the business owner."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "709cd612-3041-4146-8a90-e1a5811f5f3a",
+        "name": "Note — Edit Config Before Activating",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1248,
+          656
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 668,
+          "content": "## ⚠️ Edit This Node Before Activating\nThis is the only node you need to change. Replace all five values: Place ID (find it at developers.google.com/maps/documentation/places/web-service/place-id), Google Places API key (from Google Cloud Console with Places API enabled), business name, owner email, and owner name."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f5b2c072-7ab3-452e-9c0d-8f2924c51a69",
+        "name": "1. Schedule — Every Day 9AM",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          848,
+          400
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 9 * * *"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "a750d23f-651a-4291-afb6-8bd3da4574d8",
+        "name": "2. Set — Config Values",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1072,
+          400
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "cfg-001",
+                "name": "placeId",
+                "type": "string",
+                "value": "YOUR_GOOGLE_PLACE_ID"
+              },
+              {
+                "id": "cfg-002",
+                "name": "apiKey",
+                "type": "string",
+                "value": "YOUR_GOOGLE_PLACES_API_KEY"
+              },
+              {
+                "id": "cfg-003",
+                "name": "businessName",
+                "type": "string",
+                "value": "YOUR BUSINESS NAME"
+              },
+              {
+                "id": "cfg-004",
+                "name": "ownerEmail",
+                "type": "string",
+                "value": "user@example.com"
+              },
+              {
+                "id": "cfg-005",
+                "name": "ownerName",
+                "type": "string",
+                "value": "YOUR NAME"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "b503df1b-b8f3-4e0c-89a6-99cbdd239d26",
+        "name": "3. HTTP — Fetch Google Places Reviews",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1296,
+          400
+        ],
+        "parameters": {
+          "url": "=https://maps.googleapis.com/maps/api/place/details/json?place_id={{ $json.placeId }}&fields=name,rating,reviews&key={{ $json.apiKey }}",
+          "options": {}
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "18467af9-e908-4bf0-a77b-9a1d8e6563a5",
+        "name": "4. Code — Parse and Classify Reviews",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1520,
+          400
+        ],
+        "parameters": {
+          "jsCode": "const data = $input.first().json;\nconst config = $('2. Set — Config Values').item.json;\n\n// Extract reviews from Google Places response\nconst result = data.result || {};\nconst reviews = result.reviews || [];\nconst overallRating = result.rating || 'N/A';\n\nif (reviews.length === 0) {\n  return [{\n    json: {\n      hasReviews: false,\n      message: 'No reviews found for this business.',\n      businessName: config.businessName,\n      ownerEmail: config.ownerEmail,\n      ownerName: config.ownerName,\n      overallRating: overallRating,\n      reviews: []\n    }\n  }];\n}\n\n// Separate positive (4-5 stars) and negative (1-3 stars)\nconst positiveReviews = reviews.filter(r => r.rating >= 4);\nconst negativeReviews = reviews.filter(r => r.rating <= 3);\n\n// Build a clean summary of all reviews\nlet reviewSummary = '';\nreviews.forEach((r, i) => {\n  const stars = r.rating || 0;\n  const author = r.author_name || 'Anonymous';\n  const text = r.text || 'No written review.';\n  const time = r.relative_time_description || 'recently';\n  const sentiment = stars >= 4 ? 'POSITIVE' : 'NEGATIVE';\n  reviewSummary += `Review ${i + 1} [${sentiment} - ${stars} stars]\\nAuthor: ${author} (${time})\\nReview: ${text}\\n\\n`;\n});\n\nreturn [{\n  json: {\n    hasReviews: true,\n    businessName: config.businessName,\n    ownerEmail: config.ownerEmail,\n    ownerName: config.ownerName,\n    overallRating: overallRating,\n    totalReviews: reviews.length,\n    positiveCount: positiveReviews.length,\n    negativeCount: negativeReviews.length,\n    reviewSummary: reviewSummary,\n    reviews: JSON.stringify(reviews)\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "5adadc89-1c14-4e65-a356-7fbebfe740c5",
+        "name": "5. IF — Are There Reviews?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1728,
+          400
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "leftValue": "",
+              "caseSensitive": false,
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "cond-001",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true"
+                },
+                "leftValue": "={{ $json.hasReviews }}",
+                "rightValue": true
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "8be104e1-8bd2-4f77-874f-f6f25e57ecc0",
+        "name": "6. AI Agent — Generate Reply Drafts",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          1968,
+          384
+        ],
+        "parameters": {
+          "text": "=You are a professional reputation manager for a local business.\n\nYour job is to write personalised reply drafts for Google reviews.\n\nBUSINESS NAME: {{ $json.businessName }}\nOVERALL RATING: {{ $json.overallRating }} stars\nOWNER NAME: {{ $json.ownerName }}\n\nREVIEWS TO RESPOND TO:\n{{ $json.reviewSummary }}\n\nFor EACH review above write a reply draft.\n\nFor POSITIVE reviews (4-5 stars):\n- Start by thanking the reviewer by name\n- Mention one specific thing they said in their review\n- Express genuine appreciation\n- Invite them to visit or contact again\n- Keep it warm, friendly, and under 60 words\n\nFor NEGATIVE reviews (1-3 stars):\n- Start by apologising sincerely\n- Acknowledge their concern without making excuses\n- Offer to resolve the issue offline (ask them to contact directly)\n- Keep it professional, calm, and under 70 words\n- Never argue or be defensive\n\nOUTPUT FORMAT:\nFor each review write exactly this structure:\n\nREVIEW [number] — [POSITIVE or NEGATIVE] — [author name]\nREPLY DRAFT:\n[your reply text here]\n---\n\nRULES:\n- Plain text only. No markdown. No asterisks.\n- End every reply with: Best regards, {{ $json.ownerName }}\n- Write all replies one after another separated by ---",
+          "options": {},
+          "promptType": "define"
+        },
+        "typeVersion": 1.7
+      },
+      {
+        "id": "f29171bd-d9fb-4038-ab1f-0f36751b421c",
+        "name": "7. OpenAI — GPT-4o-mini Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          1968,
+          592
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4o-mini"
+          },
+          "options": {
+            "maxTokens": 1000,
+            "temperature": 0.7
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "37cc3aaa-4534-4b3f-bb03-3a00d03d520c",
+        "name": "8. Set — Prepare Email Fields",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          2336,
+          384
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "email-001",
+                "name": "toEmail",
+                "type": "string",
+                "value": "={{ $('4. Code — Parse and Classify Reviews').item.json.ownerEmail }}"
+              },
+              {
+                "id": "email-002",
+                "name": "emailSubject",
+                "type": "string",
+                "value": "=New Google Reviews Alert — {{ $('4. Code — Parse and Classify Reviews').item.json.businessName }} — {{ $('4. Code — Parse and Classify Reviews').item.json.totalReviews }} review(s) found — Overall Rating: {{ $('4. Code — Parse and Classify Reviews').item.json.overallRating }} stars"
+              },
+              {
+                "id": "email-003",
+                "name": "emailBody",
+                "type": "string",
+                "value": "={{ $json.output || 'AI could not generate reply drafts. Please check OpenAI credentials.' }}"
+              },
+              {
+                "id": "email-004",
+                "name": "positiveCount",
+                "type": "number",
+                "value": "={{ $('4. Code — Parse and Classify Reviews').item.json.positiveCount }}"
+              },
+              {
+                "id": "email-005",
+                "name": "negativeCount",
+                "type": "number",
+                "value": "={{ $('4. Code — Parse and Classify Reviews').item.json.negativeCount }}"
+              },
+              {
+                "id": "email-006",
+                "name": "businessName",
+                "type": "string",
+                "value": "={{ $('4. Code — Parse and Classify Reviews').item.json.businessName }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "83532880-5a75-418d-82f5-e8a0162e1e0b",
+        "name": "9. Gmail — Send Review Report",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          2560,
+          384
+        ],
+        "webhookId": "c999838b-1ac3-4aaa-bcf1-39393d4425b1",
+        "parameters": {
+          "sendTo": "={{ $json.toEmail }}",
+          "message": "=Hi {{ $json.businessName }} Team,\n\nYour daily Google Reviews report is ready.\n\nSUMMARY\nPositive Reviews (4-5 stars): {{ $json.positiveCount }}\nNegative Reviews (1-3 stars): {{ $json.negativeCount }}\n\nREPLY DRAFTS — Copy and paste these directly to Google Business Profile:\n\n{{ $json.emailBody }}\n\n---\nTo post replies:\n1. Go to Google Business Profile: https://business.google.com\n2. Click Reviews\n3. Find the review and paste the draft\n4. Edit if needed and click Reply\n\nThis report was auto-generated by n8n + GPT-4o-mini",
+          "options": {
+            "appendAttribution": false
+          },
+          "subject": "={{ $json.emailSubject }}"
+        },
+        "typeVersion": 2.1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "2. Set — Config Values": {
+        "main": [
+          [
+            {
+              "node": "3. HTTP — Fetch Google Places Reviews",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "5. IF — Are There Reviews?": {
+        "main": [
+          [
+            {
+              "node": "6. AI Agent — Generate Reply Drafts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "1. Schedule — Every Day 9AM": {
+        "main": [
+          [
+            {
+              "node": "2. Set — Config Values",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "7. OpenAI — GPT-4o-mini Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "6. AI Agent — Generate Reply Drafts",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "8. Set — Prepare Email Fields": {
+        "main": [
+          [
+            {
+              "node": "9. Gmail — Send Review Report",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "6. AI Agent — Generate Reply Drafts": {
+        "main": [
+          [
+            {
+              "node": "8. Set — Prepare Email Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "4. Code — Parse and Classify Reviews": {
+        "main": [
+          [
+            {
+              "node": "5. IF — Are There Reviews?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "3. HTTP — Fetch Google Places Reviews": {
+        "main": [
+          [
+            {
+              "node": "4. Code — Parse and Classify Reviews",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 41,
+      "name": "Ticket Management"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/14896",
+  "fetched_at": "2026-09-12T13:15:10Z"
+}

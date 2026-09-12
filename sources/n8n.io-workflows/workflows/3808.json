@@ -1,0 +1,187 @@
+{
+  "id": 3808,
+  "name": "YouTube to WhatsApp sales automation with WordPress, FluentCRM and Whinta",
+  "description": "# 🚀 **WhatsApp Automation Template**  \n## Designed & Developed by Infridet Solutions Private Limited  \n\n---\n\n# **🔧 Objective:**  \nAutomate your lead nurturing and sales process from YouTube/Instagram → Landing Page → CRM → Email → WhatsApp → Sales → Deal Closure using tools like:  \n\n- 🌐 **WordPress** (Landing Page + Fluent Forms)  \n- 🧾 **Google Sheets** (Backup Log)  \n- 📩 **FluentCRM** (Lead Tagging + Email Sequences)  \n- 💬 **Whinta.com** (WhatsApp Messaging API)  \n- ⚙️ **N8N** (Workflow Automation Engine)  \n\n---\n\n# **🧩 System Flow Overview:**\n\n1. **Lead Source**: YouTube or Instagram CTA  \n2. **Landing Page**: Built on WordPress with a story-driven design  \n3. **Form Capture**: Fluent Forms with dynamic input fields  \n4. **Data Sync**:\n   - Backup to Google Sheets  \n   - Push lead to FluentCRM and tag as `New Lead`  \n5. **Email Sequence**:\n   - Warm-up emails (1 to 5)  \n   - Introduce offer or service  \n6. **WhatsApp Outreach**:\n   - Send personalized message via Whinta  \n   - Triggered 1 hour after form fill or last email  \n7. **Sales Follow-Up**:\n   - Sales team handles replies manually  \n   - CRM tag updated to `Customer` upon closing  \n\n---\n\n# **📁 Folder Structure (Optional Git/Zip File):**\n```\n📦 WhatsApp-Automation-Infridet/\n│\n├── whatsapp-automation-n8n.json      # N8N Flowchart Import File\n├── email-templates.docx              # Warm-up Email Scripts\n├── whinta-api-integration.pdf        # API Documentation\n├── crm-tagging-notes.txt             # CRM Tag Setup Details\n└── readme.md                         # This Instruction File\n```\n\n---\n\n# **🛠️ Required Integrations & Setup**\n\n### ✅ **Fluent Forms (WordPress)**  \n- Embed form with Name, Email, Phone  \n- Enable webhook to N8N: `/lead-capture`  \n\n### ✅ **Google Sheets**  \n- Use `n8n-nodes-base.googleSheets` node  \n- Capture name, email, phone, source, timestamp  \n\n### ✅ **FluentCRM**  \n- REST API enabled  \n- Push contact and assign tag `New Lead`  \n- Setup Email Automation via tag trigger  \n\n### ✅ **SMTP Email (Optional)**  \n- Use Gmail SMTP or Brevo  \n- Trigger email on form submission  \n\n### ✅ **Whinta.com (WhatsApp API)**  \n- Send POST request  \n- Payload includes `phone`, `message`, `sender_id`  \n- Customize message with personalization  \n\n---\n\n# **💬 Sample WhatsApp Message:**\n```plaintext\nHey {{name}}, Gyan here from Account Craft 👋  \nI saw your form submission – would you like help in starting your YouTube journey this week?  \nLet me know. I'm just one text away. ✅  \n```\n\n---\n\n# **📧 Sample Email (Warmup Day 1):**\n&gt; **Subject**: Welcome to Account Craft 🚀  \n&gt; **Body**:  \n&gt; Hi {{name}},  \n&gt;  \n&gt; I’m Gyan from Account Craft. Thanks for joining us!  \n&gt; Here’s what’s coming next: exclusive videos, personalized tips, and real support to get your YouTube channel earning.  \n&gt;  \n&gt; Let’s go!  \n&gt; – Gyan\n\n---\n\n# **🔁 CRM Tag Updates:**\n| Action            | Tag Assigned     |\n|-------------------|------------------|\n| On form fill      | `New Lead`       |\n| After WhatsApp    | `Engaged`        |\n| After sale closed | `Customer`       |\n\n---\n\n# **📌 Final Output:**\nOnce completed, the system will:\n- Log all leads into a database  \n- Automatically send emails and WhatsApp messages  \n- Notify your sales team  \n- Update lead status without manual entry  \n\n---\n\n&gt; *Automation Template Designed & Deployed by*  \n&gt; **Infridet Solutions Private Limited**  \n&gt; _Smart Integrations. Seamless Business._  \n&gt; 🌐 www.infridetsolutions.com | 📞 +91-8853354829  \n",
+  "workflow": {
+    "name": "AccountCraft WhatsApp Automation - Infridet",
+    "nodes": [
+      {
+        "id": "1",
+        "name": "Webhook - Lead Capture",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          250,
+          300
+        ],
+        "parameters": {
+          "path": "lead-capture",
+          "responseMode": "onReceived"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2",
+        "name": "Google Sheets - Backup Log",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          500,
+          200
+        ],
+        "parameters": {
+          "range": "Leads!A1",
+          "options": {},
+          "sheetId": "your_google_sheet_id_here",
+          "valueInputMode": "USER_ENTERED"
+        },
+        "credentials": {
+          "googleApi": "Google Account"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3",
+        "name": "FluentCRM - Add Contact",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          500,
+          400
+        ],
+        "parameters": {
+          "url": "https://your-crm-domain.com/wp-json/fluent-crm/v2/contacts",
+          "method": "POST",
+          "options": {},
+          "jsonParameters": true,
+          "bodyParametersJson": "{\n  \"email\": \"{{$json[\"email\"]}}\",\n  \"first_name\": \"{{$json[\"name\"]}}\",\n  \"tags\": [\"New Lead\"]\n}"
+        },
+        "credentials": {
+          "httpBasicAuth": {
+            "user": "your_crm_api_user",
+            "password": "your_crm_api_key"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4",
+        "name": "Send Warmup Email",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          750,
+          200
+        ],
+        "parameters": {
+          "text": "Hey {{$json[\"name\"]}},\n\nThanks for joining Account Craft! We’ll help you build your YouTube channel and earn like a pro. Stay tuned. 🔥\n\nCheers,\nGyan",
+          "subject": "Welcome to Account Craft 🚀",
+          "toEmail": "={{$json[\"email\"]}}",
+          "fromEmail": "your@email.com"
+        },
+        "credentials": {
+          "smtp": "SMTP Account"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5",
+        "name": "Send WhatsApp via Whinta",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1000,
+          200
+        ],
+        "parameters": {
+          "url": "https://api.whinta.com/send",
+          "method": "POST",
+          "options": {},
+          "jsonParameters": true,
+          "bodyParametersJson": "{\n  \"phone\": \"{{$json[\"phone\"]}}\",\n  \"message\": \"Hey {{$json[\"name\"]}}, Gyan here from Account Craft 👋 Just saw your form – want help starting your YouTube channel?\"\n}"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6",
+        "name": "Update CRM Tag to Customer",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1250,
+          200
+        ],
+        "parameters": {
+          "url": "https://your-crm-domain.com/wp-json/fluent-crm/v2/contacts/update",
+          "method": "POST",
+          "options": {},
+          "jsonParameters": true,
+          "bodyParametersJson": "{\n  \"email\": \"{{$json[\"email\"]}}\",\n  \"tags\": [\"Customer\"]\n}"
+        },
+        "credentials": {
+          "httpBasicAuth": {
+            "user": "your_crm_api_user",
+            "password": "your_crm_api_key"
+          }
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "settings": {},
+    "versionId": "1",
+    "connections": {
+      "Send Warmup Email": {
+        "main": [
+          [
+            {
+              "node": "Send WhatsApp via Whinta",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook - Lead Capture": {
+        "main": [
+          [
+            {
+              "node": "Google Sheets - Backup Log",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "FluentCRM - Add Contact",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send WhatsApp via Whinta": {
+        "main": [
+          [
+            {
+              "node": "Update CRM Tag to Customer",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Sheets - Backup Log": {
+        "main": [
+          [
+            {
+              "node": "Send Warmup Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 38,
+      "name": "Lead Nurturing"
+    }
+  ],
+  "url": "https://n8n.io/workflows/3808",
+  "fetched_at": "2026-09-12T13:09:56Z"
+}

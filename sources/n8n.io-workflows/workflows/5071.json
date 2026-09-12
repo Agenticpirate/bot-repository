@@ -1,0 +1,708 @@
+{
+  "id": 5071,
+  "name": "Google Play review intelligence with Bright Data & Telegram alerts",
+  "description": "# Google Play Review Intelligence with Bright Data & Telegram Alerts\n\n## Overview\nThis n8n workflow automates the process of scraping Google Play Store reviews, analyzing app performance, and sending alerts for low-rated applications. It integrates with Bright Data for web scraping, Google Sheets for data storage, and Telegram for notifications.\n\n## Workflow Components\n\n### 1. **✅ Trigger Input Form**\n- **Type:** Form Trigger\n- **Purpose:** Initiates the workflow with user input\n- **Input Fields:**\n  - URL (Google Play Store app URL)\n  - Number of reviews to fetch\n- **Function:** Captures user requirements to start the scraping process\n\n### 2. **🚀 Start Scraping Request**\n- **Type:** HTTP Request (POST)\n- **Purpose:** Sends scraping request to Bright Data API\n- **Endpoint:** `https://api.brightdata.com/datasets/v3/trigger`\n- **Parameters:**\n  - Dataset ID: `gd_m6zagkt024uwvvwuyu`\n  - Include errors: `true`\n  - Limit multiple results: `5`\n- **Custom Output Fields:**\n  - `url`, `review_id`, `reviewer_name`, `review_date`\n  - `review_rating`, `review`, `app_url`, `app_title`\n  - `app_developer`, `app_images`, `app_rating`\n  - `app_number_of_reviews`, `app_what_new`\n  - `app_content_rating`, `app_country`, `num_of_reviews`\n\n### 3. **🔄 Check Scrape Status**\n- **Type:** HTTP Request (GET)\n- **Purpose:** Monitors the progress of the scraping job\n- **Endpoint:** `https://api.brightdata.com/datasets/v3/progress/{snapshot_id}`\n- **Function:** Checks if the dataset scraping is complete\n\n### 4. **⏱️ Wait for Response 45 sec**\n- **Type:** Wait Node\n- **Purpose:** Implements polling mechanism\n- **Duration:** 45 seconds\n- **Function:** Pauses workflow before checking status again\n\n### 5. **🧩 Verify Completion**\n- **Type:** IF Condition\n- **Purpose:** Evaluates scraping completion status\n- **Condition:** `status === \"ready\"`\n- **Logic:**\n  - **True:** Proceeds to fetch data\n  - **False:** Loops back to status check\n\n### 6. **📥 Fetch Scraped Data**\n- **Type:** HTTP Request (GET)\n- **Purpose:** Retrieves the final scraped data\n- **Endpoint:** `https://api.brightdata.com/datasets/v3/snapshot/{snapshot_id}`\n- **Format:** JSON\n- **Function:** Downloads completed review and app data\n\n### 7. **📊 Save to Google Sheet**\n- **Type:** Google Sheets Node\n- **Purpose:** Stores scraped data for analysis\n- **Operation:** Append rows\n- **Target:** Specified Google Sheet document\n- **Data Mapping:**\n  - URL, Review ID, Reviewer Name, Review Date\n  - Review Rating, Review Text, App Rating\n  - App Number of Reviews, App What's New, App Country\n\n### 8. **⚠️ Check Low Ratings**\n- **Type:** IF Condition\n- **Purpose:** Identifies poor-performing apps\n- **Condition:** `review_rating &lt; 4`\n- **Logic:**\n  - **True:** Triggers alert notification\n  - **False:** No action taken\n\n### 9. **📣 Send Alert to Telegram**\n- **Type:** Telegram Node\n- **Purpose:** Sends performance alerts\n- **Message Format:**\n  ```\n  ⚠️ *Low App Performance Alert*\n  📱 *App:* {app_title}\n  🧑‍💻 *Developer:* {app_developer}\n  ⭐ *Rating:* {app_rating}\n  📝 *Reviews:* {app_number_of_reviews}\n  🔗 [View on Play Store]({url})\n  ```\n\n## Workflow Flow\n\n```\nInput Form → Start Scraping → Check Status → Wait 45s → Verify Completion\n                                    ↑              ↓\n                                    └──── Loop ────┘\n                                           ↓\n                          Fetch Data → Save to Sheet & Check Ratings\n                                                      ↓\n                                              Send Telegram Alert\n```\n\n## Configuration Requirements\n\n### API Keys & Credentials\n- **Bright Data API Key:** Required for web scraping\n- **Google Sheets OAuth2:** For data storage access\n- **Telegram Bot Token:** For alert notifications\n\n### Setup Parameters\n- **Google Sheet ID:** Target spreadsheet identifier\n- **Telegram Chat ID:** Destination for alerts\n- **N8N Instance ID:** Workflow instance identifier\n\n## Key Features\n\n### Data Collection\n- Comprehensive app metadata extraction\n- Review content and rating analysis\n- Developer and country information\n- App store performance metrics\n\n### Quality Monitoring\n- Automated low-rating detection\n- Real-time performance alerts\n- Continuous data archiving\n\n### Integration Capabilities\n- Bright Data web scraping service\n- Google Sheets data persistence\n- Telegram instant notifications\n- Polling-based status monitoring\n\n## Use Cases\n\n1. **App Performance Monitoring**\n   - Track rating trends over time\n   - Identify user sentiment patterns\n   - Monitor competitor performance\n\n2. **Quality Assurance**\n   - Early warning for rating drops\n   - Customer feedback analysis\n   - Market reputation management\n\n3. **Business Intelligence**\n   - Review sentiment analysis\n   - Performance benchmarking\n   - Strategic decision support\n\n## Technical Notes\n\n- **Polling Interval:** 45-second status checks\n- **Rating Threshold:** Alerts triggered for ratings &lt; 4\n- **Data Format:** JSON with structured field mapping\n- **Error Handling:** Includes error tracking in dataset requests\n- **Result Limiting:** Maximum 5 multiple results per request\n\nFor any questions or support, please contact:\ninfo@incrementors.com\nor fill out this form https://www.incrementors.com/contact-us/",
+  "workflow": {
+    "id": "0Om9VswvKOf2cyjY",
+    "meta": {
+      "instanceId": "YOUR_N8N_INSTANCE_ID",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Comprehensive Google Play Review Intelligence System with Bright Data Integration & Telegram Alerts",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "81566f57-58b6-4876-ad16-3b585bbf75d4",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -580,
+          60
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 360,
+          "height": 260,
+          "content": "Evaluates if the dataset scraping process is complete (status: \"ready\"). Loops if not."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5c6189f3-3e89-4dc0-84f6-6641c213bc8c",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -940,
+          20
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 300,
+          "height": 300,
+          "content": "Pauses the workflow for 45 seconds before checking the status again — used for polling Bright Data API.\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "82192678-1180-4491-a629-926a566f0c47",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1260,
+          20
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 280,
+          "height": 280,
+          "content": "Checks the current processing status of the dataset request using the snapshot ID."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a39574eb-692e-45f9-ba8a-b18ca5b8bd6c",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1580,
+          20
+        ],
+        "parameters": {
+          "width": 280,
+          "height": 280,
+          "content": "Sends a POST request to Bright Data API to start scraping reviews and app details based on user input.\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9d64ea9a-bd63-4231-b459-90376f8b4eb6",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1900,
+          20
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 280,
+          "height": 280,
+          "content": "Triggers the workflow with user input — takes Google Play Store URL and number of reviews to fetch.\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "656204ee-b437-4e61-8a73-745365ec45c2",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -140,
+          40
+        ],
+        "parameters": {
+          "color": 2,
+          "width": 320,
+          "height": 280,
+          "content": "Retrieves the final scraped data (reviews and app info) once the dataset is ready.\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8489a0c1-ff08-4293-b9a1-9d60840b2a5d",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          300,
+          -220
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 300,
+          "height": 280,
+          "content": "Appends selected app and review data into a connected Google Sheet for storage.\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c1cc4ad6-fd24-4198-ad99-e6cb15f038d8",
+        "name": "Sticky Note7",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          280,
+          120
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 280,
+          "height": 320,
+          "content": "Filters out reviews with rating below 4 to flag low-performing apps."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1f8ee417-cef0-4496-aa6c-d89fd798dbb6",
+        "name": "Sticky Note8",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          600,
+          120
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 300,
+          "height": 320,
+          "content": "Sends a Telegram alert if the app has low ratings, indicating poor performance."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b275d814-2941-455e-b256-710e14569221",
+        "name": "✅ Trigger Input Form",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          -1800,
+          120
+        ],
+        "webhookId": "b32a8f46-3345-40a0-b500-7bec7aa1be49",
+        "parameters": {
+          "options": {},
+          "formTitle": "Google Play Store",
+          "formFields": {
+            "values": [
+              {
+                "fieldLabel": "URL"
+              },
+              {
+                "fieldType": "number",
+                "fieldLabel": "No of review"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "afcfa8b5-c5bb-4636-88dc-7c8ada2b7aa4",
+        "name": "🚀 Start Scraping Request",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -1500,
+          120
+        ],
+        "parameters": {
+          "url": "https://api.brightdata.com/datasets/v3/trigger",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n  \"input\": [\n    {\n      \"url\": \"{{ $json.URL }}\",\n      \"num_of_reviews\": {{ $json[\"No of review\"] }},\n      \"country\": \"US\"\n    }\n  ],\n  \"custom_output_fields\": [\n    \"url\",\n    \"review_id\",\n    \"reviewer_name\",\n    \"review_date\",\n    \"review_rating\",\n    \"review\",\n    \"app_url\",\n    \"app_title\",\n    \"app_developer\",\n    \"app_images\",\n    \"app_rating\",\n    \"app_number_of_reviews\",\n    \"app_what_new\",\n    \"app_content_rating\",\n    \"app_country\",\n    \"num_of_reviews\"\n  ]\n}\n",
+          "sendBody": true,
+          "sendQuery": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "dataset_id",
+                "value": "gd_m6zagkt024uwvvwuyu"
+              },
+              {
+                "name": "include_errors",
+                "value": "true"
+              },
+              {
+                "name": "limit_multiple_results",
+                "value": "5"
+              }
+            ]
+          },
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "31fe5e15-7520-42a1-a818-0391b156ea16",
+        "name": "🔄 Check Scrape Status",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -1160,
+          120
+        ],
+        "parameters": {
+          "url": "=https://api.brightdata.com/datasets/v3/progress/{{ $json.snapshot_id }}",
+          "options": {},
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "de081ff7-c9a0-43e1-8748-976e7eff0490",
+        "name": "⏱️ Wait for Response 45 sec",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          -840,
+          120
+        ],
+        "webhookId": "10b45556-5e91-4387-abd0-f9078b220286",
+        "parameters": {
+          "amount": 45
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "68fcadf3-b117-4dd3-baf5-bc1c904c168a",
+        "name": "🧩 Verify Completion",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -460,
+          120
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "or",
+            "conditions": [
+              {
+                "id": "35ed620d-b5d5-4e97-bcc5-52b283d85616",
+                "operator": {
+                  "name": "filter.operator.equals",
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.status }}",
+                "rightValue": "ready"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "4adb27d2-b056-4a72-aefe-b7482f55d6ee",
+        "name": "📥 Fetch Scraped Data",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -40,
+          120
+        ],
+        "parameters": {
+          "url": "=https://api.brightdata.com/datasets/v3/snapshot/{{ $json.snapshot_id }}",
+          "options": {},
+          "sendQuery": true,
+          "sendHeaders": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "format",
+                "value": "json"
+              }
+            ]
+          },
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "b81d03b8-6d18-4539-be74-3beb853bdf35",
+        "name": "📊 Save to Google Sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          380,
+          -120
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "url": "={{ $json.url }}",
+              "review": "={{ $json.review }}",
+              "review_id": "={{ $json.review_id }}",
+              "app_rating": "={{ $json.app_rating }}",
+              "app_country": "={{ $json.app_country }}",
+              "review_date": "={{ $json.review_date }}",
+              "app_what_new": "={{ $json.app_what_new }}",
+              "review_rating": "={{ $json.review_rating }}",
+              "reviewer_name": "={{ $json.reviewer_name }}",
+              "app_number_of_reviews": "={{ $json.app_number_of_reviews }}"
+            },
+            "schema": [
+              {
+                "id": "url",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "url",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "review_id",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "review_id",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "reviewer_name",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "reviewer_name",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "review_date",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "review_date",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "review_rating",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "review_rating",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "review",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "review",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "app_url",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "app_url",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "app_title",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "app_title",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "app_developer",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "app_developer",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "app_images",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "app_images",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "app_rating",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "app_rating",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "app_number_of_reviews",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "app_number_of_reviews",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "app_what_new",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "app_what_new",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "app_content_rating",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "app_content_rating",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "app_country",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "app_country",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "num_of_reviews",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "num_of_reviews",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "YOUR_GOOGLE_SHEET_ID",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit",
+            "cachedResultName": "Google Play Review Scraper"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleSheetsOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 4.6
+      },
+      {
+        "id": "0a0c0cbb-694d-47b8-80ee-235df0a9a426",
+        "name": "⚠️ Check Low Ratings",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          360,
+          240
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "90bfec56-9510-4bc5-a4c6-aa155bfaf15a",
+                "operator": {
+                  "type": "number",
+                  "operation": "lt"
+                },
+                "leftValue": "={{ $json.review_rating }}",
+                "rightValue": 4
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "9508b6fa-f1d5-4ca9-8ca7-8e4a0a18f638",
+        "name": "📣 Send Alert to Telegram",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          680,
+          260
+        ],
+        "webhookId": "3f2bb749-4267-49fa-8d69-7906504504e3",
+        "parameters": {
+          "text": "=⚠️ *Low App Performance Alert*  📱 *App:* {{ $json.app_title }} 🧑‍💻 *Developer:* {{ $json.app_developer }} ⭐ *Rating:* {{ $json.app_rating }} 📝 *Reviews:* {{ $json.app_number_of_reviews }}  🔗 [View on Play Store]({{ $json.url }})",
+          "chatId": "YOUR_TELEGRAM_CHAT_ID",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "telegramApi": {
+            "id": "credential-id",
+            "name": "telegramApi Credential"
+          }
+        },
+        "typeVersion": 1.2
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "bea43585-0122-4277-8298-80674d93c326",
+    "connections": {
+      "✅ Trigger Input Form": {
+        "main": [
+          [
+            {
+              "node": "🚀 Start Scraping Request",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "🧩 Verify Completion": {
+        "main": [
+          [
+            {
+              "node": "📥 Fetch Scraped Data",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "🔄 Check Scrape Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "📥 Fetch Scraped Data": {
+        "main": [
+          [
+            {
+              "node": "📊 Save to Google Sheet",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "⚠️ Check Low Ratings",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "⚠️ Check Low Ratings": {
+        "main": [
+          [],
+          [
+            {
+              "node": "📣 Send Alert to Telegram",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "🔄 Check Scrape Status": {
+        "main": [
+          [
+            {
+              "node": "⏱️ Wait for Response 45 sec",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "🚀 Start Scraping Request": {
+        "main": [
+          [
+            {
+              "node": "🔄 Check Scrape Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "⏱️ Wait for Response 45 sec": {
+        "main": [
+          [
+            {
+              "node": "🧩 Verify Completion",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    }
+  ],
+  "url": "https://n8n.io/workflows/5071",
+  "fetched_at": "2026-09-12T13:10:33Z"
+}

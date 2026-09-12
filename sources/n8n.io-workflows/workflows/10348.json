@@ -1,0 +1,443 @@
+{
+  "id": 10348,
+  "name": "Monitor & auto-heal AWS EC2 instances with multi-channel alerts",
+  "description": "This n8n workflow automates the monitoring, health assessment, and self-healing of AWS EC2 instances in production environments. It runs periodic checks, identifies unhealthy instances based on status and metrics, restarts them automatically, and notifies teams via multi-channel alerts while logging data for auditing and reporting.\n\n### Key Features\n- Triggers health checks every 5 minutes to proactively monitor EC2 fleet status.\n- Fetches and loops through all production EC2 instances for individualized analysis.\n- Evaluates instance health using AWS metrics and custom thresholds to detect issues like high CPU or stopped states.\n- Performs automatic restarts on unhealthy instances to minimize downtime.\n- Sends instant WhatsApp notifications for urgent alerts, detailed email reports for team review, and logs metrics to Google Sheets for long-term tracking.\n- Includes sticky notes for quick reference on configuration, self-healing logic, and alert setup.\n\n### Workflow Process\n- The **Schedule Trigger** node runs the workflow every 5 minutes, ensuring frequent health monitoring without overwhelming AWS APIs.\n- The **Get EC2 Instances** node fetches all production-tagged EC2 instances from AWS, filtering by environment (e.g., tag: Environment=Production).\n- The **Loop Over Instances** node iterates through each fetched instance individually, allowing parallel processing for scalability.\n- The **Check Instance Status** node retrieves detailed health metrics for the current instance via AWS API (e.g., status checks, CPU utilization, and state).\n- The **Health Status Check** node evaluates the instance's status against predefined thresholds (e.g., failed system checks or high load); if healthy, it skips to logging.\n- The **Analyze Health Data** node assesses metrics in depth to determine action (e.g., restart if CPU &gt; 90% for 5+ minutes) and prepares alert payloads.\n- The **Restart Instance** node automatically initiates a reboot on unhealthy instances using AWS EC2 API, with optional dry-run mode for testing.\n- The **WhatsApp Notification** node (part of Multi-Channel Alerts) sends instant alerts via Twilio WhatsApp API, including instance ID, issue summary, and restart status.\n- The **Email Report** node generates and sends a detailed HTML report to the team via SMTP, summarizing checked instances, actions taken, and metrics trends.\n- The **Google Sheets Logging** node appends health data, timestamps, and outcomes to a specified spreadsheet for historical analysis and dashboards.\n- The **Sticky Notes** nodes provide inline documentation: one for AWS credential setup, one explaining self-healing thresholds, and one for alert channel configurations.\n\n### Setup Instructions\n- Import the workflow into n8n and activate the **Schedule Trigger** with a 5-minute cron expression (e.g., `*/5 * * * *`).\n- Configure AWS credentials in the **Get EC2 Instances**, **Check Instance Status**, and **Restart Instance** nodes using IAM roles with EC2 read/restart permissions.\n- Set up Twilio credentials in the **WhatsApp Notification** node, including your Twilio SID, auth token, and WhatsApp-enabled phone numbers for sender/receiver.\n- Add SMTP credentials (e.g., Gmail or AWS SES) in the **Email Report** node, and update sender/receiver email addresses in the node parameters.\n- Link Google Sheets in the **Google Sheets Logging** node by providing the spreadsheet ID, sheet name, and OAuth credentials for write access.\n- Customize health thresholds in **Health Status Check** and **Analyze Health Data** (e.g., via expressions for CPU/memory limits).\n- Test the workflow by manually executing it on a small set of instances and verifying alerts/logging before enabling production scheduling.\n- Review sticky notes within n8n for quick tips, and monitor executions in the dashboard to fine-tune intervals or error handling.\n\n### Prerequisites\n- AWS account with EC2 access and IAM user/role for DescribeInstances, DescribeInstanceStatus, and RebootInstances actions.\n- Twilio account with WhatsApp sandbox or approved number for notifications.\n- SMTP email service (e.g., Gmail, Outlook) with app-specific passwords enabled.\n- Google Workspace or personal Google account for Sheets integration.\n- n8n instance with AWS, Twilio, SMTP, and Google Sheets nodes installed (cloud or self-hosted).\n- Production EC2 instances tagged consistently (e.g., Environment=Production) for filtering.\n\n### Modification Options\n- Adjust the **Schedule Trigger** interval to hourly for less frequent checks or integrate with AWS CloudWatch Events for dynamic triggering.\n- Expand **Analyze Health Data** to include advanced metrics (e.g., disk I/O via CloudWatch) or ML-based anomaly detection.\n- Add more alert channels in **Multi-Channel Alerts**, such as Slack webhooks or PagerDuty integrations, by duplicating the WhatsApp/Email branches.\n- Enhance **Google Sheets Logging** with charts or conditional formatting via Google Apps Script for visual dashboards.\n- Implement approval gates in **Restart Instance** (e.g., via email confirmation) to prevent auto-restarts in sensitive environments.\n\n\n\n**Explore More AI Workflows: [Get in touch with us](https://www.oneclickitsolution.com/contact-us/) for custom n8n automation!**",
+  "workflow": {
+    "id": "POffv5hVuoeobllp",
+    "meta": {
+      "instanceId": "dd69efaf8212c74ad206700d104739d3329588a6f3f8381a46a481f34c9cc281",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "AWS EC2 Health Check & Self-Healing Workflow",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "1fe26a10-f8db-4d29-a7e7-fe8670182ed0",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -1008,
+          320
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 */5 * * *"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "60c75175-8955-486a-9da5-cbdc727f1d0a",
+        "name": "Loop Over Instances",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          -560,
+          320
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "ee3a6583-4f75-4f67-b412-7d4f364521be",
+        "name": "Check Health Status",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -112,
+          320
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "or",
+            "conditions": [
+              {
+                "operator": {
+                  "type": "string",
+                  "operation": "notEquals"
+                },
+                "leftValue": "={{ $json.State.Name }}",
+                "rightValue": "running"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "cdc0d0a1-a031-4aef-825d-8b94902e67dc",
+        "name": "Analyze Health Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          112,
+          320
+        ],
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "const instanceId = $input.item.json.InstanceId;\nconst instanceState = $input.item.json.State.Name;\nconst instanceType = $input.item.json.InstanceType;\nconst launchTime = $input.item.json.LaunchTime;\n\n// Check if instance has been unhealthy for more than 10 minutes\nconst now = new Date();\nconst launch = new Date(launchTime);\nconst uptimeMinutes = (now - launch) / (1000 * 60);\n\nreturn {\n  instanceId,\n  instanceState,\n  instanceType,\n  uptimeMinutes: Math.round(uptimeMinutes),\n  isUnhealthy: instanceState !== 'running',\n  actionRequired: instanceState !== 'running' && uptimeMinutes > 10,\n  timestamp: now.toISOString()\n};"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "f5e70419-3daf-4ea0-b230-33957395e6a5",
+        "name": "Send WhatsApp Alert",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          560,
+          128
+        ],
+        "parameters": {
+          "url": "https://api.twilio.com/2010-04-01/Accounts/{{ $credentials.accountSid }}/Messages.json",
+          "method": "POST",
+          "options": {},
+          "sendBody": true,
+          "authentication": "predefinedCredentialType",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "To",
+                "value": "whatsapp:+1234567890"
+              },
+              {
+                "name": "From",
+                "value": "whatsapp:+1234567890"
+              },
+              {
+                "name": "Body",
+                "value": "🚨 EC2 Alert: Instance {{ $json.instanceId }} was unhealthy ({{ $json.instanceState }}) and has been restarted. Uptime: {{ $json.uptimeMinutes }} mins"
+              }
+            ]
+          },
+          "nodeCredentialType": "twilioApi"
+        },
+        "credentials": {
+          "twilioApi": {
+            "id": "credential-id",
+            "name": "twilioApi Credential"
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "c38a83a0-7b42-4023-9bab-8271bcbe6d95",
+        "name": "Send Email Alert",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          560,
+          320
+        ],
+        "webhookId": "9cea1304-5fed-4a8b-84f4-00f6a6578ab6",
+        "parameters": {
+          "options": {},
+          "subject": "EC2 Health Alert - Instance Restarted",
+          "toEmail": "user@example.com",
+          "fromEmail": "user@example.com"
+        },
+        "credentials": {
+          "smtp": {
+            "id": "credential-id",
+            "name": "smtp Credential"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "885409bd-ce9b-4618-a2c1-7676acc63729",
+        "name": "Log to AlertsLog Sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          560,
+          512
+        ],
+        "parameters": {
+          "columns": {
+            "value": {},
+            "schema": [],
+            "mappingMode": "autoMapInputData",
+            "matchingColumns": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "appendOrUpdate",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "Sheet1",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "your-spreadsheet-id",
+            "cachedResultName": "EC2 Health Logs"
+          },
+          "authentication": "serviceAccount"
+        },
+        "credentials": {
+          "googleApi": {
+            "id": "credential-id",
+            "name": "googleApi Credential"
+          }
+        },
+        "typeVersion": 4.5
+      },
+      {
+        "id": "958ee33b-5761-4e68-8d48-0e0c3c4d0fb2",
+        "name": "End Workflow",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          784,
+          320
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "3846c7aa-fa51-494b-bb69-19ffd7006b0b",
+        "name": "Sticky Note 1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1100,
+          -32
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 936,
+          "height": 512,
+          "content": "## 📋 Workflow Configuration\n\n**Runs every 5 minutes via cron schedule**\n\n- Checks all Production EC2 instances\n- Monitors health status\n- Auto-remediation enabled"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9257144a-0f0d-4b7c-bbf0-6de3bc61f7c2",
+        "name": "Sticky Note 2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          544,
+          -208
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 368,
+          "height": 884,
+          "content": "## 📧 Alert Notifications\n\n**Sends detailed report to team:**\n- Email with full details\n- WhatsApp for instant alerts\n- Logs to Google Sheets\n\n**All alerts include:**\n- Instance ID\n- Health status\n- Action taken\n- Timestamp"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f8151614-7dcc-48f0-a0c0-4999cf449916",
+        "name": "Sticky Note 3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -144,
+          -32
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 604,
+          "height": 508,
+          "content": "## ⚙️ Self-Healing Actions\n\n**Automated remediation:**\n1. Detects unhealthy instances\n2. Attempts restart\n3. Monitors recovery\n4. Alerts team\n\n**Fail-safe:** Only acts on instances unhealthy for 10+ minutes"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "cce52f9c-9750-46c8-a709-3c340e21b368",
+        "name": "Get EC2 Instances",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -784,
+          320
+        ],
+        "parameters": {
+          "url": "https://devops.oneclicksales.xyz/ec2",
+          "options": {}
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "3f4d342e-c049-4250-8276-936539971101",
+        "name": "Check Instance Status",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -336,
+          248
+        ],
+        "parameters": {
+          "url": "https://devops.oneclicksales.xyz/ec2status",
+          "options": {}
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "b8ca3d5e-a070-4dcb-a06f-cecabc0adafb",
+        "name": "Restart Instance",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          336,
+          320
+        ],
+        "parameters": {
+          "url": "https://devops.oneclicksales.xyz/ec2restart",
+          "options": {}
+        },
+        "typeVersion": 4.2
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "482dd056-21c7-46ef-96c9-6399996902b5",
+    "connections": {
+      "Restart Instance": {
+        "main": [
+          [
+            {
+              "node": "Send WhatsApp Alert",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Send Email Alert",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Log to AlertsLog Sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Get EC2 Instances",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Email Alert": {
+        "main": [
+          [
+            {
+              "node": "End Workflow",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get EC2 Instances": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Instances",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Analyze Health Data": {
+        "main": [
+          [
+            {
+              "node": "Restart Instance",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Health Status": {
+        "main": [
+          [
+            {
+              "node": "Analyze Health Data",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Loop Over Instances",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Instances": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Check Instance Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send WhatsApp Alert": {
+        "main": [
+          [
+            {
+              "node": "End Workflow",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Instance Status": {
+        "main": [
+          [
+            {
+              "node": "Check Health Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log to AlertsLog Sheet": {
+        "main": [
+          [
+            {
+              "node": "End Workflow",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 16,
+      "name": "DevOps"
+    }
+  ],
+  "url": "https://n8n.io/workflows/10348",
+  "fetched_at": "2026-09-12T13:13:21Z"
+}

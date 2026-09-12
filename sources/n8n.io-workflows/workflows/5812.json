@@ -1,0 +1,246 @@
+{
+  "id": 5812,
+  "name": "Auto-import contacts from Google Sheets to MailChimp subscriber lists",
+  "description": "# Google Sheets to MailChimp Auto-Importer\n\n## Overview\nThis n8n workflow automatically imports contacts from Google Sheets into your MailChimp mailing list. Perfect for businesses collecting leads through Google Forms, event registrations, or maintaining contact lists in spreadsheets.\n\n## Key Features\n- 📊 **Bulk Import**: Process entire Google Sheets at once\n- 🔄 **Smart Name Parsing**: Automatically splits full names into first and last names\n- 📱 **Phone Number Support**: Includes phone numbers as merge fields\n- ⚡ **Error Resilience**: Continues processing even if individual contacts fail\n- 📝 **Import Summary**: Generates a summary of processed contacts\n\n## Prerequisites\nBefore using this workflow, ensure you have:\n1. An active n8n instance (self-hosted or cloud)\n2. A Google account with access to Google Sheets\n3. A MailChimp account with at least one audience/list created\n4. Basic understanding of n8n workflows\n\n## Initial Setup\n\n### Step 1: Import the Workflow\n1. Copy the workflow JSON\n2. In n8n, click \"Import from File\" or paste the JSON\n3. Save the workflow with a meaningful name\n\n### Step 2: Configure Google Sheets Connection\n1. Click on the \"Get Google Sheet Data\" node\n2. Click on \"Credential to connect with\"\n3. Select \"Create New\" and choose \"Google Sheets OAuth2\"\n4. Follow the OAuth flow to authenticate your Google account\n5. Save the credentials\n\n### Step 3: Configure MailChimp Connection\n1. Click on the \"Add to MailChimp\" node\n2. Click on \"Credential to connect with\"\n3. Select \"Create New\" and choose \"MailChimp OAuth2\" or \"MailChimp API\"\n4. For API method:\n   - Log into MailChimp\n   - Go to Account → Extras → API keys\n   - Generate a new API key\n   - Copy and paste it into n8n\n5. Save the credentials\n\n### Step 4: Configure Your Specific Settings\n\n#### Google Sheets Settings:\n1. Open the \"Get Google Sheet Data\" node\n2. Replace `YOUR_GOOGLE_SHEET_ID` with your actual sheet ID\n   - Find this in your Google Sheets URL: `https://docs.google.com/spreadsheets/d/[SHEET_ID]/edit`\n3. Replace `YOUR_SHEET_NAME` with your worksheet name (e.g., \"Sheet1\" or \"Form Responses 1\")\n\n#### MailChimp Settings:\n1. Open the \"Add to MailChimp\" node\n2. Replace `YOUR_MAILCHIMP_LIST_ID` with your audience ID\n   - Find this in MailChimp: Audience → Settings → Audience name and defaults\n3. Verify the status is set to \"subscribed\"\n\n## Google Sheets Format Requirements\n\nYour Google Sheet must have the following columns (exact names):\n- **Names**: Full name of the contact (e.g., \"John Doe\")\n- **Email address**: Valid email address\n- **Phone Number**: Contact phone number (optional)\n\nExample:\n| Names | Email address | Phone Number |\n|-------|--------------|--------------|\n| John Doe | john@example.com | +1234567890 |\n| Jane Smith | jane@example.com | +0987654321 |\n\n## How to Use\n\n### Manual Execution:\n1. Open the workflow in n8n\n2. Click \"Execute Workflow\"\n3. Monitor the execution progress\n4. Check the output of \"Create Import Summary\" for results\n\n### Scheduling (Optional):\nTo run this automatically:\n1. Replace the \"Manual Trigger\" node with a \"Schedule Trigger\" node\n2. Set your desired schedule (e.g., daily at 9 AM)\n3. Activate the workflow\n\n## Customization Options\n\n### Adding More Fields:\nTo include additional fields like company name or address:\n1. Add columns to your Google Sheet\n2. Modify the \"Edit Fields\" node to include new fields\n3. Update the \"Format Subscriber Data\" code to map new fields\n4. Add corresponding merge fields in the MailChimp node\n\n### Handling Duplicates:\nThe workflow uses \"continueRegularOutput\" error handling, which means:\n- Existing subscribers will be skipped\n- New subscribers will be added\n- The workflow continues processing\n\n### Adding Email Notifications:\nTo receive import summaries via email:\n1. Add a Gmail or Email node after \"Create Import Summary\"\n2. Configure with your email settings\n3. Use the import summary data in the email body\n\n## Troubleshooting\n\n### Common Issues:\n\n1. **\"Invalid API Key\" (MailChimp)**\n   - Verify your API key is correct\n   - Check that your MailChimp account is active\n\n2. **\"Sheet not found\" (Google Sheets)**\n   - Verify the sheet ID is correct\n   - Ensure the service account has access to the sheet\n\n3. **\"Email already exists\" errors**\n   - This is normal for existing subscribers\n   - The workflow will continue processing other contacts\n\n4. **Missing data in MailChimp**\n   - Check that column names match exactly (case-sensitive)\n   - Verify data exists in the Google Sheet\n\n## Best Practices\n\n1. **Test First**: Always test with a small dataset first\n2. **Backup Data**: Export your MailChimp list before large imports\n3. **Clean Data**: Ensure email addresses are valid before importing\n4. **Monitor Regularly**: Check import summaries for any issues\n5. **Respect Privacy**: Only import contacts who have consented to receive emails\n\n## Support\nFor issues specific to:\n- n8n platform: Visit [n8n Community Forum](https://community.n8n.io)\n- Google Sheets API: Check [Google Developers Documentation](https://developers.google.com/sheets/api)\n- MailChimp API: See [MailChimp API Documentation](https://mailchimp.com/developer/)\n- Need help customizing?\n[Contact me](Contact me) for consulting and support or add me on LinkedIn - https://www.linkedin.com/in/femi-adedayo-h44/\n\n## License\nThis workflow template is provided free for personal and commercial use. Feel free to modify and share!",
+  "workflow": {
+    "id": "google-sheets-to-mailchimp",
+    "meta": {
+      "instanceId": "template",
+      "templateCredsSetupCompleted": false
+    },
+    "name": "Google_Sheets_to_MailChimp_Subscriber_Sync",
+    "tags": [
+      "email-marketing",
+      "mailchimp",
+      "google-sheets",
+      "automation"
+    ],
+    "nodes": [
+      {
+        "id": "597e03c8-f634-4b1c-add0-e98c39019603",
+        "name": "Workflow Documentation",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2200,
+          -340
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 400,
+          "height": 800,
+          "content": "# Google Sheets to MailChimp Sync Workflow\n\n## Features:\n- **Simple Setup**: Connect your Google Sheets and MailChimp accounts\n- **Automated Processing**: Reads contact data from your sheet\n- **Smart Parsing**: Splits full names into first and last names\n- **Field Mapping**: Maps sheet columns to MailChimp merge fields\n- **Error Handling**: Continues processing even if some contacts fail\n\n## Setup Requirements:\n1. **Google Sheets API** credentials\n2. **MailChimp API** credentials\n\n## Expected Sheet Format:\nYour Google Sheet should have these columns:\n- **Names** (Full name of the contact)\n- **Email address** (Valid email address)\n- **Phone Number** (Optional phone number)\n\n## Configuration Steps:\n1. Connect your Google Sheets account\n2. Connect your MailChimp account\n3. Select your Google Sheet and worksheet\n4. Update the MailChimp list ID in the MailChimp node\n5. Run the workflow to import your subscribers\n\n## Process Flow:\n1. Trigger workflow manually\n2. Read all rows from Google Sheet\n3. Extract and format contact data\n4. Split names into first and last names\n5. Add subscribers to MailChimp with merge fields\n6. Generate import summary"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1bef150a-fd2b-4615-9252-81b094ef99f2",
+        "name": "Edit Fields",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -1020,
+          -340
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "bf70886e-befb-4d2e-914c-01645a18d80c",
+                "name": "Names",
+                "type": "string",
+                "value": "={{ $json.Names }}"
+              },
+              {
+                "id": "abea01b7-4a8f-4a57-aa9b-773a56a43bd6",
+                "name": "Email address",
+                "type": "string",
+                "value": "={{ $json['Email address'] }}"
+              },
+              {
+                "id": "443f7274-b0ac-46cd-8e0f-f65e21fe0dbb",
+                "name": "Phone Number",
+                "type": "string",
+                "value": "={{ $json['Phone Number'] }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "d5d6c985-cb23-4919-9267-e57c4138fe61",
+        "name": "When clicking 'Execute workflow'",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          -1460,
+          -340
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "2b86344d-a425-43f0-82f9-e441279ce653",
+        "name": "Format Subscriber Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -800,
+          -340
+        ],
+        "parameters": {
+          "jsCode": "const subscribers = [];\n\nfor (const item of $input.all()) {\n  subscribers.push({\n    json: {\n      email_address: item.json[\"Email address\"],\n      status: \"subscribed\",\n      merge_fields: {\n        FNAME: item.json.Names.split(' ')[0] || '',\n        LNAME: item.json.Names.split(' ').slice(1).join(' ') || '',\n        PHONE: item.json[\"Phone Number\"] || ''\n      }\n    }\n  });\n}\n\nreturn subscribers;\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "f83a85d7-5411-48a6-9f43-b16ea14d3ea9",
+        "name": "Add to MailChimp",
+        "type": "n8n-nodes-base.mailchimp",
+        "onError": "continueRegularOutput",
+        "position": [
+          -540,
+          -340
+        ],
+        "parameters": {
+          "list": "YOUR_MAILCHIMP_LIST_ID",
+          "email": "={{ $node['Format Subscriber Data'].json.email_address }}",
+          "status": "subscribed",
+          "options": {},
+          "mergeFieldsUi": {
+            "mergeFieldsValues": [
+              {
+                "name": "FNAME",
+                "value": "={{ $json.merge_fields.FNAME }}"
+              },
+              {
+                "name": "LNAME",
+                "value": "={{ $json.merge_fields.LNAME }}"
+              },
+              {
+                "name": "PHONE",
+                "value": "={{ $json.merge_fields.PHONE }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1d40a00a-17f1-4ad3-9ea8-e31534f9ebae",
+        "name": "Create Import Summary",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -240,
+          -340
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "summary-report",
+                "name": "importSummary",
+                "type": "string",
+                "value": "📊 **MailChimp Import Summary**\n\n**Import Date:** {{ DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss') }}\n**Total Processed:** {{ $items().length }} contacts\n\n**Email:** {{ $json.email_address }}\n**Status:** {{ $json.status || 'Processed' }}\n\n**Source:** Google Sheets Import"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "c33257fa-1fd0-4547-8113-0eccf826319d",
+        "name": "Get Google Sheet Data",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -1240,
+          -340
+        ],
+        "parameters": {
+          "options": {},
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "YOUR_SHEET_NAME"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "YOUR_GOOGLE_SHEET_ID"
+          }
+        },
+        "typeVersion": 4.6
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1.0.0",
+    "connections": {
+      "Edit Fields": {
+        "main": [
+          [
+            {
+              "node": "Format Subscriber Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Add to MailChimp": {
+        "main": [
+          [
+            {
+              "node": "Create Import Summary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Google Sheet Data": {
+        "main": [
+          [
+            {
+              "node": "Edit Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Subscriber Data": {
+        "main": [
+          [
+            {
+              "node": "Add to MailChimp",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When clicking 'Execute workflow'": {
+        "main": [
+          [
+            {
+              "node": "Get Google Sheet Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 33,
+      "name": "Social Media"
+    }
+  ],
+  "url": "https://n8n.io/workflows/5812",
+  "fetched_at": "2026-09-12T13:10:58Z"
+}

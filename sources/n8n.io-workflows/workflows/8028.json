@@ -1,0 +1,116 @@
+{
+  "id": 8028,
+  "name": "Auto-save Instagram leads to Google Sheets",
+  "description": "# 🚀 Auto-Save Instagram Leads to Google Sheets\n\nThis workflow automatically captures leads submitted through an Instagram Form and saves the data directly to a Google Sheet. It ensures that every new lead is instantly logged, creating a centralized database for your marketing and sales teams.\n\n---\n\n## ⚙️ How It Works\n\n1. **Receive Lead Data**  \n   The workflow starts with an **Instagram Lead Webhook** that listens for new lead submissions from your Instagram account's lead form.\n\n2. **Normalize Data**  \n   A **Code node** processes the raw data received from Instagram. This node normalizes the lead information, such as name, email, and phone number, into a consistent format. It also adds a **\"Source\"** field to identify the lead as coming from Instagram and timestamps the entry.\n\n3. **Save to Google Sheets**  \n   Finally, the **Save to Google Sheets node** takes the normalized data and appends it as a new row in your designated Google Sheet. It uses the email field to check for existing entries and can either append a new row or update an existing one, preventing duplicate data.\n\n---\n\n## 🛠️ Setup Steps\n\n### 1. Create Google Sheet\n- Create a new Google Sheet with the following headers in the first row (A1):  \n\n### 2. Get Sheet ID\n- Find your **Sheet ID** in the URL of your Google Sheet.  \n- It's the long string of characters between `/d/` and `/edit`.  \n- Example:  \n- Replace `YOUR_GOOGLE_SHEET_ID` in the **Save to Google Sheets** node with your actual ID.\n\n### 3. Connect Instagram Form\n- Copy the **Webhook URL** from the \"Instagram Lead Webhook\" node.  \n- In your Instagram lead form settings, paste this URL as the webhook destination.  \n- Ensure your form fields are mapped correctly (e.g., **name, email, phone, message**).\n\n---\n✅ Once configured, every Instagram lead will instantly appear in your Google Sheet — organized, timestamped, and ready for follow-up.\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "2000c64071c20843606b95c63795bb0797c41036047055a6586498e855b96efc",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "7da8c35d-17c2-4aff-9d1c-b1d6efaf78e8",
+        "name": "Setup Instructions",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          624,
+          272
+        ],
+        "parameters": {
+          "width": 712,
+          "height": 508,
+          "content": "📋 **SETUP REQUIRED:**\n\n1. **Create Google Sheet:**\n   - Make new sheet with these column headers:\n   - A1: Name | B1: Email | C1: Phone\n   - D1: Message | E1: Source | F1: Date\n\n2. **Get Sheet ID:**\n   - Copy from URL: docs.google.com/spreadsheets/d/[SHEET_ID]/edit\n   - Replace YOUR_GOOGLE_SHEET_ID in Google Sheets node\n\n3. **Connect Instagram Form:**\n   - Use webhook URL from this node\n   - Form fields: name, email, phone, message"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "10f48b95-3f43-4bda-be11-115dabc5d4ca",
+        "name": "Instagram Lead Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          672,
+          624
+        ],
+        "webhookId": "instagram-leads-webhook",
+        "parameters": {
+          "path": "instagram-leads",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a9544025-af6c-427a-985b-c16b286c4be2",
+        "name": "Normalize Lead Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          880,
+          624
+        ],
+        "parameters": {
+          "jsCode": "// Normalize Instagram lead data\nconst body = $input.first().json.body || $input.first().json;\n\n// Common Instagram lead fields - adapt based on your form structure\nconst normalizedData = {\n  name: body.name || body.full_name || body.firstName + ' ' + body.lastName || 'Unknown',\n  email: body.email || body.email_address || '',\n  phone: body.phone || body.phone_number || '',\n  message: body.message || body.comments || '',\n  source: 'Instagram',\n  timestamp: new Date().toISOString(),\n  raw_data: JSON.stringify(body)\n};\n\nconsole.log('Normalized Instagram Lead Data:', normalizedData);\n\nreturn {\n  json: normalizedData\n};"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "bf561879-cf2f-43d7-b118-6906c8030e35",
+        "name": "Save to Google Sheets",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1072,
+          624
+        ],
+        "parameters": {
+          "options": {
+            "useAppend": true
+          },
+          "operation": "appendOrUpdate",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "YOUR_GOOGLE_SHEET_ID"
+          }
+        },
+        "typeVersion": 4
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Normalize Lead Data": {
+        "main": [
+          [
+            {
+              "node": "Save to Google Sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Instagram Lead Webhook": {
+        "main": [
+          [
+            {
+              "node": "Normalize Lead Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 37,
+      "name": "Lead Generation"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8028",
+  "fetched_at": "2026-09-12T13:12:14Z"
+}

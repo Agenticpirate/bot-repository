@@ -1,0 +1,617 @@
+{
+  "id": 12066,
+  "name": "Analyze WooCommerce product reviews with GPT-4, Airtable & Slack summaries",
+  "description": "# WooCommerce Product Reviews: Sentiment Analysis with Slack Summary\n\nThis workflow automatically fetches product reviews from your WooCommerce store, analyzes the sentiment of each review using AI, stores the results in Airtable and sends a summary of positive, neutral and negative reviews to Slack. It helps teams quickly understand overall customer feedback, track product sentiment and stay updated without manually reading all reviews.\n\n### Quick Start – Implementation Steps\n\n1.  Import the workflow JSON file into n8n.\n2.  Configure credentials:\n    *   WooCommerce HTTP Basic Auth (for fetching reviews)\n    *   OpenAI API (for sentiment analysis)\n    *   Airtable Personal Access Token (for storing reviews)\n    *   Slack API (for sending summary messages)\n3.  Adjust the Cron/Schedule Trigger node to your preferred interval (e.g., every 10 minutes).\n4.  Test the workflow with a few reviews to ensure AI and Slack integrations work correctly.\n5.  Activate the workflow after confirming functionality.\n    \n\n## What It Does\n\nThis workflow automates sentiment analysis and team notification:\n\n*   **Schedule Trigger** – Runs the workflow automatically at defined intervals.\n*   **Set WooCommerce Domain** – Defines the WooCommerce store to fetch reviews from.\n*   **Fetch Reviews** – Retrieves all recent product reviews using WooCommerce API credentials.\n*   **Loop Over Items** – Processes reviews in smaller batches for efficiency.\n*   **Message a Model** – Sends each review to OpenAI to detect sentiment (positive, neutral, negative) and generate a short summary.\n*   **Merge & Code Nodes** – Combines original review data with AI results and ensures proper data alignment.\n*   **If Node** – Checks sentiment for further processing.\n*   **Create a Record (Airtable)** – Stores each review and its sentiment in Airtable.\n*   **Code Summary Node** – Counts positive, neutral, and negative reviews to create a summary.\n*   **Send a Message (Slack)** – Posts the sentiment summary to the team’s Slack channel for visibility.\n    \n\n## Who’s It For\n\nThis workflow is ideal for:\n\n*   E-commerce managers tracking WooCommerce product feedback\n*   Customer support teams monitoring review sentiment\n*   Marketing and product teams seeking automated insights\n*   Teams using Airtable and Slack for data tracking and collaboration\n    \n\n## Requirements to Use This Workflow\n\n*   An **n8n instance** (cloud or self-hosted)\n*   **WooCommerce store** with API access\n*   **OpenAI API key** for sentiment analysis\n*   **Airtable account** with base/table configured\n*   **Slack workspace** with API access for messaging\n*   Basic familiarity with APIs and workflow automation\n    \n\n## How It Works\n\n1.  **Schedule Trigger** – Executes the workflow at the defined interval.\n2.  **Set WooCommerce Domain** – Configures which store to fetch reviews from.\n3.  **Fetch Reviews** – Retrieves all recent product reviews from WooCommerce.\n4.  **Loop Over Items** – Splits reviews into manageable batches.\n5.  **Message a Model** – Sends reviews to AI for sentiment analysis and short summary.\n6.  **Merge & Code Nodes** – Combines AI results with original review data and prepares it for storage and summary.\n7.  **If Node** – Checks review sentiment for saving or further processing.\n8.  **Create a Record (Airtable)** – Saves each review with sentiment and AI summary.\n9.  **Code Summary Node** – Counts the number of positive, neutral, and negative reviews.\n10.  **Send a Message (Slack)** – Sends a concise summary of review sentiment to the Slack channel.\n    \n\n## Setup Steps\n\n1.  Import the workflow JSON into n8n.\n2.  Add credentials:\n    *   WooCommerce HTTP Basic Auth\n    *   OpenAI API\n    *   Airtable Personal Access Token\n    *   Slack API\n3.  Configure the WooCommerce domain in the Set WooCommerce Domain node.\n4.  Test the workflow with sample reviews to ensure AI outputs correctly.\n5.  Adjust the Schedule Trigger interval as needed.\n6.  Activate the workflow after confirming that data flows correctly from WooCommerce → AI → Airtable → Slack.\n    \n\n## How To Customize Nodes\n\n### Schedule Trigger\n\n*   Adjust interval (minutes, hours, days) as needed.\n    \n\n### Set WooCommerce Domain\n\n*   Replace with your store domain URL.\n    \n\n### Fetch Reviews\n\n*   Update endpoint or filters if needed.\n*   Ensure WooCommerce credentials are correct.\n    \n\n### Message a Model\n\n*   Change AI model or prompts to adjust sentiment analysis or summary style.\n    \n\n### Create a Record (Airtable)\n\n*   Map additional fields if needed.\n*   Ensure the table has the necessary columns for sentiment, summary, rating, and product info.\n    \n\n### Send a Message (Slack)\n\n*   Customize Slack message format.\n*   Change the channel ID to send summaries to the right team.\n    \n\n## Optional Enhancements\n\n*   Include historical review trends.\n*   Automatically trigger notifications only for negative reviews.\n*   Send summaries to email or other messaging apps.\n*   Visualize sentiment trends in Airtable or external dashboards.\n    \n\n## Use Case Examples\n\n1.  **Automated Sentiment Tracking** – Understand customer feedback without manual reading.\n2.  **Team Alerts** – Notify product and support teams about negative reviews quickly.\n3.  **Data Storage & Reporting** – Keep historical sentiment in Airtable for trend analysis.\n4.  **Efficient Batch Processing** – Process large number of reviews without overloading the system.\n    \n\n## Troubleshooting Guide\n\n| Issue                    | Possible Cause                                   | Solution                                                     |\n|--------------------------|--------------------------------------------------|--------------------------------------------------------------|\n| Reviews not fetched      | Wrong WooCommerce credentials or endpoint        | Check WooCommerce HTTP Basic Auth and store domain            |\n| AI analysis fails        | OpenAI API key invalid or prompt error           | Verify OpenAI credentials and prompt syntax                  |\n| Slack message missing    | Incorrect Slack channel or API token             | Check Slack credentials and channel ID                       |\n| Airtable not storing reviews | Table or field mismatch                     | Verify Airtable base, table, and column mapping              |\n\n\n## Need Help?\n\nIf you need assistance setting up the workflow, customizing AI sentiment analysis or integrating Slack summaries, feel free to contact our [n8n development team](https://www.weblineindia.com/hire-n8n-developers/) at WeblineIndia. We provide workflow automation, AI integration and reporting solutions for WooCommerce stores.",
+  "workflow": {
+    "id": "REid0mWy2RPzGGKE",
+    "meta": {
+      "instanceId": "14e4c77104722ab186539dfea5182e419aecc83d85963fe13f6de862c875ebfa",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "WooCommerce Review Sentiment Analysis with Slack Summary",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "bb34add7-02c0-40c1-ae29-47cc424699d5",
+        "name": "Set WooCommerce Domain",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -5024,
+          -640
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "3a9c6d3d-4d92-4dfc-9995-d36a1628a1d6",
+                "name": "wc_domain",
+                "type": "string",
+                "value": "{{Your_Woocommerce_Domain}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "7504ae47-1e01-4fab-9f40-22009fdc0039",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -5936,
+          -1264
+        ],
+        "parameters": {
+          "width": 416,
+          "height": 624,
+          "content": "## How it works\n\nThis workflow automatically fetches new product reviews from WooCommerce every 10 minutes. Each review is sent to an AI model for sentiment analysis (positive, neutral, negative). Results are stored in Airtable and summarized in a single count of positive, neutral, and negative reviews. High-priority reviews (negative sentiment or low rating) are highlighted. The workflow then sends a Slack message with a summary of all processed reviews, helping your team quickly monitor customer feedback and take action if needed.\n\n## Setup steps\n\n**1.** Add your WooCommerce credentials for the HTTP Request node.\n\n**2.** Connect your OpenAI API key for the sentiment analysis node.\n\n**3.** Set up Airtable credentials for storing review data.\n\n**4.** Add Slack credentials to send summary messages.\n\n**5.** Activate the workflow in n8n.\n\n**6.** Adjust the schedule if needed (default is every 10 minutes)."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "63767daf-22e6-4995-b155-111d21e0af4d",
+        "name": "Every 10 min trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -5248,
+          -640
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 10
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "274aa24b-a225-48c3-bd6e-2335abcd1227",
+        "name": "Get latest product reviews",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -4800,
+          -640
+        ],
+        "parameters": {
+          "url": "=https://{{ $json.wc_domain}}/wp-json/wc/v3/products/reviews",
+          "options": {},
+          "sendHeaders": true,
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpBasicAuth",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "credentials": {
+          "httpBasicAuth": {
+            "id": "credential-id",
+            "name": "httpBasicAuth Credential"
+          }
+        },
+        "typeVersion": 4.3,
+        "alwaysOutputData": false
+      },
+      {
+        "id": "0b3ad706-09d7-4193-a9b1-071205d34154",
+        "name": "Process reviews in batches",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          -4576,
+          -640
+        ],
+        "parameters": {
+          "options": {},
+          "batchSize": "=1"
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "60d867e6-077a-4c18-be97-ba98874b50f1",
+        "name": "Analyze Review Sentiment",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "position": [
+          -4352,
+          -560
+        ],
+        "parameters": {
+          "modelId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4-turbo",
+            "cachedResultName": "GPT-4-TURBO"
+          },
+          "options": {},
+          "responses": {
+            "values": [
+              {
+                "content": "=Analyze sentiment of the following product review. \nReturn JSON only.\n\nReview: {{$json[\"review\"]}}\n\nOutput MUST be:\n{\n  \"sentiment\": \"positive\" | \"neutral\" | \"negative\",\n  \"confidence\": number,\n  \"short_summary\": string\n}\n"
+              }
+            ]
+          },
+          "builtInTools": {}
+        },
+        "credentials": {
+          "openAiApi": {
+            "id": "credential-id",
+            "name": "openAiApi Credential"
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "c75fbbe1-1d06-4799-b957-b2ff36199a2e",
+        "name": "Merge Review & AI Data",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          -4000,
+          -640
+        ],
+        "parameters": {},
+        "typeVersion": 3.2
+      },
+      {
+        "id": "1ffbcfb4-b253-4813-95ef-80d72ddf5ea6",
+        "name": "Combine Review & AI Results",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -3776,
+          -640
+        ],
+        "parameters": {
+          "jsCode": "const output = [];\nconst half = items.length / 2;\n\nif (!Number.isInteger(half)) {\n\tthrow new Error(\"Invalid input: reviews and AI results count mismatch\");\n}\n\nfor (let i = 0; i < half; i++) {\n\tconst review = items[i].json;\n\tconst ai = items[i + half].json;\n\n\tlet parsed = {\n\t\tsentiment: \"unscored\",\n\t\tconfidence: null,\n\t\tshort_summary: \"AI failed\"\n\t};\n\n\ttry {\n\t\tlet text = ai.output?.[0]?.content?.[0]?.text;\n\t\tif (text) {\n\t\t\ttext = text.replace(/```json/g, '').replace(/```/g, '').trim();\n\t\t\tparsed = JSON.parse(text);\n\t\t}\n\t} catch {}\n\n\toutput.push({\n\t\tjson: {\n\t\t\treview_id: review.id,\n\t\t\tproduct_id: review.product_id,\n\t\t\tproduct_name: review.product_name,\n\t\t\treview_text: review.review,\n\t\t\trating: review.rating,\n\t\t\tcreated_at: review.date_created,\n\t\t\tsentiment: parsed.sentiment,\n\t\t\tconfidence: parsed.confidence,\n\t\t\tshort_summary: parsed.short_summary\n\t\t}\n\t});\n}\n\nreturn output;\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "e9aa4109-ca6c-45b4-ab67-625ce54b2de7",
+        "name": "Check Sentiment Type",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -3552,
+          -640
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "or",
+            "conditions": [
+              {
+                "id": "7e8963df-a6ee-4d1e-b143-42d2899b4c5c",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.sentiment }}",
+                "rightValue": "positive"
+              },
+              {
+                "id": "f660f238-c4b1-47f0-92a7-e1894371239d",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.sentiment }}",
+                "rightValue": "natural"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "57297894-2bf5-431d-8842-6f6b7405e2cd",
+        "name": "Save Review in Airtable",
+        "type": "n8n-nodes-base.airtable",
+        "position": [
+          -3328,
+          -704
+        ],
+        "parameters": {
+          "base": {
+            "__rl": true,
+            "mode": "list",
+            "value": "appF2iYPgVqqyXDC1",
+            "cachedResultUrl": "https://airtable.com/appF2iYPgVqqyXDC1",
+            "cachedResultName": "n8n Demo"
+          },
+          "table": {
+            "__rl": true,
+            "mode": "list",
+            "value": "tbl6sDESNiBIeyhpb",
+            "cachedResultUrl": "https://airtable.com/appF2iYPgVqqyXDC1/tbl6sDESNiBIeyhpb",
+            "cachedResultName": "Product Review"
+          },
+          "columns": {
+            "value": {
+              "Rating": "={{ $json.rating }}",
+              "Review ID": "={{ $json.review_id }}",
+              "Sentiment": "={{ $json.sentiment }}",
+              "Product ID": "={{ $json.product_id }}",
+              "Product Name": "={{ $json.product_name }}",
+              "Review Summary AI": "={{ $json.short_summary }}"
+            },
+            "schema": [
+              {
+                "id": "Product Name",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "readOnly": false,
+                "required": false,
+                "displayName": "Product Name",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Product ID",
+                "type": "number",
+                "display": true,
+                "removed": false,
+                "readOnly": false,
+                "required": false,
+                "displayName": "Product ID",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Sentiment",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "readOnly": false,
+                "required": false,
+                "displayName": "Sentiment",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Review Summary AI",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "readOnly": false,
+                "required": false,
+                "displayName": "Review Summary AI",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Review ID",
+                "type": "number",
+                "display": true,
+                "removed": false,
+                "readOnly": false,
+                "required": false,
+                "displayName": "Review ID",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Rating",
+                "type": "number",
+                "display": true,
+                "removed": false,
+                "readOnly": false,
+                "required": false,
+                "displayName": "Rating",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "create"
+        },
+        "credentials": {
+          "airtableTokenApi": {
+            "id": "credential-id",
+            "name": "airtableTokenApi Credential"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "e380722a-84a5-4285-bd01-8431326def42",
+        "name": "Merge Summary with Workflow",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          -3104,
+          -640
+        ],
+        "parameters": {},
+        "typeVersion": 3.2
+      },
+      {
+        "id": "aa4fa9ab-443d-4116-8926-47d007fc20ff",
+        "name": "Summarize Sentiments",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -2880,
+          -640
+        ],
+        "parameters": {
+          "jsCode": "let positive = 0;\nlet neutral = 0;\nlet negative = 0;\n\nfor (const item of items) {\n    // Determine sentiment from either Airtable format or standard format\n    const sentiment = item.json.sentiment || item.json.fields?.Sentiment;\n\n    if (!sentiment) continue; // skip if no sentiment\n\n    if (sentiment.toLowerCase() === \"positive\") positive++;\n    else if (sentiment.toLowerCase() === \"neutral\" || sentiment.toLowerCase() === \"natural\") neutral++;\n    else if (sentiment.toLowerCase() === \"negative\") negative++;\n}\n\n// Stop workflow if nothing found\nif (positive + neutral + negative === 0) {\n    return [];\n}\n\n// Return a single summary item\nreturn [\n    {\n        json: {\n            positive_count: positive,\n            neutral_count: neutral,\n            negative_count: negative,\n            total: positive + neutral + negative\n        }\n    }\n];\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "5d81b161-15f8-41f3-a3c3-d54d4eb2d297",
+        "name": "Send Slack Summary",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          -2656,
+          -640
+        ],
+        "webhookId": "3db13702-53b3-424f-9a21-6260e12820b3",
+        "parameters": {
+          "text": "=** Product Review Sentiment Summary:** \nPositive Reviews: {{$json.positive_count}}\nNeutral Reviews: {{$json.neutral_count}}\nNegative Reviews: {{$json.negative_count}}\nTotal Reviews Processed: {{$json.total}}",
+          "select": "channel",
+          "channelId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "C09S57E2JQ2",
+            "cachedResultName": "n8n"
+          },
+          "otherOptions": {
+            "includeLinkToWorkflow": false
+          }
+        },
+        "credentials": {
+          "slackApi": {
+            "id": "credential-id",
+            "name": "slackApi Credential"
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "37194cfe-ccb3-4038-b787-c2ad6b0329c5",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -5328,
+          -720
+        ],
+        "parameters": {
+          "color": 7,
+          "height": 224,
+          "content": "This node runs the workflow every 10 minutes automatically."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "af032ca2-e69e-4f43-825d-a6fa6966e1f2",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -5056,
+          -816
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 400,
+          "height": 368,
+          "content": "## Fetch WooCommerce Reviews\n\nThis process sets your WooCommerce store address and then fetches all the latest product reviews using your store credentials, so the workflow knows which reviews to process next."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5278685d-3d66-4ecb-aad2-8577f2c3ba5e",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -3600,
+          -816
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 1152,
+          "height": 448,
+          "content": "## Save and Share Review Insights\n\nThis part of the workflow saves each review and its sentiment in Airtable, merges all the data together, counts how many reviews are positive, neutral, or negative, and then sends a clear summary to your Slack channel so the team can quickly see the overall feedback."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "41d5eefd-c79d-40a4-a50b-5c18a64469ba",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -4640,
+          -816
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 1008,
+          "height": 448,
+          "content": "## Analyze Reviews with AI\n\nThis process breaks reviews into smaller groups, sends each review to AI to determine its sentiment and create a short summary, and then combines the AI results with the original review data so everything is ready for the next steps in the workflow."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "99a340f8-2baa-4ddf-8de3-167b94e6985e",
+    "connections": {
+      "Send Slack Summary": {
+        "main": [
+          [
+            {
+              "node": "Process reviews in batches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Sentiment Type": {
+        "main": [
+          [
+            {
+              "node": "Save Review in Airtable",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Merge Summary with Workflow",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Every 10 min trigger": {
+        "main": [
+          [
+            {
+              "node": "Set WooCommerce Domain",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Summarize Sentiments": {
+        "main": [
+          [
+            {
+              "node": "Send Slack Summary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge Review & AI Data": {
+        "main": [
+          [
+            {
+              "node": "Combine Review & AI Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set WooCommerce Domain": {
+        "main": [
+          [
+            {
+              "node": "Get latest product reviews",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Save Review in Airtable": {
+        "main": [
+          [
+            {
+              "node": "Merge Summary with Workflow",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Analyze Review Sentiment": {
+        "main": [
+          [
+            {
+              "node": "Merge Review & AI Data",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Get latest product reviews": {
+        "main": [
+          [
+            {
+              "node": "Process reviews in batches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Process reviews in batches": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Analyze Review Sentiment",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Merge Review & AI Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Combine Review & AI Results": {
+        "main": [
+          [
+            {
+              "node": "Check Sentiment Type",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge Summary with Workflow": {
+        "main": [
+          [
+            {
+              "node": "Summarize Sentiments",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/12066",
+  "fetched_at": "2026-09-12T13:14:01Z"
+}

@@ -1,0 +1,154 @@
+{
+  "id": 8325,
+  "name": "Generate 7-day event plans with Google Calendar, GPT-3.5 and Notion",
+  "description": "## Generate 7-Day Event Plans with Google Calendar, GPT-3.5 and Notion 🎉  \n### *Automate Your Event Planning: From Calendar Entry to Done-For-You Checklist*\n\nStop scrambling before birthdays, anniversaries, or family gatherings. This workflow turns a simple **Google Calendar event** into a **7-day prep plan** — complete with shopping lists, tasks, and reminders — all auto-sent to **Notion** and your inbox.\n\nPerfect for:\n- 👩‍👧 Homemakers hosting family events\n- 💼 Solopreneurs planning launches or webinars\n- 🎉 Anyone who wants to celebrate without the stress\n\nThe workflow:\n1. 📅 Detects a new event in Google Calendar (e.g., “Emma’s Birthday”)\n2. 🤖 Uses **GPT-3.5** to generate a 7-day prep plan (buy cake, send invites, decorate)\n3. 📝 Creates a **Notion page** for the event, then **loops through each AI-generated task** to add them as individual rows/items with due dates\n4. 📨 Emails you a summary + link to the Notion page\n\nNo spreadsheets. No mental load. Just **set the date — and let AI handle the rest**.\n\n&gt; 🔁 **Key Detail**: After the Notion page is created, the workflow uses an **Item Lists node** to split the AI-generated task array into individual items. Each task is then processed in a loop and appended to the Notion database as a separate row — ensuring clean, actionable checklists.\n\n---\n\n## Prerequisites\n\nBefore using this workflow, ensure you have:\n\n| Service | Purpose | Free Tier? |\n|--------|--------|-----------|\n| [n8n](https://n8n.io) | Orchestrate automation | Yes |\n| [Google Calendar](https://calendar.google.com) | Trigger on new events | Yes |\n| [Notion](https://notion.so) | Store prep checklist | Yes |\n| [OpenAI](https://openai.com) | AI planning logic (GPT-3.5) | Yes (limited free tier) |\n| [SMTP Email](https://smtp.email) | Send confirmation email | Yes (via Gmail or similar) |\n\n🔐 Store all API keys securely in n8n’s **Credentials** section.\n\n---\n\n## Google Calendar Setup\n\nYour event must include:\n- **Title**: e.g., \"Emma’s Birthday\"\n- **Date**: The event date\n- **Description** (optional): e.g., “Theme: Unicorn, Guests: 10”\n\n💡 Tip: Use a **specific keyword** in the title (e.g., “🎂”) to trigger only special events.\n\n---\n\n## Notion Database Requirements\n\nCreate a Notion database with these **columns**:\n\n| Column Name | Type | Example |\n|------------|------|--------|\n| `Name` | Title | \"Emma’s Birthday Prep\" |\n| `Task` | Text | \"Buy cake\" |\n| `Due Date` | Date | 2025-09-10 |\n| `Status` | Status | To Do, In Progress, Done |\n| `Event Date` | Date | 2025-09-12 |\n| `Notes` | Text | \"Vanilla with rainbow sprinkles\" |\n\n📌 Share your Notion workspace with your n8n integration (via integration token).\n\n---\n\n## Step-by-Step Setup Instructions\n\n### 1. Import the Workflow\n1. In n8n, go to **Workflows &gt; Create from JSON**\n2. Paste the provided JSON\n3. Click **Import**\n\n### 2. Set Up Credentials\n- **Google Calendar**: Connect via OAuth\n- **Notion**: Add your integration token\n- **OpenAI**: Add your API key\n- **Email**: Set up SMTP (e.g., Gmail app password)\n\n🔐 Never hardcode keys — use n8n’s credential system.\n\n### 3. Configure the AI Prompt\nIn the **HubGPT: Generate Prep Plan** node:\n```text\nYou're planning \"{{ $json['summary'] }}\" on {{ $json['start'] }}.\nGenerate a 7-day prep plan with 5–7 tasks (e.g., shopping, invites, setup).\nInclude: \n- 3 days before: Send invites\n- 2 days before: Buy supplies\n- 1 day before: Decorate\nReturn as a JSON array with 'task' and 'dueDate'.",
+  "workflow": {
+    "name": "Generate 7-Day Event Plans with Google Calendar, GPT-3.5 and Notion",
+    "tags": [
+      "event-planning",
+      "google-calendar",
+      "notion",
+      "gpt-3.5",
+      "ai-automation",
+      "n8n-workflow",
+      "homemaker-tools",
+      "solopreneur"
+    ],
+    "nodes": [
+      {
+        "name": "Google Calendar Trigger",
+        "type": "n8n-nodes-base.googleCalendarTrigger",
+        "position": [
+          250,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "HubGPT: Generate Prep Plan",
+        "type": "n8n-nodes-base.hubGPT",
+        "position": [
+          450,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Notion: Create Event Page",
+        "type": "n8n-nodes-base.notion",
+        "position": [
+          650,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Item Lists: Split Tasks",
+        "type": "n8n-nodes-base.itemLists",
+        "position": [
+          850,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Notion: Add Task Row",
+        "type": "n8n-nodes-base.notion",
+        "position": [
+          1050,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Email: Send Confirmation",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          1250,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "parallel"
+    },
+    "connections": {
+      "Notion: Add Task Row": {
+        "main": [
+          [
+            {
+              "node": "Email: Send Confirmation",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Calendar Trigger": {
+        "main": [
+          [
+            {
+              "node": "HubGPT: Generate Prep Plan",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Item Lists: Split Tasks": {
+        "main": [
+          [
+            {
+              "node": "Notion: Add Task Row",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Notion: Create Event Page": {
+        "main": [
+          [
+            {
+              "node": "Item Lists: Split Tasks",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "HubGPT: Generate Prep Plan": {
+        "main": [
+          [
+            {
+              "node": "Notion: Create Event Page",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 43,
+      "name": "Personal Productivity"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8325",
+  "fetched_at": "2026-09-12T13:12:24Z"
+}

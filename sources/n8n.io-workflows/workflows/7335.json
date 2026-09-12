@@ -1,0 +1,500 @@
+{
+  "id": 7335,
+  "name": "Bulk AI video generation with Freepik Minimax Hailuo & Google Suite integration",
+  "description": "This n8n workflow automates bulk AI video generation using Freepik's Image-to-Video API powered by Minimax Hailuo-02-768p. It reads video prompts from a Google Sheet, generates multiple variations of each video using Freepik's AI, handles asynchronous video processing with intelligent polling, and automatically uploads completed videos to Google Drive with organized file names. This is perfect for content creators, marketers, or video producers who need to generate multiple AI videos in bulk and store them systematically.\n\n### Key Features:\n- Bulk video generation from Google Sheets prompts\n- Multiple variations per prompt (configurable duplicates)\n- Asynchronous processing with smart status polling\n- Automatic retry mechanism for processing delays\n- Direct upload to Google Drive with organized naming\n- Freepik Minimax Hailuo-02 AI-powered video generation (768p quality)\n- Intelligent wait/retry system for video rendering\n\n## Step-by-Step Implementation Guide\n\n### Prerequisites\nBefore setting up this workflow, you'll need:\n\n1. **n8n instance** (cloud or self-hosted)\n2. **Freepik API account** with Video Generation access\n3. **Google account** with access to Sheets and Drive\n4. **Google Sheet** with your video prompts\n\n### Step 1: Set Up Freepik API Credentials\n\n1. Go to [Freepik API Developer Portal](https://freepik.com/api)\n2. Create an account or sign in\n3. Navigate to your API dashboard\n4. Generate an API key with Video Generation permissions\n5. Copy the API key and save it securely\n6. In n8n, go to **Credentials** → **Add Credential** → **HTTP Header Auth**\n7. Configure as follows:\n   - **Name**: \"Header Auth account\"\n   - **Header Name**: `x-freepik-api-key`\n   - **Header Value**: Your Freepik API key\n\n### Step 2: Set Up Google Credentials\n\n#### Google Sheets Access:\n1. Go to [Google Cloud Console](https://console.cloud.google.com/)\n2. Create a new project or select existing one\n3. Enable Google Sheets API\n4. Create OAuth2 credentials\n5. In n8n, go to **Credentials** → **Add Credential** → **Google Sheets OAuth2 API**\n6. Enter your OAuth2 credentials and authorize with `spreadsheets.readonly` scope\n\n#### Google Drive Access:\n1. In Google Cloud Console, enable Google Drive API\n2. In n8n, go to **Credentials** → **Add Credential** → **Google Drive OAuth2 API**\n3. Enter your OAuth2 credentials and authorize\n\n### Step 3: Create Your Google Sheet\n\n1. Create a new Google Sheet: [sheets.google.com](https://sheets.google.com)\n2. Set up your sheet with these columns:\n   - **Column A**: `Prompt` (your video generation prompts)\n   - **Column B**: `Name` (identifier for file naming)\n3. Example data:\n   ```\n   | Prompt                                          | Name          |\n   |-------------------------------------------------|---------------|\n   | A butterfly landing on a flower in slow motion | butterfly-01  |\n   | Ocean waves crashing on rocky coastline        | ocean-waves   |\n   | Time-lapse of clouds moving across blue sky    | clouds-timelapse |\n   ```\n4. Copy the Sheet ID from the URL (the long string between `/d/` and `/edit`)\n\n### Step 4: Set Up Google Drive Folder\n\n1. Create a folder in Google Drive for your generated videos\n2. Copy the Folder ID from the URL when viewing the folder\n3. Note: The workflow is configured to use a folder called \"n8n workflows\"\n\n### Step 5: Import and Configure the Workflow\n\n1. Copy the provided workflow JSON\n2. In n8n, click **Import from File** or **Import from Clipboard**\n3. Paste the workflow JSON\n4. Configure each node as detailed below:\n\n#### Node Configuration Details:\n\n##### Get prompt from google sheet (Google Sheets)\n- **Document ID**: Your Google Sheet ID (from Step 3)\n- **Sheet Name**: `Sheet1` (or your sheet name)\n- **Operation**: Read\n- **Credentials**: Select your \"Google Sheets account\"\n\n##### Duplicate Rows2 (Code Node)\n- **Purpose**: Creates multiple variations of each prompt\n- **JavaScript Code**:\n```javascript\nconst original = items[0].json;\n\nreturn [\n  { json: { ...original, run: 1 } },\n  { json: { ...original, run: 2 } },\n];\n```\n- **Customization**: Add more runs for additional variations\n\n##### Loop Over Items (Split in Batches)\n- Processes items in batches to manage API rate limits\n- **Options**: Keep default settings\n- **Reset**: `false`\n\n##### Create Video (HTTP Request)\n- **Method**: `POST`\n- **URL**: `https://api.freepik.com/v1/ai/image-to-video/minimax-hailuo-02-768p`\n- **Authentication**: Generic → HTTP Header Auth\n- **Credentials**: Select your \"Header Auth account\"\n- **Send Body**: `true`\n- **Body Parameters**:\n  - **Name**: `prompt`\n  - **Value**: `={{ $json.Prompt }}`\n\n##### Get Video URL (HTTP Request)\n- **Method**: `GET`\n- **URL**: `https://api.freepik.com/v1/ai/image-to-video/minimax-hailuo-02-768p/{{ $json.data.task_id }}`\n- **Authentication**: Generic → HTTP Header Auth\n- **Credentials**: Select your \"Header Auth account\"\n- **Timeout**: `120000` (2 minutes)\n- **Purpose**: Polls the API for video completion status\n\n##### Switch (Switch Node)\n- **Purpose**: Routes workflow based on video generation status\n- **Conditions**:\n  - **Completed**: `{{ $json.data.status }}` equals `COMPLETED`\n  - **Failed**: `{{ $json.data.status }}` equals `FAILED`\n  - **Created**: `{{ $json.data.status }}` equals `CREATED`\n  - **In Progress**: `{{ $json.data.status }}` equals `IN_PROGRESS`\n\n##### Wait (Wait Node)\n- **Amount**: `30` seconds\n- **Purpose**: Waits before re-checking video status\n- **Webhook ID**: Auto-generated for resume functionality\n\n##### Download Video as Base64 (HTTP Request)\n- **Method**: `GET`\n- **URL**: `={{ $json.data.generated[0] }}`\n- **Purpose**: Downloads completed video file\n\n##### Upload to Google Drive1 (Google Drive)\n- **Operation**: Upload\n- **Name**: `=video - {{ $('Get prompt from google sheet').item.json.Name }} - {{ $('Duplicate Rows2').item.json.run }}`\n- **Drive ID**: `My Drive`\n- **Folder ID**: Your Google Drive folder ID (from Step 4)\n- **Credentials**: Select your \"Google Drive account\"\n\n### Step 6: Customize for Your Use Case\n\n1. **Modify Duplicate Count**: Edit the \"Duplicate Rows2\" code to create more variations\n2. **Update File Naming**: Change the naming pattern in the Google Drive upload node\n3. **Adjust Wait Time**: Modify the Wait node duration based on typical processing times\n4. **Add Video Parameters**: Enhance the Create Video request with additional Freepik parameters\n\n### Step 7: Test the Workflow\n\n1. Ensure your Google Sheet has test data\n2. Click **Execute Workflow** on the manual trigger (if present)\n3. Monitor the execution flow - note that video generation takes time\n4. Watch the Switch node handle different status responses\n5. Verify videos are uploaded to Google Drive when completed\n\n### Step 8: Production Deployment\n\n1. Set up error handling for API failures and timeouts\n2. Configure appropriate batch sizes based on your Freepik API limits\n3. Add logging for successful uploads and failed generations\n4. Consider webhook triggers for automated execution\n5. Set up monitoring for stuck or failed video generations\n\n## Freepik Video API Details\n\n### Video Generation Process:\n1. **Submit Request**: Send prompt to generate video\n2. **Get Task ID**: Receive task_id for tracking\n3. **Poll Status**: Check generation status periodically\n4. **Download**: Retrieve completed video URL\n\n### Status Types:\n- `CREATED`: Video generation task created\n- `IN_PROGRESS`: Video is being generated\n- `COMPLETED`: Video ready for download\n- `FAILED`: Generation failed\n\n### Model Specifications:\n- **Model**: `minimax-hailuo-02-768p`\n- **Resolution**: 768p\n- **Duration**: Typically 5-10 seconds\n- **Format**: MP4\n\n### Example Enhanced Parameters:\n```json\n{\n  \"prompt\": \"{{ $json.Prompt }}\",\n  \"duration\": 5,\n  \"aspect_ratio\": \"16:9\",\n  \"fps\": 24\n}\n```\n\n## Workflow Flow Summary\n\n1. **Start** → Read prompts from Google Sheets\n2. **Duplicate** → Create multiple runs for variations  \n3. **Loop** → Process items in batches\n4. **Generate** → Submit video generation request to Freepik\n5. **Poll** → Check video generation status\n6. **Switch** → Route based on status:\n   - **Completed** → Download video\n   - **Processing/Created** → Wait and retry\n   - **Failed** → Handle error\n7. **Download** → Retrieve completed video file\n8. **Upload** → Save to Google Drive with organized naming\n9. **Continue** → Process next batch\n\n## Troubleshooting Tips\n\n### Common Issues:\n- **Long Processing Times**: Video generation can take 2-5 minutes per video\n- **Timeout Errors**: Increase timeout in \"Get Video URL\" node\n- **Rate Limits**: Reduce batch size and add longer waits between requests  \n- **Failed Generations**: Check prompt complexity and API limits\n- **Upload Failures**: Verify Google Drive folder permissions\n\n### Error Handling:\n- Add Try/Catch nodes around API calls\n- Implement exponential backoff for retries\n- Log failed generations to Google Sheets\n- Set up email notifications for critical failures\n\n### Performance Optimization:\n- Adjust wait times based on typical generation duration\n- Use smaller batch sizes for more reliable processing\n- Monitor API usage and costs in Freepik dashboard\n\n## Cost Considerations\n\n### Freepik API:\n- Video generation typically costs more than image generation\n- Check your plan's video generation limits\n- Monitor usage through Freepik dashboard\n- Consider upgrading for higher volume needs\n\n### Processing Time:\n- Each video can take 2-5 minutes to generate\n- Plan workflow execution time accordingly\n- Consider running during off-peak hours for large batches\n\n---\n\n## Contact Information\n\n**Robert A Ynteractive**\n\nFor support, customization, or questions about this workflow:\n\n- 📧 Email: rbreen@ynteractive.com\n- 🌐 Website: https://ynteractive.com/\n- 💼 LinkedIn: https://www.linkedin.com/in/robert-breen-29429625/\n\n*Need help implementing this workflow or want custom automation solutions? Get in touch for professional n8n consulting and workflow development services.*",
+  "workflow": {
+    "meta": {
+      "instanceId": "ad0113c344ee237399e44e9f11798b05baeb83a6196d514a9ae9d2ad71c3b5c9",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "39cea19d-02e6-4431-9d8e-0dc76646d6cd",
+        "name": "Download Video as Base64",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          128,
+          1904
+        ],
+        "parameters": {
+          "url": "={{ $json.data.generated[0] }}",
+          "options": {}
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "78fa05c7-f18f-4d91-a425-d3760106016e",
+        "name": "Upload to Google Drive1",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          256,
+          2048
+        ],
+        "parameters": {
+          "name": "=video - {{ $('Get prompt from google sheet').item.json.Name }} - {{ $('Duplicate Rows2').item.json.run }}",
+          "driveId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "My Drive",
+            "cachedResultUrl": "https://drive.google.com/drive/my-drive",
+            "cachedResultName": "My Drive"
+          },
+          "options": {},
+          "folderId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1TnDibwPPPUm3VbmETiqWDVhtaUTLJ6mn",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/1TnDibwPPPUm3VbmETiqWDVhtaUTLJ6mn",
+            "cachedResultName": "n8n workflows"
+          }
+        },
+        "credentials": {
+          "googleDriveOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleDriveOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "ed922804-f614-4dc4-be98-263c803e8382",
+        "name": "Create Video",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -720,
+          1952
+        ],
+        "parameters": {
+          "url": "https://api.freepik.com/v1/ai/image-to-video/minimax-hailuo-02-768p",
+          "method": "POST",
+          "options": {},
+          "sendBody": true,
+          "authentication": "genericCredentialType",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "prompt",
+                "value": "={{ $json.Prompt }}   "
+              }
+            ]
+          },
+          "genericAuthType": "httpHeaderAuth"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "credential-id",
+            "name": "httpHeaderAuth Credential"
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "4a77b1d7-8e1f-49c0-899c-182ab2866d6f",
+        "name": "Get Video URL",
+        "type": "n8n-nodes-base.httpRequest",
+        "notes": "If the previous node isn't SUCCEEDED yet, re-run \"Get Task Status\" after a short wait.",
+        "position": [
+          -496,
+          1936
+        ],
+        "parameters": {
+          "url": "=\nhttps://api.freepik.com/v1/ai/image-to-video/minimax-hailuo-02-768p/{{ $json.data.task_id }}\n\n",
+          "options": {
+            "timeout": 120000
+          },
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "credential-id",
+            "name": "httpHeaderAuth Credential"
+          }
+        },
+        "notesInFlow": true,
+        "typeVersion": 4.2
+      },
+      {
+        "id": "1a4468a7-753e-4caf-956d-6d07121e0da5",
+        "name": "Switch",
+        "type": "n8n-nodes-base.switch",
+        "position": [
+          -208,
+          1968
+        ],
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "outputKey": "Completed",
+                "conditions": {
+                  "options": {
+                    "version": 2,
+                    "leftValue": "",
+                    "caseSensitive": true,
+                    "typeValidation": "strict"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "43a3872d-1597-4265-92df-cb055a049d10",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "leftValue": "={{ $json.data.status }}",
+                      "rightValue": "COMPLETED"
+                    }
+                  ]
+                },
+                "renameOutput": true
+              },
+              {
+                "outputKey": "Failed",
+                "conditions": {
+                  "options": {
+                    "version": 2,
+                    "leftValue": "",
+                    "caseSensitive": true,
+                    "typeValidation": "strict"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "d54580f5-e892-475d-b2eb-19dcf216e1e2",
+                      "operator": {
+                        "name": "filter.operator.equals",
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "leftValue": "={{ $json.data.status }}",
+                      "rightValue": "FAILED"
+                    }
+                  ]
+                },
+                "renameOutput": true
+              },
+              {
+                "outputKey": "Created",
+                "conditions": {
+                  "options": {
+                    "version": 2,
+                    "leftValue": "",
+                    "caseSensitive": true,
+                    "typeValidation": "strict"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "089f70ab-b693-44c4-bca7-dfee87bd6fee",
+                      "operator": {
+                        "name": "filter.operator.equals",
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "leftValue": "={{ $json.data.status }}",
+                      "rightValue": "CREATED"
+                    }
+                  ]
+                },
+                "renameOutput": true
+              },
+              {
+                "outputKey": "In Progress",
+                "conditions": {
+                  "options": {
+                    "version": 2,
+                    "leftValue": "",
+                    "caseSensitive": true,
+                    "typeValidation": "strict"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "d3086f63-8dd7-421d-a880-877f318c5366",
+                      "operator": {
+                        "name": "filter.operator.equals",
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "leftValue": "={{ $json.data.status }}",
+                      "rightValue": "IN_PROGRESS"
+                    }
+                  ]
+                },
+                "renameOutput": true
+              }
+            ]
+          },
+          "options": {}
+        },
+        "typeVersion": 3.2
+      },
+      {
+        "id": "25e5774c-ea6d-47bd-bb32-93136982ee16",
+        "name": "Wait",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          32,
+          2032
+        ],
+        "webhookId": "a042360e-97f5-49cc-9173-447db7d07ba8",
+        "parameters": {
+          "amount": 30
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "714ea29e-4834-4da7-aab2-68e2dae8e0a1",
+        "name": "Duplicate Rows2",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1296,
+          2080
+        ],
+        "parameters": {
+          "jsCode": "const original = items[0].json;\n\nreturn [\n  { json: { ...original, run: 1 } },\n  { json: { ...original, run: 2 } },\n];\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "4c240d7f-5497-4165-b485-3fcb8c0a0baa",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          -944,
+          1952
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "34f8f236-4efb-44c8-aead-4dc19d7e2381",
+        "name": "Get prompt from google sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -1504,
+          2016
+        ],
+        "parameters": {
+          "options": {},
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_u9IxEZINcwKQB15Rfx7C1hM71zeDST58Fz3nRHTCUY/edit#gid=0",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1_u9IxEZINcwKQB15Rfx7C1hM71zeDST58Fz3nRHTCUY",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_u9IxEZINcwKQB15Rfx7C1hM71zeDST58Fz3nRHTCUY/edit?usp=drivesdk",
+            "cachedResultName": "freepik prompts"
+          }
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleSheetsOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "3d4d077f-4988-4b70-b3a5-358ecbab19f4",
+        "name": "Sticky Note17",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1616,
+          1200
+        ],
+        "parameters": {
+          "width": 2032,
+          "content": "## 📬 Need Help or Want to Customize This?\n📧 [robert@ynteractive.com](mailto:robert@ynteractive.com)  \n🔗 [LinkedIn](https://www.linkedin.com/in/robert-breen-29429625/)"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a310dde0-0eb9-4a18-8e0a-cb9519fd2b9f",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1616,
+          1376
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 600,
+          "height": 860,
+          "content": "\n#### Node Configuration Details:\n\n##### Get prompt from google sheet (Google Sheets)\n- **Document ID**: Your Google Sheet ID (from Step 3)\n- **Sheet Name**: `Sheet1` (or your sheet name)\n- **Operation**: Read\n- **Credentials**: Select your \"Google Sheets account\"\n\n##### Duplicate Rows2 (Code Node)\n- **Purpose**: Creates multiple variations of each prompt\n- **JavaScript Code**:\n```javascript\nconst original = items[0].json;\n\nreturn [\n  { json: { ...original, run: 1 } },\n  { json: { ...original, run: 2 } },\n];\n```\nGoogle sheet to copy: \nhttps://docs.google.com/spreadsheets/d/1_u9IxEZINcwKQB15Rfx7C1hM71zeDST58Fz3nRHTCUY/edit?usp=sharing"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c7610191-4c24-4701-9c3f-bce9feb9e167",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -992,
+          1376
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 712,
+          "height": 860,
+          "content": "\n##### Loop Over Items (Split in Batches)\n- Processes items in batches to manage API rate limits\n- **Options**: Keep default settings\n- **Reset**: `false`\n\n##### Create Video (HTTP Request)\n- **Method**: `POST`\n- **URL**: `https://api.freepik.com/v1/ai/image-to-video/minimax-hailuo-02-768p`\n- **Authentication**: Generic → HTTP Header Auth\n- **Credentials**: Select your \"Header Auth account\"\n- **Send Body**: `true`\n- **Body Parameters**:\n  - **Name**: `prompt`\n  - **Value**: `={{ $json.Prompt }}`\n\n##### Get Video URL (HTTP Request)\n- **Method**: `GET`\n- **URL**: `https://api.freepik.com/v1/ai/image-to-video/minimax-hailuo-02-768p/{{ $json.data.task_id }}`\n- **Authentication**: Generic → HTTP Header Auth\n- **Credentials**: Select your \"Header Auth account\"\n- **Timeout**: `120000` (2 minutes)\n- **Purpose**: Polls the API for video completion status\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6b1c2572-5143-402b-9bdd-8225b187ee4e",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -256,
+          1376
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 664,
+          "height": 860,
+          "content": "\n##### Switch (Switch Node)\n- **Purpose**: Routes workflow based on video generation status\n- **Conditions**:\n  - **Completed**: `{{ $json.data.status }}` equals `COMPLETED`\n  - **Failed**: `{{ $json.data.status }}` equals `FAILED`\n  - **Created**: `{{ $json.data.status }}` equals `CREATED`\n  - **In Progress**: `{{ $json.data.status }}` equals `IN_PROGRESS`\n\n##### Wait (Wait Node)\n- **Amount**: `30` seconds\n- **Purpose**: Waits before re-checking video status\n- **Webhook ID**: Auto-generated for resume functionality\n\n##### Download Video as Base64 (HTTP Request)\n- **Method**: `GET`\n- **URL**: `={{ $json.data.generated[0] }}`\n- **Purpose**: Downloads completed video file\n\n##### Upload to Google Drive1 (Google Drive)\n- **Operation**: Upload\n- **Name**: `=video - {{ $('Get prompt from google sheet').item.json.Name }} - {{ $('Duplicate Rows2').item.json.run }}`\n- **Drive ID**: `My Drive`\n- **Folder ID**: Your Google Drive folder ID (from Step 4)\n- **Credentials**: Select your \"Google Drive account\"\n"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Wait": {
+        "main": [
+          [
+            {
+              "node": "Get Video URL",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Switch": {
+        "main": [
+          [
+            {
+              "node": "Download Video as Base64",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [],
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create Video": {
+        "main": [
+          [
+            {
+              "node": "Get Video URL",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Video URL": {
+        "main": [
+          [
+            {
+              "node": "Switch",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Duplicate Rows2": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Create Video",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Upload to Google Drive1": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Download Video as Base64": {
+        "main": [
+          [
+            {
+              "node": "Upload to Google Drive1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get prompt from google sheet": {
+        "main": [
+          [
+            {
+              "node": "Duplicate Rows2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 31,
+      "name": "Content Creation"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7335",
+  "fetched_at": "2026-09-12T13:11:51Z"
+}

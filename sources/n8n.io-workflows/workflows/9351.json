@@ -1,0 +1,669 @@
+{
+  "id": 9351,
+  "name": "Random Process Scheduler",
+  "description": "# Random Process Scheduler\n\n### Turn predictable automations into human-like activity with random scheduling across easily customisable time slots.\n\nPerfect for content publishing with organic scheduling patterns, social media automation, API systems that need to avoid rate limiting, or any automation requiring randomised timing control across multiple periods.\n\nAll times are configured in local timezone with automatic UTC conversion for technical operations.\n\nFeatures easy slot management with chronological ordering, gap support, and 24-hour window scheduling.\n\n### How to use\n\n- Set `schedulerExecutionTime` in **Init** node (match it to **Schedule Trigger** cron)\n- Define **time slots** with start/end hours and probability values (see below)\n- Configure **Execute sub-process** with your own workflow ID\n- Configure SMTP credentials, local time zone and optionally project paths\n\n### Step by Step Configuration\n\nTwo variables to set in the **Init** node's **\"Custom Configuration\"** section:\n\n**1. When the scheduler runs daily:**\n```javascript\nconst schedulerExecutionTime = 1; // 1am (24h clock; must match Schedule Trigger node)\n```\n\n**2. Your execution slots:**\n```javascript\nconst subprocessTimeSlots = {\n  morning: { start: 6, end: 12, probability: 0.85 },\n  afternoon: { start: 12, end: 18, probability: 0.85 },\n  evening: { start: 18, end: 24, probability: 0.5 }\n};\n```\n\nThat's it. Three slots, three probabilities.\n\nAdd or remove slots, adjust times - it just works.\n\n**Real-world example with gaps:**\n```javascript\nconst subprocessTimeSlots = {\n  night: { start: 0, end: 2, probability: 0.1 },      // Optional late activity\n  morning: { start: 6, end: 10, probability: 0.85 },  // Gap from 2-6am (no execution)\n  noon: { start: 12, end: 14, probability: 0.85 },    // Gap from 10am-12pm\n  afternoon: { start: 16, end: 18, probability: 0.85 }, // Gap from 2-4pm\n  evening: { start: 20, end: 24, probability: 0.5 }   // Gap from 6-8pm\n};\n```\n**3. Configure Execute sub-process with your workflow ID**\n\nYour sub-workflow **MUST** start with a **Wait** node and be configured with `{{ $json.executions.relativeDelaySeconds }}` as “Wait Amount”.\n\n![RPS  Community Description20251005164526603.png](fileId:2782)\n\n**4. Additional Configuration**\n* SMTP credential\n* Time zone (**Init** node): `const LOCAL_TIMEZONE = $env.GENERIC_TIMEZONE || 'Europe/Paris';` by default\n* Project paths (**Init** node):\n```\n// ⚠️ Your email here\n• const N8N_ADMIN_EMAIL = $env.N8N_ADMIN_EMAIL || 'yourmail@world.com';\n\n// ⚠️ Your projects’ ROOT folder on your mapped server here\n• const N8N_PROJECTS_DIR = $env.N8N_PROJECTS_DIR || '/files/n8n-projects-data';\n\n// ⚠️ Your project’s folder name here for logging\n• const PROJECT_FOLDER_NAME = \"RPS\";\n```\n\n### Requirements\n\n- n8n instance running in Docker with file system access\n- Volume mapping for persistent storage (e.g., `/local-files:/files`)\n- **De-activate** Read/Write nodes & Email sends if you do not want to use logging features (file system access optional)\n- SMTP server for notifications\n- n8n API credentials for error handling\n- **Target sub-workflow** with **Wait** node to handle relativeDelaySeconds\n\n**IMPORTANT:** Your sub-workflow **MUST** start with a **Wait** node and be configured with `{{ $json.executions.relativeDelaySeconds }}` as “Wait Amount”.\n\n### How it works\n\n- **24-Hour Window Algorithm**: Schedules executions from current time until next scheduler run, handling timezone conversions and cross-midnight scenarios\n- **Automatic Validation**: Checks for overlaps, invalid time ranges, and probability values on every run\n- **Chronological Processing**: Processes slots in order regardless of how you define them\n- **Inclusive/Exclusive Boundaries**: 6-12 slot runs from 6:00:00 to 11:59:59 (start inclusive, end exclusive)\n- **Chained Execution**: Each subprocess receives a relativeDelaySeconds value for sequential execution with calculated intervals\n- **Comprehensive Monitoring**: Tracks planned vs actual execution times with delay calculations and detailed logging\n\n### Configuration Rules\n\n- **No Overlap**: Slots cannot overlap (6-10 and 9-12 is invalid)\n- **Valid Ranges**: Start 0-23, end 0-24, start &lt; end\n- **Valid Probability**: 0 to 1 (0.85 = 85% chance)\n- **Gaps Allowed**: Skip hours completely (e.g., no execution 2-6am)\n- **Emoji Support**: Use \"night\", \"morning\", \"noon\", \"evening\" keywords in slot names for visual logs\n\n**Use Cases:**\n- Content publishing with organic scheduling patterns\n- Social media automation with human-like posting intervals\n- API systems avoiding rate limits through unpredictable timing\n- Business hours automation with precise timing control",
+  "workflow": {
+    "meta": {
+      "instanceId": "",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "",
+        "name": "Execute sub-process",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "onError": "continueErrorOutput",
+        "position": [
+          3232,
+          96
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "",
+        "name": "Get Sub-workflow Name",
+        "type": "n8n-nodes-base.n8n",
+        "position": [
+          3440,
+          272
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2768,
+          -256
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "",
+        "name": "Append Planning File",
+        "type": "n8n-nodes-base.readWriteFile",
+        "position": [
+          3856,
+          96
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "",
+        "name": "Read Planning File",
+        "type": "n8n-nodes-base.readWriteFile",
+        "position": [
+          4064,
+          96
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "",
+        "name": "ERROR: Execute Sub-worflow",
+        "type": "n8n-nodes-base.stopAndError",
+        "position": [
+          3648,
+          272
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "",
+        "name": "Monitoring",
+        "type": "n8n-nodes-base.code",
+        "onError": "continueErrorOutput",
+        "position": [
+          3648,
+          96
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "",
+        "name": "ERROR: Monitoring",
+        "type": "n8n-nodes-base.stopAndError",
+        "position": [
+          3856,
+          272
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "notes": "At 1am every day (default",
+        "position": [
+          1104,
+          0
+        ],
+        "parameters": {},
+        "notesInFlow": true,
+        "typeVersion": 1.2
+      },
+      {
+        "id": "",
+        "name": "Go/no go",
+        "type": "n8n-nodes-base.switch",
+        "position": [
+          2384,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 3.2
+      },
+      {
+        "id": "",
+        "name": "Daily Scheduler",
+        "type": "n8n-nodes-base.code",
+        "onError": "continueErrorOutput",
+        "position": [
+          1536,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "",
+        "name": "Init",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1312,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "",
+        "name": "NOTHING Planned Email",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          2592,
+          96
+        ],
+        "webhookId": "",
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1040,
+          -256
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1488,
+          -256
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1920,
+          -256
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "",
+        "name": "Write Planning File",
+        "type": "n8n-nodes-base.readWriteFile",
+        "position": [
+          2176,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "",
+        "name": "Send planning",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          1744,
+          -96
+        ],
+        "webhookId": "",
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "",
+        "name": "Write Log File",
+        "type": "n8n-nodes-base.readWriteFile",
+        "position": [
+          1968,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1040,
+          -720
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "",
+        "name": "Split Out",
+        "type": "n8n-nodes-base.splitOut",
+        "position": [
+          2816,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "",
+        "name": "ERROR: Daily Scheduler",
+        "type": "n8n-nodes-base.stopAndError",
+        "position": [
+          1744,
+          96
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "",
+        "name": "FINAL SUCCESS Email",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          5584,
+          16
+        ],
+        "webhookId": "",
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "",
+        "name": "Read Final Planning File",
+        "type": "n8n-nodes-base.readWriteFile",
+        "position": [
+          4960,
+          -128
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          4688,
+          -256
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          3024,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "",
+        "name": "LOOP SUCCESS email",
+        "type": "n8n-nodes-base.emailSend",
+        "notes": "Use $env after Split",
+        "position": [
+          4272,
+          96
+        ],
+        "webhookId": "",
+        "parameters": {},
+        "notesInFlow": true,
+        "typeVersion": 2.1
+      },
+      {
+        "id": "",
+        "name": "Aggregate",
+        "type": "n8n-nodes-base.aggregate",
+        "position": [
+          4752,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "",
+        "name": "Return Monitoring Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          4480,
+          272
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "",
+        "name": "Merge",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          5376,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 3.2
+      },
+      {
+        "id": "",
+        "name": "Extract from File",
+        "type": "n8n-nodes-base.extractFromFile",
+        "position": [
+          5168,
+          16
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "985459e2-c127-404b-ad8f-fdd02f6678dd",
+        "name": "Read Log File",
+        "type": "n8n-nodes-base.readWriteFile",
+        "position": [
+          4960,
+          176
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Init": {
+        "main": [
+          [
+            {
+              "node": "Daily Scheduler",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge": {
+        "main": [
+          [
+            {
+              "node": "FINAL SUCCESS Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Go/no go": {
+        "main": [
+          [
+            {
+              "node": "Split Out",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "NOTHING Planned Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Aggregate": {
+        "main": [
+          [
+            {
+              "node": "Read Final Planning File",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Read Log File",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split Out": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Monitoring": {
+        "main": [
+          [
+            {
+              "node": "Append Planning File",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "ERROR: Monitoring",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read Log File": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 2
+            }
+          ]
+        ]
+      },
+      "Write Log File": {
+        "main": [
+          [
+            {
+              "node": "Write Planning File",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Daily Scheduler": {
+        "main": [
+          [
+            {
+              "node": "Send planning",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Write Log File",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "ERROR: Daily Scheduler",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [
+            {
+              "node": "Aggregate",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Execute sub-process",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Init",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract from File": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "LOOP SUCCESS email": {
+        "main": [
+          [
+            {
+              "node": "Return Monitoring Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read Planning File": {
+        "main": [
+          [
+            {
+              "node": "LOOP SUCCESS email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Execute sub-process": {
+        "main": [
+          [
+            {
+              "node": "Monitoring",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Get Sub-workflow Name",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Write Planning File": {
+        "main": [
+          [
+            {
+              "node": "Go/no go",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Append Planning File": {
+        "main": [
+          [
+            {
+              "node": "Read Planning File",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Sub-workflow Name": {
+        "main": [
+          [
+            {
+              "node": "ERROR: Execute Sub-worflow",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Return Monitoring Data": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read Final Planning File": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Extract from File",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 45,
+      "name": "Miscellaneous"
+    }
+  ],
+  "url": "https://n8n.io/workflows/9351",
+  "fetched_at": "2026-09-12T13:12:53Z"
+}

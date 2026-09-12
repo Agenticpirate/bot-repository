@@ -1,0 +1,177 @@
+{
+  "id": 6162,
+  "name": "Real estate lead qualification chatbot with GPT-4o-mini",
+  "description": "## **Guidebook: How the Website ChatBot Template Works**\n\n---\n\n##  Chapter 1: Introduction & Objectives\n\nThis guidebook provides a comprehensive walkthrough of the Website ChatBot developed using n8n and OpenAI. The chatbot is designed to qualify real estate leads and encourage site visits for the Alcove New Kolkata Sangam project through personalized, intelligent conversations.\n\n---\n\n##  Chapter 2: Tools Required\n\n### 1. **n8n Workflow Automation Tool**\n\nAn open-source workflow builder to automate data flows between services.\n\n### 2. **OpenAI Account with GPT-4o-mini Access**\n\nFor generating AI-based chatbot responses.\n\n### 3. **Web Chat Widget**\n\nFrontend integration that sends messages via webhook to the chatbot.\n\n---\n\n## Chapter 3: Workflow Breakdown\n\n### Step 1: Webhook\n\n* Receives POST requests from the chat widget.\n* Endpoint: `/webhook/chatbot-webhook`\n\n### Step 2: Set User Message\n\n* Extracts `message` from the JSON body.\n* Stores it as `user_message`.\n\n### Step 3: Memory Setup\n\n* Uses session ID to track conversation across messages.\n\n### Step 4: OpenAI Chat Model\n\n* GPT-4o-mini processes queries using the defined agent prompt.\n\n### Step 5: AI Agent (Khusboo)\n\n* Persona of a pre-sales agent.\n* Uses AIDA + BANT + SPIN + PAS frameworks.\n* Shares videos, responds in Hinglish, schedules site visits.\n\n### Step 6: Respond to Webhook\n\n* Formats the chatbot's reply into a JSON response.\n\n---\n\n## Chapter 4: Strategy & Psychology Behind Responses\n\n| Framework | Purpose                                              |\n| --------- | ---------------------------------------------------- |\n| AIDA      | Capture attention, interest, desire, action          |\n| BANT      | Qualify Budget, Authority, Need, Timing              |\n| SPIN      | Understand user's Situation, Problems, Implications  |\n| PAS       | Tackle objections using Problem, Agitation, Solution |\n\nThe chatbot aims to qualify leads and gently move them toward booking a site visit without pushing or over-informing.\n\n---\n\n## Chapter 5: Setup Instructions\n\n### A. n8n Workflow Setup\n\n1. Import the JSON workflow.\n2. Ensure OpenAI credentials are set up.\n3. Enable webhook at `/webhook/chatbot-webhook`.\n\n### B. Frontend Widget Integration\n\n* Send message as POST to the webhook with structure:\n\n```json\n{\n  \"message\": \"Looking for 2 BHK\",\n  \"session_id\": \"user123\"\n}\n```\n\n---\n\n## Chapter 6: Testing & Troubleshooting\n\n### Test via Postman\n\n* Send sample request to verify AI response.\n\n## Common Issues\n\n| Issue            | Fix                                 |\n| ---------------- | ----------------------------------- |\n| No response      | Check webhook URL or credentials    |\n| Repeated replies | Ensure memory node is active        |\n| Wrong language   | Check system message language rules |\n\n---\n\n## Chapter 7: Sample Conversations\n\n**User:** Hi, I’m looking for a home near the Ganga.\n\n**Bot:** **Namaste!** Main Khusboo hoon, Alcove New Kolkata Sangam se. Aapka naam kya hai?\n\n**User:** Rajat.\n\n**Bot:** **Great Rajat!** Kya aap apne family ke saath shift hone ka plan kar rahe ho?\n\n... *(continues using frameworks)*\n\n---\n\n## Chapter 8: FAQs & Maintenance Tips\n\n**Q: Can I update the AI agent persona?**\nA: Yes, by modifying the system message inside the AI Agent node.\n\n**Q: How do I share new videos or links?**\nA: Add them in the `sharingVideos` or `UserRequests` section in the system message.\n\n**Q: How to scale this for multiple projects?**\nA: Duplicate the workflow and update the `aboutProject` and links accordingly.\n\n---\n\nEnd of Guidebook.\n",
+  "workflow": {
+    "name": "Website ChatBot",
+    "nodes": [
+      {
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          60,
+          20
+        ],
+        "parameters": {
+          "path": "chatbot-webhook",
+          "options": {},
+          "httpMethod": "POST",
+          "responseMode": "responseNode"
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Set User Message",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          320,
+          20
+        ],
+        "parameters": {
+          "values": {
+            "string": [
+              {
+                "name": "user_message",
+                "value": "={{ $json.body.message }}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "typeVersion": 2
+      },
+      {
+        "name": "AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          560,
+          20
+        ],
+        "parameters": {
+          "text": "={{$json[\"user_message\"]}}",
+          "options": {
+            "systemMessage": "You are Khusboo, a friendly real estate pre-sales agent for Alcove New Kolkata Sangam. Your goal is to qualify leads and gently guide them toward a site visit. Use AIDA, BANT, SPIN, and PAS frameworks. Respond in Hinglish, be personal, share videos confidently, and never disclose price unless asked. Always aim to build trust and invite for a visit."
+          },
+          "promptType": "define"
+        },
+        "typeVersion": 2
+      },
+      {
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          900,
+          80
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={\n  \"Respond Immediately\": \"{{ $json.output.replaceAll('\\n', '\\\\n').replaceAll('\\\"', '\\\\\\\"') }}\"\n}"
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          560,
+          280
+        ],
+        "parameters": {
+          "model": {
+            "mode": "list",
+            "value": "gpt-4o-mini"
+          },
+          "options": {}
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "name": "Simple Memory",
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "position": [
+          680,
+          240
+        ],
+        "parameters": {
+          "sessionKey": "==memory_{{ $json.body.session_id || 'default' }}",
+          "sessionIdType": "customKey",
+          "contextWindowLength": 20
+        },
+        "typeVersion": 1.3
+      }
+    ],
+    "active": true,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Set User Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Simple Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set User Message": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 38,
+      "name": "Lead Nurturing"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6162",
+  "fetched_at": "2026-09-12T13:11:11Z"
+}

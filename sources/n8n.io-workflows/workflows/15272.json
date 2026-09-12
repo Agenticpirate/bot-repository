@@ -1,0 +1,579 @@
+{
+  "id": 15272,
+  "name": "Generate Gmail reply drafts with GPT-4o, pgvector, and PostgreSQL",
+  "description": "# Email Automation — AI Draft Generator\n### n8n Workflow Template\n\n---\n\n## 📘 Description\n\nThis workflow is the core of a three-part email automation system. It monitors your Gmail inbox in real time, classifies every inbound customer email with AI, retrieves contextually relevant data from your Knowledge Base and transaction records, and generates a personalised, ready-to-send draft reply — deposited directly into Gmail Drafts for one-click human review and send.\n\nNo more opening each email, reading the context, checking the transaction status, and writing a reply from scratch. The workflow does all of that automatically. Your support team only reviews and sends.\n\nThe draft quality comes from three sources working together: a Knowledge Base built from your own historical support emails, real correction examples showing how your team has responded to similar situations in the past, and live transaction data pulled for the specific customer who wrote in. The result is a draft that reflects your team's actual tone, references accurate order details, and follows the correct resolution path based on the customer's transaction status.\n\nThis is the main production workflow. It depends on two companion workflows that must be set up first:\n\n**Workflow 1 — KB Builder: Historical Emails** (free) seeds the Knowledge Base from your existing Gmail inbox. Run it once before activating this workflow.\n\n**Workflow 2 — Self-Learning Loop** (free) continuously improves draft quality by recording the difference between AI-generated drafts and what your team actually sent. Over time, the AI learns your team's preferred phrasing and corrections.\n\n---\n\n## ⚙️ What This Workflow Does (Step-by-Step)\n\n**📬 Gmail Trigger** — Polls your inbox for new unread emails matching a configured label. Fires once per new message automatically.\n\n**🔍 Parse & Validate** — Extracts all email fields and applies a multi-signal filter. Drops marketing emails, no-reply senders, bounce notifications, spam, automated financial alerts (Razorpay, NSDL, Digio, etc.), and OTP/transaction alert subjects. Only genuine customer emails proceed.\n\n**🤖 AI Agent — Classify** — Sends the email to GPT-4o-mini, which returns a structured JSON classification: category, subcategory, urgency, sentiment, language, summary, key entities, and a confidence score.\n\n**🔗 Merge + Parse Classification** — Merges the AI output back with the original email fields and parses the JSON into clean structured data for all downstream nodes.\n\n**🔢 Generate & Extract Embedding** — Calls the OpenAI Embeddings API to generate a 1536-dimension vector of the email content. Used to run semantic similarity searches across all three KB tables simultaneously.\n\n**🗄️ Four Parallel DB Fetches** — Triggered simultaneously from the embedding node:\n- **DB - Fetch KB Data** — Top 5 semantically similar Q&A pairs from kb_data\n- **DB - Fetch Similar Corrections** — Top 3 real customer-reply pairs from corrections\n- **DB - Fetch Similar Scenarios** — Top 3 matching handling patterns from scenario_patterns\n- **DB - Fetch Customer Transactions** — Last 5 transactions for this customer's email address from the transactions table\n\n**⚡ Resolve Scenario** — The intelligence core of the workflow. Analyses the customer's transactions and email content together to determine the exact scenario and pre-compose the transaction status message. Handles 12+ distinct scenarios including: NSDL transferred, payment failed, payment pending, accepted but shares pending, refunded, rejected, multiple unresolved transactions, missing shares queries, order ID mentioned but not found, and no transaction on record. Each scenario has a precise templated response that is passed to the AI for tone-matching — not free generation.\n\n**📝 Assemble Draft Prompt** — Builds the full system prompt and user prompt for the draft generation step. Injects KB context, correction examples, scenario patterns, and the transaction-specific message as hard constraints the AI must follow.\n\n**✍️ Generate Draft (GPT-4o)** — GPT-4o drafts the reply at temperature 0.3. It follows the injected transaction message precisely, matches the customer's detected language, applies tone and formatting rules, and signs off as your team. Constrained generation — not open-ended.\n\n**📄 Extract Draft Text** — Parses the AI response, fixes formatting (paragraph spacing, sign-off placement, line breaks), and converts to HTML for Gmail compatibility.\n\n**📥 Create Gmail Draft** — Saves the formatted reply as a Gmail Draft, threaded directly under the original customer email. Your team opens Gmail, sees the draft pre-populated, reviews, edits if needed, and sends.\n\n**💾 DB - Save AI Draft** — Writes the full draft to the ai_drafts table: thread ID, message ID, sender, subject, original body, classification, and draft text. Used by the Self-Learning Loop to capture what the AI produced.\n\n**✅ DB - Log Success** — Writes a success record to email_logs with category, urgency, confidence score, and draft ID. Creates a full audit trail of every email processed.\n\n**🚫 DB - Log Skipped** — For emails that fail the Parse & Validate filter, a skipped record is written to email_logs with the skip reason. Nothing is lost — every email is accounted for.\n\n---\n\n## 🧩 Prerequisites\n\n- **Gmail account** — OAuth2 credential. Must be the support inbox. Create a Gmail label for incoming support emails and configure it in the Get Many Messages node.\n- **OpenAI API key** — Used for GPT-4o-mini classification, text-embedding-3-small for vector search, and GPT-4o for draft generation.\n- **PostgreSQL database** — With pgvector extension enabled. Requires five tables as described in the schema below.\n- **KB Builder workflow** — Run at least once before activating this workflow to seed the Knowledge Base. Without KB data, the AI will still generate drafts but without contextual grounding.\n- **n8n instance** — Self-hosted or cloud. Requires PostgreSQL, Gmail, OpenAI, and HTTP Request nodes.\n\n---\n\n## 🗄️ Database Schema\n\n### Table: `transactions`\n| Field | Type | Notes |\n|---|---|---|\n| customer_email | TEXT | Used to match inbound email sender |\n| buyer_name | TEXT | Customer display name |\n| order_id | TEXT | Unique order identifier |\n| transaction_type | TEXT | Buy / Sell |\n| user_amount | NUMERIC | Amount paid |\n| units | NUMERIC | Shares purchased |\n| unit_price | NUMERIC | Per-share price |\n| isin | TEXT | Share ISIN code |\n| demat_number | TEXT | Customer demat account |\n| payment_method | TEXT | NEFT / UPI / etc. |\n| payment_status | TEXT | success / failed / created |\n| admin_action | TEXT | pending / accepted / refunded / rejected |\n| nsdl_checked | BOOLEAN | Whether shares have been transferred |\n| nsdl_timestamp | TIMESTAMP | Date of NSDL transfer |\n| transaction_date | TIMESTAMP | Transaction date |\n\n### Table: `ai_drafts`\n| Field | Type | Notes |\n|---|---|---|\n| id | SERIAL PRIMARY KEY | |\n| gmail_thread_id | TEXT | Gmail thread ID |\n| gmail_message_id | TEXT | Gmail message ID |\n| sender_email | TEXT | Customer email address |\n| subject | TEXT | Email subject |\n| original_email_body | TEXT | Customer's original message |\n| classification | TEXT | AI-assigned category |\n| ai_draft_text | TEXT | The generated draft |\n| draft_saved | BOOLEAN | Whether draft was saved to Gmail |\n| created_at | TIMESTAMP | |\n\n### Table: `email_logs`\n| Field | Type | Notes |\n|---|---|---|\n| id | SERIAL PRIMARY KEY | |\n| gmail_thread_id | TEXT | |\n| gmail_message_id | TEXT | |\n| sender_email | TEXT | |\n| subject | TEXT | |\n| classification | TEXT | |\n| status | TEXT | draft_saved / skipped |\n| draft_id | INTEGER | Reference to ai_drafts |\n| notes | TEXT | Category, urgency, confidence |\n| processed_at | TIMESTAMP | |\n\n### Tables: `kb_data`, `scenario_patterns`, `corrections`\nPopulated by the KB Builder workflow. See that workflow's README for full schema.\n\n---\n\n## 💰 Cost Estimate\n\n| Item | Estimated Cost |\n|---|---|\n| GPT-4o-mini classification | ~$0.002–0.005 per email |\n| text-embedding-3-small | ~$0.0001 per email |\n| GPT-4o draft generation | ~$0.01–0.03 per email |\n| **Total per email** | **~$0.012–0.035** |\n| 100 emails/day | ~$1.20–3.50/day |\n| PostgreSQL + pgvector (self-hosted) | ~$5–15/mo |\n| n8n self-hosted (AWS t3.small) | ~$10–15/mo |\n\n---\n\n## ⚙️ Setup Instructions\n\n1. **Run KB Builder first** — Import at least 50–100 historical emails before activating this workflow. The richer the KB, the better the draft quality from day one.\n\n2. **Gmail** — Connect Gmail OAuth2 in n8n. Create a dedicated label for support emails (e.g. \"Support Inbox\"). Set that label ID in the Get Many Messages node filters.\n\n3. **OpenAI** — Add your OpenAI API key as an n8n credential. Used by three nodes: AI Agent - Classify, Generate Email Embedding, and Generate Draft.\n\n4. **PostgreSQL** — Connect your database. Enable pgvector (`CREATE EXTENSION IF NOT EXISTS vector`). Ensure all five tables exist.\n\n5. **Customise Parse & Validate** — Update the `automatedSenders` and `automatedSubjects` arrays to match the automated senders specific to your business. Update `internalDomains` with your support team's email domain.\n\n6. **Customise the AI prompt** — Open Assemble Draft Prompt and update the company name, tone rules, sign-off, and language instructions to match your brand and team style.\n\n7. **Customise Resolve Scenario** — Update the scenario logic and templated responses in the Resolve Scenario node to match your actual transaction statuses, products, and resolution paths.\n\n8. **Activate the workflow** — Click Activate. The Gmail trigger will begin polling for new unread emails automatically.\n\n---\n\n## 💡 Key Benefits\n\n✔ **Fully automated draft generation** — every inbound email gets a contextual, accurate reply draft without any manual effort  \n✔ **Transaction-aware** — pulls live order data and applies the correct resolution template based on payment status, admin action, and NSDL transfer status  \n✔ **KB-grounded** — drafts are informed by your own historical support knowledge, not generic AI outputs  \n✔ **Self-improving** — the Self-Learning Loop workflow captures human edits and feeds them back into the corrections table, continuously improving future drafts  \n✔ **Human stays in control** — every draft lands in Gmail Drafts for review. Nothing is sent automatically  \n✔ **Full audit trail** — every email processed, skipped, or drafted is logged to the database with classification and confidence data  \n✔ **Language-aware** — detects customer language and instructs the AI to match it in the reply  \n✔ **Modular** — swap GPT-4o for Claude or any other model with minimal changes to the Generate Draft node  \n\n---\n\n## 👥 Perfect For\n\n- Customer support teams handling high volumes of transaction-related emails\n- Fintech and investment platforms where reply accuracy and transaction context are critical\n- Small support teams who want AI assistance without losing human oversight\n- Any business running Gmail-based support that wants to cut reply time without cutting quality\n\n---\n\n## 🔗 Part of a Three-Workflow System\n\n**Workflow 1 — KB Builder: Historical Emails** *(free, run once)* — Seeds the Knowledge Base from your existing inbox  \n**Workflow 2 — Self-Learning Loop** *(free, always-on)* — Captures human edits to improve future drafts  \n**Workflow 3 — Email Automation: AI Draft Generator** *(this workflow)* — The live production workflow",
+  "workflow": {
+    "id": "jNPXooD6IDD9h7Dgr9vKV",
+    "meta": {
+      "instanceId": "19d43a8cad94d007140e13e21de07af2d4119a87745d1049407d721b4880fabd"
+    },
+    "name": "Email Automation",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "86d282ec-7520-4974-b4e9-050f01f0604e",
+        "name": "Parse & Validate",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -512,
+          160
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "0551f959-cc10-4c2e-8e95-302c011a8a07",
+        "name": "IF Valid",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -288,
+          160
+        ],
+        "parameters": {},
+        "typeVersion": 2.3
+      },
+      {
+        "id": "910782dc-995e-4a9b-ad2a-6b74b5f62d28",
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          -32,
+          432
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "a65d36a5-0dbb-40e4-851a-ca0f7f34a63a",
+        "name": "Simple Memory",
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "position": [
+          128,
+          432
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "dfdc2030-5a88-449b-97cd-c9345219dc34",
+        "name": "AI Agent - Classify",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          80,
+          160
+        ],
+        "parameters": {},
+        "typeVersion": 3.1
+      },
+      {
+        "id": "d21f44d5-31c9-4ec7-acb8-4746931c3ab3",
+        "name": "Merge",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          368,
+          384
+        ],
+        "parameters": {},
+        "typeVersion": 3.2
+      },
+      {
+        "id": "4e375742-67d9-496a-a91c-623c227edc98",
+        "name": "Parse Classification",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          560,
+          160
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "92f77015-5e9b-471d-863c-7c00308edb51",
+        "name": "Generate Email Embedding",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          800,
+          240
+        ],
+        "parameters": {},
+        "typeVersion": 4.4
+      },
+      {
+        "id": "a7cc3cf2-7bda-4518-8211-461b061a150f",
+        "name": "Extract Embedding",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1008,
+          240
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "2ebfa9be-b749-416e-b956-97c178cfee10",
+        "name": "DB - Fetch KB Data",
+        "type": "n8n-nodes-base.postgres",
+        "position": [
+          1232,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "49494877-c815-40d5-81bf-361ad9f1f7c7",
+        "name": "DB - Fetch Similar Corrections",
+        "type": "n8n-nodes-base.postgres",
+        "position": [
+          1232,
+          160
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "0ab655f7-a176-4164-b68d-f5758d0fbc90",
+        "name": "DB - Fetch Similar Scenarios",
+        "type": "n8n-nodes-base.postgres",
+        "position": [
+          1232,
+          320
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "7ed7e264-4264-4e64-84ab-a1725efb0275",
+        "name": "DB - Fetch Customer Transactions",
+        "type": "n8n-nodes-base.postgres",
+        "position": [
+          1232,
+          480
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "c9c1f902-c94d-4e5b-a443-e21bb07b18ef",
+        "name": "Resolve Scenario",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1504,
+          240
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "7c6fffe9-af84-4a28-8987-f4e2aac49d9e",
+        "name": "Assemble Draft Prompt",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1680,
+          240
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "90fd6d98-ef78-4a75-a99f-0e641738fc9a",
+        "name": "Generate Draft",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "position": [
+          1904,
+          240
+        ],
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "54ac1e0f-b552-4114-8689-aa324e91064c",
+        "name": "Extract Draft Text",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2192,
+          368
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "fa0efe23-6a99-4737-9db2-495eadc88057",
+        "name": "Create Gmail Draft",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          2352,
+          240
+        ],
+        "webhookId": "b7918f06-dab9-40d3-b5a6-0090051fb767",
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "9c60c8f1-f410-4c1a-a0ae-56adb954c915",
+        "name": "DB - Save AI Draft",
+        "type": "n8n-nodes-base.postgres",
+        "position": [
+          2576,
+          240
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "fc5ed085-40d0-48da-a848-7a92881b37e6",
+        "name": "DB - Log Success",
+        "type": "n8n-nodes-base.postgres",
+        "position": [
+          2800,
+          240
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "7c161257-d763-4d1b-8b69-b4808028f697",
+        "name": "DB - Log Skipped",
+        "type": "n8n-nodes-base.postgres",
+        "position": [
+          -288,
+          384
+        ],
+        "parameters": {},
+        "typeVersion": 2.6
+      },
+      {
+        "id": "c7c7ff30-982a-401b-a661-8ad5d6eecec5",
+        "name": "Gmail Trigger",
+        "type": "n8n-nodes-base.gmailTrigger",
+        "position": [
+          -720,
+          160
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "06a2dbc4-e4d0-4e0a-bf1d-5438d5266b9e",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1440,
+          -160
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "dc9055bc-d6f8-4c95-b11e-21fd1ed5792c",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -768,
+          -96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "7f12be96-54f9-4361-81ac-4dd997797cc6",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          736,
+          -224
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "51fad99f-3d04-4a6c-9a43-b597279d0419",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1440,
+          -96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "binaryMode": "separate",
+      "availableInMCP": false,
+      "executionOrder": "v1"
+    },
+    "versionId": "b1c83789-3ea3-4a5d-b05f-7a805ac8545e",
+    "connections": {
+      "Merge": {
+        "main": [
+          [
+            {
+              "node": "Parse Classification",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF Valid": {
+        "main": [
+          [
+            {
+              "node": "AI Agent - Classify",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 1
+            }
+          ],
+          [
+            {
+              "node": "DB - Log Skipped",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Gmail Trigger": {
+        "main": [
+          [
+            {
+              "node": "Parse & Validate",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Simple Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "AI Agent - Classify",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Draft": {
+        "main": [
+          [
+            {
+              "node": "Extract Draft Text",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse & Validate": {
+        "main": [
+          [
+            {
+              "node": "IF Valid",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Resolve Scenario": {
+        "main": [
+          [
+            {
+              "node": "Assemble Draft Prompt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Embedding": {
+        "main": [
+          [
+            {
+              "node": "DB - Fetch KB Data",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "DB - Fetch Similar Corrections",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "DB - Fetch Similar Scenarios",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "DB - Fetch Customer Transactions",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent - Classify",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create Gmail Draft": {
+        "main": [
+          [
+            {
+              "node": "DB - Save AI Draft",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "DB - Fetch KB Data": {
+        "main": [
+          [
+            {
+              "node": "Resolve Scenario",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "DB - Save AI Draft": {
+        "main": [
+          [
+            {
+              "node": "DB - Log Success",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Draft Text": {
+        "main": [
+          [
+            {
+              "node": "Create Gmail Draft",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Agent - Classify": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse Classification": {
+        "main": [
+          [
+            {
+              "node": "Generate Email Embedding",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Assemble Draft Prompt": {
+        "main": [
+          [
+            {
+              "node": "Generate Draft",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Email Embedding": {
+        "main": [
+          [
+            {
+              "node": "Extract Embedding",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "DB - Fetch Similar Scenarios": {
+        "main": [
+          [
+            {
+              "node": "Resolve Scenario",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "DB - Fetch Similar Corrections": {
+        "main": [
+          [
+            {
+              "node": "Resolve Scenario",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "DB - Fetch Customer Transactions": {
+        "main": [
+          [
+            {
+              "node": "Resolve Scenario",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 41,
+      "name": "Ticket Management"
+    },
+    {
+      "id": 48,
+      "name": "AI RAG"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15272",
+  "fetched_at": "2026-09-12T13:15:21Z"
+}

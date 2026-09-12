@@ -1,0 +1,292 @@
+{
+  "id": 8046,
+  "name": "Automate sales tax calculation with Sales Tax Calculator API & Google Sheets",
+  "description": "\n**Sales Tax Calculator API Integration: Automate Tax Calculation with Google Sheets & RapidAPI**\n\n**Effortlessly calculate and store sales tax rates based on user address data using the [Sales Tax Calculator API on RapidAPI](https://rapidapi.com/skdeveloper/api/sales-tax-calculator5)**. Automate the process, format the data, and store results in Google Sheets for easy access.**\n\n---\n\n## Workflow Overview:\n\nThis automation workflow integrates the [**Sales Tax Calculator API**](https://rapidapi.com/skdeveloper/api/sales-tax-calculator5) from **RapidAPI** to calculate and store sales tax rates based on user-provided address information. The workflow is designed to automate tax calculation, streamline data processing, and save results in a **Google Sheets** document for future reference.\n\n---\n\n## Node-by-Node Explanation:\n\n### 1. **On Form Submission**: \n   - **Trigger**: This node listens for form submissions, capturing the user’s address data (street, city, state, zip).\n   \n### 2. **Calculate Sales Tax**: \n   - **Action**: Sends a **POST** request to the [**Sales Tax Calculator API**](https://rapidapi.com/skdeveloper/api/sales-tax-calculator5) (via RapidAPI) to fetch tax rates based on the submitted address data.\n\n### 3. **Reformat API Response**: \n   - **Processing**: Processes and reformats the data received from the API, structuring the tax agencies, rates, and total tax calculations into rows.\n\n### 4. **Append to Google Sheets**: \n   - **Store**: Appends the reformatted tax information into a **Google Sheets** document for easy storage and future analysis.\n\n---\n\n## Use Case:\n\nThis workflow is ideal for businesses or individuals who need to automatically calculate sales tax based on customer-provided address information. It can be used in any e-commerce platform, accounting system, or sales management tool.\n\n---\n\n## Benefits:\n\n1. **Automation**: Streamline the tax calculation process by automatically calculating and storing tax rates based on user inputs.\n   \n2. **Real-Time Data**: Ensure up-to-date tax rates are used for every transaction or form submission.\n\n3. **Easy Data Access**: Tax rates and details are stored in **Google Sheets**, providing easy access and better organization for future reference.\n\n4. **Efficient Workflow**: Saves time and reduces the possibility of human error by automating the entire process from data collection to storage.\n\n---\n\n## Integration with RapidAPI:\n\nThis workflow is powered by the **[Sales Tax Calculator API](https://rapidapi.com/skdeveloper/api/sales-tax-calculator5)** from **RapidAPI**, which ensures accurate and real-time tax calculations based on user addresses.\n\n### Key Features of the Sales Tax Calculator API:\n- Fetch tax rates based on various address details (street, city, state, zip).\n- Reliable and fast service via **RapidAPI**, ensuring smooth API integrations.\n- Provides tax rate data for multiple jurisdictions (states, cities, etc.).\n\n**Start using the [Sales Tax Calculator API on RapidAPI](https://rapidapi.com/skdeveloper/api/sales-tax-calculator5)** today and streamline your sales tax process.\n\n---\n### 🔑 How to Get API Key from RapidAPI [Sales Tax Calculator](https://rapidapi.com/skdeveloper/api/sales-tax-calculator5)\n\nFollow these steps to get your API key and start using it in your workflow:\n\n1. **Visit the API Page**  \n   [👉 Click here to open Sales Tax Calculator on RapidAPI](https://rapidapi.com/skdeveloper/api/sales-tax-calculator5)\n\n2. **Log in or Sign Up**  \n   - Use your **Google**, **GitHub**, or email account to sign in.  \n   - If you're new, complete a quick sign-up.\n\n3. **Subscribe to a Pricing Plan**  \n   - Go to the **Pricing** tab on the API page.  \n   - Select a plan (free or paid, depending on your needs).  \n   - Click **Subscribe**.\n\n4. **Access Your API Key**  \n   - Navigate to the **Endpoints** tab.  \n   - Look for the `X-RapidAPI-Key` under **Request Headers**.  \n   - Copy the value shown — this is your API key.\n\n5. **Use the Key in Your Workflow**  \n   - In your n8n workflow (HTTP Request node), replace:\n     ```text\n     \"x-rapidapi-key\": \"your key\"\n     ```\n     with:\n     ```text\n     \"x-rapidapi-key\": \"YOUR_ACTUAL_API_KEY\"\n     ```\n\n---\n\n**Keywords**: Sales Tax Calculator, Sales Tax API, RapidAPI, Tax Calculation, Google Sheets Integration, Automation, API Integration\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "60c025075753afcab9f803964b4caaca9402f435deb4efafbb8e3b93b54d8752",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "cfc7a7c6-8ac4-4c18-a0f2-f30572e393f1",
+        "name": "On form submission",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          0,
+          0
+        ],
+        "webhookId": "a85a8033-1f39-498d-901e-0392e2bff50b",
+        "parameters": {
+          "options": {},
+          "formTitle": "Sales Tax Calculator",
+          "formFields": {
+            "values": [
+              {
+                "fieldLabel": "street",
+                "placeholder": "321 Birch Road, Suite 400",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "city",
+                "placeholder": "Saint Paul",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "state",
+                "placeholder": "MN",
+                "requiredField": true
+              },
+              {
+                "fieldLabel": "zip",
+                "placeholder": "55102"
+              }
+            ]
+          },
+          "formDescription": "Sales Tax Calculator"
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "a1416047-5dc9-4514-b83d-d0b76f4ce92e",
+        "name": "Calculate Sales tax",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          280,
+          0
+        ],
+        "parameters": {
+          "url": "https://sales-tax-calculator5.p.rapidapi.com/salestax.php",
+          "method": "POST",
+          "options": {},
+          "sendBody": true,
+          "contentType": "multipart-form-data",
+          "sendHeaders": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "street",
+                "value": "={{ $json.street }}"
+              },
+              {
+                "name": "city",
+                "value": "={{ $json.city }}"
+              },
+              {
+                "name": "state",
+                "value": "={{ $json.state }}"
+              },
+              {
+                "name": "zip",
+                "value": "={{ $json.zip }}"
+              }
+            ]
+          },
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "x-rapidapi-host",
+                "value": "sales-tax-calculator5.p.rapidapi.com"
+              },
+              {
+                "name": "x-rapidapi-key",
+                "value": "your key"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "27ad345c-347e-4b57-a6be-b9d610163013",
+        "name": "Re Fromat",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          580,
+          0
+        ],
+        "parameters": {
+          "jsCode": "let rows = [];\nlet totalTaxRate = 0;\n\n// Iterate over the rate_details in the input data\n$input.first().json.rate_details.forEach(tax => {\n  // Push each row with the necessary columns (Tax Agency, Tax Rate, Overall Tax Rate)\n  rows.push([\n    tax.tax_agency,  // Tax Agency\n    tax.tax_rate,    // Tax Rate\n    tax.tax_rate     // Overall Tax Rate (same for each agency in this case)\n  ]);\n\n  // Accumulate the overall tax rate for the total\n  totalTaxRate += tax.tax_rate;\n});\n\n// Add the total row at the end\nrows.push([\n  \"Total\",               // Label for Total\n  \"\",                    // Empty field for Tax Rate\n  totalTaxRate           // Sum of all Tax Rates\n]);\n\n// Return the rows so they can be used by the next node\nreturn [{ json: { rows } }];\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "8c9c5b39-9e87-47e5-8883-ab0d389feef2",
+        "name": "Append In Google Sheets",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          860,
+          0
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "rows": "={{ $json.rows }}"
+            },
+            "schema": [
+              {
+                "id": "rows",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "required": false,
+                "displayName": "rows",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [
+              "rows"
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultUrl": "",
+            "cachedResultName": "Sheet1"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "",
+            "cachedResultUrl": "",
+            "cachedResultName": "Sales tax"
+          },
+          "authentication": "serviceAccount"
+        },
+        "credentials": {
+          "googleApi": {
+            "id": "credential-id",
+            "name": "googleApi Credential"
+          }
+        },
+        "typeVersion": 4.6
+      },
+      {
+        "id": "8c3b0d7d-724d-46a1-afad-8667e5e285dc",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -980,
+          -220
+        ],
+        "parameters": {
+          "width": 840,
+          "height": 740,
+          "content": "# Sales Tax Calculator Automation Workflow for Accurate Tax Calculation\n\n## Description:\nThis automation workflow calculates and stores sales tax rates based on user-provided address information using a form submission. It integrates with the Sales Tax API, processes the data, and stores results in a Google Sheet for easy access.\n\n---\n\n## 1. **On Form Submission: Capture User Data**\n   - Triggers when a user submits the sales tax form, capturing essential address information (street, city, state, zip).\n\n## 2. **Calculate Sales Tax: Fetch Tax Rates from API**\n   - Sends a POST request to the Sales Tax API to fetch the tax rates based on the submitted address data.\n\n## 3. **Reformat API Response: Structure Tax Data**\n   - Processes and reformats the API response into a structured format with tax agencies, rates, and total tax calculations.\n\n## 4. **Append to Google Sheets: Store Tax Information**\n   - Appends the processed tax rate data into a Google Sheets document for easy storage and future use.\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9559eeaf-51c1-4152-81e6-30ec41313f39",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -60,
+          -160
+        ],
+        "parameters": {
+          "height": 320,
+          "content": "**On Form Submission: Capture User Data**\n   - Triggers when a user submits the sales tax form, capturing essential address information (street, city, state, zip).\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3cfb2193-a954-46cd-9415-bfb7dec61cd2",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          220,
+          -160
+        ],
+        "parameters": {
+          "height": 320,
+          "content": " **Calculate Sales Tax: Fetch Tax Rates from API**\n   - Sends a POST request to the Sales Tax API to fetch the tax rates based on the submitted address data.\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "cdaf7d69-c546-4635-993d-e1ac04c78c31",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          500,
+          -160
+        ],
+        "parameters": {
+          "height": 320,
+          "content": "**Reformat API Response: Structure Tax Data**\n   - Processes and reformats the API response into a structured format with tax agencies, rates, and total tax calculations.\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2a795c35-837b-4c30-85f3-38fd1681129f",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          760,
+          -160
+        ],
+        "parameters": {
+          "height": 320,
+          "content": "**Append to Google Sheets: Store Tax Information**\n   - Appends the processed tax rate data into a Google Sheets document for easy storage and future use."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Re Fromat": {
+        "main": [
+          [
+            {
+              "node": "Append In Google Sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "On form submission": {
+        "main": [
+          [
+            {
+              "node": "Calculate Sales tax",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Calculate Sales tax": {
+        "main": [
+          [
+            {
+              "node": "Re Fromat",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 39,
+      "name": "CRM"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8046",
+  "fetched_at": "2026-09-12T13:12:15Z"
+}

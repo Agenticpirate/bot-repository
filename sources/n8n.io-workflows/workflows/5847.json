@@ -1,0 +1,291 @@
+{
+  "id": 5847,
+  "name": "Build a restaurant voice assistant with VAPI and PostgreSQL for bookings & orders",
+  "description": "This n8n template demonstrates how to create a comprehensive voice-powered restaurant assistant that handles table reservations, food orders, and restaurant information requests through natural language processing. The system uses VAPI for voice interaction and PostgreSQL for data management, making it perfect for restaurants looking to automate customer service with voice AI technology.\n\n**Good to know**\n* Voice processing requires active VAPI subscription with per-minute billing\n* Database operations are handled in real-time with immediate confirmations\n* The system can handle multiple simultaneous voice requests\n* All customer data is stored securely in PostgreSQL with proper indexing\n\n## How it works\n\n### Table Booking & Order Handling Workflow\n* Voice requests are captured through VAPI triggers when customers make booking or ordering requests\n* The system processes natural language commands and extracts relevant details (party size, time, food items)\n* Customer data is immediately saved to the `bookings` and `orders` tables in PostgreSQL\n* Voice confirmations are sent back through VAPI with booking details and estimated wait times\n* All transactions are logged with timestamps for restaurant management tracking\n\n### Restaurant Info Provider Workflow  \n* Info requests trigger when customers ask about hours, menu, location, or services\n* Restaurant details are retrieved from the `restaurant_info` table containing current information\n* Wait nodes ensure proper data loading before voice response generation\n* Structured restaurant information is delivered via VAPI in natural, conversational format\n\n## Database Schema\n\n### Bookings Table\n* `booking_id` (PRIMARY KEY) - Unique identifier for each reservation\n* `customer_name` - Customer's full name\n* `phone_number` - Contact number for confirmation\n* `party_size` - Number of guests\n* `booking_date` - Requested reservation date\n* `booking_time` - Requested time slot\n* `special_requests` - Dietary restrictions or special occasions\n* `status` - Booking status (confirmed, pending, cancelled)\n* `created_at` - Timestamp of booking creation\n\n### Orders Table\n* `order_id` (PRIMARY KEY) - Unique order identifier\n* `customer_name` - Customer's name\n* `phone_number` - Contact for order updates\n* `order_items` - JSON array of food items and quantities\n* `total_amount` - Calculated order total\n* `order_type` - Delivery, pickup, or dine-in\n* `special_instructions` - Cooking preferences or allergies\n* `status` - Order status (received, preparing, ready, delivered)\n* `created_at` - Order timestamp\n\n### Restaurant_Info Table\n* `info_id` (PRIMARY KEY) - Information entry identifier\n* `category` - Type of info (hours, menu, location, contact)\n* `title` - Information title\n* `description` - Detailed information content\n* `is_active` - Whether info is currently valid\n* `updated_at` - Last modification timestamp\n\n## How to use\n\n* The manual trigger can be replaced with webhook triggers for integration with existing restaurant systems\n* Import the workflow into your n8n instance and configure VAPI credentials\n* Set up PostgreSQL database with the required tables using the schema provided above\n* Configure restaurant information in the `restaurant_info` table\n* Test voice commands such as \"Book a table for 4 people at 7 PM\" or \"What are your opening hours?\"\n* Customize voice responses in VAPI nodes to match your restaurant's tone and branding\n* The system can handle multiple concurrent voice requests and scales with your restaurant's needs\n\n## Requirements\n\n* VAPI account for voice processing and natural language understanding\n* PostgreSQL database for storing booking, order, and restaurant information\n* n8n instance with database and VAPI integrations enabled\n\n## Customising this workflow\n\n* Voice AI automation can be adapted for various restaurant types - from quick service to fine dining establishments\n* Try popular use-cases such as multi-location booking management, dietary restriction handling, or integration with existing POS systems\n* The workflow can be extended to include payment processing, SMS notifications, and third-party delivery platform integration",
+  "workflow": {
+    "id": "FBguDlbJmbBGngKf",
+    "meta": {
+      "instanceId": "dd69efaf8212c74ad206700d104739d3329588a6f3f8381a46a481f34c9cc281",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Voice Assistant – Restaurant Booking, Orders & Info System",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "ca6c5397-c47e-4fde-b08a-c996fc5b242b",
+        "name": "Trigger: Voice Request (VAPI)",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -20,
+          -380
+        ],
+        "webhookId": "9f6b9125-0b75-41c2-87a9-1b6746c89e2e",
+        "parameters": {
+          "path": "9f6b9125-0b75-41c2-87a9-1b6746c89e2e",
+          "options": {},
+          "httpMethod": "POST",
+          "responseMode": "responseNode"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "bbb963c4-1fc3-4dbc-84c5-ed818197fc8a",
+        "name": "Update Data (Table Booking / Orders)",
+        "type": "n8n-nodes-base.postgres",
+        "position": [
+          420,
+          -380
+        ],
+        "parameters": {
+          "table": {
+            "__rl": true,
+            "mode": "name",
+            "value": "id"
+          },
+          "schema": {
+            "__rl": true,
+            "mode": "list",
+            "value": "public"
+          },
+          "columns": {
+            "value": {},
+            "schema": [],
+            "mappingMode": "autoMapInputData",
+            "matchingColumns": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "upsert"
+        },
+        "credentials": {
+          "postgres": {
+            "id": "credential-id",
+            "name": "postgres Credential"
+          }
+        },
+        "typeVersion": 2.6
+      },
+      {
+        "id": "97376776-cc21-434b-89b3-e373d4fcc0fe",
+        "name": "Respond: Booking/Order Confirmation (VAPI)",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          640,
+          -380
+        ],
+        "parameters": {
+          "options": {},
+          "respondWith": "json",
+          "responseBody": "={\n    \"results\": [\n        {\n            \"toolCallId\": \"{{ $('Trigger: Voice Request (VAPI)').item.json.body.message.toolCalls[0].id }}\",\n            \"result\": \"{{ $json.status }}\"\n        }\n    ]\n}"
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "7cdb8cb3-94fd-4784-9b79-c9ae26fd7ae6",
+        "name": "Wait For Response",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          200,
+          -380
+        ],
+        "webhookId": "70ef62ba-b15e-48d6-b6ea-031f1ad02176",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "f715f043-661b-4118-9763-642128d936ce",
+        "name": "Wait For Response1",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          420,
+          -120
+        ],
+        "webhookId": "5282819f-e54d-415e-a2a2-384df4b9f71d",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "4a2f8aee-6e5a-44d5-873c-8b8c28aeff3b",
+        "name": "Trigger: Info Request (VAPI)",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -20,
+          -120
+        ],
+        "webhookId": "efe2c13f-1ba5-46e1-9996-57bdc6041973",
+        "parameters": {
+          "path": "efe2c13f-1ba5-46e1-9996-57bdc6041973",
+          "options": {},
+          "httpMethod": "POST",
+          "responseMode": "responseNode"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "33a7e434-5228-4475-9b21-a5afb7c8656b",
+        "name": " Get Restaurant Info (Postgres)",
+        "type": "n8n-nodes-base.postgres",
+        "position": [
+          200,
+          -120
+        ],
+        "parameters": {
+          "table": {
+            "__rl": true,
+            "mode": "name",
+            "value": "id"
+          },
+          "schema": {
+            "__rl": true,
+            "mode": "list",
+            "value": "public"
+          },
+          "options": {},
+          "operation": "select"
+        },
+        "credentials": {
+          "postgres": {
+            "id": "credential-id",
+            "name": "postgres Credential"
+          }
+        },
+        "typeVersion": 2.6
+      },
+      {
+        "id": "09058c8d-e3f4-4caa-898a-123ef4ec3eba",
+        "name": "Respond: Restaurant Details (VAPI)",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          640,
+          -120
+        ],
+        "parameters": {
+          "options": {},
+          "respondWith": "json",
+          "responseBody": "={\n    \"results\": [\n        {\n            \"toolCallId\": \"{{ $('Trigger: Info Request (VAPI)').item.json.body.message.toolCalls[0].id }}\",\n            \"result\":  \"{{ $json.available }}\"\n        }\n    ]\n}"
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "e5c43fa2-68c9-4303-bd74-6662cf95a05f",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -480,
+          -620
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 440,
+          "height": 340,
+          "content": "## Table Booking & Order Handling\n\n- Use this workflow to let the voice assistant take table reservations and food orders from customers.\n\n- It saves booking and order details into the database and confirms them back to the customer instantly.\n\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4ec14fb4-e367-4b3f-bba4-50cc70c008d2",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -500,
+          -220
+        ],
+        "parameters": {
+          "width": 480,
+          "height": 340,
+          "content": "## Restaurant Info Provider\n\n- Use this workflow to let the voice assistant take table reservations and food orders from customers.\n\n- It saves booking and order details into the database and confirms them back to the customer instantly.\n\n\n"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "timezone": "Asia/Kolkata",
+      "callerPolicy": "workflowsFromSameOwner",
+      "executionOrder": "v1"
+    },
+    "versionId": "01e81376-112a-42ae-bb2f-5037a2d5da94",
+    "connections": {
+      "Wait For Response": {
+        "main": [
+          [
+            {
+              "node": "Update Data (Table Booking / Orders)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait For Response1": {
+        "main": [
+          [
+            {
+              "node": "Respond: Restaurant Details (VAPI)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Trigger: Info Request (VAPI)": {
+        "main": [
+          [
+            {
+              "node": " Get Restaurant Info (Postgres)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Trigger: Voice Request (VAPI)": {
+        "main": [
+          [
+            {
+              "node": "Wait For Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      " Get Restaurant Info (Postgres)": {
+        "main": [
+          [
+            {
+              "node": "Wait For Response1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update Data (Table Booking / Orders)": {
+        "main": [
+          [
+            {
+              "node": "Respond: Booking/Order Confirmation (VAPI)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 40,
+      "name": "Support Chatbot"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/5847",
+  "fetched_at": "2026-09-12T13:10:59Z"
+}

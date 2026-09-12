@@ -1,0 +1,190 @@
+{
+  "id": 7651,
+  "name": "High-Speed AI Chat with OpenAI's gpt-oss-120B Model via Cerebras Inference",
+  "description": "## Overview\n\nThis n8n workflow provides seamless integration with Cerebras' high-performance inference platform to leverage OpenAI's open-source GPT-OSS-120B model. With industry-leading speeds of thousands of tokens per second and ultra-low latency under 0.5 seconds, this template enables developers and businesses to build responsive AI applications without the complexity of managing infrastructure or dealing with slow response times that plague traditional AI integrations.\n\n## How it works\n\nThis streamlined workflow establishes a direct connection to Cerebras' inference API through four simple nodes. When a chat message is received, the workflow processes it through the configured API key, sends it to the Cerebras endpoint with your specified parameters (temperature, completion tokens, top P, reasoning effort), and returns the AI-generated response.\n\n## Detailed Workflow Explanation\n\n**1. When chat message received**: This trigger node initiates the workflow whenever a new chat message is detected. It captures the user's input and passes it to the next node in the chain, supporting various input formats and message sources.\n\n**2. Set API Key**: A manual configuration node where you securely store your Cerebras API key. This node handles authentication and ensures your requests are properly authorized when communicating with the Cerebras inference API.\n\n**3. Cerebras endpoint**: The core HTTP request node that communicates with Cerebras' chat completions API. This node is pre-configured to work with the GPT-OSS-120B model and includes parameter settings for temperature, completion tokens, top P, and reasoning effort that can be customized based on your specific needs.\n\n**4. Return Output**: The final node that processes and formats the AI response, delivering the generated text back to your application or user interface in a clean, usable format.\n\n## Who is it for\n\n**Developers** building real-time chat applications, conversational AI systems, or interactive web applications who need consistent sub-second response times without managing complex AI infrastructure.\n\n**Content creators** and marketing teams who require rapid text generation for blogs, social media content, product descriptions, or marketing copy, enabling faster content production cycles and improved productivity.\n\n**Businesses** implementing customer service automation, lead qualification systems, or interactive FAQ solutions where response latency directly impacts user experience and conversion rates.\n\n**SaaS companies** looking to integrate AI features into existing products without the overhead of training models or managing inference servers, allowing them to focus on core business logic.\n\n**Researchers and data scientists** experimenting with high-performance language models for prototyping, A/B testing different prompting strategies, or conducting performance benchmarks against other AI providers.\n\n**Startups and small teams** seeking enterprise-grade AI capabilities without the infrastructure costs or technical complexity typically associated with large language model deployment.\n\n## Comprehensive Setup Instructions\n\n**1. Cerebras Account Setup**\n- Visit Cerebras and create a new account\n- Complete email verification and profile setup\n- Navigate to the API Keys section in your dashboard\n- Generate a new API key and securely store it\n- Review the rate limits for free tier accounts and upgrade if needed\n\n**2. N8N Workflow Configuration**\n- Import the template into your n8n instance\n- Click on the \"Set API Key\" node and enter your Cerebras API key\n- Configure the trigger node based on your input source (webhook, manual, scheduled)\n- Test the workflow using the built-in execution feature\n\n**3. Parameter Customization**\n- Open the \"Cerebras endpoint\" node to access the parameter configuration\n- Adjust temperature, completion tokens, top P, and reasoning effort based on your use case\n- Save and test the workflow to ensure proper functionality\n\n## Customization and Configuration Guide\n\n**Model Parameters in the Cerebras Endpoint Node**:\n- **Temperature** (0.0-2.0): Lower values (0.1-0.3) for factual, consistent responses; higher values (0.7-1.5) for creative, varied content\n- **Completion Tokens**: Set based on expected response length - 150 for short answers, 500+ for detailed explanations, 1000+ for long-form content\n- **Top P** (0.1-1.0): Controls response diversity; 0.9 works well for most applications, lower values for more focused responses\n- **Reasoning Effort**: Adjusts the model's computational effort for complex reasoning tasks; higher values for analytical or problem-solving queries\n\n**Use Case Specific Configurations**:\n- **Customer Support**: Temperature 0.2, moderate completion tokens, consistent helpful responses\n- **Creative Writing**: Temperature 1.0-1.2, higher completion tokens for diverse, imaginative content\n- **Technical Documentation**: Temperature 0.3, structured output with examples and code snippets\n- **Casual Conversation**: Temperature 0.7, balanced creativity and coherence\n\n**Integration Scenarios**:\n- Connect the trigger to webhooks for external application integration\n- Modify the output node to format responses for specific platforms (Slack, Discord, web apps)\n- Add conditional logic to handle different types of user queries\n- Implement input validation and sanitization for production environments\n\n## Possible Enhancements\n\n**Multi-model support**: Extend the workflow to switch between different Cerebras models based on query complexity or specific requirements.\n\n**Response caching**: Add caching mechanisms to store frequently requested responses, reducing API calls and improving performance.\n\n**Advanced error handling**: Implement retry logic and fallback mechanisms for improved reliability in production environments.\n\n**Content filtering**: Integrate moderation capabilities to ensure appropriate responses in customer-facing applications.\n\n**Analytics integration**: Connect monitoring tools to track usage patterns, response quality, and performance metrics.\n\n**Multi-channel triggers**: Set up automated responses for various platforms like Slack, Discord, or custom webhooks.\n\n**Template management**: Create reusable prompt templates for different scenarios and use cases.\n\n**Output formatting**: Add post-processing for specific output formats (HTML, Markdown, JSON) based on integration requirements.\n",
+  "workflow": {
+    "id": "fFKIMw0PeIP2TuOx",
+    "meta": {
+      "instanceId": "9219ebc7795bea866f70aa3d977d54417fdf06c41944be95e20cfb60f992db19",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "cerebras with gpt oss 120b",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "dc93a613-c19f-4dd4-b633-a1112970455d",
+        "name": "When chat message received",
+        "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+        "position": [
+          208,
+          0
+        ],
+        "webhookId": "6530c15b-038f-4b20-bf38-58d034ac3ea6",
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "a941ace5-5a7e-495a-a37d-8dee620f2bb5",
+        "name": "Return Output",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          880,
+          0
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "409dd10e-b29c-4fac-b471-3204a46034a1",
+                "name": "output",
+                "type": "string",
+                "value": "={{ $json.choices[0].message.content }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "849f0355-d1e5-475c-bc1b-1fdd6c693745",
+        "name": "Set API Key",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          432,
+          0
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "f828da75-ee7e-482b-83e5-123005f9878d",
+                "name": "apiKey",
+                "type": "string",
+                "value": "your-api-key"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "1f1590ef-2682-40cc-9e5f-447a2513dcc0",
+        "name": "Cerebras endpoint",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          656,
+          0
+        ],
+        "parameters": {
+          "url": "https://api.cerebras.ai/v1/chat/completions",
+          "method": "POST",
+          "options": {
+            "redirect": {
+              "redirect": {}
+            }
+          },
+          "jsonBody": "={\n  \"model\": \"gpt-oss-120b\",\n  \"stream\": false,\n  \"messages\": [\n    {\n      \"content\": \"{{ $('When chat message received').item.json.chatInput }}\",\n      \"role\": \"user\"\n    }\n  ],\n  \"temperature\": 0,\n  \"max_completion_tokens\": -1,\n  \"seed\": 0,\n  \"top_p\": 1\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{ $json.apiKey }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "9eb60d7e-b40e-4e26-87ce-000e99c45985",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          384,
+          -144
+        ],
+        "parameters": {
+          "width": 192,
+          "height": 304,
+          "content": "## Set API key \n**Create an account and [get your Cerebras key](https://cerebras.ai)**"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4eba1448-d1eb-4ceb-85df-de10a942a91a",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          592,
+          176
+        ],
+        "parameters": {
+          "width": 272,
+          "height": 240,
+          "content": "## Parameters\nSet your endpoint parameters as needed\n- temperature\n- completion tokens\n- top P\n- reasoning effort\n\n[Review the endpoint](https://inference-docs.cerebras.ai/api-reference/chat-completions)"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "4a9e3b9f-4132-4871-b159-6c0663bcb49d",
+    "connections": {
+      "Set API Key": {
+        "main": [
+          [
+            {
+              "node": "Cerebras endpoint",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Cerebras endpoint": {
+        "main": [
+          [
+            {
+              "node": "Return Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When chat message received": {
+        "main": [
+          [
+            {
+              "node": "Set API Key",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7651",
+  "fetched_at": "2026-09-12T13:12:02Z"
+}

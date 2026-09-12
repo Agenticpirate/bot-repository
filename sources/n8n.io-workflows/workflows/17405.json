@@ -1,0 +1,214 @@
+{
+  "id": 17405,
+  "name": "Post Facebook image captions from Google Drive using Gemini Vision",
+  "description": "## Quick Overview\nThis workflow runs on a schedule, pulls the next image from a Google Drive folder, generates a Facebook-ready caption with Google Gemini Vision, and publishes the image and caption to a Facebook Page using the Facebook Graph API.\n\n## How it works\n1. Runs every three days at 19:30 on a schedule.\n2. Sets the Facebook Page ID, CTA link, and brand context used throughout the workflow.\n3. Searches a specified Google Drive folder and selects the next image file, then downloads it.\n4. Sends the downloaded image plus your brand context to Google Gemini Vision to generate a caption returned as JSON.\n5. Posts the image (via a Google Drive thumbnail URL) and the generated caption to your Facebook Page through the Facebook Graph API /photos endpoint.\n\n## Setup\n1. Add credentials for Google Drive OAuth2, Google Gemini, and Facebook Graph API (with a Page Access Token that can publish photos).\n2. Replace the Facebook Page ID, CTA link, and brand context values in the Config step.\n3. Update the Google Drive folder ID in the file search step to point to your image folder and ensure it contains images you want to post.",
+  "workflow": {
+    "name": "AI Social Poster — Facebook (Google Drive + Gemini Vision)",
+    "nodes": [
+      {
+        "id": "sticky-main",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -864,
+          -128
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "sticky-trigger-config",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -304,
+          -80
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "sticky-fetch",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          176,
+          -80
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "sticky-caption",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          640,
+          -128
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "sticky-publish",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          912,
+          -96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "trigger-1",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -260,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "config-1",
+        "name": "Config",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -20,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "drive-search-1",
+        "name": "Search files and folders",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          220,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "drive-download-1",
+        "name": "Download file",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          440,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "gemini-analyze-1",
+        "name": "Analyze an image",
+        "type": "@n8n/n8n-nodes-langchain.googleGemini",
+        "position": [
+          688,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "fb-post-1",
+        "name": "Post to Facebook",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          960,
+          80
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      }
+    ],
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "connections": {
+      "Config": {
+        "main": [
+          [
+            {
+              "node": "Search files and folders",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Download file": {
+        "main": [
+          [
+            {
+              "node": "Analyze an image",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Analyze an image": {
+        "main": [
+          [
+            {
+              "node": "Post to Facebook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Config",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Search files and folders": {
+        "main": [
+          [
+            {
+              "node": "Download file",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 33,
+      "name": "Social Media"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/17405",
+  "fetched_at": "2026-09-12T13:16:27Z"
+}

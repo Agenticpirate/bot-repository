@@ -1,0 +1,423 @@
+{
+  "id": 7850,
+  "name": "Automated workflow backups with Google Drive and Slack notifications",
+  "description": "## Efficient loop-less N8N Workflow Backup Automation to Google Drive\n\n\n**This workflow eliminates traditional loop-based processing entirely, delivering unprecedented performance and reliability even when the number of workflows to be processed are large**\n\n### **What Makes This Different:**\n- **NO SplitInBatches node** - Traditional workflows use loops to process workflows one by one\n- **NO individual file uploads** - No more multiple Google Drive API calls\n- **NO batch error handling** - Eliminates complex loop iteration error management\n- **ALL workflows processed simultaneously** - Revolutionary single-operation approach\n- **Single compressed archive** - One ZIP file containing all workflows\n- **One Google Drive upload** - Maximum efficiency, minimum API usage\n\n### **Key Benefits of Non-Loop Architecture:**\n- **3-5x Faster Execution** - Eliminated loop overhead and multiple API calls\n- **Reduced API Costs** - Single upload instead of dozens of individual operations\n- **Higher Reliability** - Fewer failure points, centralized error handling\n- **Better Scalability** - Performance doesn't degrade with workflow count\n- **Large Workflow Support** - **Efficiently handles hundreds of workflows without performance degradation**\n- **Easier Maintenance** - Simpler workflow structure, easier debugging\n- **Cleaner Monitoring** - Single success/failure point instead of loop iterations\n\n---\n\n## Who's it for\n\nThis template is designed for **n8n users, DevOps engineers, system administrators, and IT professionals** who need reliable, automated backup solutions for their n8n workflows. It's perfect for businesses and individuals who want to ensure their workflow automation investments are safely backed up with intelligent scheduling, compression, and cloud storage integration.\n\n## How it works / What it does\n\nThis workflow creates an **intelligent, automated backup system** that transforms n8n workflow backups from inefficient multi-file operations into streamlined single-archive automation. The system:\n\n1. **Triggers automatically every 4 hours** or manually on-demand\n2. **Creates timestamped folders** in Google Drive for organized backup storage\n3. **Retrieves all n8n workflows** via the n8n API in a single operation\n4. **Converts workflows to JSON** and aggregates binary data efficiently\n5. **Compresses all workflows into a single ZIP archive** (eliminating the need for loops)\n6. **Uploads the compressed backup** to Google Drive in one operation\n7. **Provides real-time Slack notifications** for monitoring and alerting\n\n**Key Innovation: No Loops Required** - Unlike traditional backup workflows that use SplitInBatches or loops to process workflows individually, this system processes all workflows simultaneously and creates a single compressed archive, dramatically improving performance and reliability.\n\n## How to set up\n\n### 1. Configure Google Drive API Credentials\n- Set up Google Drive OAuth2 API credentials\n- Ensure the service account has access to create folders and upload files\n- Update the parent folder ID where backup folders will be created\n\n### 2. Configure n8n API Access\n- Set up internal n8n API credentials for workflow retrieval\n- Ensure the API has permissions to read all workflows\n- Configure retry settings for reliability\n\n### 3. Set up Slack Notifications\n- Configure Slack API credentials for the notification channel\n- Update the channel ID where backup notifications will be sent\n- Customize notification messages as needed\n\n### 4. Schedule Configuration\n- The workflow automatically runs every 4 hours\n- Manual execution is available for immediate backups\n- Adjust the schedule in the Schedule Trigger node as needed\n\n### 5. Test the Integration\n- Run a manual backup to verify all components work correctly\n- Check Google Drive for the created backup folder and ZIP file\n- Verify Slack notifications are received\n\n## Requirements\n\n- **n8n instance** (self-hosted or cloud) with API access\n- **Google Drive account** with API access and sufficient storage\n- **Slack workspace** for notifications (optional but recommended)\n- **n8n workflows** that need regular backup protection\n\n## How to customize the workflow\n\n### Modify Backup Frequency\n- Adjust the Schedule Trigger node for different intervals (hourly, daily, weekly)\n- Add multiple schedule triggers for different backup types\n- Implement conditional scheduling based on workflow changes\n\n### Enhance Storage Strategy\n- Add multiple Google Drive accounts for redundancy\n- Implement backup rotation and retention policies\n- Add compression options (ZIP, TAR, 7Z) for different use cases\n\n### Expand Notification System\n- Add email notifications for critical backup events\n- Integrate with monitoring systems (PagerDuty, OpsGenie)\n- Add backup success/failure metrics and reporting\n\n### Security Enhancements\n- Implement backup encryption before upload\n- Add backup verification and integrity checks\n- Set up access logging and audit trails\n\n### Performance Optimizations\n- Add parallel processing for large workflow collections\n- Implement incremental backup strategies\n- Add backup size monitoring and alerts\n\n## Key Features\n\n- **Zero-loop architecture** - Processes all workflows simultaneously without batch processing\n- **Intelligent compression** - Single ZIP archive instead of multiple individual files\n- **Automated scheduling** - Runs every 4 hours with manual override capability\n- **Organized storage** - Timestamped folders with clear naming conventions\n- **Real-time monitoring** - Slack notifications for all backup events\n- **Error handling** - Centralized error management with graceful failure handling\n- **Scalable design** - Handles any number of workflows efficiently\n\n## Technical Architecture Highlights\n\n### Eliminated Inefficiencies\n- **No SplitInBatches node** - Replaced with direct workflow processing\n- **No individual file uploads** - Single compressed archive upload\n- **No loop iterations** - All workflows processed in one operation\n- **No batch error handling** - Centralized error management\n\n### Performance Improvements\n- **Faster execution** - Eliminated loop overhead and multiple API calls\n- **Reduced API quota usage** - Single Google Drive upload per backup\n- **Better resource utilization** - Efficient memory and processing usage\n- **Improved reliability** - Fewer points of failure in the workflow\n\n### Data Flow Optimization\n- **Parallel processing** - Folder creation and workflow retrieval happen simultaneously\n- **Efficient aggregation** - Code node processes all binaries at once\n- **Smart compression** - Single ZIP with all workflows included\n- **Streamlined upload** - One file transfer instead of multiple operations\n\n## Use Cases\n\n- **Production n8n instances** requiring reliable backup protection\n- **Development teams** needing workflow version control and recovery\n- **DevOps automation** requiring disaster recovery capabilities\n- **Business continuity** planning for critical automation workflows\n- **Compliance requirements** for workflow documentation and backup\n- **Team collaboration** with shared workflow backup access\n\n## Business Value\n\n- **Risk Mitigation** - Protects valuable automation investments\n- **Operational Efficiency** - Faster, more reliable backup processes\n- **Cost Reduction** - Lower storage costs and API usage\n- **Compliance Support** - Organized backup records for audits\n- **Team Productivity** - Reduced backup management overhead\n- **Scalability** - Handles growth without performance degradation\n\nThis template revolutionizes n8n workflow backup by eliminating the complexity and inefficiency of traditional loop-based approaches, providing a robust, scalable solution that grows with your automation needs while maintaining the highest levels of reliability and performance.\n",
+  "workflow": {
+    "id": "vnlmgDq8SZlzMcfi",
+    "meta": {
+      "instanceId": "50631c03cbd88440965b74e5a58aada5437cbc43e90372b516e36154908ad374",
+      "templateId": "2886"
+    },
+    "name": "Backup all n8n workflows to Google Drive every 4 hours",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "26b6a8ca-cf9e-4eab-9f2a-841f975a4741",
+        "name": "On clicking 'execute'",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          240,
+          448
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "c42307c1-0d95-4500-85e8-a89234a7e2e7",
+        "name": "create new folder",
+        "type": "n8n-nodes-base.googleDrive",
+        "onError": "continueErrorOutput",
+        "position": [
+          464,
+          560
+        ],
+        "parameters": {
+          "name": "=Workflow Backups {{ $now.format('cccc t dd-MM-yyyy') }}",
+          "driveId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "My Drive"
+          },
+          "options": {},
+          "folderId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "14Mui2em5keVRWaoq3dlrvaX8KNRxw2h2",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/14Mui2em5keVRWaoq3dlrvaX8KNRxw2h2",
+            "cachedResultName": "N8N Backups"
+          },
+          "resource": "folder"
+        },
+        "credentials": {
+          "googleDriveOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleDriveOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "139487f6-1ef0-4835-bdef-a896dbbdf942",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          240,
+          640
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "hours",
+                "hoursInterval": 4
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "724c83f9-9e07-4a87-9f25-d1631a8ef403",
+        "name": "Completed Notification",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          1808,
+          192
+        ],
+        "webhookId": "0a1c0309-0a0b-4e37-972d-b229684c2d52",
+        "parameters": {
+          "text": "=✅ Backup has completed - {{ $('Get many workflows').all().length }} workflows have been processed.",
+          "select": "channel",
+          "channelId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "C099YS0V3M2"
+          },
+          "otherOptions": {}
+        },
+        "credentials": {
+          "slackApi": {
+            "id": "credential-id",
+            "name": "slackApi Credential"
+          }
+        },
+        "executeOnce": true,
+        "typeVersion": 2.2
+      },
+      {
+        "id": "939d7dc3-2080-4ac7-9609-ef598b018eb2",
+        "name": "Failed Notification",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          1808,
+          752
+        ],
+        "webhookId": "8e3c13d8-3bcc-4832-b511-30fc816350c8",
+        "parameters": {
+          "text": "=❌ Error in the N8N Backup Workflow",
+          "select": "channel",
+          "channelId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "C099YS0V3M2"
+          },
+          "otherOptions": {}
+        },
+        "credentials": {
+          "slackApi": {
+            "id": "credential-id",
+            "name": "slackApi Credential"
+          }
+        },
+        "executeOnce": true,
+        "typeVersion": 2.2
+      },
+      {
+        "id": "53a6e217-05cb-4d9d-93ba-686cfec5e7b7",
+        "name": "Convert to File1",
+        "type": "n8n-nodes-base.convertToFile",
+        "position": [
+          848,
+          240
+        ],
+        "parameters": {
+          "mode": "each",
+          "options": {
+            "fileName": "={{ $json.name + '.json' }}"
+          },
+          "operation": "toJson"
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "80cdeba1-1d1c-4b20-994b-09d1791cf534",
+        "name": "Compression",
+        "type": "n8n-nodes-base.compression",
+        "position": [
+          1200,
+          384
+        ],
+        "parameters": {
+          "fileName": "={{ 'workflows_backup_' + new Date().toISOString().slice(0,10) + '.zip' }}",
+          "operation": "compress",
+          "outputFormat": "=zip",
+          "binaryPropertyName": "={{ Object.keys($binary).join(',') }}"
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "96167a67-bc95-4414-bf61-52d225ffc43d",
+        "name": "Code",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1024,
+          320
+        ],
+        "parameters": {
+          "jsCode": "let binaries = {}, binary_keys = [];\n\nfor (const [index, inputItem] of Object.entries($input.all())) {\n  binaries[`data_${index}`] = inputItem.binary.data;\n  binary_keys.push(`data_${index}`);\n}\n\nreturn [{\n    json: {\n        binary_keys: binary_keys.join(',')\n    },\n    binary: binaries\n}];\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "502b946e-2543-486a-aaa6-f3a11bdfde80",
+        "name": "Upload file",
+        "type": "n8n-nodes-base.googleDrive",
+        "onError": "continueErrorOutput",
+        "position": [
+          1568,
+          464
+        ],
+        "parameters": {
+          "name": "={{ 'workflows_backup_' + new Date().toISOString().slice(0,10) + '.zip' }}",
+          "driveId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "My Drive"
+          },
+          "options": {},
+          "folderId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ $json.folderId }}"
+          },
+          "inputDataFieldName": "=data"
+        },
+        "credentials": {
+          "googleDriveOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleDriveOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "e4cfa753-d0c7-452f-9f10-0cd22d57d2ec",
+        "name": "Get many workflows",
+        "type": "n8n-nodes-base.n8n",
+        "position": [
+          688,
+          192
+        ],
+        "parameters": {
+          "filters": {},
+          "returnAll": "=1",
+          "requestOptions": {}
+        },
+        "credentials": {
+          "n8nApi": {
+            "id": "credential-id",
+            "name": "n8nApi Credential"
+          }
+        },
+        "retryOnFail": true,
+        "typeVersion": 1,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "261700eb-b41d-4eb4-883a-87c10b6600e3",
+        "name": "Set New Folder Id",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1200,
+          544
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "d76278da-3d66-4776-893f-d7b7cd8bdd04",
+                "name": "folderId",
+                "type": "string",
+                "value": "={{ $json.id }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "e5ae88c5-5246-409f-acae-087c8de30a08",
+        "name": "Merge",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          1392,
+          464
+        ],
+        "parameters": {
+          "mode": "combine",
+          "options": {},
+          "combineBy": "combineByPosition"
+        },
+        "typeVersion": 3.2
+      }
+    ],
+    "active": true,
+    "pinData": {},
+    "settings": {},
+    "versionId": "c7acf018-a4f5-437b-9ae3-0d9298408c3b",
+    "connections": {
+      "Code": {
+        "main": [
+          [
+            {
+              "node": "Compression",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge": {
+        "main": [
+          [
+            {
+              "node": "Upload file",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Compression": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Upload file": {
+        "main": [
+          [
+            {
+              "node": "Completed Notification",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Failed Notification",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Convert to File1": {
+        "main": [
+          [
+            {
+              "node": "Code",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "create new folder",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set New Folder Id": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "create new folder": {
+        "main": [
+          [
+            {
+              "node": "Set New Folder Id",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Get many workflows",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Failed Notification",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get many workflows": {
+        "main": [
+          [
+            {
+              "node": "Convert to File1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "On clicking 'execute'": {
+        "main": [
+          [
+            {
+              "node": "create new folder",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 16,
+      "name": "DevOps"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7850",
+  "fetched_at": "2026-09-12T13:12:08Z"
+}

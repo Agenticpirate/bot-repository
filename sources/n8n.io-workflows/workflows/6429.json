@@ -1,0 +1,208 @@
+{
+  "id": 6429,
+  "name": "Generate & distribute market reports with Google Docs, Sheets, and Gmail",
+  "description": "### How It Works ⚙️\n\nThis workflow is a powerful automation engine for your marketing efforts. On a set schedule, it automatically generates a professional market report and distributes it to your client list, positioning you as a market expert with zero manual effort.\n\n1.  **0. Cron (Monthly Schedule):** ⏰ The workflow is triggered automatically on the first day of every month at a specified time (e.g., 8:00 AM).\n2.  **1. HTTP Request (Get Market Data):** 📊 It connects to an external market data API to fetch the latest raw statistics and trends for your region.\n3.  **2. Function (Process Data):** 📝 This node processes the raw API data, formats it, and calculates key metrics (e.g., total sales, average price) to be used in the final report.\n4.  **3. Google Docs (Create Report):** 📄 Using a pre-designed Google Docs template, the workflow dynamically creates a new report document, filling in the placeholders with the data processed in the previous step.\n5.  **4. Google Sheets (Get Client List):** 📋 It fetches your client mailing list from a Google Sheet, which acts as your central database for client contacts.\n6.  **5. Split In Batches:** 🔄 This node ensures that each client from the mailing list is processed individually, preventing any issues with bulk emailing.\n7.  **6. Gmail (Send Report):** 📧 For each client, a personalized email is sent with the newly generated market report attached as a PDF, completing the distribution process.\n\n---\n\n### How to Set Up 🛠️\n\nSetting up this complex workflow requires careful configuration of each node and external services.\n\n1.  **Import Workflow JSON:**\n    * Open your n8n instance.\n    * Click on 'Workflows' in the left sidebar.\n    * Click the '+' button or 'New' to create a new workflow.\n    * Click the '...' (More Options) icon in the top right.\n    * Select 'Import from JSON' and paste the entire JSON code for this workflow.\n\n2.  **Prepare Your Data & Tools:**\n    * **Market Data API:** Obtain an API key or access for a market data service that provides the data you need. This could be a public service or an internal one.\n    * **Google Docs Template:** Create a Google Docs template for your market report. Use placeholders like `{{ averagePrice }}`, `{{ totalSales }}`, and `{{ reportMonth }}` for the data you want to insert.\n    * **Client Mailing List:** Create a Google Sheet with a list of your clients. It must have columns like `Client Name` and `Client Email`.\n    * **n8n Credentials:** Ensure you have configured OAuth2 credentials for both Google Sheets and Google Docs.\n\n3.  **Configure 0. Cron (Monthly Schedule):**\n    * The node is pre-configured to run on the 1st of every month at 8 AM. You can adjust the `hour` or `dayOfMonth` if needed.\n\n4.  **Configure 1. HTTP Request (Get Market Data):**\n    * Locate the '1. HTTP Request (Get Market Data)' node.\n    * **URL:** **Replace `https://api.your-market-data-service.com/data/monthly?region=Jakarta`** with the actual URL of your market data API endpoint.\n    * **Authentication:** Configure the authentication (e.g., `Header Auth` for an API key) according to your API provider's documentation.\n\n5.  **Configure 2. Function (Process Data):**\n    * Locate the '2. Function (Process Data)' node.\n    * **Data Mapping:** The code is an example. **You MUST update the code** inside this node to correctly parse the JSON data coming from your specific API call and extract the metrics you need.\n    * **Expressions:** Ensure the variable names (`totalSales`, `averagePrice`, etc.) match the placeholders in your Google Docs template.\n\n6.  **Configure 3. Google Docs (Create Report):**\n    * Locate the '3. Google Docs (Create Report)' node.\n    * **Credentials:** Select your Google Docs OAuth2 credential.\n    * **Document ID:** **Replace `YOUR_GOOGLE_DOCS_TEMPLATE_ID`** with the ID of the template you created.\n    * **Template Variables:** Ensure the `variable` names (`averagePrice`, `totalSales`, etc.) perfectly match the placeholders in your Google Docs template.\n\n7.  **Configure 4. Google Sheets (Get Client List):**\n    * Locate the '4. Google Sheets (Get Client List)' node.\n    * **Credentials:** Select your Google Sheets OAuth2 credential.\n    * **Spreadsheet ID:** **Replace `YOUR_CLIENT_MAILING_LIST_SPREADSHEET_ID`** with the ID of your client list sheet.\n    * **Sheet Name:** Enter the exact name of the sheet (tab) containing your client data.\n\n8.  **Configure 5. Split In Batches:**\n    * This node requires no configuration. It will automatically process each client from the Google Sheets list one by one.\n\n9.  **Configure 6. Gmail (Send Report):**\n    * Locate the '6. Gmail (Send Report)' node.\n    * **Credentials:** Select your Gmail OAuth2 credential.\n    * **From Email:** **Replace `your-agency-email@example.com`** with the email address you want to send from.\n    * **To Email:** `={{ $json['Client Email'] }}` (This pulls the email from the current batch item).\n    * **Attachments:** The node is set up to attach the file created by the Google Docs node. No changes are needed here unless you want to customize the file name.\n\n10. **Review and Activate:**\n    * Thoroughly review all node configurations. This is a complex workflow, so be meticulous.\n    * Click 'Save' and then toggle the 'Inactive' switch to 'Active' to enable your workflow. 🟢 Your automated marketing engine is now live!",
+  "workflow": {
+    "id": "GlgUwkuAq48MlxaK",
+    "meta": {
+      "instanceId": "a287613f1596da776459594685fbf4e2b4a12124f80ab8c8772f5e37bff103ae",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Automated Market Report Generation & Distribution",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "9dfa0ef3-23eb-4b26-a122-b75ef6c94b04",
+        "name": "0. Cron (Monthly Schedule)",
+        "type": "n8n-nodes-base.cron",
+        "position": [
+          -1648,
+          208
+        ],
+        "parameters": {},
+        "description": "Triggers on the 1st day of every month at 8 AM to generate the report.",
+        "typeVersion": 1
+      },
+      {
+        "id": "75f56194-4398-477f-a871-9b99e7c11e47",
+        "name": "1. HTTP Request (Get Market Data)",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -1424,
+          208
+        ],
+        "parameters": {},
+        "description": "Fetches raw market data for a specific region from an external API.",
+        "typeVersion": 1
+      },
+      {
+        "id": "b50f4ece-6f82-4fe4-bec6-9bab5eb5c3a9",
+        "name": "2. Function (Process Data)",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          -1200,
+          208
+        ],
+        "parameters": {},
+        "description": "Processes and formats the raw API data for the report template.",
+        "typeVersion": 1
+      },
+      {
+        "id": "b413874a-4940-4c9c-9979-8a83363c9048",
+        "name": "3. Google Docs (Create Report)",
+        "type": "n8n-nodes-base.googleDocs",
+        "position": [
+          -976,
+          208
+        ],
+        "parameters": {},
+        "description": "Creates a new report document from a template and fills it with market data.",
+        "typeVersion": 1
+      },
+      {
+        "id": "919caceb-0843-4bc7-b728-3cb9ef3f1245",
+        "name": "4. Google Sheets (Get Client List)",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          -752,
+          208
+        ],
+        "parameters": {},
+        "description": "Gets all client emails from your mailing list sheet.",
+        "typeVersion": 3
+      },
+      {
+        "id": "2dd3cac5-6073-4877-934d-bb3de4d22a44",
+        "name": "5. Split In Batches",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          -528,
+          208
+        ],
+        "parameters": {},
+        "description": "Processes each client email one by one to send the report.",
+        "typeVersion": 1
+      },
+      {
+        "id": "9518ca4b-3085-4510-8fad-d8be6915bb62",
+        "name": "6. Gmail (Send Report)",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          -304,
+          208
+        ],
+        "parameters": {},
+        "description": "Sends the generated report as an attachment to each client.",
+        "typeVersion": 1
+      },
+      {
+        "id": "a34de244-453a-406d-8b49-dcc3dac8b143",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1728,
+          144
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e27d8aeb-ac2d-43ad-8668-2ed849d61249",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1728,
+          448
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "1e2422b5-3680-49de-a885-eb33fd9f112f",
+    "connections": {
+      "5. Split In Batches": {
+        "main": [
+          [
+            {
+              "node": "6. Gmail (Send Report)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "0. Cron (Monthly Schedule)": {
+        "main": [
+          [
+            {
+              "node": "1. HTTP Request (Get Market Data)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "2. Function (Process Data)": {
+        "main": [
+          [
+            {
+              "node": "3. Google Docs (Create Report)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "3. Google Docs (Create Report)": {
+        "main": [
+          [
+            {
+              "node": "4. Google Sheets (Get Client List)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "1. HTTP Request (Get Market Data)": {
+        "main": [
+          [
+            {
+              "node": "2. Function (Process Data)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "4. Google Sheets (Get Client List)": {
+        "main": [
+          [
+            {
+              "node": "5. Split In Batches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6429",
+  "fetched_at": "2026-09-12T13:11:20Z"
+}

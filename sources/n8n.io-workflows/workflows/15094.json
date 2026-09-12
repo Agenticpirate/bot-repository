@@ -1,0 +1,402 @@
+{
+  "id": 15094,
+  "name": "Categorize meetings and log time with Fireflies, GPT-4o-mini, and Google Sheets",
+  "description": "### Description\n\nConnect Fireflies to this workflow once and every meeting you record is automatically categorized and logged to Google Sheets the moment transcription finishes. GPT-4o-mini reads the meeting title, keywords, overview, and action items, then assigns one of seven categories — Sales, Client, Internal, HR, Product, Finance, or Other — along with a confidence rating and a one-sentence reason. Each meeting becomes one clean row in your sheet with emoji labels for instant visual scanning. Built for founders, operations managers, and team leads who want a searchable, sortable record of how their time is actually being spent across meeting types.\n\n---\n\n## What This Workflow Does\n\n- **Triggers instantly when a meeting ends** — Fireflies fires the workflow the moment transcription completes, so no manual step is ever needed\n- **Fetches meeting details from Fireflies** — Retrieves the title, date, duration, participants, keywords, overview, and action items for each meeting\n- **Assigns one of seven categories** — GPT-4o-mini classifies every meeting as Sales, Client, Internal, HR, Product, Finance, or Other based on actual meeting content\n- **Scores confidence per classification** — Returns High, Medium, or Low confidence so you know which categorizations to trust and which to review\n- **Adds emoji labels for visual scanning** — Category and confidence values are emoji-coded before logging so your sheet is readable at a glance without filtering\n- **Logs one row per meeting to Google Sheets** — Appends a 10-column record automatically including date, title, category, confidence, reason, duration, participants, keywords, and a direct Fireflies link\n\n---\n\n## Setup Requirements\n\n### Tools Needed\n- n8n instance (self-hosted or cloud)\n- Fireflies.ai account with webhook access\n- OpenAI account with GPT-4o-mini API access\n- Google Sheets (one sheet with a tab named **Meeting Categories**)\n\n### Credentials Required\n- Fireflies API key (pasted into **Set Config Values**)\n- OpenAI API key\n- Google Sheets OAuth2\n\n**Estimated Setup Time: 10–15 minutes**\n\n---\n\n## Step-by-Step Setup\n\n1. **Import the workflow** — Open n8n → Workflows → Import from JSON → paste the workflow JSON → click Import\n\n2. **Activate the workflow and copy the webhook URL** — Toggle the workflow to Active → click on node **Fireflies Webhook** → copy the Production URL shown\n\n3. **Register the webhook in Fireflies** — Log in to app.fireflies.ai → Settings → Developer Settings → Webhooks → paste the webhook URL → save\n\n4. **Get your Fireflies API key** — In Fireflies, go to Settings → Integrations → Fireflies API → copy your API key\n\n5. **Get your Google Sheet ID** — Open your Google Sheet in a browser → look at the URL → copy the string between `/d/` and `/edit` (e.g. in `docs.google.com/spreadsheets/d/1ABC123xyz/edit`, the ID is `1ABC123xyz`)\n\n6. **Fill in Config Values** — Open node **Set Config Values** → replace the two placeholders:\n\n| Field | What to enter |\n|---|---|\n| `YOUR_FIREFLIES_API_KEY` | Your Fireflies API key from step 4 |\n| `YOUR_GOOGLE_SHEET_ID` | Your Google Sheet ID from step 5 |\n\n&gt; ⚠️ Do NOT change the `meetingId` field — it is extracted automatically from the Fireflies webhook and must remain as-is.\n\n7. **Create your Google Sheet tab** — Open your Google Sheet → add a tab named exactly **Meeting Categories** → add these 10 column headers in row 1: `Date`, `Meeting Title`, `Category`, `Confidence`, `Reason`, `Duration (min)`, `Participants`, `Keywords`, `Fireflies URL`, `Logged At`\n\n8. **Connect OpenAI** — Open node **OpenAI Chat Model** → click the credential dropdown → add your OpenAI API key → test the connection\n\n9. **Connect Google Sheets** — Open node **Log to Google Sheets** → click the credential dropdown → add Google Sheets OAuth2 → sign in with your Google account → authorize access\n\n10. **Activate the workflow** — Confirm the workflow is Active — Fireflies will now fire it automatically after every recorded meeting\n\n---\n\n## How It Works (Step by Step)\n\n**Step 1 — Webhook: Fireflies Webhook**\nThis step listens for a signal from Fireflies. Every time a meeting finishes transcribing, Fireflies sends a POST request to this webhook URL containing the meeting ID and event type. No manual trigger is needed — it fires automatically after every recorded call where you are the organizer.\n\n**Step 2 — Set: Config Values**\nYour Fireflies API key, Google Sheet ID, sheet tab name, and the meeting ID from the webhook are stored here. The meeting ID is extracted automatically from all possible Fireflies payload formats — you never need to enter it manually.\n\n**Step 3 — HTTP: Fetch Transcript from Fireflies**\nA request is sent to the Fireflies API using your API key and the meeting ID. It retrieves the meeting title, date, duration, participants, transcript URL, keywords, overview, and action items. Only lightweight summary fields are fetched — no full sentence-by-sentence transcript — keeping the response fast and small.\n\n**Step 4 — Code: Extract Meeting Data**\nThe Fireflies response is processed into clean, usable fields. Keywords are limited to the top 12, the overview is capped at 600 characters, and action items are limited to the top 5. The meeting date is formatted as a readable date string. If the transcript is not found or not yet ready, the step throws an error and the workflow stops cleanly without creating a blank row in your sheet.\n\n**Step 5 — AI Agent: Categorize Meeting**\nGPT-4o-mini receives the meeting title, keywords, overview, action items, participants, and duration. It assigns exactly one category from the seven options and returns three structured fields: the category name, a confidence level (High, Medium, or Low), and a one-sentence plain-text reason for the choice. The model runs at temperature 0.1 for highly consistent, repeatable categorization.\n\n**Step 6 — OpenAI Chat Model**\nThis is the language model powering the categorization step. It uses GPT-4o-mini at temperature 0.1 and is capped at 150 tokens — only three short fields are needed per meeting, making this extremely cost-efficient at approximately $0.0002 per meeting.\n\n**Step 7 — Structured Output Parser**\nThis step enforces the exact three-field schema GPT-4o-mini must return. It validates that category, confidence, and reason are all present and correctly typed before the results move forward, preventing any malformed AI output from reaching your sheet.\n\n**Step 8 — Code: Prepare Sheet Row**\nThe AI output is read and emoji labels are added based on category and confidence. Category emojis: 💰 Sales, 🤝 Client, 🏢 Internal, 👥 HR, 🛠️ Product, 📊 Finance, 📋 Other. Confidence emojis: ✅ High, 🟡 Medium, ⚠️ Low. All meeting metadata from step 4 is combined with the AI output into one complete row ready for logging.\n\n**Step 9 — Google Sheets: Log to Google Sheets**\nOne row is appended to your Meeting Categories tab with all 10 columns populated: date, meeting title, category with emoji, confidence with emoji, reason, duration in minutes, participants, keywords, Fireflies transcript URL, and the logged-at timestamp.\n\nThe final result: every meeting ends with a new row in your Google Sheet — categorized, confidence-rated, and ready to filter or sort by meeting type.\n\n---\n\n## Key Features\n\n✅ **Fires automatically on every meeting** — No manual input ever needed after the one-time webhook setup in Fireflies\n✅ **Seven category options cover all meeting types** — Sales, Client, Internal, HR, Product, Finance, and Other handle virtually every business meeting scenario\n✅ **Confidence rating per classification** — High, Medium, and Low ratings tell you exactly how certain the AI was so you can spot which rows to review manually\n✅ **Emoji-coded for instant visual scanning** — Category and confidence columns use emojis so you can read your sheet at a glance without needing to filter\n✅ **Direct Fireflies link in every row** — Each row includes a clickable link back to the full Fireflies transcript so you can open the original meeting in one click\n✅ **Ultra-low cost per meeting** — GPT-4o-mini at temperature 0.1 with a 150-token cap costs approximately $0.0002 per meeting — a full year of daily meetings costs less than a dollar\n✅ **Structured output enforced** — A schema parser validates all three AI fields before anything reaches your sheet — no broken or incomplete rows\n✅ **Lightweight API call** — Only summary fields are fetched from Fireflies (not full sentences), keeping each API call fast and the response small\n\n---\n\n## Customisation Options\n\n**Add your own custom categories** — In node **AI Agent — Categorize Meeting**, edit the category list in the prompt to replace or add categories that match your business (e.g. replace \"Finance\" with \"Investor\" or add \"Partnership\" as an eighth option) — also update the schema in **Structured Output Parser** to match.\n\n**Add a Slack notification for Sales meetings** — After node **Log to Google Sheets**, add an IF check that reads the category field — if it contains \"Sales\", post a Slack message to your `#sales-team` channel with the meeting title, participants, and Fireflies link for immediate team visibility.\n\n**Filter out internal meetings from the sheet** — In node **Prepare Sheet Row**, add a condition: if the category is \"Internal\" and confidence is \"High\", set a `skipLog` flag to true — then add an IF check before **Log to Google Sheets** to bypass logging for confirmed internal meetings and keep your sheet focused on client-facing activity.\n\n**Add a weekly category summary email** — Add a separate Schedule trigger that fires every Monday morning, reads the Meeting Categories sheet via a Google Sheets read step, counts rows by category from the past 7 days, and sends a summary email showing how many Sales, Client, and Internal meetings happened that week.\n\n**Use a different sheet per category** — In node **Prepare Sheet Row**, add logic that maps each category to a different `sheetName` value — then **Log to Google Sheets** will route each meeting to its own dedicated tab (e.g. all Sales calls on a Sales tab, all Client calls on a Client tab).\n\n---\n\n## Troubleshooting\n\n**Workflow not triggering when a meeting ends:**\n- Confirm the workflow is Active — inactive workflows do not receive Fireflies webhooks\n- Log in to app.fireflies.ai → Settings → Developer Settings → Webhooks → confirm the URL is saved and matches the Production URL from node **Fireflies Webhook** exactly\n- Note that Fireflies only fires the webhook for meetings where you are the organizer — guest meetings will not trigger it\n\n**Fireflies API key error or transcript not found:**\n- Confirm `YOUR_FIREFLIES_API_KEY` in node **Set Config Values** is replaced with your actual key — not the placeholder text\n- Get your key from fireflies.ai → Settings → Integrations → Fireflies API\n- If the transcript is not found, Fireflies may still be processing the meeting — this workflow stops cleanly with an error in this case; the meeting will not be logged until you rerun it manually or wait for the next webhook\n\n**OpenAI not categorizing correctly:**\n- Confirm the API key is connected in node **OpenAI Chat Model** and your account has available credits\n- Check the execution log of node **AI Agent — Categorize Meeting** for the raw GPT response\n- If categories are inconsistent, confirm the prompt text in **AI Agent — Categorize Meeting** is intact and has not been accidentally edited\n\n**Google Sheets not logging rows:**\n- Confirm the Google Sheets OAuth2 credential in node **Log to Google Sheets** is connected and not expired — re-authorize if needed\n- Check that `YOUR_GOOGLE_SHEET_ID` in node **Set Config Values** is the ID from the sheet URL, not the full URL\n- Confirm the tab is named **Meeting Categories** exactly — capitalization must match the `sheetName` value in **Set Config Values**\n- Verify all 10 column headers in row 1 match exactly: `Date`, `Meeting Title`, `Category`, `Confidence`, `Reason`, `Duration (min)`, `Participants`, `Keywords`, `Fireflies URL`, `Logged At`\n\n**AI returning a category not in the list:**\n- The **Structured Output Parser** enforces the schema — if an unexpected value appears, check the execution log of **AI Agent — Categorize Meeting** for the raw output\n- Confirm the seven category names in the prompt match exactly what the schema parser expects: Sales, Client, Internal, HR, Product, Finance, Other\n\n---\n\n## Support\n\nNeed help setting this up or want a custom version built for your team or agency?\n\n📧 Email: [info@isawow.com](info@isawow.com)\n🌐 Website: [https://isawow.com/](https://isawow.com/)",
+  "workflow": {
+    "meta": {
+      "instanceId": "bc8ca75c203589705ae2e446cad7181d6f2a7cc1766f958ef9f34810e53b8cb2",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "7d75ad19-39d1-4348-ac42-9a29dd83366e",
+        "name": "Overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -544,
+          288
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 492,
+          "height": 1020,
+          "content": "## Meeting Auto-Categorizer — Fireflies + GPT-4o-mini + Google Sheets\n\nFor teams who want every meeting automatically tagged with a category the moment it ends. When Fireflies finishes transcribing a meeting, this workflow fetches the transcript summary, sends it to GPT-4o-mini for classification, and logs one row to Google Sheets with the category, confidence level, and a one-sentence reason. After a few weeks you can filter the sheet by Category to see all Sales calls, all Internal syncs, and so on.\n\n## How it works\n- **1. Webhook — Fireflies Transcript Done** receives the meetingId from Fireflies on transcription complete\n- **2. Set — Config Values** stores your Fireflies API key, Google Sheet ID, sheet tab name, and extracts the meetingId from the webhook payload\n- **3. HTTP — Fetch Transcript** calls the Fireflies GraphQL API for title, date, duration, participants, transcript URL, keywords, overview, and action items\n- **4. Code — Extract Meeting Data** cleans and structures the response — throws an error if the transcript is not found so the execution stops cleanly\n- **5. AI Agent — Categorize Meeting** uses GPT-4o-mini (temperature 0.1) to assign exactly one of seven categories: Sales, Client, Internal, HR, Product, Finance, or Other\n- **8. Code — Prepare Sheet Row** adds category and confidence emojis for visual scanning in the sheet\n- **9. Google Sheets — Log Meeting Category** appends one row per meeting automatically\n\n## Set up steps\n1. Activate the workflow and copy the webhook URL from node 1\n2. In Fireflies — go to Settings, Developer Settings, Webhooks, and paste the URL\n3. In **2. Set — Config Values** — replace YOUR_FIREFLIES_API_KEY and YOUR_GOOGLE_SHEET_ID\n4. In **6. OpenAI — GPT-4o-mini Model** — connect your OpenAI credential\n5. In **9. Google Sheets — Log Meeting Category** — connect your Google Sheets OAuth2 credential\n6. Create a Google Sheet tab named Meeting Categories with columns: Date, Meeting Title, Category, Confidence, Reason, Duration (min), Participants, Keywords, Fireflies URL, Logged At"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e18a2a2d-22dc-473c-aad3-ba19696988fa",
+        "name": "Section — Webhook, Config, and Transcript Fetch",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          0,
+          544
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 660,
+          "height": 372,
+          "content": "## Webhook, Config, and Transcript Fetch\nFireflies POSTs a meetingId here on transcription complete. Config stores credentials and extracts the meetingId inline. HTTP fetches the lightweight transcript summary — no full sentences needed."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6d6fd196-e766-4171-8916-21ec55a61710",
+        "name": "Section — Meeting Data Extraction",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          688,
+          448
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 280,
+          "height": 564,
+          "content": "## Meeting Data Extraction\nCleans and structures the Fireflies response. Extracts title, date, duration, participants, keywords, overview, and action items. Throws an error if no transcript is found — execution stops cleanly without an IF node."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1fa087a9-5f08-4bcc-937d-270904e2f397",
+        "name": "Section — AI Meeting Categorization",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1072,
+          384
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 340,
+          "height": 868,
+          "content": "## AI Meeting Categorization\nGPT-4o-mini (temperature 0.1) assigns exactly one of seven categories: Sales, Client, Internal, HR, Product, Finance, or Other. Returns category, confidence level (High/Medium/Low), and a one-sentence reason. Structured Output Parser enforces the schema."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "cb040d24-9f5d-4b75-b6f3-8cc3c880fb32",
+        "name": "Section — Row Assembly and Sheet Logging",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1520,
+          544
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 468,
+          "height": 372,
+          "content": "## Row Assembly and Sheet Logging\nAdds category and confidence emojis for visual scanning. Appends one row per meeting to Google Sheets automatically."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "cd884f90-f451-4e80-bff2-06cfce2f8dc8",
+        "name": "1. Webhook — Fireflies Transcript Done",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          64,
+          688
+        ],
+        "webhookId": "ff-categorize-001",
+        "parameters": {
+          "path": "fireflies-categorize",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "6d4c7c1b-2743-4faa-bb86-37b6df39977a",
+        "name": "2. Set — Config Values",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          288,
+          688
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "cfg-001",
+                "name": "firefliesApiKey",
+                "type": "string",
+                "value": "YOUR_FIREFLIES_API_KEY"
+              },
+              {
+                "id": "cfg-002",
+                "name": "sheetId",
+                "type": "string",
+                "value": "YOUR_GOOGLE_SHEET_ID"
+              },
+              {
+                "id": "cfg-003",
+                "name": "sheetName",
+                "type": "string",
+                "value": "Meeting Categories"
+              },
+              {
+                "id": "cfg-004",
+                "name": "meetingId",
+                "type": "string",
+                "value": "={{ $json.meetingId || $json.body?.meetingId || $json.data?.meetingId || '' }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "2e987360-d714-4d52-b604-b1b8cd975951",
+        "name": "3. HTTP — Fetch Transcript",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          512,
+          688
+        ],
+        "parameters": {
+          "url": "https://api.fireflies.ai/graphql",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n  \"query\": \"query GetTranscript($id: String!) { transcript(id: $id) { id title date duration participants transcript_url summary { keywords overview action_items } } }\",\n  \"variables\": {\n    \"id\": \"{{ $json.meetingId }}\"\n  }\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{ $json.firefliesApiKey }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "6a8fc13c-9956-4963-97c5-f39cbc89ed08",
+        "name": "4. Code — Extract Meeting Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          784,
+          688
+        ],
+        "parameters": {
+          "jsCode": "const response = $input.first().json;\nconst config = $('2. Set — Config Values').item.json;\n\nconst t = response?.data?.transcript;\nif (!t || !t.id) throw new Error('Transcript not found for meetingId: ' + config.meetingId);\n\nconst summary = t.summary || {};\nconst keywords = (summary.keywords || []).slice(0, 12).join(', ') || 'None';\nconst overview = (summary.overview || '').substring(0, 600);\nconst actionItems = (summary.action_items || []).slice(0, 5).join(' | ') || 'None';\n\nconst meetingDate = t.date\n  ? new Date(t.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })\n  : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });\n\nreturn [{\n  json: {\n    meetingId: t.id,\n    title: t.title || 'Untitled Meeting',\n    meetingDate,\n    durationMin: Math.round((t.duration || 0) / 60),\n    participants: (t.participants || []).join(', ') || 'Unknown',\n    transcriptUrl: t.transcript_url || 'Not available',\n    keywords,\n    overview,\n    actionItems,\n    loggedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),\n    sheetId: config.sheetId,\n    sheetName: config.sheetName\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "4068dbe3-210a-45ef-a396-c6a81bca9e15",
+        "name": "5. AI Agent — Categorize Meeting",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          1120,
+          688
+        ],
+        "parameters": {
+          "text": "=You are a meeting categorization assistant.\n\nAnalyze this meeting and assign it exactly ONE category.\n\nMEETING TITLE: {{ $json.title }}\nKEYWORDS: {{ $json.keywords }}\nOVERVIEW: {{ $json.overview }}\nACTION ITEMS: {{ $json.actionItems }}\nPARTICIPANTS: {{ $json.participants }}\nDURATION: {{ $json.durationMin }} minutes\n\nChoose EXACTLY ONE category from this list:\n- Sales: demos, proposals, pricing discussions, lead calls, prospect outreach, deal negotiations\n- Client: existing client calls, account reviews, onboarding, support calls, client updates\n- Internal: team syncs, standups, planning sessions, retrospectives, internal project discussions\n- HR: interviews, performance reviews, hiring discussions, onboarding new staff, HR policy\n- Product: product roadmap, feature discussions, design reviews, engineering, tech discussions\n- Finance: budget reviews, invoicing, cost discussions, financial planning, accounting\n- Other: does not clearly fit any above category\n\nReturn ONLY a valid JSON object with exactly 3 fields. No extra text. No markdown. No backticks.\n\ncategory — exactly one of: Sales, Client, Internal, HR, Product, Finance, Other\n\nconfidence — exactly one of: High, Medium, Low\nHigh = title and keywords clearly match the category\nMedium = some signals match but not definitive\nLow = limited information, best guess\n\nreason — one plain sentence (under 20 words) explaining why this category was chosen.",
+          "options": {},
+          "promptType": "define",
+          "hasOutputParser": true
+        },
+        "typeVersion": 1.7
+      },
+      {
+        "id": "a3de9318-ded9-4554-9388-e455527868b0",
+        "name": "6. OpenAI — GPT-4o-mini Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          1120,
+          944
+        ],
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gpt-4o-mini"
+          },
+          "options": {
+            "maxTokens": 150,
+            "temperature": 0.1
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "0d378c8c-d714-421c-8b50-2cbfe8566276",
+        "name": "7. Parser — Structured Category Output",
+        "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "position": [
+          1264,
+          1104
+        ],
+        "parameters": {
+          "schemaType": "manual",
+          "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"category\": {\n      \"type\": \"string\",\n      \"description\": \"Exactly one of: Sales, Client, Internal, HR, Product, Finance, Other\"\n    },\n    \"confidence\": {\n      \"type\": \"string\",\n      \"description\": \"Exactly one of: High, Medium, Low\"\n    },\n    \"reason\": {\n      \"type\": \"string\",\n      \"description\": \"One sentence under 20 words explaining the category choice\"\n    }\n  },\n  \"required\": [\"category\", \"confidence\", \"reason\"]\n}"
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "d6095d15-3552-4c80-befc-b61a46a531aa",
+        "name": "8. Code — Prepare Sheet Row",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1584,
+          688
+        ],
+        "parameters": {
+          "jsCode": "const aiOutput = $input.first().json.output;\nconst meetingData = $('4. Code — Extract Meeting Data').item.json;\n\nconst category = aiOutput?.category || 'Other';\nconst confidence = aiOutput?.confidence || 'Low';\nconst reason = aiOutput?.reason || 'Could not determine category';\n\nconst categoryEmoji = {\n  'Sales': '💰',\n  'Client': '🤝',\n  'Internal': '🏢',\n  'HR': '👥',\n  'Product': '🛠️',\n  'Finance': '📊',\n  'Other': '📋'\n};\n\nconst confidenceEmoji = {\n  'High': '✅',\n  'Medium': '🟡',\n  'Low': '⚠️'\n};\n\nreturn [{\n  json: {\n    meetingDate: meetingData.meetingDate,\n    title: meetingData.title,\n    category: (categoryEmoji[category] || '📋') + ' ' + category,\n    confidence: (confidenceEmoji[confidence] || '🟡') + ' ' + confidence,\n    reason,\n    durationMin: meetingData.durationMin,\n    participants: meetingData.participants,\n    keywords: meetingData.keywords,\n    transcriptUrl: meetingData.transcriptUrl,\n    loggedAt: meetingData.loggedAt,\n    sheetId: meetingData.sheetId,\n    sheetName: meetingData.sheetName\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "1f25c997-1633-43dc-8f1a-a455e8c26799",
+        "name": "9. Google Sheets — Log Meeting Category",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1808,
+          688
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "Date": "={{ $json.meetingDate }}",
+              "Reason": "={{ $json.reason }}",
+              "Category": "={{ $json.category }}",
+              "Keywords": "={{ $json.keywords }}",
+              "Logged At": "={{ $json.loggedAt }}",
+              "Confidence": "={{ $json.confidence }}",
+              "Participants": "={{ $json.participants }}",
+              "Fireflies URL": "={{ $json.transcriptUrl }}",
+              "Meeting Title": "={{ $json.title }}",
+              "Duration (min)": "={{ $json.durationMin }}"
+            },
+            "mappingMode": "defineBelow"
+          },
+          "options": {
+            "cellFormat": "USER_ENTERED"
+          },
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "={{ $json.sheetName }}"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ $json.sheetId }}"
+          }
+        },
+        "typeVersion": 4.5
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "2. Set — Config Values": {
+        "main": [
+          [
+            {
+              "node": "3. HTTP — Fetch Transcript",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "3. HTTP — Fetch Transcript": {
+        "main": [
+          [
+            {
+              "node": "4. Code — Extract Meeting Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "8. Code — Prepare Sheet Row": {
+        "main": [
+          [
+            {
+              "node": "9. Google Sheets — Log Meeting Category",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "6. OpenAI — GPT-4o-mini Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "5. AI Agent — Categorize Meeting",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "4. Code — Extract Meeting Data": {
+        "main": [
+          [
+            {
+              "node": "5. AI Agent — Categorize Meeting",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "5. AI Agent — Categorize Meeting": {
+        "main": [
+          [
+            {
+              "node": "8. Code — Prepare Sheet Row",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "1. Webhook — Fireflies Transcript Done": {
+        "main": [
+          [
+            {
+              "node": "2. Set — Config Values",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "7. Parser — Structured Category Output": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "5. AI Agent — Categorize Meeting",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 35,
+      "name": "Document Extraction"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15094",
+  "fetched_at": "2026-09-12T13:15:15Z"
+}

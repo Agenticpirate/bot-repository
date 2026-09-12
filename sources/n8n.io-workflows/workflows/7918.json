@@ -1,0 +1,283 @@
+{
+  "id": 7918,
+  "name": "Automatic pantry inventory management with Notion and email notifications",
+  "description": "\n## Pantry Soft-Stock Refill — Notion Thresholds → Grocery List + Email\n\n### What it does (the vibe)\n\nYour pantry’s calm concierge. Each evening it checks your Notion **Pantry** for items at or below your **Reorder Level**, adds tidy rows to **Grocery List**, and sends a pretty summary email you can shop from. ✨🛒\n\n### Perfect for\n\nMoms, home managers, and founders who want a kitchen that quietly manages itself—no last-minute “we’re out!” moments.\n\n### Requirements\n\n* n8n with **Notion** + **Email** credentials connected\n* Two Notion databases: **Pantry** and **Grocery List**\n\n### Notion schema (copy me)\n\n**Pantry**\n\n* `Name` (title)\n* `Quantity` (number)\n* `ReorderLevel` (number)\n* `Notes` (rich\\_text, optional)\n\n**Grocery List**\n\n* `Item` (title)\n* `Qty` (number)\n* `Status` (select: `To Buy`, `Done`)\n* `Source` (text)\n* `Notes` (rich\\_text, optional)\n\n### How it flows (nodes)\n\n1. **Cron** – daily at 6pm (edit to taste)\n2. **Notion: Search** – finds items at/below `ReorderLevel`\n3. **Function** – calculates how many to add (`ReorderLevel − Quantity`, minimum 1)\n4. **Notion: Create** – writes rows to **Grocery List** with `Status = To Buy`\n5. **Function + Email** – sends a chic, readable checklist (or a “You’re fully stocked ✨” note if nothing to buy)\n\n### 60-second setup\n\n* Replace placeholders: `YOUR_NOTION_PANTRY_DB`, `YOUR_NOTION_GROCERY_DB`, `YOUR_EMAIL`\n* Connect Notion + Email credentials (no secrets in nodes)\n* Run once with a test item to confirm a new **Grocery List** row appears\n* Adjust the **Cron** time to your evening rhythm\n\n### Nice touches you can toggle\n\n* Add `Source = Auto` to track automation adds\n* CC a partner or roommate on the email\n* Optional Telegram ping for “urgent” items (milk, diapers, coffee ☕)\n\n### Submission notes\n\n* Markdown only ✅\n* No hardcoded API keys ✅\n* Real-world use case, minimal setup ✅\n\nEnjoy the quiet luxury of a pantry that plans ahead. 💖\n",
+  "workflow": {
+    "name": "Pantry Soft-Stock Refill — Notion → Grocery List + Email",
+    "nodes": [
+      {
+        "id": "1",
+        "name": "Daily Trigger",
+        "type": "n8n-nodes-base.cron",
+        "position": [
+          260,
+          360
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "2",
+        "name": "User Config",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          260,
+          220
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "3",
+        "name": "Get Pantry Items",
+        "type": "n8n-nodes-base.notion",
+        "position": [
+          540,
+          360
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "4",
+        "name": "Get Existing To Buy",
+        "type": "n8n-nodes-base.notion",
+        "position": [
+          540,
+          540
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "5",
+        "name": "Compute To-Buy List",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          820,
+          450
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "6",
+        "name": "Create in Grocery List",
+        "type": "n8n-nodes-base.notion",
+        "position": [
+          1100,
+          450
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "7",
+        "name": "Compose Email",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          1380,
+          450
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "8",
+        "name": "Send Email",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          1640,
+          450
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "9",
+        "name": "Error Handler",
+        "type": "n8n-nodes-base.errorTrigger",
+        "disabled": true,
+        "position": [
+          260,
+          700
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "10",
+        "name": "## Description",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          100,
+          60
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "11",
+        "name": "## Setup Checklist",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          100,
+          220
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "12",
+        "name": "## Demo & Gallery",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          100,
+          380
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "13",
+        "name": "## QA / Test Plan",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          100,
+          540
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "14",
+        "name": "## Tags & Category",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          100,
+          700
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "15",
+        "name": "## Attribution & License",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          100,
+          860
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {},
+    "versionId": "1.0.0",
+    "staticData": null,
+    "connections": {
+      "User Config": {
+        "main": [
+          [
+            {
+              "node": "Get Pantry Items",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Get Existing To Buy",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Compose Email": {
+        "main": [
+          [
+            {
+              "node": "Send Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Daily Trigger": {
+        "main": [
+          [
+            {
+              "node": "User Config",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Pantry Items": {
+        "main": [
+          [
+            {
+              "node": "Compute To-Buy List",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Compute To-Buy List": {
+        "main": [
+          [
+            {
+              "node": "Create in Grocery List",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Compose Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Existing To Buy": {
+        "main": [
+          [
+            {
+              "node": "Compute To-Buy List",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 43,
+      "name": "Personal Productivity"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7918",
+  "fetched_at": "2026-09-12T13:12:10Z"
+}

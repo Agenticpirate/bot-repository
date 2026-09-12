@@ -1,0 +1,95 @@
+{
+  "id": 8184,
+  "name": "🎙️ Convert voice notes to X posts with Google Drive and AssemblyAI",
+  "description": "## 🎙️ Voice Note to Tweet: Turn Audio Ideas into X Posts with n8n\n\nA **lean, 3-node automation** that turns voice memos into tweets — so creators can capture ideas on the go and publish fast, without typing.\n\n\nCapture inspiration the moment it strikes — even when you’re not at your desk. This 3-node workflow lets **content creators, coaches, and solopreneurs** turn voice memos into **X (Twitter) posts** automatically.\n\nJust record a voice note, upload it to a Google Drive folder, and n8n will:\n\n## 🛠️ Step-by-Step Setup Instructions\n\n### 1. **Prepare Google Drive Folder**\n- Create a folder: `Voice Notes to Tweet`\n- Enable **Google Drive API** in your n8n credentials\n- Share the folder with your automation account (if needed)\n\n### 2. **Set Up AssemblyAI (or Whisper)**\n- Sign up at [assemblyai.com](https://www.assemblyai.com/)\n- Get your API key\n- In n8n, add a credential for **HTTP Request** or use a dedicated node\n\n&gt; 🔁 Alternative: Use OpenAI’s Whisper API if preferred\n\n### 3. **Connect X (Twitter) Account**\n- Use n8n’s **X (Twitter) node**\n- Authenticate with your app key, secret, access token\n- Ensure **write permissions**\n\n### 4. **Deploy the Workflow**\n- Import the JSON below\n- Replace placeholder credentials:\n  - `{{GOOGLE_DRIVE_FOLDER_ID}}`\n  - `{{ASSEMBLYAI_API_KEY}}`\n  - `{{TWITTER_CREDENTIAL}}`\n- Activate the workflow\n\nNow, every time you upload a `.m4a`, `.mp3`, or `.wav` file to your folder — it becomes a tweet.\n\n---\n\n## 🔄 Workflow Explanation\n\n1. **Watch Google Drive** → Triggers when a new voice note is added  \n2. **Transcribe Audio** → Sends file to AssemblyAI for speech-to-text  \n3. **Post to X (Twitter)** → Publishes the transcript as a tweet  \n\nOptional: Add a **Slack approval step** if you don’t want auto-posting.\n\n---\n\n## 📦 Pre-Conditions\n\n- ✅ **n8n account** with access to HTTP and X nodes\n- ✅ **Google Drive API enabled**\n- ✅ **AssemblyAI or Whisper API key**\n- ✅ **X (Twitter) Developer Account** with app credentials\n- ✅ Internet-accessible audio files (hosted in Drive)\n\n&gt; ⚠️ Note: X API v2 requires OAuth 2.0 and app approval.\n\n---\n\n## 🎨 Customization Guidance\n\n| Enhancement | How |\n|-----------|-----|\n| **Add Approval Step** | Insert Slack/Telegram node to approve before posting |\n| **Trim Long Transcripts** | Use Function node to limit to 280 chars |\n| **Add Hashtags** | Append `#VoiceToTweet #ContentCreatorTips` |\n| **Save to Archive** | After posting, move file to “Processed” folder |\n| **Support iOS Voice Memos** | Auto-convert `.m4a` → compatible format |\n\n---\n\n## 🌐 Who It’s For\n\n- **Coaches** who record insights on walks\n- **Solopreneurs** building personal brands\n- **Content creators** who hate writing from scratch\n- **Thought leaders** capturing ideas in motion\n\n\n\n### ✅ Final Notes for Submission\n\n- All nodes have **sticky notes** explaining purpose\n- Uses **standard APIs** with documented credentials\n- Solves a **real creator pain point**\n- No fluff, no “magic” — just **practical automation**\n\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "__PLACEHOLDER_INSTANCE_ID__"
+    },
+    "name": "Voice Note to Tweet",
+    "nodes": [
+      {
+        "id": "watch-drive-folder",
+        "name": "Watch Google Drive Folder",
+        "type": "n8n-nodes-base.googleDrive",
+        "notes": "📁 Watch for New Voice Notes\n\nMonitors a specific Google Drive folder for uploaded audio files.\n\n🔹 Supported formats: .mp3, .m4a, .wav\n\n💡 Tip: Name files clearly (e.g., 'Tip-about-boundaries.m4a')\n\nTriggers when a new audio file is added.",
+        "position": [
+          250,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 2,
+        "notesAlignment": "top"
+      },
+      {
+        "id": "transcribe-audio",
+        "name": "Transcribe with AssemblyAI",
+        "type": "n8n-nodes-base.httpRequest",
+        "notes": "🎙️ Transcribe Audio to Text\n\nSends the voice note to AssemblyAI for speech-to-text conversion.\n\n🔐 Requires:\n- AssemblyAI API key\n- Publicly accessible file (Google Drive link)\n\n💡 Response includes transcript + key phrases.\n\nWait for completion (add delay or webhook if needed).",
+        "position": [
+          500,
+          300
+        ],
+        "parameters": {},
+        "notesAlignment": "top"
+      },
+      {
+        "id": "post-to-x",
+        "name": "Post to X (Twitter)",
+        "type": "n8n-nodes-base.x",
+        "notes": "🐦 Post to X (Twitter)\n\nPublishes the transcribed text as a tweet.\n\n🔧 Customize:\n- Add hashtags\n- Trim to 280 chars\n- Thread long content\n\n💡 Use a Function node before to clean up text (remove filler words, add emojis).",
+        "position": [
+          750,
+          300
+        ],
+        "parameters": {},
+        "typeVersion": 1,
+        "notesAlignment": "top"
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "callerPolicy": "none",
+      "saveDataError": "all",
+      "executionOrder": "parallel",
+      "saveDataSuccess": "all"
+    },
+    "connections": {
+      "Watch Google Drive Folder": {
+        "main": [
+          [
+            {
+              "node": "Transcribe with AssemblyAI",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Transcribe with AssemblyAI": {
+        "main": [
+          [
+            {
+              "node": "Post to X (Twitter)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 33,
+      "name": "Social Media"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/8184",
+  "fetched_at": "2026-09-12T13:12:19Z"
+}

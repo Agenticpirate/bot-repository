@@ -1,0 +1,478 @@
+{
+  "id": 6054,
+  "name": "Compare flight fares from Skyscanner, Air India & more with email alerts",
+  "description": "This guide walks you through setting up an automated workflow that compares live flight fares across multiple booking platforms (e.g., Skyscanner, Akasa Air, Air India, IndiGo) using API calls, sorts the results by price, and sends the best deals via email. Ready to automate your flight fare comparison process? Let’s get started!\n\n## What’s the Goal?\n- Automatically fetch and compare live flight fares from multiple platforms using scheduled triggers.\n- Aggregate and sort fare data to identify the best deals.\n- Send the comparison results via email for review or action.\n- Enable 24/7 fare monitoring with seamless integration.\nBy the end, you’ll have a self-running system that delivers the cheapest flight options effortlessly.\n\n## Why Does It Matter?\nManual flight fare comparison is time-consuming and often misses the best deals. Here’s why this workflow is a game-changer:\n- **Zero Human Error**: Automated data fetching and sorting ensure accuracy.\n- **Time-Saving Automation**: Instantly compare fares across platforms, boosting efficiency.\n- **24/7 Availability**: Monitor fares anytime without manual effort.\n- **Cost Optimization**: Focus on securing the best deals rather than searching manually.\nThink of it as your tireless flight fare assistant that always finds the best prices.\n\n## How It Works\nHere’s the step-by-step magic behind the automation:\n\n#### Step 1: Trigger the Workflow\n- **Set Schedule Node**: Triggers the workflow at a predefined schedule to check flight fares automatically.\n- Captures the timing for regular fare updates.\n\n##### Step 2: Process Input Data\n- **Set Input Data Node**: Sets the input parameters (e.g., origin, destination, departure date, return date) for flight searches.\n- Prepares the data to be sent to various APIs.\n\n##### Step 3: Fetch Flight Data\n- **Skyscanner API Node**: Retrieves live flight fare data from Skyscanner using its API endpoint.\n- **Akasa Air API Node**: Fetches live flight fare data from Akasa Air using its API endpoint.\n- **Air India API Node**: Collects flight fare data directly from Air India’s API.\n- **IndiGo API Node**: Gathers flight fare data from IndiGo’s API.\n\n##### Step 4: Merge API Results\n- **Merge API Data Node**: Combines the flight data from Skyscanner and Akasa Air into a single dataset.\n- **Merge Both API Data Node**: Merges the data from Air India and IndiGo with the previous dataset.\n- **Merge All API Results Node**: Consolidates all API data into one unified result for further processing.\n\n##### Step 5: Analyze and Sort\n- **Compare Data and Sorting Price Node**: Compares all flight fares and sorts them by price to highlight the best deals.\n\n##### Step 6: Send Results\n- **Send Response via Email Node**: Sends the sorted flight fare comparison results to the user via email for review or action.\n\n## How to Use the Workflow?\nImporting this workflow in n8n is a straightforward process that allows you to use this pre-built solution to save time. Below is a step-by-step guide to importing the Flight Fare Comparison Workflow in n8n.\n\n### Steps to Import a Workflow in n8n\n\n1. **Obtain the Workflow JSON**\n   - **Source the Workflow**: The workflow is shared as a JSON file or code snippet (provided earlier or exported from another n8n instance).\n   - **Format**: Ensure you have the workflow in JSON format, either as a file (e.g., workflow.json) or copied text.\n\n2. **Access the n8n Workflow Editor**\n   - **Log in to n8n**: Open your n8n instance (via n8n Cloud or self-hosted).\n   - **Navigate to Workflows**: Go to the Workflows tab in the n8n dashboard.\n   - **Open a New Workflow**: Click Add Workflow to create a blank workflow.\n\n3. **Import the Workflow**\n   - **Option 1: Import via JSON Code (Clipboard)**:\n     - In the n8n editor, click the three dots (⋯) in the top-right corner to open the menu.\n     - Select Import from Clipboard.\n     - Paste the JSON code (provided earlier) into the text box.\n     - Click Import to load the workflow.\n   - **Option 2: Import via JSON File**:\n     - In the n8n editor, click the three dots (⋯) in the top-right corner.\n     - Select Import from File.\n     - Choose the .json file from your computer.\n     - Click Open to import the workflow.\n\n## Setup Notes\n- **API Credentials**: Configure each API node (Skyscanner, Akasa Air, Air India, IndiGo) with the respective API keys and endpoints. Check the API provider’s documentation for details.\n- **Email Integration**: Authorize the Send Response via Email node with your email service (e.g., Gmail SMTP settings or an email API like SendGrid).\n- **Input Customization**: Adjust the Set Input Data node to include specific origin/destination pairs and date ranges as needed.\n- **Schedule Configuration**: Set the desired frequency in the Set Schedule node (e.g., daily at 9 AM IST).\n\n## Example Input\nSend a POST request to the workflow (if integrated with a webhook) with:\n```json\n{\n  \"origin\": \"DEL\",\n  \"destination\": \"BOM\",\n  \"departureDate\": \"2025-08-01\",\n  \"returnDate\": \"2025-08-07\"\n}\n```\n\n## Optimization Tips\n- **Error Handling**: Add IF nodes to manage API failures or rate limits.\n- **Rate Limits**: Include a Wait node if APIs have strict limits.\n- **Data Logging**: Add a node (e.g., Google Sheets) to log all comparisons for future analysis.\n\nThis workflow transforms flight fare comparison into an automated, efficient process, delivering the best deals directly to your inbox!",
+  "workflow": {
+    "id": "UqtZtvt1uuLwA0JF",
+    "meta": {
+      "instanceId": "dd69efaf8212c74ad206700d104739d3329588a6f3f8381a46a481f34c9cc281",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Real-Time Flight Fare Checker – Compare & Save Instantly",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "9e9558e0-9b65-4748-8092-70986a9f11f0",
+        "name": "Skyscanner API",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -40,
+          0
+        ],
+        "parameters": {
+          "url": "https://api.skyscanner.net/flights",
+          "options": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "4649ae50-1619-49c9-a2f8-2cb6f91ca966",
+        "name": "Air India API",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -40,
+          400
+        ],
+        "parameters": {
+          "url": "https://api.airindia.net/flights",
+          "options": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a336a80f-c147-4deb-ac14-c508f5db7a36",
+        "name": "IndiGo API",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -40,
+          600
+        ],
+        "parameters": {
+          "url": "https://api.idigo.com/v1/flights",
+          "options": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5f4c9323-af1a-45b3-a985-73ed231b0809",
+        "name": "Akasa Air API",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -40,
+          200
+        ],
+        "parameters": {
+          "url": "https://api.akasa.com/v1/flights",
+          "options": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "66ec44a3-838a-4e81-b03c-c1b5e5f7b796",
+        "name": "Set Schedule",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -480,
+          300
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {}
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "e3411c6a-c09b-4e86-bb54-13306212f254",
+        "name": "Set Input Data",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -260,
+          300
+        ],
+        "parameters": {
+          "values": {
+            "string": [
+              {
+                "name": "origin",
+                "value": "={{$node['Set Schedule'].json.body.origin}}"
+              },
+              {
+                "name": "destination",
+                "value": "={{$node['Set Schedule'].json.body.destination}}"
+              },
+              {
+                "name": "departureDate",
+                "value": "={{$node['Set Schedule'].json.body.departureDate}}"
+              },
+              {
+                "name": "returnDate",
+                "value": "={{$node['Set Schedule'].json.body.returnDate}}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6ae53558-26a6-4a4d-b9cf-730423f34c65",
+        "name": "Merge API Data",
+        "type": "n8n-nodes-base.merge",
+        "inputs": [
+          "Skyscanner API",
+          "Travelpayouts API"
+        ],
+        "position": [
+          180,
+          100
+        ],
+        "parameters": {
+          "mode": "mergeByIndex"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1ef09f04-4142-4997-b400-f53d04700eeb",
+        "name": "Merge Both API Data",
+        "type": "n8n-nodes-base.merge",
+        "inputs": [
+          "Skyscanner API",
+          "Travelpayouts API"
+        ],
+        "position": [
+          180,
+          500
+        ],
+        "parameters": {
+          "mode": "mergeByIndex"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8e81a16c-2db0-4b71-982c-2ec4874507cf",
+        "name": "Merge All API Results",
+        "type": "n8n-nodes-base.merge",
+        "inputs": [
+          "Skyscanner API",
+          "Travelpayouts API"
+        ],
+        "position": [
+          400,
+          300
+        ],
+        "parameters": {
+          "mode": "mergeByIndex"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "79344599-53b8-4886-839b-82b149e980ad",
+        "name": "Compare Data and Sorting Price",
+        "type": "n8n-nodes-base.function",
+        "position": [
+          620,
+          300
+        ],
+        "parameters": {
+          "functionCode": "const results = [];\n\n// Process Skyscanner results\nif ($node['Merge API Results'].json[0].data) {\n  $node['Merge API Results'].json[0].data.forEach(flight => {\n    results.push({\n      provider: 'Skyscanner',\n      price: flight.price,\n      currency: flight.currency,\n      booking_url: flight.booking_url\n    });\n  });\n}\n\n// Process Travelpayouts results\nif ($node['Merge API Results'].json[1].data) {\n  $node['Merge API Results'].json[1].data.forEach(flight => {\n    results.push({\n      provider: 'Travelpayouts',\n      price: flight.price,\n      currency: flight.currency,\n      booking_url: flight.booking_url\n    });\n  });\n}\n\n// Sort by price\nresults.sort((a, b) => a.price - b.price);\n\nreturn results;"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "eaf33691-31a4-46ab-9525-d4d4eb0be91b",
+        "name": "Send Response via Email",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          840,
+          300
+        ],
+        "webhookId": "f86081b8-8ff3-4315-8568-320e92e2337f",
+        "parameters": {
+          "text": "{json.results}",
+          "options": {},
+          "subject": "Real-Time Flight Fare Update",
+          "toEmail": "user@example.com",
+          "fromEmail": "user@example.com",
+          "emailFormat": "text"
+        },
+        "credentials": {
+          "smtp": {
+            "id": "credential-id",
+            "name": "smtp Credential"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "222fa851-d70b-4c32-9b1e-28bb3cc89181",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -520,
+          160
+        ],
+        "parameters": {
+          "width": 160,
+          "height": 360,
+          "content": "Triggers the workflow at a scheduled time to check flight fares automatically."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "bda7bcb8-35f0-4996-a1fc-7a09db87e173",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          160,
+          -100
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 160,
+          "height": 360,
+          "content": "Combines the flight data from Skyscanner and Akasa Air into a single dataset."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b1b26d28-6609-4680-b7fd-3cc552864c2b",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          380,
+          100
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 160,
+          "height": 360,
+          "content": "Consolidates all API data (Skyscanner, Akasa Air, Air India, IndiGo) into one unified result."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "53e4599a-3bd4-4597-9661-b6364976a972",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          580,
+          100
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 160,
+          "height": 360,
+          "content": "Compares all flight fares and sorts them by price to find the best deals."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e4b18281-8c98-4eea-b6af-5948c21cce04",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          800,
+          100
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 160,
+          "height": 360,
+          "content": "Sends the sorted flight fare comparison results to the user via email."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f05b66c5-8f64-4328-8279-b5fd4b942f5c",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -300,
+          160
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 160,
+          "height": 360,
+          "content": "Sets the input parameters like origin, destination, and dates for flight searches"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "af7323e1-82fc-4a53-a532-0023a3942fde",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -60,
+          -200
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 160,
+          "height": 960,
+          "content": "Fetches live flight fare data from different airlines using the provided API endpoints."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6354e9b7-f3de-47c8-b413-a6a38f76afae",
+        "name": "Sticky Note7",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          160,
+          300
+        ],
+        "parameters": {
+          "width": 160,
+          "height": 360,
+          "content": "Merges the flight data from Air India and IndiGo with the previous dataset."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "2d9aac0c-9714-44de-be94-c806fddd584d",
+    "connections": {
+      "IndiGo API": {
+        "main": [
+          [
+            {
+              "node": "Merge Both API Data",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Set Schedule": {
+        "main": [
+          [
+            {
+              "node": "Set Input Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Air India API": {
+        "main": [
+          [
+            {
+              "node": "Merge Both API Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Akasa Air API": {
+        "main": [
+          [
+            {
+              "node": "Merge API Data",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Merge API Data": {
+        "main": [
+          [
+            {
+              "node": "Merge All API Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Input Data": {
+        "main": [
+          [
+            {
+              "node": "Skyscanner API",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Akasa Air API",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Air India API",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "IndiGo API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Skyscanner API": {
+        "main": [
+          [
+            {
+              "node": "Merge API Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge Both API Data": {
+        "main": [
+          [
+            {
+              "node": "Merge All API Results",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Merge All API Results": {
+        "main": [
+          [
+            {
+              "node": "Compare Data and Sorting Price",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Compare Data and Sorting Price": {
+        "main": [
+          [
+            {
+              "node": "Send Response via Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 32,
+      "name": "Market Research"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6054",
+  "fetched_at": "2026-09-12T13:11:07Z"
+}

@@ -1,0 +1,138 @@
+{
+  "id": 903,
+  "name": "Discover professional emails with uProc and send via Telegram",
+  "description": "![image.png](fileId:1033)\n\nThis **n8n workflow template** uses **uProc's \"Get Email by Domain, Firstname and Lastname\" tool** to discover a professional email address, and then sends that email to a **Telegram channel**.\n\n&gt; ⚠️ *Note: You must set up your **uProc credentials (Email + API Key)** from the [**Integration settings**](https://app.uproc.io/#/settings/integration) before running this workflow.*\n\n---\n\n### 🚀 **What It Does**\n\n- Uses user-provided data: **first name**, **last name**, and **company domain**\n- Calls **uProc** to discover the most likely email address for that person\n- Sends the discovered email and confidence level to a **Telegram group**\n\n---\n\n### 🛠️ **Step-by-Step Setup**\n\n1. **Add uProc Credentials**  \n   Go to the [uProc integration page](https://app.uproc.io/#/settings/integration) and copy your **email and API key**.  \n   Add them as credentials in your n8n instance.\n\n2. **Set Tool Parameters**  \n   - Use the **Set node** to define:\n     - `firstname`: First name of the person\n     - `lastname`: Last name of the person\n     - `domain`: Their company domain\n\n3. **Replace the Set Node (Optional)**  \n   You can dynamically fetch the `firstname`, `lastname`, and `domain` from other sources like:\n   - **Google Sheets**\n   - **MySQL or Postgres**\n   - **Webhook or Form submissions**\n\n4. **Run the Workflow**  \n   Trigger the flow manually or integrate it with a larger automation.\n\n---\n\n### 🔍 **uProc Parameters Explained**\n\n- **domain**: The company domain (e.g., `uproc.io`)\n- **firstname**: First name of the person\n- **lastname** (in parameter: `language`): Last name of the person\n- **mode**:\n  - `verify`: Verifies email in real-time with mail server\n  - `guess`: Guesses based on company format (e.g., `firstname.lastname@domain.com`)\n\n---\n\n### 📦 **uProc Response Fields**\n\n- `email`: Discovered email address\n- `confidence`: Indicates if the result is verified or risky (e.g., catch-all)\n- `score`: Reliability score from **0** (unreliable) to **99** (highly reliable)\n\n---\n\n### 📬 **Notification via Telegram**\n\nAfter discovering the email, the result is sent to a specified **Telegram channel** with this format:\n\n```text\nUser Miquel Colomer has next email on uproc.io: contact@uproc.io (verified - 99)\n```\n\n\nClicking the email allows you to send a message directly to the recipient.\n\n---\n\n### 🔐 **Credentials Used**\n\n- **uProc API** – For discovering email addresses\n- **Telegram API** – To send messages to a specific group/channel\n\n---\n\n### ✨ **Customization Tips**\n\n- **Loop over a list of people**: Replace the set node with a data source that contains multiple people.\n- **Filter by score or confidence** before sending.\n- **Add additional outputs**: You can send the data via Email, Slack, or save it to a database.\n- **Trigger automatically**: Combine with a webhook or time-based trigger for automation.\n\n---\n\n### ❓Questions?\n\nTemplate created by [**Miquel Colomer**](https://www.linkedin.com/in/miquelcolomersalas/) and [**n8nhackers.com**](https://n8nhackers.com). \n \nNeed help customizing or deploying? [**Contact us**](mailto:contact@n8nhackers.com) for consulting and support.",
+  "workflow": {
+    "id": "144",
+    "name": "Discover Email",
+    "nodes": [
+      {
+        "name": "On clicking 'execute'",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          370,
+          470
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "name": "Telegram",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          940,
+          470
+        ],
+        "parameters": {
+          "text": "=User {{$node[\"Get Email\"].json[\"params\"][\"firstname\"]}} {{$node[\"Get Email\"].json[\"params\"][\"lastname\"]}} has next email on {{$node[\"Get Email\"].json[\"params\"][\"domain\"]}}: {{$node[\"Get Email\"].json[\"message\"][\"email\"]}} ({{$node[\"Get Email\"].json[\"message\"][\"confidence\"]}} - {{$node[\"Get Email\"].json[\"message\"][\"score\"]}})",
+          "chatId": "123456789",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "telegramApi": {
+            "id": "credential-id",
+            "name": "telegramApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Get Email",
+        "type": "n8n-nodes-base.uproc",
+        "position": [
+          750,
+          470
+        ],
+        "parameters": {
+          "mode": "verify",
+          "tool": "getEmailRecipient",
+          "domain": "={{$node[\"Set Tool Parameters\"].json[\"domain\"]}}",
+          "lastname": "={{$node[\"Set Tool Parameters\"].json[\"lastname\"]}}",
+          "firstname": "={{$node[\"Set Tool Parameters\"].json[\"firstname\"]}}",
+          "additionalOptions": {}
+        },
+        "credentials": {
+          "uprocApi": {
+            "id": "credential-id",
+            "name": "uprocApi Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "name": "Set Tool Parameters",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          570,
+          470
+        ],
+        "parameters": {
+          "values": {
+            "string": [
+              {
+                "name": "firstname",
+                "value": "Miquel"
+              },
+              {
+                "name": "lastname",
+                "value": "Colomer"
+              },
+              {
+                "name": "domain",
+                "value": "uproc.io"
+              }
+            ]
+          },
+          "options": {},
+          "keepOnlySet": true
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "settings": {},
+    "connections": {
+      "Get Email": {
+        "main": [
+          [
+            {
+              "node": "Telegram",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Tool Parameters": {
+        "main": [
+          [
+            {
+              "node": "Get Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "On clicking 'execute'": {
+        "main": [
+          [
+            {
+              "node": "Set Tool Parameters",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 37,
+      "name": "Lead Generation"
+    }
+  ],
+  "url": "https://n8n.io/workflows/903",
+  "fetched_at": "2026-09-12T13:08:51Z"
+}

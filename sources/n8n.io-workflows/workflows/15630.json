@@ -1,0 +1,551 @@
+{
+  "id": 15630,
+  "name": "Route and validate B2B form leads with webhook firewall and SMTP emails",
+  "description": "\n### Stop losing high-ticket leads to noisy Slack channels and unpredictable AI intent scoring. Route them with enterprise precision. \n\nFor specialized B2B agencies, consultancies, and MSPs, lead routing isn't about guessing \"purchasing temperature\" it’s about distinct operational tracks. An \"Infrastructure Audit\" requires vastly different triage than a \"Managed Services\" request. This workflow acts as a production-ready, deterministic routing engine. It scrubs incoming payloads through a strict validation firewall and utilizes parallel execution to instantly notify your team's ticketing system while delivering tailored, service-specific confirmations to your prospect.\n\n## How it works\nThe workflow operates in four synchronized stages:\n* **Ingestion & Payload Flattening:** Triggers via a Webhook (optimized for Tally or Typeform). A custom JavaScript node instantly flattens complex, deeply nested multi-choice form arrays into clean, accessible root-level variables.\n* **Pre-Routing Spam Firewall:** Rather than immediately hitting your CRM, the data passes through a strict IF node configured with Regex. Malformed emails are instantly rejected, sending an error response back to the form and protecting your downstream systems from \"junk\" data pollution.\n* **Deterministic Service Routing:** Validated leads hit a Switch node configured with rigid operational deliverables (Audit, Implementation, Managed Services). It includes an impermeable `.*` Regex Fallback branch to catch any unexpected or deprecated form inputs, ensuring zero leads are ever dropped due to unmapped values.\n* **Asynchronous Parallel Communications:** The workflow fans out to execute dual email flows concurrently. It dispatches a dynamic HTML confirmation to the prospect based on their specific tier, while simultaneously sending a fully formatted data payload to a dedicated internal inbox.\n* **Webhook Stability & Closure:** Every external SMTP node is configured with *Continue on Fail*. If an email server times out, the workflow gracefully completes, successfully responding to the originating webhook with a 200 OK to prevent infinite, lagging retry loops from your form builder.\n\n## Key Benefits\n* **Subverts the \"Chat-Ops\" Bias:** Built for professional RevOps teams using Zendesk, Jira Service Management, or shared Outlook inboxes. It relies on robust SMTP formatting rather than transient Slack pings.\n* **Zero-Drop Failsafe:** The catch-all routing branch ensures that even if someone submits a broken value, they still receive a branded acknowledgment while your team investigates the anomaly.\n* **Node-Level Resilience:** Designed with \"Continue on Fail\" logic. Temporary network blips won't crash the pipeline or break the user's frontend experience.\n* **Zero-Latency Fan-Out:** Internal triage alerts and external customer emails fire at the exact same time, eliminating the gap between capture and engagement.\n\n## Setup\n1. **Credentials:** Add your standard SMTP or dedicated Email API credentials (e.g., SendGrid, Mailgun, Gmail) in n8n.\n2. **Environment Config:** Open the `Notify Internal Team` and customer `Email` nodes to replace `hello@yourdomain.com` and `admin@yourdomain.com` with your actual sending and routing addresses.\n3. **Template Polish:** Update the HTML payloads in the Email nodes to match your company’s specific branding and service level agreements.\n4. **Activate:** Turn the workflow on, copy the Production Webhook URL, and paste it into your Tally.so or Typeform integration settings.\n\n## Who this is for\n* **B2B Service Providers & Consultancies** that require distinct operational tracks for different service offerings.\n* **Managed Service Providers (MSPs)** establishing highly auditable intake systems.\n* **Revenue Operations (RevOps) Architects** looking to replace probabilistic AI scoring with rigid, rule-based infrastructure.\n\n## Required APIs & Credentials\n* **Inbound:** Generic Webhook (Native to n8n)\n* **Outbound:** Standard SMTP or equivalent Email Provider\n\n## How to customise it\n* **Implement the Orchestrator Pattern:** As your logic scales, replace the 4 customer `Email` nodes with `Execute Workflow` nodes. This allows individual departments to build complex, 10-step onboarding sequences without cluttering the primary routing firewall.\n* **Add a Dead Letter Queue (DLQ):** Connect a database node (like Notion, Supabase, or Airtable) to the `false` branch of the Validation node to permanently log malformed submissions for compliance auditing.\n* **Advanced Verification:** Add an HTTP request node before the Switch to run the email through Hunter.io or VerifiEmail to check live MX records and prevent hard bounces.",
+  "workflow": {
+    "id": "TD0LsjPaGHjbO3LM",
+    "meta": {
+      "instanceId": "8d116b92d51947f1f9904dd6d69f8f252af7816f81d50c41f62a5878cbcf4365",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Precision Form Router & Validater",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "16dfd0c1-39c8-48d7-94c4-a9c492679a44",
+        "name": "README",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          256,
+          4944
+        ],
+        "parameters": {
+          "width": 640,
+          "height": 420,
+          "content": "# Precision Form Router & Validater \n\n## How it works\n1. **Trigger**: Captures inbound form submissions via Tally webhook.\n2. **Format**: Extracts complex nested arrays into clean key-value pairs.\n3. **Validate**: Acts as a firewall, using Regex to drop malformed email addresses.\n4. **Route**: Evaluates the requested service tier and deterministically routes the prospect.\n5. **Execute**: Sends parallel internal alerts and tailored customer emails (with a catch-all fallback).\n\n## Setup steps\n- [ ] Connect your SMTP/Email Credentials in n8n\n- [ ] Update `hello@yourdomain.com` and `admin@yourdomain.com` placeholders\n- [ ] Customize the HTML email templates for your specific offerings\n- [ ] Copy the Webhook URL and paste it into your Tally form settings"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b9beec46-4e3d-4427-b931-256c5da36578",
+        "name": "Sticky Note - Section 1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          992,
+          5024
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 840,
+          "height": 260,
+          "content": "###  Ingestion & Validation\nListens for the Tally webhook. The custom JS Code node extracts deeply nested multi-choice values. The IF node acts as a Regex firewall to validate email syntax."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "eda0f04b-10b6-4d8e-92c9-9f008ed176a6",
+        "name": "Sticky Note - Section 2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1984,
+          4304
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 726,
+          "height": 852,
+          "content": "### Deterministic Routing & External Comms\nEvaluates the selected tier and routes to the matching email branch. Unmapped tiers are safely routed to the Fallback branch. Nodes continue on fail."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5a86a183-8d99-4fed-92c9-1f556956e50c",
+        "name": "Sticky Note - Section 3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1984,
+          5184
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 726,
+          "height": 414,
+          "content": "### Internal Comms & Webhook Closure\nFires an internal lead notification in parallel. Finally, responds to the originating webhook with a 200 Success or a JSON Error payload."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "625c6177-bc0d-411f-8fb8-5695d76003d3",
+        "name": "Form Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          1040,
+          5136
+        ],
+        "webhookId": "form-webhook-placeholder",
+        "parameters": {
+          "path": "your-form-path",
+          "options": {},
+          "httpMethod": "POST",
+          "responseMode": "responseNode"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "77614242-1cec-491e-96c9-17925d845c55",
+        "name": "Format Tally Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1264,
+          5136
+        ],
+        "parameters": {
+          "jsCode": "// Get all fields from the webhook\nconst fields = $input.item.json.body.data.fields || [];\n\nfunction getReadableValue(field) {\n  if (field.type === 'MULTIPLE_CHOICE' && field.options && field.value) {\n    const selectedId = field.value[0];\n    const matchingOption = field.options.find(opt => opt.id === selectedId);\n    return matchingOption ? matchingOption.text : field.value[0];\n  }\n  return field.value;\n}\n\nconst mappedData = {\n  name: '',\n  email: '',\n  company: '',\n  tier: '',\n  allFieldsText: '',\n  challenge: 'Not provided'\n};\n\nfields.forEach(field => {\n  const label = field.label ? field.label.toLowerCase() : '';\n  \n  if (label.includes('name') && !label.includes('company')) {\n    mappedData.name = field.value;\n  }\n  if (field.type === 'INPUT_EMAIL') {\n    mappedData.email = field.value;\n  }\n  if (label.includes('company')) {\n    mappedData.company = field.value;\n  }\n  if (field.label === 'tier') {\n    mappedData.tier = field.value;\n  }\n  if (field.type === 'TEXTAREA' && field.value) {\n    mappedData.challenge = field.value;\n  }\n});\n\nconst allFieldsArray = [];\nfields.forEach(field => {\n  if (field.type !== 'HIDDEN_FIELDS' && field.value !== null) {\n    const readableValue = getReadableValue(field);\n    allFieldsArray.push(`${field.label}: ${readableValue}`);\n  }\n});\n\nmappedData.allFieldsText = allFieldsArray.join('\\n');\n\nreturn {\n  json: mappedData\n};"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "8702b28f-ff80-4fe4-a2eb-c354fdc56d01",
+        "name": "Extract Form Data",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1488,
+          5136
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "name",
+                "name": "name",
+                "type": "string",
+                "value": "={{ $json.name }}"
+              },
+              {
+                "id": "email",
+                "name": "email",
+                "type": "string",
+                "value": "={{ $json.email }}"
+              },
+              {
+                "id": "company",
+                "name": "company",
+                "type": "string",
+                "value": "={{ $json.company }}"
+              },
+              {
+                "id": "tier",
+                "name": "tier",
+                "type": "string",
+                "value": "={{ $json.tier }}"
+              },
+              {
+                "id": "allFields",
+                "name": "allFields",
+                "type": "string",
+                "value": "={{ $json.allFieldsText }}"
+              },
+              {
+                "id": "challenge",
+                "name": "challenge",
+                "type": "string",
+                "value": "={{ $json.challenge }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "013fd4e8-70b5-4c7f-87b9-dd02cd0b3a72",
+        "name": "Validate Lead",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1712,
+          5136
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": false,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "val1",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty",
+                  "singleValue": true
+                },
+                "leftValue": "={{ $json.email }}",
+                "rightValue": ""
+              },
+              {
+                "id": "val2",
+                "operator": {
+                  "type": "string",
+                  "operation": "regex"
+                },
+                "leftValue": "={{ $json.email }}",
+                "rightValue": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.3
+      },
+      {
+        "id": "328ce3cd-0300-417e-8118-969191a60c81",
+        "name": "Switch by Service Tier",
+        "type": "n8n-nodes-base.switch",
+        "position": [
+          2080,
+          4656
+        ],
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "version": 1,
+                    "leftValue": "",
+                    "caseSensitive": false,
+                    "typeValidation": "strict"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "r1",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "leftValue": "={{ $json.tier }}",
+                      "rightValue": "Audit"
+                    }
+                  ]
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "version": 1,
+                    "leftValue": "",
+                    "caseSensitive": false,
+                    "typeValidation": "strict"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "r2",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "leftValue": "={{ $json.tier }}",
+                      "rightValue": "Implementation"
+                    }
+                  ]
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "version": 1,
+                    "leftValue": "",
+                    "caseSensitive": false,
+                    "typeValidation": "strict"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "r3",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "leftValue": "={{ $json.tier }}",
+                      "rightValue": "Managed Services"
+                    }
+                  ]
+                }
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "version": 1,
+                    "leftValue": "",
+                    "caseSensitive": false,
+                    "typeValidation": "strict"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "r4",
+                      "operator": {
+                        "type": "string",
+                        "operation": "regex"
+                      },
+                      "leftValue": "={{ $json.tier }}",
+                      "rightValue": ".*"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "options": {}
+        },
+        "typeVersion": 3.1
+      },
+      {
+        "id": "fc4b7df8-dc4a-45ec-b342-2730c932f056",
+        "name": "Email - Audit",
+        "type": "n8n-nodes-base.emailSend",
+        "onError": "continueErrorOutput",
+        "position": [
+          2304,
+          4400
+        ],
+        "webhookId": "48cd6b00-8c30-4d80-963c-6700ce4fda90",
+        "parameters": {
+          "html": "=<!DOCTYPE html>\n<html>\n<body>\n  <div class=\"container\">\n    <h2>Hi {{ $json.name.split(' ')[0] }},</h2>\n    <p>Thanks for your inquiry about an <strong>Audit</strong>.</p>\n    <p>We've received your message and will get back to you shortly.</p>\n    <p>Best regards,<br><strong>Your Team</strong></p>\n  </div>\n</body>\n</html>",
+          "options": {},
+          "subject": "Thanks for your inquiry - {{ $json.company }}",
+          "toEmail": "={{ $json.email }}",
+          "fromEmail": "user@example.com"
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "479d271b-ec6c-4377-8bb5-8c469c4c1952",
+        "name": "Email - Implementation",
+        "type": "n8n-nodes-base.emailSend",
+        "onError": "continueErrorOutput",
+        "position": [
+          2304,
+          4592
+        ],
+        "webhookId": "f1938cdf-f0b1-4d2c-a0e8-70018dd90458",
+        "parameters": {
+          "html": "=<!DOCTYPE html>\n<html>\n<body>\n  <div class=\"container\">\n    <h2>Hi {{ $json.name.split(' ')[0] }},</h2>\n    <p>Thanks for your interest in our <strong>Implementation</strong> services.</p>\n    <p>We've received your message and will get back to you shortly.</p>\n    <p>Best regards,<br><strong>Your Team</strong></p>\n  </div>\n</body>\n</html>",
+          "options": {},
+          "subject": "Thanks for your inquiry - {{ $json.company }}",
+          "toEmail": "={{ $json.email }}",
+          "fromEmail": "user@example.com"
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "b80a9d76-2beb-440f-8953-9e50c47128f4",
+        "name": "Email - Managed Services",
+        "type": "n8n-nodes-base.emailSend",
+        "onError": "continueErrorOutput",
+        "position": [
+          2304,
+          4784
+        ],
+        "webhookId": "d896663b-2046-4bc4-97a3-2c77dc26c098",
+        "parameters": {
+          "html": "=<!DOCTYPE html>\n<html>\n<body>\n  <div class=\"container\">\n    <h2>Hi {{ $json.name.split(' ')[0] }},</h2>\n    <p>Thanks for your interest in our <strong>Managed Services</strong>.</p>\n    <p>We've received your message and will get back to you shortly.</p>\n    <p>Best regards,<br><strong>Your Team</strong></p>\n  </div>\n</body>\n</html>",
+          "options": {},
+          "subject": "Thanks for your inquiry - {{ $json.company }}",
+          "toEmail": "={{ $json.email }}",
+          "fromEmail": "user@example.com"
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "ee514e74-9211-4f71-9e05-2fd2847e5236",
+        "name": "Email - Generic/Fallback",
+        "type": "n8n-nodes-base.emailSend",
+        "onError": "continueErrorOutput",
+        "position": [
+          2304,
+          4976
+        ],
+        "webhookId": "ed15391a-fca8-4d4f-94bc-f0e770145c1e",
+        "parameters": {
+          "html": "=<!DOCTYPE html>\n<html>\n<body>\n  <div class=\"container\">\n    <h2>Hi {{ $json.name.split(' ')[0] }},</h2>\n    <p>Thanks for your inquiry.</p>\n    <p>We've received your message and will get back to you shortly.</p>\n    <p>Best regards,<br><strong>Your Team</strong></p>\n  </div>\n</body>\n</html>",
+          "options": {},
+          "subject": "Thanks for your inquiry - {{ $json.company }}",
+          "toEmail": "={{ $json.email }}",
+          "fromEmail": "user@example.com"
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "f090f7ab-8406-4fc1-a483-2aa6a94da2d0",
+        "name": "Notify Internal Team",
+        "type": "n8n-nodes-base.emailSend",
+        "onError": "continueErrorOutput",
+        "position": [
+          2208,
+          5296
+        ],
+        "webhookId": "a51cfec9-3148-46ef-b3de-f7ae2136fde8",
+        "parameters": {
+          "html": "=<h2>🎯 New Lead Notification</h2>\n<p><strong>Name:</strong> {{ $json.name }}</p>\n<p><strong>Email:</strong> {{ $json.email }}</p>\n<p><strong>Company:</strong> {{ $json.company }}</p>\n<p><strong>Tier:</strong> {{ $json.tier }}</p>\n<p><strong>Challenge:</strong> {{ $json.challenge }}</p>",
+          "options": {},
+          "subject": "=🎯 New {{ $json.tier.toUpperCase() }} Lead - {{ $json.company }}",
+          "toEmail": "user@example.com",
+          "fromEmail": "user@example.com"
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "85112e07-e297-40a0-a47e-990dd4fd954b",
+        "name": "Success Response",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          2464,
+          5280
+        ],
+        "parameters": {
+          "options": {},
+          "respondWith": "json",
+          "responseBody": "={{ { \"success\": true } }}"
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "e02171b5-c3ad-4655-83ec-8aef33987166",
+        "name": "Error Response",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          2208,
+          5456
+        ],
+        "parameters": {
+          "options": {},
+          "respondWith": "json",
+          "responseBody": "={{ { \"success\": false, \"error\": \"Invalid email format provided\" } }}"
+        },
+        "typeVersion": 1.1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "binaryMode": "separate",
+      "executionOrder": "v1"
+    },
+    "versionId": "67739cf2-57ae-4a0c-901b-e5fe0c7dc8e5",
+    "connections": {
+      "Form Webhook": {
+        "main": [
+          [
+            {
+              "node": "Format Tally Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validate Lead": {
+        "main": [
+          [
+            {
+              "node": "Switch by Service Tier",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Notify Internal Team",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Error Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Form Data": {
+        "main": [
+          [
+            {
+              "node": "Validate Lead",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Tally Data": {
+        "main": [
+          [
+            {
+              "node": "Extract Form Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Notify Internal Team": {
+        "main": [
+          [
+            {
+              "node": "Success Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Switch by Service Tier": {
+        "main": [
+          [
+            {
+              "node": "Email - Audit",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Email - Implementation",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Email - Managed Services",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Email - Generic/Fallback",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 37,
+      "name": "Lead Generation"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15630",
+  "fetched_at": "2026-09-12T13:15:30Z"
+}

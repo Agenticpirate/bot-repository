@@ -1,0 +1,284 @@
+{
+  "id": 7592,
+  "name": "Generate weekly energy consumption reports with EnergiDataService, email and Google Drive",
+  "description": "# 📊 Generate Weekly Energy Consumption Reports with API, Email and Google Drive\n\nThis workflow automates the process of retrieving energy consumption data, formatting it into a CSV report, and distributing it every week via **email** and **Google Drive**.\n\n## ⚡ Quick Implementation Steps:\n- Import the workflow into your n8n instance.\n- Configure your API, email details and Google Drive folder.\n- (Optional) Adjust the **CRON schedule** if you need a different time or frequency.\n- Activate workflow—automated weekly reports begin immediately.\n\n## 🎯 Who’s It For\nEnergy providers, sustainability departments, facility managers, renewable energy operators.\n\n## 🛠 Requirements\n- n8n instance\n- Energy Consumption API access\n- Google Drive account\n- Email SMTP access\n\n## ⚙️ How It Works\nWorkflow triggers every Monday at 8 AM, fetches consumption data, emails CSV report and saves a copy to Google Drive.\n\n## 🔄 Workflow Steps\n\n### 1. **Schedule Weekly (Mon 8:00 AM)**\n- Type: **Cron Node**\n- Runs every Monday at 8:00 AM.\n- Triggers the workflow execution automatically.\n\n### 2. **Fetch Energy Data**\n- Type: **HTTP Request Node**\n- Makes a GET request to:\n```\nhttps://api.energidataservice.dk/dataset/ConsumptionDE35Hour\n(sample API)\n```\n- The API returns JSON data with hourly electricity consumption in Denmark.\n\n**Sample Response Structure:**\n```json\n{\n\"records\": [\n{\n\"HourDK\": \"2025-08-25T01:00:00\",\n\"MunicipalityNo\": ___,\n\"MunicipalityName\": \"Copenhagen\",\n\"ConsumptionkWh\": 12345.67\n}\n]\n}\n```\n\n### 3. **Normalize Records**\n- Type: **Code Node**\n- Extracts the `records` array from the API response and maps each entry into separate JSON items for easier handling downstream.\n- Code used:\n```javascript\nconst itemlist = $input.first().json.records;\nreturn itemlist.map(r =&gt; ({ json: r }));\n```\n\n### 4. **Convert to File**\n- Type: **Convert to File Node**\n- Converts the array of JSON records into a **CSV file**.\n- The CSV is stored in a binary field called `data`.\n\n### 5. **Send Email Weekly Report**\n- Type: **Email Send Node**\n- Sends the generated CSV file as an **attachment**.\n- Parameters:\n- `fromEmail`: Sender email address (configure in node).\n- `toEmail`: Recipient email address.\n- `subject`: `\"Weekly Energy Consumption Report\"`.\n- `attachments`: `=data` (binary data from the previous node).\n\n### 6. **Report File Upload to Google Drive**\n- Type: **Google Drive Node**\n- Uploads the CSV file to your Google Drive root folder.\n- Filename pattern:\n```\nenergy_report_{{ $now.format('yyyy_MM_dd_HH_ii_ss') }}\n```\n- Requires valid Google Drive OAuth2 credentials.\n\n## ✨ How To Customize\nChange report frequency, email template, data format (CSV/Excel) or add-ons.\n\n## ➕ Add-ons\n- Integration with analytics tools (Power BI, Tableau)\n- Additional reporting formats (Excel, PDF)\n- Slack notifications\n\n## 🚦 Use Case Examples\n- Automated weekly/monthly reporting for compliance\n- Historical consumption tracking\n- Operational analytics and forecasting\n\n## 🔍 Troubleshooting Guide\n| Issue | Cause | Solution |\n|-------|-------|----------|\n| Data not fetched | API endpoint incorrect | Verify URL |\n| Email delivery issues | SMTP configuration incorrect | Verify SMTP |\n| Drive save fails | Permissions/Drive ID incorrect | Check Drive permissions |\n\n## 📞 Need Assistance?\nContact WeblineIndia for additional customization and support, we're happy to help.",
+  "workflow": {
+    "id": "5if9twDNChTpUQFf",
+    "meta": {
+      "instanceId": "14e4c77104722ab186539dfea5182e419aecc83d85963fe13f6de862c875ebfa"
+    },
+    "name": "Generate Weekly Energy Consumption Reports with API, Email and Google Drive",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "4827c44f-1995-4cd9-837f-f06c55ce9697",
+        "name": "Schedule Weekly (Mon 8AM)",
+        "type": "n8n-nodes-base.cron",
+        "position": [
+          -200,
+          200
+        ],
+        "parameters": {
+          "triggerTimes": {
+            "item": [
+              {
+                "hour": 8,
+                "mode": "everyWeek",
+                "weekday": "monday"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "028bf36b-a75b-474d-a596-dcd8f4db7c20",
+        "name": "Fetch Energy Data",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          20,
+          200
+        ],
+        "parameters": {
+          "url": "https://api.energidataservice.dk/dataset/ConsumptionDE35Hour",
+          "options": {}
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f0fa171b-52b2-4350-8d0f-808117715e30",
+        "name": "Normalize Records",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          240,
+          200
+        ],
+        "parameters": {
+          "jsCode": "const itemlist = $input.first().json.records;\nreturn itemlist.map(r => ({ json: r }));"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "a47b2980-6da2-4dbc-bb09-d23d4b936d9f",
+        "name": "Convert to File",
+        "type": "n8n-nodes-base.convertToFile",
+        "position": [
+          460,
+          200
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "613baa2d-3929-4e88-aa65-5303860dcfb4",
+        "name": "Send Email Weekly Report",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          680,
+          100
+        ],
+        "parameters": {
+          "text": "Please find attached the latest weekly energy consumption report.",
+          "options": {},
+          "subject": "Weekly Energy Consumption Report",
+          "toEmail": "user@example.com",
+          "fromEmail": "user@example.com",
+          "attachments": "=data"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "588f3a86-3932-499f-b3aa-e60cbc2c8ebd",
+        "name": "Report File Upload to Google Drive",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          680,
+          300
+        ],
+        "parameters": {
+          "name": "=energy_report_{{ $now.format('yyyy_MM_dd_HH_ii_ss') }}",
+          "driveId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "My Drive"
+          },
+          "options": {},
+          "folderId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "root",
+            "cachedResultName": "/ (Root folder)"
+          }
+        },
+        "credentials": {
+          "googleDriveOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleDriveOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "7c910c92-a9d4-4a2e-9e91-69d859ea633f",
+        "name": "Sticky: Node Explanations1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -240,
+          40
+        ],
+        "parameters": {
+          "width": 160,
+          "height": 120,
+          "content": "📝 - **Schedule Weekly (Mon 8AM)**: Trigger every Monday at 8AM."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ff3f08c5-430d-4b3e-8ef5-f3f93d32efe7",
+        "name": "Sticky: Node Explanations2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -20,
+          40
+        ],
+        "parameters": {
+          "width": 160,
+          "height": 120,
+          "content": "📝 - **Fetch Energy Data**: Call EnergiDataService.dk API."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "1627fcfa-d1f6-40f5-90dd-0352b2a6fb63",
+        "name": "Sticky: Node Explanations3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          200,
+          40
+        ],
+        "parameters": {
+          "width": 160,
+          "height": 120,
+          "content": "📝 - **Normalize Records**: Flatten JSON response (records → items)."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "48440a87-317b-47e4-808c-b07e6411bdd0",
+        "name": "Sticky: Node Explanations4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          420,
+          40
+        ],
+        "parameters": {
+          "width": 160,
+          "height": 120,
+          "content": "📝 - **Convert to File**: Turn items into a CSV (binary `data`)."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "dd003fb3-dccc-4e2f-90d4-f9acbdcca301",
+        "name": "Sticky: Node Explanations5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          660,
+          -40
+        ],
+        "parameters": {
+          "width": 160,
+          "height": 120,
+          "content": "📝 - **Email Weekly Report**: Email the CSV file."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "2f2425e1-86d2-499c-be72-3f42d723385c",
+        "name": "Sticky: Node Explanations6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          660,
+          500
+        ],
+        "parameters": {
+          "width": 160,
+          "height": 120,
+          "content": "📝 - **Upload File to Drive**: Save CSV to Google Drive."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "c9007e5b-7c88-4384-97bf-12dff0a2672c",
+    "connections": {
+      "Convert to File": {
+        "main": [
+          [
+            {
+              "node": "Send Email Weekly Report",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Report File Upload to Google Drive",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Energy Data": {
+        "main": [
+          [
+            {
+              "node": "Normalize Records",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalize Records": {
+        "main": [
+          [
+            {
+              "node": "Convert to File",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Weekly (Mon 8AM)": {
+        "main": [
+          [
+            {
+              "node": "Fetch Energy Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 35,
+      "name": "Document Extraction"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7592",
+  "fetched_at": "2026-09-12T13:12:00Z"
+}

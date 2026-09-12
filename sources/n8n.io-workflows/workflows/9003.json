@@ -1,0 +1,366 @@
+{
+  "id": 9003,
+  "name": "Shopify order fulfillment & send tracking link via WhatsApp using Rapiwa API",
+  "description": "# Shopify Order Fulfillment & Send Tracking Link via WhatsApp Using Rapiwa API\n\n## Who is this for?\nThis **n8n workflow** automatically sends **WhatsApp notifications** to customers when their **Shopify orders are fulfilled**. It extracts order details, validates customer phone numbers for WhatsApp compatibility using the **Rapiwa API**, sends tracking information via WhatsApp, and logs all interactions in **Google Sheets** with appropriate verification status.\n\n---\n\n## What this Workflow Does\nThis **n8n workflow** listens for new **order fulfillments** on Shopify and automatically sends a **WhatsApp message** with tracking details to customers. It uses the **Rapiwa API** to verify if the customer's number is on WhatsApp, formats all the data, sends a message, and logs everything to **Google Sheets** for tracking and auditing purposes.\n\n---\n\n## Key Features\n- **Webhook-Triggered**: Activates on new Shopify fulfillment events\n- **Phone Number Validation**: Uses Rapiwa to check WhatsApp compatibility\n- **Tracking Message Automation**: Sends real-time tracking messages via WhatsApp\n- **Data Cleaning**: Formats phone numbers and customer data\n- **Smart Branching**: Separates verified and unverified WhatsApp users\n- **Google Sheets Logging**: Stores data with status labels for all messages\n- **Rate-Limit Protection**: `Wait` node helps space API calls\n- **Dual Sheet Logging**: Maintains separate records for verified and unverified numbers\n\n## Requirements\n### Tools & Services\n- An **n8n instance** (self-hosted or cloud)\n- A **Shopify store** with REST API access enabled\n- A **Rapiwa.com account** with:\n  - Valid Bearer Token\n  - Connected and verified WhatsApp number\n- A **Google Sheet** with the following columns:\n   - Like this [Sample Sheet](https://docs.google.com/spreadsheets/d/1vxocktoY-y-PYBZNxmUDuQv02b5F8QKhbQ0yLHjwjBY/edit?usp=sharing)\n- **Google Sheets OAuth2 credentials** set up in n8n\n- **Shopify API credentials** added to n8n\n- **Rapiwa Bearer Token** added as `httpBearerAuth` credentials\n\n---\n\n## How to Use\n### Step-by-step Setup\n1. **Connect Shopify to n8n**\n   - Use the **Shopify Trigger** node\n   - Set event to `fulfillments/create` to capture new fulfillment events\n\n2. **Extract Webhook Data**\n   - Use a **Code Node** to format the webhook response\n   - Capture order, customer, and tracking details\n\n3. **Fetch Complete Order Information**\n   - Add an **HTTP Request Node** using Shopify Admin API\n   - Include the order ID to retrieve customer phone, email, and product details\n\n4. **Clean the Phone Number**\n   - Use a **Code Node** to:\n     - Remove non-numeric characters\n     - Format number to international standard\n     - Combine customer first and last name\n\n5. **Batch Process Orders**\n   - Use the **Split In Batches** node to handle customers one-by-one\n\n6. **Validate WhatsApp Number**\n   - Use Rapiwa’s `/verify-whatsapp` endpoint with a Bearer Token\n   - Check if number exists on WhatsApp\n\n7. **Conditional Branching**\n   - Use an **If Node**:\n     - If `data.exists === \"true\"` → Verified path\n     - Else → Unverified path\n\n8. **Send WhatsApp Message**\n   - Send tracking info with a personalized message:\n     ```\n     Hi [Customer Name],\n     Good news! Your order has just been fulfilled.\n     Tracking Number: [Tracking Number]\n     Track your package here: [Tracking URL]\n     Thank you for shopping with us.\n     -Team SpaGreen Creative\n     ```\n\n9. **Log Data to Google Sheets**\n   - Log verified and unverified entries in **separate sheets**\n   - Include all relevant customer and tracking data\n\n10. **Add Delay Between Messages**\n    - Use the **Wait Node** to avoid rate limits on Rapiwa API\n\n---\n\n## Requirements\n- A **Shopify store** with API access enabled\n- A **Google Sheet** with required column like this ➤ [Sample](https://docs.google.com/spreadsheets/d/1vxocktoY-y-PYBZNxmUDuQv02b5F8QKhbQ0yLHjwjBY/edit?usp=sharing)\n- **Rapiwa API account**:\n  - Connected WhatsApp number\n  - Valid Bearer Token\n- **n8n** with:\n  - Shopify API credentials\n  - Rapiwa Bearer Token\n  - Google Sheets OAuth2 credentials\n\n---\n\n## Google Sheet Column Reference\n**A Google Sheet** formatted like this ➤ [Sample](https://docs.google.com/spreadsheets/d/1vxocktoY-y-PYBZNxmUDuQv02b5F8QKhbQ0yLHjwjBY/edit?usp=sharing)\n\n| customer_id   | name            | email                          | number        | tracking_company | tracking_number | tracking_url                                | product_title                          | status     |\n|---------------|-----------------|--------------------------------|---------------|------------------|-----------------|---------------------------------------------|----------------------------------------|------------|\n| 8986XXXX06 | Abdul Mannan | contact@spagreen.net  | 8801322827799 | Amazon Logistics | SG-OT-02        | https://traxxxG-OT-02 | S25 Ultra 5G Smartphone     | verified   |\n| 883XXX7982 | Abdul Mannan     | contact@spagreen.net             | 8801322827799 | Amazon Logistics | SG-OT-N03       | https://traxxxGOT-N03| Samsung Galaxy S24 Ultra  | verified   |\n\n---\n\n## Workflow Logic Summary\n1. **Shopify Webhook Trigger**: On order fulfillment\n2. **Extract Webhook Payload**\n3. **Fetch Order + Customer Details**\n4. **Clean and Format Phone Number**\n5. **Split into Single-Item Batch**\n6. **Check WhatsApp Validity via Rapiwa**\n7. **If Verified:**\n   - Send WhatsApp Message\n   - Log to verified sheet\n8. **If Not Verified:**\n   - Skip message\n   - Log to unverified sheet\n9. **Add Delay with Wait Node**\n10. **Repeat for Next Fulfillment**\n\n---\n\n## Customization Ideas\n- Modify WhatsApp message to include delivery date or store contact\n- Send different messages for different product categories\n- Use `product_type` or `shipping_zone` to trigger separate workflows\n- Add admin alerts for unverified numbers\n- Store message delivery status (e.g., success, failed)\n\n---\n\n## Notes & Warnings\n- Rapiwa is an **unofficial WhatsApp API** — delivery reliability is not guaranteed\n- The **Google Sheet column `name ` must include the space at the end**\n- **Wait node** may need longer delay for high-volume stores\n- Always format phone numbers in **international format** (e.g., `8801XXXXXXXXX`)\n- Shopify API version used is `2025-07` — update as newer versions release\n- You must comply with WhatsApp terms and data privacy laws when messaging users\n\n---\n\n ## Useful Links\n- **Dashboard:** [https://app.rapiwa.com](https://app.rapiwa.com/login)\n- **Official Website:** [https://rapiwa.com](https://rapiwa.com/)\n- **Documentation:** [https://docs.rapiwa.com](https://docs.rapiwa.com/)\n\n## Support\n- WhatsApp Support: [Chat Now](https://wa.me/8801322827799)  \n- Discord: [Join SpaGreen Community](https://discord.gg/SsCChWEP)  \n- Facebook Group: [SpaGreen Support](https://www.facebook.com/groups/spagreenbd)  \n- Website: [https://spagreen.net](https://spagreen.net)  \n- Developer Portfolio: [Codecanyon SpaGreen](https://codecanyon.net/user/spagreen/portfolio)",
+  "workflow": {
+    "id": "qIxpz1WNuNQMj4Hq",
+    "meta": {
+      "instanceId": "cb9a1e5321767b6316634728341237e564b2587ab15b74ca0a89eb02a53484d6",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Shopify Order Fulfillment & Send Tracking Link via WhatsApp Using Rapiwa API",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "bb285dab-fc99-4d5b-8b3b-36959d591a4f",
+        "name": "get all customer data",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -112,
+          896
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "357f157e-ebd1-4865-8384-c2202c69461a",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          80,
+          896
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "0e597ab7-be2c-45fd-8b2b-6a34989b3b9a",
+        "name": "Shopify Trigger",
+        "type": "n8n-nodes-base.shopifyTrigger",
+        "position": [
+          -624,
+          896
+        ],
+        "webhookId": "a8c45cbe-04b8-4c78-8418-1e50b9b8fd06",
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "e9854c40-304b-49a8-a3e2-f3aae6a0996a",
+        "name": "Format Webhook Response Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -448,
+          896
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "9df911dd-af84-4a81-8b15-4c758ed36c9e",
+        "name": "Clean Number",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          304,
+          992
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "9c7f6119-154c-4abf-8336-3ebe8133f479",
+        "name": "verified append row in sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1184,
+          1008
+        ],
+        "parameters": {},
+        "typeVersion": 4.6
+      },
+      {
+        "id": "ed921c20-60e1-4c65-a946-cd477658d7e1",
+        "name": "Send Message Using Rapiwa",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          960,
+          1008
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "53198fba-bd3b-4169-bfed-647f13caa22a",
+        "name": "Wait",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          1184,
+          1216
+        ],
+        "webhookId": "6c474e54-eb3c-4fcd-b455-948322cd0121",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "af670da1-14e9-4a4d-9d06-6e8d2bcbe051",
+        "name": "Check valid whatsapp number Using Rapiwa",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          528,
+          992
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "63985bfb-4fcd-427a-b6f5-ca56972dfa4a",
+        "name": "If",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          720,
+          1120
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "ef4e6f6f-5c3b-4598-ace3-bb47d91882fe",
+        "name": "verified append row in sheet1",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          976,
+          1216
+        ],
+        "parameters": {},
+        "typeVersion": 4.6
+      },
+      {
+        "id": "92e8dfd3-a657-49a7-8c6f-f9a77e467b72",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2576,
+          192
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9242aaa7-3458-4bba-8965-4ee434a92421",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -768,
+          192
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "21e5181e-236e-47aa-aec2-a90b8980972d",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -160,
+          192
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "0b192c42-a681-458e-9c04-b327c8c1d3fe",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          256,
+          192
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "28edb9e1-79e8-4519-940b-17fba681a694",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          704,
+          192
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "0cd9fd3c-ef9a-4ff3-bbdb-d6be4ac3a962",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -768,
+          -96
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "a4f318ef-c966-4231-8931-721438e6c92f",
+    "connections": {
+      "If": {
+        "main": [
+          [
+            {
+              "node": "Send Message Using Rapiwa",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "verified append row in sheet1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Clean Number": {
+        "main": [
+          [
+            {
+              "node": "Check valid whatsapp number Using Rapiwa",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Clean Number",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Shopify Trigger": {
+        "main": [
+          [
+            {
+              "node": "Format Webhook Response Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "get all customer data": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Message Using Rapiwa": {
+        "main": [
+          [
+            {
+              "node": "verified append row in sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Webhook Response Data": {
+        "main": [
+          [
+            {
+              "node": "get all customer data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "verified append row in sheet": {
+        "main": [
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "verified append row in sheet1": {
+        "main": [
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check valid whatsapp number Using Rapiwa": {
+        "main": [
+          [
+            {
+              "node": "If",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 38,
+      "name": "Lead Nurturing"
+    },
+    {
+      "id": 47,
+      "name": "AI Chatbot"
+    }
+  ],
+  "url": "https://n8n.io/workflows/9003",
+  "fetched_at": "2026-09-12T13:12:44Z"
+}

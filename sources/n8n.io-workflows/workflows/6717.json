@@ -1,0 +1,272 @@
+{
+  "id": 6717,
+  "name": "Convert blog posts to audio content with Eleven Labs & GPT-4",
+  "description": "---\n\n## How It Works: Your Automated Audio Content System\n\nThis n8n workflow streamlines the entire process of turning your written articles into engaging audio, distributing them, and tracking their performance. Here's a step-by-step breakdown:\n\n1.  **New Content Detection:** The workflow starts by **monitoring your blog's RSS feed**. As soon as you publish a new article, the system automatically detects it.\n2.  **Text Extraction & Cleaning:** It extracts the article's title and its main content directly from the RSS feed. Basic cleaning is performed to ensure the text is ready for high-quality voice synthesis.\n3.  **Audio Generation with Eleven Labs:** The cleaned text is sent to **Eleven Labs**, a leading AI voice platform. Here, your article is transformed into a natural-sounding MP3 audio file using a voice of your choice.\n4.  **Secure Audio Storage:** The newly generated MP3 audio file is then **uploaded to your Google Drive**. This provides a reliable, secure storage solution and generates a shareable public link for easy distribution.\n5.  **AI-Powered Metadata Creation:** **OpenAI** steps in to generate compelling metadata for your audio. Based on your article's content, it automatically creates a catchy title, a concise description, and relevant tags or hashtags, perfect for podcast notes or social media captions.\n6.  **Centralized Logging:** All essential details about the generated audio—including the original article's URL, the audio file's link, and the AI-generated metadata—are **logged into a Google Sheet**. This gives you a clear, centralized record for tracking and analysis.\n7.  **Automated Distribution:** The workflow then proceeds to distribute your audio content. This can include **sending an email notification** (via Gmail) to your subscribers or marketing list with the audio link, or **sending an internal alert via Slack** to your team. The specific distribution channel can be configured based on your needs.\n8.  **Robust Error Handling:** The entire workflow is built with **Try/Catch blocks**. If any part of the process encounters an error, the system will gracefully handle it and send an immediate notification to you via Slack, ensuring you're always aware of the workflow's status.\n\n---\n\n## Setup Steps\n\nTo get this powerful automated audio content system up and running in your n8n instance, follow these steps:\n\n1.  **Prepare Your Cloud Services & API Credentials:**\n    * **Eleven Labs:** Create an account and obtain your **API Key**.\n    * **OpenAI:** Get your **API Key**.\n    * **Google Drive:** Ensure you have a Google account. In n8n, set up a **Google Drive credential**. Create a dedicated folder in your Google Drive for your audio files and note its **Folder ID** (found in the URL when you open the folder).\n    * **Google Sheets:** Set up a **Google Sheets credential** in n8n. Create a new Google Sheet for logging with these exact column headers: `Article URL`, `Article Title`, `Audio File URL`, `Generated Audio Title`, `Generated Audio Description`, `Generated Audio Tags`, `Status`, `Timestamp`.\n    * **Gmail / SMTP:** Set up your **Gmail credential** or a generic **Email credential** in n8n.\n    * **Slack:** Set up your **Slack credential** in n8n. Identify the **Channel IDs** where you want to receive general updates and error alerts.\n\n2.  **Identify Your Text Content Source:**\n    * Ensure your blog or content platform has an accessible **RSS Feed**. The content within this feed (specifically the `description` or `content` field) should be relatively clean text, as this will be directly processed for audio generation.\n\n3.  **Build the n8n Workflow:**\n    * Open your n8n instance and create a **new, blank workflow**.\n    * Add each node as described in the \"How It Works\" section and the previous detailed explanations. Connect them sequentially.\n    * **Configure Each Node's Parameters:**\n        * **RSS Feed:** Enter your blog's RSS feed URL.\n        * **Set (Extract & Clean Article Data):** Use expressions to extract `title`, `link`, and clean the `description` or `content` from the RSS feed.\n        * **ElevenLabs:** Select your **Eleven Labs credential**, specify your chosen `Voice ID` (you can find this in your Eleven Labs dashboard), and ensure the `Text` field points to your cleaned article content.\n        * **Google Drive:** Select your **Google Drive credential** and enter the **Folder ID** you noted earlier. Ensure `Allow Anyone to Read` is set to `True`.\n        * **OpenAI:** Select your **OpenAI credential**. Configure the \"Chat Completion\" node with appropriate system and user prompts to generate JSON output for `audioTitle`, `audioDescription`, and `audioTags`.\n        * **Set (Combine All Metadata):** Use expressions to neatly collect and organize all the data from previous nodes into a single item.\n        * **Google Sheets:** Select your **Google Sheets credential**. Enter your **Spreadsheet ID** and **Sheet Name**. Map the data from the previous \"Set\" node to match your Google Sheet's column headers precisely.\n        * **If:** Set up your condition for email distribution (e.g., based on specific tags in `generatedAudioTags`).\n        * **Gmail / Slack:** Configure the `To` address/`Chat ID` and the message content for your notifications.\n        * **Try/Catch & Error Slack:** Connect the `Try` branch to your very first node (RSS Feed) and the `Catch` branch to the error Slack notification. Configure the error message in Slack to include relevant details.\n\n4.  **Test and Activate:**\n    * **Manual Test:** Before activating, run the workflow manually in n8n. This lets you observe each step's execution and verify that data flows correctly between nodes.\n    * **Verify Outputs:** After a successful test run, check your Google Drive for the uploaded audio file, open your Google Sheet to confirm the data has been logged correctly, and check your email/Slack for the notifications.\n    * **Activate:** Once you've thoroughly tested and confirmed the workflow is functioning as intended, activate it in n8n to enable automatic execution.\n\n---",
+  "workflow": {
+    "id": "KLDO9ZJ0iMg5VncF",
+    "meta": {
+      "instanceId": "a287613f1596da776459594685fbf4e2b4a12124f80ab8c8772f5e37bff103ae",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Automated Audio Content with Eleven Labs & GPT-4",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "89557e6d-4a2d-417f-b323-ffe632ebb5a8",
+        "name": "RSS Feed Trigger",
+        "type": "n8n-nodes-base.rssFeedReadTrigger",
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "4e7186aa-c4a8-425a-9cc5-2f505e36696d",
+        "name": "Extract & Clean Article Data",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          224,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "a881c3d2-9980-428a-a85d-4eb700d35e0d",
+        "name": "Convert Text to Speech",
+        "type": "@elevenlabs/n8n-nodes-elevenlabs.elevenLabs",
+        "position": [
+          448,
+          0
+        ],
+        "parameters": {},
+        "retryOnFail": false,
+        "typeVersion": 1
+      },
+      {
+        "id": "37cebd8a-ceab-4ffa-83fd-5f046fde43b7",
+        "name": "Upload Audio File",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          672,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "0796f202-3a46-4cf4-b8e7-2ec41004ba65",
+        "name": "Generate Metadata",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "position": [
+          896,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1.8
+      },
+      {
+        "id": "0dcd3160-1a32-4c13-b3d6-93f1c45227fc",
+        "name": "Combine All Metadata",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1296,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "81d43a0c-3a16-4f8b-a320-88d8ba483731",
+        "name": "Log Audio Production",
+        "type": "n8n-nodes-base.googleSheets",
+        "notes": "Values:\nArticle URL: ={{ $json.finalArticleUrl }}\nArticle Title: ={{ $json.finalArticleTitle }}\nAudio File URL: ={{ $json.audioFileUrl }}\nGenerated Audio Title: ={{ $json.generatedAudioTitle }}\nGenerated Audio Description: ={{ $json.generatedAudioDescription }}\nGenerated Audio Tags: ={{ $json.generatedAudioTags }}\nStatus: ={{ $json.workflowStatus }}\nTimestamp: ={{ $json.timestamp }}",
+        "position": [
+          1520,
+          0
+        ],
+        "parameters": {},
+        "notesInFlow": true,
+        "typeVersion": 4.6
+      },
+      {
+        "id": "52da2181-689d-44f1-97ec-4f50a2311e22",
+        "name": "Is for Email Distribution?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1744,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "a80d6ee9-f222-411f-aa6f-aa6151e04903",
+        "name": "Send Audio Notification via Email",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          1968,
+          -96
+        ],
+        "webhookId": "41e96a51-49f9-494a-849c-d1302e137b18",
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "4e637fd0-015c-4f0d-9fb9-5782c66f23f6",
+        "name": "Notify Internal Team",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          1968,
+          96
+        ],
+        "webhookId": "e549edc5-add6-437f-9a8b-98ebb772aad7",
+        "parameters": {},
+        "typeVersion": 2.3
+      },
+      {
+        "id": "44c25fdf-b212-4d26-83d3-0a0704bd8437",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -128,
+          -176
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c0cace1f-436f-4437-aa2e-d84b299488c8",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -144,
+          400
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "45b3c5df-1732-4525-888c-410de66f5676",
+    "connections": {
+      "RSS Feed Trigger": {
+        "main": [
+          [
+            {
+              "node": "Extract & Clean Article Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Metadata": {
+        "main": [
+          [
+            {
+              "node": "Combine All Metadata",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Upload Audio File": {
+        "main": [
+          [
+            {
+              "node": "Generate Metadata",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Combine All Metadata": {
+        "main": [
+          [
+            {
+              "node": "Log Audio Production",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log Audio Production": {
+        "main": [
+          [
+            {
+              "node": "Is for Email Distribution?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Convert Text to Speech": {
+        "main": [
+          [
+            {
+              "node": "Upload Audio File",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is for Email Distribution?": {
+        "main": [
+          [
+            {
+              "node": "Send Audio Notification via Email",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Notify Internal Team",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract & Clean Article Data": {
+        "main": [
+          [
+            {
+              "node": "Convert Text to Speech",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 31,
+      "name": "Content Creation"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6717",
+  "fetched_at": "2026-09-12T13:11:31Z"
+}

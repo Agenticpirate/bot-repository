@@ -1,0 +1,359 @@
+{
+  "id": 14487,
+  "name": "Notify on menu orders via ntfy and Home Assistant TTS with daily BAC tracking",
+  "description": "# Notify on menu orders via ntfy and Home Assistant TTS with daily BAC tracking\n\nReceive instant push notifications on your phone and voice announcements on your Google Home every time someone orders from your intranet menu — with cumulative BAC tracking per person.\n\n&gt; **Full documentation & step-by-step setup guides:**\n&gt; [📖 Notion Documentation](https://paoloronco.notion.site/Documentation-Menu-Order-Push-Notifications-Home-Assistant-TTS-BAC-32ff0ba27c328075a886d89ebfbf5ce5)\n&gt; [💻 GitHub Repository](https://github.com/paoloronco/n8n-templates/tree/main/free-templates/5%20v3%20online_menu-push_notifications-homeassistant-TTS-BACcalculation)\n\n---\n\n## What This Workflow Does\n\nEvery time a customer submits an order from your intranet menu website, this workflow:\n\n1. Receives the order via **Webhook**\n2. Logs it to an **n8n DataTable** and reads all orders for that person today\n3. Calculates the cumulative **BAC** (Blood Alcohol Content) using the Widmark formula\n4. Sends a **push notification** via ntfy (with order history + BAC level)\n5. Triggers a **Home Assistant script** → voice announcement on Google Home\n\n**No cloud TTS fees. No external AI services. Fully self-hosted.**\n\n---\n\n## Flow\n\n```\nWebhook → Prepare Order → DataTable (INSERT) → Read Today's Orders → BAC Calculator → ntfy Push Notification → Home Assistant TTS\n```\n\n---\n\n## Example Output\n\n**Push notification (ntfy app):**\n\n```\n🛎 Order from Mario\n\nMario: 1x Pizza, 2x Beer 33cl\n🕐 12:30\n📋 Ordered before:\n  - 1x Prosecco  🕐 11:45\n🍸 BAC ~0.54 g/L  🔴\n```\n\n**Google Home voice announcement:**\n\n```\nMario has ordered Pizza\n```\n\n---\n\n## Prerequisites\n\nBefore importing this workflow, you need:\n\n- A running **n8n** instance (self-hosted or cloud) reachable from the internet\n- **Home Assistant** on your local network (e.g. `homeassistant.local:8123`)\n- At least one **Google Home** (or Chromecast-capable) device added to HA via the Google Cast integration\n- **ntfy** deployed via Docker (self-hosted push notification server)\n- A public HTTPS URL for ntfy — recommended via **Cloudflare Tunnel** (no open ports needed)\n- An Android or iOS device with the **ntfy app** installed\n\n---\n\n## Credentials Required\n\n| Credential                                             | Used For                                 |\n| ------------------------------------------------------ | ---------------------------------------- |\n| **Home Assistant**                                     | Calling the `annuncia_ordine` TTS script |\n| **Header Auth** (`Authorization: Bearer &lt;ntfy_token&gt;`) | Sending authenticated requests to ntfy   |\n\n---\n\n## n8n DataTable Schema\n\nCreate a DataTable in **n8n → Data → Tables** with these columns:\n\n| Column         | Type   | Description                                            |\n| -------------- | ------ | ------------------------------------------------------ |\n| `item`         | Text   | Full order string (e.g. \"2x Negroni, 1x Messina 33cl\") |\n| `person`       | Text   | Normalised person name                                 |\n| `alcol_grammi` | Number | Total grams of alcohol for this order                  |\n| `data`         | Text   | ISO date (YYYY-MM-DD)                                  |\n| `orario`       | Text   | Time string from the order                             |\n\nCopy the DataTable ID and paste it into the DataTable nodes inside the workflow.\n\n---\n\n## Webhook Payload\n\nYour menu website must POST this JSON to the Webhook Production URL:\n\n```json\n{\n  \"name\": \"Mario\",\n  \"time\": \"26/03/2026, 12:30:00\",\n  \"order\": [\n    { \"section\": \"Food\", \"name\": \"Pizza\", \"details\": \"\", \"quantity\": 1 },\n    { \"section\": \"Drinks\", \"name\": \"Beer\", \"details\": \"33cl\", \"quantity\": 2 }\n  ],\n  \"total\": 3\n}\n```\n\n---\n\n## Setup Steps\n\n### 1. Deploy ntfy (self-hosted push notifications)\n\nAdd ntfy to your `docker-compose.yml`:\n\n```yaml\nntfy:\n  image: binwiederhier/ntfy\n  command: serve\n  volumes:\n    - ./ntfy/config:/etc/ntfy\n    - ./ntfy/data:/var/lib/ntfy\n  ports:\n    - \"8095:80\"\n```\n\nIn `server.yml`, set `auth-default-access: deny-all`.\n\nThen create an admin user and generate a token:\n\n```bash\ndocker exec -e NTFY_PASSWORD=\"your_password\" ntfy ntfy user add --role=admin admin\ndocker exec ntfy ntfy token add admin\n```\n\n### 2. Expose ntfy over HTTPS (Cloudflare Tunnel)\n\nAdd an ingress rule to your Cloudflare Tunnel config:\n\n```yaml\n- hostname: ntfy.YOUR_DOMAIN.com\n  service: http://localhost:8095\n```\n\n### 3. Configure Home Assistant TTS\n\nIn HA, go to **Settings → Automations & Scenes → Scripts → Add script → Edit in YAML** and paste:\n\n```yaml\nalias: annuncia_ordine\nsequence:\n  - action: tts.speak\n    target:\n      entity_id: tts.google_translate_en_com\n    data:\n      media_player_entity_id: media_player.YOUR_GOOGLE_HOME_ENTITY\n      message: \"{{ message }}\"\n      language: it\nmode: single\n```\n\n&gt; Replace `media_player.YOUR_GOOGLE_HOME_ENTITY` with your actual entity ID.\n\nThen go to your HA profile → **Security → Long-lived access tokens** → create and copy a token.\n\n### 4. Import and configure the workflow\n\n1. Import the workflow JSON into n8n\n\n2. Create the **DataTable** (columns listed above) — copy its ID\n\n3. Create the **Header Auth** credential for ntfy:\n\n   - Header Name: `Authorization`\n   - Header Value: `Bearer YOUR_NTFY_TOKEN`\n\n4. Create the **Home Assistant** credential:\n\n   - Host: `http://homeassistant.local:8123`\n   - Access Token: your HA long-lived token\n\n5. In the `ntfy notification` node, replace `YOUR_TOPIC` in the URL\n\n6. In the `Home Assistant TTS` node, set the `message` attribute expression:\n\n   ```\n   ={{ $('Webhook').item.json.body.nome }} has ordered {{ $('Webhook').item.json.body.ordine[0].nome }}\n   ```\n\n7. Activate the workflow and copy the **Webhook Production URL**\n\n### 5. Configure your menu website\n\nSet the webhook URL in your menu site config:\n\n```js\n// menu-data.js\n\"orderWebhook\": \"https://YOUR_N8N_DOMAIN/webhook/menu\"\n```\n\n---\n\n## BAC Calculation (Widmark Formula)\n\n```\nBAC [g/L] = total_alcohol_grams_today / (70 × 0.68)\n```\n\nAssumes ~70 kg body weight. Italian legal driving limit: **0.5 g/L**\n\n| Emoji | Level      | BAC           |\n| ----- | ---------- | ------------- |\n| ⬜     | None       | 0 g/L         |\n| 🟢     | Low        | &lt; 0.2 g/L     |\n| 🟡     | Warning    | 0.2 – 0.5 g/L |\n| 🔴     | Over limit | &gt; 0.5 g/L     |\n\nBAC is **cumulative per day per person** and resets automatically the next day.\n\n---\n\n## Customization\n\n| What                                      | How                                                          |\n| ----------------------------------------- | ------------------------------------------------------------ |\n| Change the TTS message                    | Edit the `message` expression in the HA TTS node             |\n| Announce all ordered items                | Use `$json.body.ordine.map(i =&gt; i.quantita + ' ' + i.nome).join(', ')` |\n| Change TTS language                       | Edit `language` in the `annuncia_ordine` HA script           |\n| Announce on multiple Google Home devices  | Add multiple `media_player_entity_id` entries to the HA script |\n| Disable TTS (keep only push notification) | Remove or deactivate the `Home Assistant TTS` node           |\n\n---\n\n## Security\n\n| Layer                | Mechanism                                            |\n| -------------------- | ---------------------------------------------------- |\n| Transport (ntfy)     | HTTPS via Cloudflare Tunnel                          |\n| ntfy access          | `auth-default-access: deny-all` — no anonymous reads |\n| n8n → ntfy           | Dedicated Bearer token (revokable, no expiry)        |\n| n8n → Home Assistant | Long-lived access token                              |\n| Mobile app           | Username/password on the ntfy server                 |\n\n---\n\n## Documentation & Source\n\n|                          |                                                              |\n| ------------------------ | ------------------------------------------------------------ |\n| 📖 **Full documentation** | [Notion — step-by-step setup guides](https://paoloronco.notion.site/Documentation-Menu-Order-Push-Notifications-Home-Assistant-TTS-BAC-32ff0ba27c328075a886d89ebfbf5ce5) |\n| 💻 **GitHub Repository**  | [paoloronco/n8n-templates](https://github.com/paoloronco/n8n-templates/tree/main/free-templates/5%20v3%20online_menu-push_notifications-homeassistant-TTS-BACcalculation) |\n\n## Related Resources\n\n- [ntfy.sh documentation](https://docs.ntfy.sh)\n- [Home Assistant TTS documentation](https://www.home-assistant.io/integrations/tts/)\n- [Home Assistant Scripts](https://www.home-assistant.io/integrations/script/)\n- [Google Cast integration](https://www.home-assistant.io/integrations/cast/)\n- [n8n Home Assistant node](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.homeassistant/)",
+  "workflow": {
+    "meta": {
+      "instanceId": "",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "709a58d2-d2fe-422d-bb31-7c7ae04af1c3",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1152,
+          368
+        ],
+        "parameters": {
+          "width": 480,
+          "height": 800,
+          "content": "## Notify on menu orders via ntfy and Home Assistant TTS with daily BAC tracking\n\n📖 [Full documentation](https://paoloronco.notion.site/Documentation-Menu-Order-Push-Notifications-Home-Assistant-TTS-BAC-32ff0ba27c328075a886d89ebfbf5ce5)\n\n### How it works\n\n1. Receives a menu order through a webhook (POST body: `name`, `time`, `items[]`).\n2. Normalizes the customer name and formats the order string.\n3. Logs the order to a DataTable (item, person, alcohol_grams, date, order_time).\n4. Reads all of today's orders for that person from the DataTable.\n5. Calculates a cumulative BAC estimate using the Widmark formula.\n6. Sends a push notification via ntfy and announces the order via Home Assistant TTS.\n\n### Setup steps\n\n- [ ] Create a DataTable node with columns: `item`, `person`, `alcohol_grams`, `date`, `order_time`\n- [ ] Set up ntfy credentials (HTTP Header Auth) in the **Send Ntfy Notification** node\n- [ ] Set the ntfy URL to your server/topic (e.g. `https://ntfy.sh/your-topic`)\n- [ ] Set up Home Assistant credentials and update the script service name\n- [ ] Adjust the Widmark formula weight/factor if needed (default: 70 kg, 0.68)\n\n### Customization\n\nThe BAC thresholds, weight constant, and notification message format can all be adjusted in the **Calculate Cumulative BAC** node."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9e8f77e4-7dcb-4647-a5e2-fb00028c5b16",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1648,
+          368
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 432,
+          "height": 304,
+          "content": "## Receive and prepare orders\n\nReceives the menu order via a webhook and prepares the data by normalizing and calculating necessary order information."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "067991b5-23c9-4174-b9a5-6b6bb6982808",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2096,
+          368
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 432,
+          "height": 304,
+          "content": "## Log order and read data\n\nLogs the prepared order into the database and reads the accumulated orders for the day."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "efea2242-1257-4f84-ac0b-1c8d1281d491",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2560,
+          368
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 672,
+          "height": 304,
+          "content": "## Calculate BAC and notify\n\nCalculates the cumulative BAC from today's orders and sends notifications followed by TTS announcements."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "817f6c00-fbfd-4d4f-b0cf-0af68bc32893",
+        "name": "When Order Received",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          1696,
+          496
+        ],
+        "webhookId": "00000000-0000-0000-0000-000000000001",
+        "parameters": {
+          "path": "menu",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "a19b54cd-144d-4fd1-b0dc-0aa34f25a972",
+        "name": "Calculate Alcohol and Format Order",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1936,
+          496
+        ],
+        "parameters": {
+          "jsCode": "// Normalize name, calculate alcohol amount and order string for current order\nconst body        = $input.first().json.body;\nconst rawName     = (body.name || 'Anonymous').trim();\nconst name        = rawName.charAt(0).toUpperCase() + rawName.slice(1).toLowerCase();\nconst orderTime   = body.time || new Date().toLocaleString();\nconst items       = body.items || [];\nconst today       = new Date().toISOString().slice(0, 10);\n\nconst alcoholGrams = items.reduce((s, i) => s + (i.alcohol_grams || 0) * (i.quantity || 1), 0);\n\nconst orderStr = items\n  .map(i => {\n    let s = i.quantity + 'x ' + i.name;\n    if (i.detail) s += ' ' + i.detail;\n    return s;\n  })\n  .join(', ');\n\nreturn [{ json: { name, orderTime, items, orderStr, alcoholGrams: Math.round(alcoholGrams * 10) / 10, today } }];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "114d6f2c-17f4-422b-b6d9-6072b6b3e9aa",
+        "name": "Log Order to Database",
+        "type": "n8n-nodes-base.dataTable",
+        "position": [
+          2144,
+          496
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "date": "={{ $json.today }}",
+              "item": "={{ $json.orderStr }}",
+              "person": "={{ $json.name }}",
+              "order_time": "={{ $json.orderTime }}",
+              "alcohol_grams": "={{ $json.alcoholGrams }}"
+            },
+            "schema": [
+              {
+                "id": "item",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "readOnly": false,
+                "required": false,
+                "displayName": "item",
+                "defaultMatch": false
+              },
+              {
+                "id": "person",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "readOnly": false,
+                "required": false,
+                "displayName": "person",
+                "defaultMatch": false
+              },
+              {
+                "id": "alcohol_grams",
+                "type": "number",
+                "display": true,
+                "removed": false,
+                "readOnly": false,
+                "required": false,
+                "displayName": "alcohol_grams",
+                "defaultMatch": false
+              },
+              {
+                "id": "date",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "readOnly": false,
+                "required": false,
+                "displayName": "date",
+                "defaultMatch": false
+              },
+              {
+                "id": "order_time",
+                "type": "string",
+                "display": true,
+                "removed": false,
+                "readOnly": false,
+                "required": false,
+                "displayName": "order_time",
+                "defaultMatch": false
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "dataTableId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "",
+            "cachedResultUrl": "",
+            "cachedResultName": ""
+          }
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "52f52c12-7940-4364-9b77-1fa63ecbd2c5",
+        "name": "Read Today's Orders",
+        "type": "n8n-nodes-base.dataTable",
+        "position": [
+          2384,
+          496
+        ],
+        "parameters": {
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "person",
+                "keyValue": "={{ $('Calculate Alcohol and Format Order').item.json.name }}"
+              },
+              {
+                "keyName": "date",
+                "keyValue": "={{ $('Calculate Alcohol and Format Order').item.json.today }}"
+              }
+            ]
+          },
+          "matchType": "allConditions",
+          "operation": "get",
+          "returnAll": true,
+          "dataTableId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "",
+            "cachedResultUrl": "",
+            "cachedResultName": ""
+          }
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "634dc78b-3e39-4b2e-b030-ba4c734f7548",
+        "name": "Calculate Cumulative BAC",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2608,
+          496
+        ],
+        "parameters": {
+          "jsCode": "// Calculate cumulative BAC by reading today's rows from the DataTable\n// rows = all orders for this person today (including the one just inserted)\nconst rows       = $input.all().map(i => i.json);\nconst name       = $('Calculate Alcohol and Format Order').item.json.name;\nconst orderTime  = $('Calculate Alcohol and Format Order').item.json.orderTime;\nconst orderStr   = $('Calculate Alcohol and Format Order').item.json.orderStr;\n\nconst totalAlcohol = Math.round(rows.reduce((s, r) => s + (r.alcohol_grams || 0), 0) * 10) / 10;\nconst orderCount   = rows.length;\nconst bac          = totalAlcohol > 0 ? totalAlcohol / (70 * 0.68) : 0;\nconst bacStr       = bac.toFixed(2);\n\nconst E_OK    = String.fromCodePoint(0x1F7E2);\nconst E_WARN  = String.fromCodePoint(0x1F7E1);\nconst E_OVER  = String.fromCodePoint(0x1F534);\nconst E_NONE  = String.fromCodePoint(0x2B1C);\nconst E_LIST  = String.fromCodePoint(0x1F4CB);\nconst E_CLOCK = String.fromCodePoint(0x1F552);\nconst E_DRINK = String.fromCodePoint(0x1F378);\nconst E_WATER = String.fromCodePoint(0x1F964);\nconst E_TIME  = String.fromCodePoint(0x1F550);\n\nlet bacLevel;\nif      (bac === 0)  bacLevel = E_NONE;\nelse if (bac < 0.2)  bacLevel = E_OK;\nelse if (bac < 0.5)  bacLevel = E_WARN;\nelse                  bacLevel = E_OVER;\n\n// Previous orders = all rows except the last one (just inserted)\nconst prevOrders = rows.slice(0, -1);\nconst historyStr = prevOrders.length > 0\n  ? '\\n' + E_LIST + ' Already ordered today (' + prevOrders.length + ' orders):\\n'\n    + prevOrders.map(r => '  - ' + r.item + '  ' + E_CLOCK + ' ' + r.order_time).join('\\n')\n  : '';\n\nconst bacRow = totalAlcohol > 0\n  ? '\\n' + E_DRINK + ' BAC ~' + bacStr + ' g/L  ' + bacLevel\n  : '\\n' + E_WATER + ' no alcohol';\n\nconst message = name + ': ' + orderStr\n  + '\\n' + E_TIME + ' ' + orderTime\n  + historyStr\n  + bacRow;\n\nreturn [{\n  json: {\n    name,\n    orderTime,\n    orderStr,\n    message,\n    bac:          bacStr,\n    bacLevel,\n    totalAlcohol,\n    alcoholGrams: $('Calculate Alcohol and Format Order').item.json.alcoholGrams,\n    orderCount,\n    today: $('Calculate Alcohol and Format Order').item.json.today\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "929d8f78-ead4-4545-8e45-77c32b8a5d16",
+        "name": "Send Ntfy Notification",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          2848,
+          496
+        ],
+        "parameters": {
+          "url": "http://YOUR_NTFY_SERVER/YOUR_TOPIC",
+          "body": "={{ $json.message }}",
+          "method": "POST",
+          "options": {},
+          "sendBody": true,
+          "contentType": "raw",
+          "authentication": "genericCredentialType",
+          "rawContentType": "text/plain",
+          "genericAuthType": "httpHeaderAuth"
+        },
+        "typeVersion": 4.4
+      },
+      {
+        "id": "e1accf02-8716-4f2e-ae39-9b1dbc6bd392",
+        "name": "Announce Order with Home Assistant",
+        "type": "n8n-nodes-base.homeAssistant",
+        "position": [
+          3088,
+          496
+        ],
+        "parameters": {
+          "domain": "script",
+          "service": "announce_order",
+          "resource": "service",
+          "operation": "call",
+          "serviceAttributes": {
+            "attributes": [
+              {
+                "name": "message",
+                "value": "={{ $json.name }} HAS ORDERED {{ $('When Order Received').item.json.body.items[0].name }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Read Today's Orders": {
+        "main": [
+          [
+            {
+              "node": "Calculate Cumulative BAC",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When Order Received": {
+        "main": [
+          [
+            {
+              "node": "Calculate Alcohol and Format Order",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log Order to Database": {
+        "main": [
+          [
+            {
+              "node": "Read Today's Orders",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Ntfy Notification": {
+        "main": [
+          [
+            {
+              "node": "Announce Order with Home Assistant",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Calculate Cumulative BAC": {
+        "main": [
+          [
+            {
+              "node": "Send Ntfy Notification",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Calculate Alcohol and Format Order": {
+        "main": [
+          [
+            {
+              "node": "Log Order to Database",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 45,
+      "name": "Miscellaneous"
+    }
+  ],
+  "url": "https://n8n.io/workflows/14487",
+  "fetched_at": "2026-09-12T13:15:03Z"
+}

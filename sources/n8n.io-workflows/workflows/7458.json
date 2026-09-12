@@ -1,0 +1,75 @@
+{
+  "id": 7458,
+  "name": "Automate JotForm submissions via HTTP without API keys",
+  "description": "\n\nThis guide explains how to send form data from **n8n** to a **JotForm** form submission endpoint using the **HTTP Request** node.\nIt avoids the need for API keys and works with standard `multipart/form-data`.\n\n---\n\n## 📌 Overview\n\nWith this workflow, you can automatically submit data from any source (Google Sheets, databases, webhooks, etc.) directly into JotForm.\n\n✅ Useful for:\n\n* Pushing information into a form without manual entry.\n* Avoiding API authentication.\n* Syncing external data into JotForm.\n\n---\n\n## 🛠 Requirements\n\n* A [JotForm account](https://www.jotform.com/signup/).\n* An existing [JotForm form](https://www.jotform.com/myforms/).\n* Access to the form’s **direct link**.\n* Basic understanding of JotForm’s **field naming convention**.\n\n---\n\n## ⚙️ Setup Instructions\n\n### 1. Get the JotForm Submission URL\n\n1. Open your form in JotForm.\n2. Go to **Publish → Quick Share → Copy Link**.\n   Example form URL: [sample form](https://form.jotform.com/252217969519065)\n3. Convert it into a submission endpoint by replacing `form` with `submit`:\n   Example: [submit url](https://submit.jotform.com/submit/252217969519065)\n\n---\n\n### 2. Identify Field Names\n\nEach JotForm field has a unique identifier like `q3_name[first]` or `q4_email`.\n\nSteps to find them:\n\n* Right-click a field in your [published form](https://www.jotform.com/help/401-how-to-find-field-ids-and-names/) → choose **Inspect**.\n* Locate the `name` attribute in the `&lt;input&gt;` tag.\n* Copy those values into the HTTP Request node in n8n.\n\n**Example mappings:**\n\n* First Name → `q3_name[first]`\n* Last Name → `q3_name[last]`\n* Email → `q4_email`\n\n---\n\n### 3. Configure HTTP Request Node in n8n\n\n* **Method:** `POST`\n* **URL:** Your JotForm submission URL (from Step 1).\n* **Content Type:** `multipart/form-data`\n* **Body Parameters:** Add field names and values.\n\n**Example Body Parameters:**\n\n```json\n{\n  \"q3_name[first]\": \"John\",\n  \"q3_name[last]\": \"Doe\",\n  \"q4_email\": \"john.doe@example.com\"\n}\n```\n\n---\n\n### 4. Test the Workflow\n\n1. Trigger the workflow (manually or with a trigger node).\n2. Submit test data.\n3. Check **JotForm → Submissions** to confirm the entry appears.\n\n---\n\n## 🚀 Use Cases\n\n* Automating lead capture from CRMs or websites into JotForm.\n* Syncing data from Google Sheets, Airtable, or databases.\n* Eliminating manual data entry when collecting responses.\n\n---\n\n## 🎛 Customization Tips\n\n* Replace placeholder values (`John`, `Doe`, `john.doe@example.com`) with dynamic values.\n* Add more fields by following the same naming convention.\n* Use n8n expressions (`{{$json.fieldName}}`) to pass values dynamically.\n\n\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "004a8f4f776326f6308ea533268fac22ea60e1995204a49569b21eb0ebbf949b",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "691d8ab9-c681-4a7d-a59e-1ead0a83e7de",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2256,
+          -208
+        ],
+        "parameters": {
+          "width": 400,
+          "height": 416,
+          "content": "## How this works\n\n\n- HTTP Request node → submits mapped fields to JotForm\n\n### note: Update the URL with your own JotForm submission URL and map field names (qX_fieldName)."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "174c51e0-ce79-497f-9e97-d6d13286bd11",
+        "name": "Submit Data to JotForm",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          2416,
+          48
+        ],
+        "parameters": {
+          "url": "https://submit.jotform.com/submit/252217969519065",
+          "method": "POST",
+          "options": {},
+          "sendBody": true,
+          "contentType": "multipart-form-data",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "q3_name[first]",
+                "value": "test"
+              },
+              {
+                "name": "q3_name[last]",
+                "value": "test-last"
+              },
+              {
+                "name": "q4_email",
+                "value": "user@example.com"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      }
+    ],
+    "pinData": {},
+    "connections": {}
+  },
+  "categories": [
+    {
+      "id": 37,
+      "name": "Lead Generation"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7458",
+  "fetched_at": "2026-09-12T13:11:55Z"
+}

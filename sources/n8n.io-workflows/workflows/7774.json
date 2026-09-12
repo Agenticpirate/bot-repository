@@ -1,0 +1,224 @@
+{
+  "id": 7774,
+  "name": "Automate welcome emails with discount codes via Mailchimp and Gmail",
+  "description": "**This is an n8n template that Automate welcome emails with discount codes via Mailchimp and Gmail**\n\n## Who's it for\nPerfect for e-commerce businesses, SaaS companies, course creators, and service providers who want to automatically nurture new subscribers with personalized welcome emails and discount codes. If you're looking to boost conversions from your website signup forms and create a professional onboarding experience, this workflow is your solution.\n\n## How it works\nThis workflow creates a seamless subscriber onboarding process:\n1. **Webhook receives signup data** from your website form (name, email, timestamp, source)\n2. **Mailchimp integration** automatically adds the subscriber to your email list with their name\n3. **Gmail sends personalized welcome email** with a discount code and branded content\n4. **Error handling** ensures the welcome email sends even if Mailchimp fails\n\nThe workflow is triggered instantly when someone submits your website signup form, creating a professional first impression that can significantly improve customer engagement and conversion rates.\n\n## How to set up\n**Requirements**\n- **Mailchimp account** with an active audience/list\n- **Gmail account** with OAuth2 access\n- Website or landing page with a signup form\n- **Basic HTML/CSS knowledge** for email customization (optional)\n \n## Step-by-step setup\n\n**1. Configure Mailchimp Integration**\n- Create or identify your Mailchimp audience\n- Replace YOUR_MAILCHIMP_LIST_ID with your actual list ID\n- Add your Mailchimp API credentials in n8n\n- Set up any custom merge fields you need (FNAME is included by default)\n\n\n**2. Set Up Gmail Credentials**\n- Add your Gmail OAuth2 credentials in n8n\n- Ensure the sending email account has appropriate permissions\n- Test email delivery to avoid spam folder issues\n\n\n**3. Customize the Welcome Email**\n- Replace [Your Business Name] with your actual business name\n- Update the discount code (WELCOME15) with your preferred offer\n- Modify the shop URL (https://your-website.com/shop) to your store.\n- Update social media links with your actual profiles\n- Customize colors, fonts, and branding to match your business.\n\n\n**4. Deploy Your Webhook**\n- Copy the webhook URL from the n8n workflow\n- Add this URL to your website signup form as the POST endpoint\n- Ensure your form sends JSON data with name and email fields\n\n\n**5. Test the Complete Flow**\n- Submit a test signup through your website form\n- Verify the contact appears in Mailchimp\n- Check that the welcome email arrives with proper personalization\n\n\n## How to customize the workflow\n**Advanced Email Personalization**\n - **Dynamic content blocks:** Add conditional sections based on signup source or user preferences\n - **Custom merge fields:** Capture additional data like company name, phone number, or interests in Mailchimp\n - **Segmented messaging:** Create different email templates for different subscriber types\n - **Multi-language support:** Detect user language from form data and send localized emails\n\n## Webhook Integration Examples\n**Google Forms Integration:**\n - Use Google Apps Script to POST form responses to your n8n webhook\n  - Map form fields to the expected JSON structure (name, email, source)\n\n**Typeform Integration:**\n - Configure Typeform webhooks in Connect panel\n - Set payload to include question responses in the required format\n\n**Custom HTML Forms:**\n```\n// Example form submission code\nfetch('YOUR_N8N_WEBHOOK_URL', {\n  method: 'POST',\n  headers: {'Content-Type': 'application/json'},\n  body: JSON.stringify({\n    name: document.getElementById('name').value,\n    email: document.getElementById('email').value,\n    source: 'website'\n  })\n});\n```\n**WordPress Contact Form 7:**\n - Use CF7 hooks to send form data to your webhook endpoint\n - Install REST API plugins for seamless integration\n\n### Workflow Logic Enhancements\n - **Data validation:** Add If nodes to check email format and required fields before processing\n - **Duplicate prevention:** Query Mailchimp first to avoid adding existing subscribers\n - **Source-based routing:** Send different welcome emails based on signup source (blog, product page, etc.)\n - **Lead scoring:** Assign scores based on signup source and send to appropriate lists\n - **Follow-up sequences:** Add Wait nodes to create multi-step email campaigns\n\n### Advanced Integrations\n - **CRM sync:** Connect to Salesforce, HubSpot, or Pipedrive to create leads automatically\n - **Analytics tracking:** Log conversions to Google Sheets or send events to Google Analytics\n - **Slack notifications:** Alert your team about high-value signups or VIP customers\n - **SMS follow-up:** Add Twilio integration for multi-channel welcome sequences\n\n## Troubleshooting\n### **Common Issues and Solutions**\n**Emails going to spam folder:**\n - Configure SPF and DKIM records for your sending domain\n - Use Gmail's \"Send as\" feature to authenticate your sending address\n - Start with low volume and gradually increase to build sender reputation\n - Include unsubscribe links and proper email headers\n\n**Mailchimp API errors:**\n - Check your API key permissions and rate limits\n - Verify the list ID is correct (found in Audience settings)\n - Ensure required fields are properly mapped\n - Review Mailchimp's compliance requirements for your region\n\n**Webhook not triggering:**\n - Test the webhook URL directly using tools like Postman\n - Check that your form sends POST requests with proper Content-Type headers\n - Verify JSON payload structure matches expected format\n - Review n8n execution logs for error details\n\n**Personalization not working:**\n - Confirm form field names match the n8n node references\n - Check that data is properly passed between workflow nodes\n - Test with sample data to isolate mapping issues\n - Use n8n's data inspection tools to debug payload structure\n\n## Performance Optimization\n**High-volume handling:**\n - Consider using Mailchimp's batch operations for multiple signups\n - Implement queue systems for processing during traffic spikes\n - Monitor workflow execution times and optimize slow nodes\n - Set up error notifications to catch issues quickly\n\n**Delivery improvements:**\n - Use dedicated email services like SendGrid or Mailgun for better deliverability\n - Implement email warmup procedures for new sending domains\n - A/B test subject lines and send times for better engagement\n - Monitor bounce rates and remove invalid emails promptly.\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "cbbe3d07d282d90d2165a7ab7800571be416166e6eb660e7a28cfe9b84473f49",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "1363ffcf-aa23-436a-8c53-0a3fbc096cfa",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -352,
+          -32
+        ],
+        "webhookId": "b3d366be-bffc-4d2d-a465-db487976ada0",
+        "parameters": {
+          "path": "b3d366be-bffc-4d2d-a465-db487976ada0",
+          "options": {},
+          "httpMethod": "POST",
+          "responseMode": "lastNode"
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "36da0cb5-4135-4289-bfd9-2ceb81aea84a",
+        "name": "Create a member",
+        "type": "n8n-nodes-base.mailchimp",
+        "onError": "continueRegularOutput",
+        "position": [
+          -128,
+          -32
+        ],
+        "parameters": {
+          "list": "YOUR_MAILCHIMP_LIST_ID ",
+          "email": "={{ $json.body.email }}",
+          "status": "subscribed",
+          "options": {},
+          "mergeFieldsUi": {
+            "mergeFieldsValues": [
+              {
+                "name": "FNAME",
+                "value": "={{ $json.body.name }}"
+              }
+            ]
+          }
+        },
+        "credentials": {
+          "mailchimpApi": {
+            "id": "credential-id",
+            "name": "mailchimpApi Credential"
+          }
+        },
+        "retryOnFail": false,
+        "typeVersion": 1,
+        "alwaysOutputData": false
+      },
+      {
+        "id": "6370189c-3288-4e4a-8c91-cfe831fc96b1",
+        "name": "Send a message",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          96,
+          -32
+        ],
+        "webhookId": "c28c4c93-f099-407e-aec7-dcb7ca5c7fb7",
+        "parameters": {
+          "sendTo": "={{ $('Webhook').item.json.body.email }}",
+          "message": "=<!DOCTYPE html> <html> <body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">     <div style=\"background-color: #f8f9fa; padding: 20px; text-align: center;\">         <h1 style=\"color: #333;\">Welcome to [Your Business Name]!</h1>                  <p style=\"font-size: 18px; color: #666;\">             Hi {{ $node[\"Webhook\"].json[\"name\"] || \"there\" }},         </p>                  <p style=\"font-size: 16px; color: #666; line-height: 1.6;\">             Thank you for joining our community! We're excited to have you on board.         </p>                  <div style=\"background-color: #007bff; color: white; padding: 20px; margin: 20px 0; border-radius: 8px;\">             <h2 style=\"margin: 0;\">Your Welcome Gift!</h2>             <p style=\"font-size: 24px; font-weight: bold; margin: 10px 0;\">                 WELCOME15             </p>             <p style=\"margin: 0;\">Use this code for 15% off your first order</p>         </div>                  <a href=\"https://your-website.com/shop\"             style=\"background-color: #28a745; color: white; padding: 15px 30px;                    text-decoration: none; border-radius: 5px; display: inline-block;                    margin: 20px 0;\">             Start Shopping         </a>                  <p style=\"font-size: 14px; color: #999; margin-top: 30px;\">             Follow us on social media for the latest updates and offers!         </p>                  <div style=\"margin-top: 20px;\">             <a href=\"https://facebook.com/yourpage\" style=\"margin: 0 10px;\">Facebook</a>             <a href=\"https://instagram.com/yourpage\" style=\"margin: 0 10px;\">Instagram</a>             <a href=\"https://twitter.com/yourpage\" style=\"margin: 0 10px;\">Twitter</a>         </div>     </div> </body> </html>",
+          "options": {},
+          "subject": "Welcome to Berley! Here's your 15% discount 🎉"
+        },
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "credential-id",
+            "name": "gmailOAuth2 Credential"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "36131d9d-d138-4955-ae74-40b765851aef",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -864,
+          -240
+        ],
+        "parameters": {
+          "width": 304,
+          "height": 1136,
+          "content": "## 📧 Automated Welcome Email with Discount Code\n\n### 🎯 What This Does\nAutomatically nurtures new subscribers with personalized welcome emails and discount codes:\n  - **Instant response** to website signup forms via webhook\n  - **Mailchimp integration** adds contacts to your email list\n  - **Branded welcome email** with personalized discount code\n  - **Error handling** ensures emails send even if list addition fails\n\n### ⚡ How It Works\n  1. Website form submits data to webhook endpoint\n  2. Contact automatically added to Mailchimp audience\n  3. Personalized welcome email sent via Gmail\n  4. Subscriber gets immediate value with discount code\n\n### 🛠️ Setup Required\n**Before using this workflow:**\n  1. Replace YOUR_MAILCHIMP_LIST_ID with your actual Mailchimp list ID\n  2. Update email template with your business name and branding\n  3. Change discount code and shop URL to your own\n  4. Add your website form endpoint to trigger the webhook\n  5. Configure Mailchimp and Gmail credentials\n\n### 💡 Perfect For\n  - E-commerce businesses building customer lists\n  - SaaS companies onboarding trial users\n  - Course creators nurturing leads\n  - Service providers automating client intake"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "244bd91b-1dc0-4b0c-8771-4c7da2ebf0f9",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -448,
+          -192
+        ],
+        "parameters": {
+          "color": 6,
+          "height": 336,
+          "content": "#### Step 1: Receive Signup Data\n\nWebhook receives form submissions from your website."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "6768e505-ed3e-4462-8fc3-2825580d9cbc",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -192,
+          -192
+        ],
+        "parameters": {
+          "color": 3,
+          "height": 336,
+          "content": "#### Step 2: Add to Email List\n\nAutomatically adds subscriber to your Mailchimp audience."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "de85be05-732e-4ab9-b12f-5c35dee75a96",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          64,
+          -192
+        ],
+        "parameters": {
+          "color": 4,
+          "height": 336,
+          "content": "#### Step 3: Send Welcome Email\n\nSends branded welcome email with personalized discount code."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {
+      "Webhook": [
+        {
+          "body": {
+            "name": "Bideen",
+            "email": "abideen.datascienceofficial@gmail.com",
+            "source": "website",
+            "timestamp": "2025-08-23T20:12:07.935Z"
+          },
+          "query": {},
+          "params": {},
+          "headers": {
+            "host": "primary-production-a4a8.up.railway.app",
+            "accept": "*/*",
+            "origin": "https://a7b923f7-55b0-4612-98a3-bec7fe294375.sandbox.lovable.dev",
+            "referer": "https://a7b923f7-55b0-4612-98a3-bec7fe294375.sandbox.lovable.dev/",
+            "priority": "u=1, i",
+            "sec-ch-ua": "\"Not;A=Brand\";v=\"99\", \"Microsoft Edge\";v=\"139\", \"Chromium\";v=\"139\"",
+            "x-real-ip": "102.88.52.28",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0",
+            "content-type": "application/json",
+            "content-length": "123",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-railway-edge": "railway/europe-west4-drams3a",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9,en-GB;q=0.8",
+            "x-forwarded-for": "102.88.52.28",
+            "x-request-start": "1755979928499",
+            "sec-ch-ua-mobile": "?0",
+            "x-forwarded-host": "primary-production-a4a8.up.railway.app",
+            "x-forwarded-proto": "https",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "x-railway-request-id": "NJw37UqQQF-nnduU5nX1uw"
+          },
+          "webhookUrl": "https://primary-production-a4a8.up.railway.app/webhook-test/b3d366be-bffc-4d2d-a465-db487976ada0",
+          "executionMode": "test"
+        }
+      ]
+    },
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Create a member",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create a member": {
+        "main": [
+          [
+            {
+              "node": "Send a message",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 33,
+      "name": "Social Media"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7774",
+  "fetched_at": "2026-09-12T13:12:06Z"
+}

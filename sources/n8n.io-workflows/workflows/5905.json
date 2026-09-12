@@ -1,0 +1,177 @@
+{
+  "id": 5905,
+  "name": "Get any image: standard fetch with BrightData Web Unblocker failover",
+  "description": "This workflow is your ultimate solution for **reliable image retrieval from any web source**, including those heavily protected. \n\nIt operates with a smart, cost-effective strategy: it first attempts to fetch the image using a **Classic Image Getter** node (a standard, free HTTP request). In approximately **80% of cases**, this method will be sufficient. \n\nHowever, for the remaining instances where you encounter **IP blocking, CAPTCHAs, rate limiting, or other advanced anti-bot measures**, the workflow seamlessly switches to a robust **BrightData Web Unblocker** service as a fallback. It leverages [BrightData’s Image Unblocker](https://get.brightdata.com/image-unlocker) to retrieve these **blocked images**.\n\nThis template is indispensable for anyone needing consistent and complete access to web images, ensuring you get the data you need without unnecessary overhead.\n\n---\n\n## Why Use This Image Scrapper Workflow?\n* **Maximum Success Rate**: Retrieves images even from the most challenging or protected websites.\n* **Cost-Optimized Strategy**: Prioritizes free, standard HTTP requests, only incurring costs when advanced unblocking is truly necessary.\n* **Automated Resilience**: Intelligently handles failed direct attempts by automatically engaging the BrightData failover via the \"Unlock Image\" node.\n* **Versatile Image Scraping**: Perfect for market research, content aggregation, or data enrichment that demands reliable image access.\n\n---\n\n## How It Works\n\n1.  **When clicking ‘Execute workflow’**: The workflow is initiated manually, allowing for easy testing and integration into larger processes.\n2.  **image**: A `Set` node defines the target image URL. This can be easily configured to accept dynamic URLs from preceding nodes.\n3.  **Classic Image Getter**: This `HTTP Request` node performs a direct image download. It's the primary, free, and efficient method for readily accessible images.\n4.  **Unlock Image (BrightData Web Unblocker)**: Configured as an **error handler** and **failover**, this `HTTP Request` node activates only if the \"Classic Image Getter\" encounters an error. It then routes the image URL through BrightData's Web Unblocker, designed to bypass advanced protective measures and successfully retrieve the image data.\n\n---\n\n## 🔑 Prerequisites\n\nTo enable the advanced capabilities of this workflow, specifically the **BrightData Web Unblocker** functionality, you will need a BrightData account and a correctly configured Web Unblocker zone.\n\n### Setting Up Your BrightData Web Unblocker:\n\n1.  **BrightData Account**: Ensure you have an active account with BrightData. If you don't, you can sign up on their [website](https://get.brightdata.com/image-unlocker).\n2.  **Create a Web Unblocker Zone**:\n    * Log in to your BrightData dashboard.\n    * Navigate to the \"Proxy & Scraping Infrastructure\" section, then \"Zones.\"\n    * Click \"Add new zone.\"\n    * Select \"Web Unblocker\" as the product type.\n    * Give your zone a clear name (e.g., `n8n-image-unlocker`).\n    * Confirm the creation of the zone.\n3.  **Retrieve API Key**:\n    * Once your Web Unblocker zone is active, go to its settings.\n    * Locate your API Key (often referred to as \"password\" for proxy access) within the \"Access Parameters\" or \"Credentials\" section.\n4.  **Configure in n8n**:\n    * In the **Unlock Image** HTTP Request node within this workflow, update the `Authorization` header. Replace `\"Bearer yourkey\"` with `\"Bearer YOUR_BRIGHTDATA_API_KEY\"`.\n    * **Important**: For production workflows, it's highly recommended to use [n8n credentials](https://docs.n8n.io/integrations/builtin/credentials/) to store your BrightData API key securely, rather than hardcoding it directly in the node. This template uses a placeholder for demonstration purposes.\n    * **Crucially**, ensure that the `zone` parameter in the `Unlock Image` node matches the **exact Zone ID** you created in your BrightData account. You will need to replace the placeholder `web_unlocker` with your actual BrightData zone ID.\n\n---\n\n[Phil | Inforeole](https://inforeole.fr) | [Linkedin](https://www.linkedin.com/in/philippe-eveilleau-inforeole/)\n\n🇫🇷 Contactez nous pour automatiser vos processus",
+  "workflow": {
+    "meta": {
+      "instanceId": "4a11afdb3c52fd098e3eae9fad4b39fdf1bbcde142f596adda46c795e366b326"
+    },
+    "nodes": [
+      {
+        "id": "67cbb238-606c-4db0-9471-7462e42adcf6",
+        "name": "When clicking ‘Execute workflow’",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          -440,
+          360
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "c8b1af78-ab84-4522-933a-77044c03401d",
+        "name": "image",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -220,
+          360
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "6ae28575-0005-45f6-90cf-75f8b1b5abbc",
+                "name": "image",
+                "type": "string",
+                "value": "https://example.com/image.jpg"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "b5338518-2914-4861-856a-c1d4d1ed0ff5",
+        "name": "Classic Image Getter",
+        "type": "n8n-nodes-base.httpRequest",
+        "onError": "continueErrorOutput",
+        "position": [
+          0,
+          360
+        ],
+        "parameters": {
+          "url": "={{ $json.image }}",
+          "options": {
+            "timeout": 1000
+          }
+        },
+        "retryOnFail": true,
+        "typeVersion": 4.2
+      },
+      {
+        "id": "03041af1-e456-42e3-ae07-dceb927c38ea",
+        "name": "Unlock Image",
+        "type": "n8n-nodes-base.httpRequest",
+        "notes": "failover node",
+        "onError": "continueErrorOutput",
+        "position": [
+          300,
+          440
+        ],
+        "parameters": {
+          "url": "https://api.brightdata.com/request",
+          "method": "POST",
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true,
+                "fullResponse": true,
+                "responseFormat": "file"
+              }
+            },
+            "allowUnauthorizedCerts": true
+          },
+          "sendBody": true,
+          "sendHeaders": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "zone",
+                "value": "web_unlocker"
+              },
+              {
+                "name": "url",
+                "value": "={{ $json.image }}"
+              },
+              {
+                "name": "format",
+                "value": "raw"
+              }
+            ]
+          },
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer {{BRIGHTDATA_TOKEN}}"
+              }
+            ]
+          }
+        },
+        "notesInFlow": true,
+        "retryOnFail": true,
+        "typeVersion": 4.2
+      },
+      {
+        "id": "99d5ea18-15e5-49de-af04-2dec12073209",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          280,
+          280
+        ],
+        "parameters": {
+          "height": 120,
+          "content": "## Unlock image API\n\n[Inscription - Free Trial](https://get.brightdata.com/image-unlocker)"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "image": {
+        "main": [
+          [
+            {
+              "node": "Classic Image Getter",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Classic Image Getter": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Unlock Image",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When clicking ‘Execute workflow’": {
+        "main": [
+          [
+            {
+              "node": "image",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 5,
+      "name": "Engineering"
+    }
+  ],
+  "url": "https://n8n.io/workflows/5905",
+  "fetched_at": "2026-09-12T13:11:01Z"
+}

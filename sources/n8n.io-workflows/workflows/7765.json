@@ -1,0 +1,256 @@
+{
+  "id": 7765,
+  "name": "Compliance report collector with Google Form → Drive + MySQL",
+  "description": "# 📝 Compliance Report Collector (Google Form → Drive + MySQL)\n\nThis n8n workflow automates the collection and archival of compliance reports submitted via Google Forms. Uploaded documents (PDF, DOCX, etc.) are archived into Google Drive and submission metadata is logged into a MySQL database. It ensures compliance documentation is properly stored, searchable and auditable without manual effort.\n\n## ⚡ Quick Implementation Steps\n1. Import the JSON file into n8n.\n2. Set up a Google Form to POST file + metadata (reporter, category, etc.) to the `/submit-report` webhook.\n3. Update the `Set Config` node with your:\n   - MySQL connection details\n   - Google Drive folder ID\n4. Deploy and test a form submission with a file upload.\n5. Each report is stored in Drive and logged to your DB.\n\n## 🎯 Who’s It For\n- Compliance officers handling environmental or safety reports.\n- Admins managing documentation for inspections.\n- Renewable energy companies required to maintain audit-ready records.\n- Any org needing structured report archival & metadata logging.\n\n## 🛠 Requirements\n| Tool | Purpose |\n|------|---------|\n| n8n Instance | Workflow automation |\n| Google Drive | To archive uploaded reports |\n| MySQL Database | To log submission metadata |\n| Google Forms / HTML Form | Report submission source |\n\n## 🧠 What It Does\n- Listens for incoming POST requests with a file and metadata.\n- Uploads the file to a specified Google Drive folder.\n- Extracts metadata like:\n  - Reporter name\n  - Category/type\n  - Timestamp\n  - File name, MIME type\n- Logs that metadata into a MySQL table for auditing or reporting.\n\n## 🧾 Sample MySQL Table Schema\n```sql\nCREATE TABLE report_logs (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  reporter VARCHAR(100),\n  category VARCHAR(100),\n  timestamp DATETIME,\n  file_name VARCHAR(255),\n  mime_type VARCHAR(50),\n  folder_id VARCHAR(100)\n);\n```\n\n## 🔧 How To Set Up – Step-by-Step\n1. **Import the JSON** into n8n.\n2. Configure the following in the **Set Config** node:\n   - MySQL: `dbHost`, `dbUser`, `dbPassword`, `dbName`, `dbTable`\n   - Google Drive: `driveFolderId`\n3. **Update the webhook URL** in your Google Form (via Apps Script or middleware).\n4. Test submission with a file upload.\n5. Confirm:\n   - File lands in your Drive folder\n   - Log entry appears in your database\n\n## ✨ How To Customize\n| Customization | How |\n|---------------|-----|\n| Add more form fields | Extend the metadata mapping in the Function node |\n| Rename files before upload | Modify filename in Google Drive node |\n| Add email confirmation | Add an Email Send node after DB insert |\n| Filter file types | Add IF node before upload to validate MIME type |\n\n## ➕ Add‑ons (Optional Extensions)\n| Add-on | Description |\n|--------|-------------|\n| 📤 Email Acknowledgment | Email sender a confirmation with Drive link |\n| 🧾 PDF Parser | Auto-parse content using PDF.co or OpenAI |\n| 📊 Admin Dashboard | Display logs in Supabase or Metabase |\n| 🗃 File Backup | Copy files to Dropbox or S3 after Drive upload |\n\n## 📈 Use Case Examples\n1. Collect monthly safety audits from plant staff into a Drive archive.\n2. Accept vendor compliance declarations via Google Form and auto-log to DB.\n3. Capture field inspection reports and tag by category for audit.\n4. Store weekly environmental reports for long-term access.\n\n## 🧯 Troubleshooting Guide\n| Issue | Possible Cause | Solution |\n|-------|----------------|----------|\n| File not uploaded | Drive ID is invalid | Check permissions and folder ID |\n| DB not logging | Connection or table issue | Verify DB credentials and schema |\n| Webhook not triggered | Form not integrated correctly | Ensure form POSTs file to n8n webhook |\n| Wrong file type | MIME mismatch | Validate acceptable types via Function/IF node |\n\n## 📞 Need Help?\nWant to integrate this with audit dashboards or add Google Sheet exports?\n\n👉 Contact WeblineIndia — Experts in compliance automation and renewable energy workflows.",
+  "workflow": {
+    "id": "Un9KXLeARM23XTIQ",
+    "meta": {
+      "instanceId": "14e4c77104722ab186539dfea5182e419aecc83d85963fe13f6de862c875ebfa",
+      "templateCredsSetupCompleted": true
+    },
+    "name": "Compliance Report Collector",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "c1d13027-17a3-485a-b43b-e7fece0612c6",
+        "name": "Google Sheets form Trigger",
+        "type": "n8n-nodes-base.googleSheetsTrigger",
+        "position": [
+          -440,
+          60
+        ],
+        "parameters": {
+          "event": "rowAdded",
+          "options": {},
+          "pollTimes": {
+            "item": [
+              {
+                "mode": "everyMinute"
+              }
+            ]
+          },
+          "sheetName": {
+            "__rl": true,
+            "mode": "url",
+            "value": ""
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1U4MfFW06VMW0gW3fAkGFDvDnomb1j_0E-0lbEkPlli0",
+            "cachedResultUrl": "",
+            "cachedResultName": "compliance_report_sheet(Responses)"
+          }
+        },
+        "credentials": {
+          "googleSheetsTriggerOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleSheetsTriggerOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "038c1dae-f38c-4a98-ae1d-5376d81e3332",
+        "name": "Log to MySQL",
+        "type": "n8n-nodes-base.mySql",
+        "position": [
+          660,
+          60
+        ],
+        "parameters": {
+          "table": {
+            "__rl": true,
+            "mode": "name",
+            "value": "report_logs"
+          },
+          "options": {}
+        },
+        "credentials": {
+          "mySql": {
+            "id": "credential-id",
+            "name": "mySql Credential"
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "d644afd6-ad2e-4931-ba17-42c1d635c3fc",
+        "name": "Rename Fields",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          440,
+          60
+        ],
+        "parameters": {
+          "mode": "raw",
+          "options": {},
+          "jsonOutput": "=\n{\n  \"reporter\": \"{{$json.reporter}}\",\n  \"category\": \"{{$json.category}}\",\n  \"timestamp\": \"{{$json.timestamp}}\",\n  \"folder_id\": \"{{$json.folder_id}}\",\n  \"file_name\": \"{{$binary.data.fileName}}\",\n  \"mime_type\": \"{{$binary.data.mimeType}}\",\n  \"email\": \"{{$json.email}}\",\n  \"description\": \"{{$json.description}}\"\n}"
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "ba6a2d4c-f548-446f-ab24-20c518e06f86",
+        "name": "Extract googlesheet data",
+        "type": "n8n-nodes-base.function",
+        "notes": "Extract metadata for logging",
+        "position": [
+          -220,
+          60
+        ],
+        "parameters": {
+          "functionCode": "// Input: rows from Google Sheets Trigger\nconst rows = $input.all();\nconst out = [];\n\nfor (const item of rows) {\n  const j = item.json;\n\n  const url = j['Upload Report File'] || '';\n  // supports both ?id=... and /d/.../view URLs\n  const m =\n    url.match(/[?&]id=([^&]+)/) ||\n    url.match(/\\/d\\/([a-zA-Z0-9_-]+)/);\n\n  out.push({\n    json: {\n      reporter: j['Reporter Name'] || null,\n      category: j['Report Category'] || null,\n      timestamp: new Date(j['Timestamp']).toISOString(),\n      folder_id: m ? m[1] : null,\n      email: j['Email Address'] || null,\n      description: j['Description'] || null,\n    },\n  });\n}\n\nreturn out;\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "efa9cce4-db44-4296-8c76-9bf12ca68d52",
+        "name": "Get file uploaded metadata",
+        "type": "n8n-nodes-base.googleDrive",
+        "position": [
+          0,
+          60
+        ],
+        "parameters": {
+          "fileId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{ $json.folder_id }}"
+          },
+          "options": {},
+          "operation": "download"
+        },
+        "credentials": {
+          "googleDriveOAuth2Api": {
+            "id": "credential-id",
+            "name": "googleDriveOAuth2Api Credential"
+          }
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "6abc9f56-0b24-4e47-840f-72ac8421d90c",
+        "name": "Merge sheet & file data",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          220,
+          60
+        ],
+        "parameters": {
+          "mode": "combine",
+          "options": {
+            "includeUnpaired": true
+          },
+          "combineBy": "combineByPosition"
+        },
+        "typeVersion": 3.2,
+        "alwaysOutputData": true
+      },
+      {
+        "id": "779477a4-ecac-4cd5-8b5f-e385da6c64fc",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -540,
+          -100
+        ],
+        "parameters": {
+          "width": 1400,
+          "height": 420,
+          "content": "## Compliance Report Collector (Google Form → Drive + MySQL)\n\n\n"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "071841f7-f553-4637-806a-0db0d27e8de4",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -540,
+          380
+        ],
+        "parameters": {
+          "width": 1420,
+          "height": 1240,
+          "content": "## Description\n\n### 1. Google Sheets form Trigger\n- Watches the linked Google Sheet for new rows (submitted via Google Form). When a new row is added, it triggers the workflow and passes the form data to the next node.\n\n---\n\n### 2. Extract googlesheet data\n- Parses the Google Sheet row data.  \n- Extracts the Google Drive file ID from the **\"Upload Report File\"** URL.  \n- Keeps key form fields:\n `reporter`\n `category`\n `timestamp`\n `email`\n `description`\n `folder_id`\n\n---\n\n### 3. Get file uploaded metadata\n- Uses the Google Drive node to fetch metadata for the uploaded file by its `folder_id`.  \n- Downloads the binary temporarily so we can extract:\n `fileName`\n `mimeType`\n\n---\n\n### 4. Merge sheet & file data\nCombines:\n- Google Sheet form data\n- Google Drive file metadata  \ninto a single JSON object per submission.  \nEnsures both sets of information are available for insertion into MySQL.\n\n---\n\n### 5. Rename Fields\nNormalizes and renames merged fields to match MySQL column names:\n- `fileName` → `file_name`\n- `mimeType` → `mime_type`\n\nRemoves unnecessary fields so only required columns remain.\n\n---\n\n### 6. Log to MySQL\nInserts the cleaned and normalized data into the `report_logs` table in MySQL, storing:\n- Form submission details\n- Uploaded file’s name\n- MIME type\n\n---\n"
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "7f30bbf3-aa3d-462b-b69e-7bf403e3c880",
+    "connections": {
+      "Rename Fields": {
+        "main": [
+          [
+            {
+              "node": "Log to MySQL",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge sheet & file data": {
+        "main": [
+          [
+            {
+              "node": "Rename Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract googlesheet data": {
+        "main": [
+          [
+            {
+              "node": "Get file uploaded metadata",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get file uploaded metadata": {
+        "main": [
+          [
+            {
+              "node": "Merge sheet & file data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Sheets form Trigger": {
+        "main": [
+          [
+            {
+              "node": "Extract googlesheet data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 36,
+      "name": "File Management"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7765",
+  "fetched_at": "2026-09-12T13:12:06Z"
+}

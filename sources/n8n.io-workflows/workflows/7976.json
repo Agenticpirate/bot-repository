@@ -1,0 +1,176 @@
+{
+  "id": 7976,
+  "name": "Facebook / Meta ads performance monitoring with Slack alerts (CTR, CPC, ROAS)",
+  "description": "### Who’s it for\n\nThis workflow is for **marketing teams, performance marketers, and media buyers** running Facebook (Meta) Ads who want to stay on top of creative performance without manually checking Ads Manager every day.\n\n### What it does\n\nThe workflow automatically monitors **Facebook Ads performance at the ad creative level** and sends **real-time Slack notifications** when key metrics cross your thresholds. It tracks CTR, CPC, ROAS, spend, and conversions over a rolling time window, then flags:\n\n* **Underperformers** (e.g. CTR below 0.5% for 2 days).\n* **Top performers** (e.g. ROAS above 5x).\n\n### What business value this workflow provides\n\n* **Faster detection of problems**\n  Instead of waiting for a weekly report, you know within a day (or whatever window you configure) if an ad’s CTR is tanking or if spend is producing poor ROAS. That prevents wasted budget.\n\n* **Highlighting winners**\n  When an ad’s ROAS is high (e.g. &gt;5x), you get an instant Slack ping. You can then shift budget to scale it before performance fades.\n\n* **Reduced manual monitoring**\n  Normally someone has to log into Meta Ads Manager daily, filter by campaign/ad, export CSVs, check CTR/ROAS, then write up notes. That’s time-consuming and error-prone. Automating this means you spend less time gathering data and more time making decisions.\n\n* **Team visibility**\n  Posting to Slack means the whole marketing team is aligned on what’s working and what isn’t, without sharing dashboards or CSVs around.\n\n### How it works\n\n1. Workflow trigger (manual or scheduled).\n2. Fetch **ad-level insights** from the Facebook Ads API.\n3. A Code node normalizes metrics (CTR %, CPC, ROAS, spend, conversions).\n4. Compare against your **CTR and ROAS thresholds**.\n5. If conditions are met, send a **Slack block message** with ad name, ID, spend, CTR, CPC, ROAS, and the reasons it was flagged.\n\n### How to set up\n\n* In the *Edit Fields* node, set your `act_id` (Facebook Ad Account ID) and `campaign_id`.\n* Adjust `ctr_min`, `roas_top`, and `lookback_days` to fit your goals.\n* Connect your **Slack credentials** and set the channel for alerts.\n\n### Requirements\n\n* A Facebook (Meta) Ads account with API access.\n* Slack workspace with a bot/app that has `chat:write` permission.\n* n8n credentials for both services.\n\n### How to customize\n\n* Add ad thumbnails by including `creative` in the insights fields.\n* Extend the workflow to **automatically pause underperforming ads**.",
+  "workflow": {
+    "meta": {
+      "instanceId": "2718e70d3927cc6f222cd0fca1f41929053688eb8b4504451ee7746fdfef7be1",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "655b4bb1-73a3-45e4-8596-65cfc84a6e1b",
+        "name": "When clicking ‘Execute workflow’",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          -448,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "87cb53c6-6551-4794-a22e-81051de23bc5",
+        "name": "Edit Fields",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -224,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 3.4
+      },
+      {
+        "id": "5534d749-c7be-4275-ba9f-91d4a20a039b",
+        "name": "Flatten Rows",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          448,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "156898d5-b770-4e6f-b93d-f33d156abdfa",
+        "name": "Meta Ad Insights",
+        "type": "n8n-nodes-base.facebookGraphApi",
+        "position": [
+          224,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "8203fb7b-6941-4296-9ac5-08bd973423a5",
+        "name": "Calculate date range",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "5201a432-482b-4997-9b90-1262593f357d",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          416,
+          -592
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "79217107-7341-4df0-b405-97b841b69d68",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -352,
+          -784
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "be05d464-e1b4-4326-a1eb-f4ff5bb6ae57",
+        "name": "Send an alert",
+        "type": "n8n-nodes-base.slack",
+        "position": [
+          672,
+          0
+        ],
+        "webhookId": "d893bb24-5ebe-4609-92fb-59e51a8d67a4",
+        "parameters": {},
+        "typeVersion": 2.3
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "Edit Fields": {
+        "main": [
+          [
+            {
+              "node": "Calculate date range",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Flatten Rows": {
+        "main": [
+          [
+            {
+              "node": "Send an alert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Meta Ad Insights": {
+        "main": [
+          [
+            {
+              "node": "Flatten Rows",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Calculate date range": {
+        "main": [
+          [
+            {
+              "node": "Meta Ad Insights",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When clicking ‘Execute workflow’": {
+        "main": [
+          [
+            {
+              "node": "Edit Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 33,
+      "name": "Social Media"
+    },
+    {
+      "id": 51,
+      "name": "Multimodal AI"
+    }
+  ],
+  "url": "https://n8n.io/workflows/7976",
+  "fetched_at": "2026-09-12T13:12:12Z"
+}

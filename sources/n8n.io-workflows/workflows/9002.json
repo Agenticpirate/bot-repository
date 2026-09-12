@@ -1,0 +1,396 @@
+{
+  "id": 9002,
+  "name": "Send WooCommerce new category alert via WhatsApp using Rapiwa API",
+  "description": "# Send WooCommerce New Category Alert via WhatsApp Using Rapiwa API\n\nThis n8n automation listens for the creation of a new WooCommerce product category, fetches all WooCommerce customers, cleans and formats their phone numbers, verifies them using the Rapiwa WhatsApp validation API, sends a WhatsApp message to verified numbers with the new category info, and logs each interaction into a Google Sheet (separately for verified and unverified customers).\n\n## Who this is for\n\nYou have a WooCommerce store and want to:\n\n- Send a promotional message when a new product category is added,  \n- Verify customer WhatsApp numbers in bulk,  \n- Keep a clear log in Google Sheets of which numbers are verified or not.\n\n## What it does (high level)\n\n1. Webhook is triggered when a new WooCommerce category is created.  \n2. Fetches all WooCommerce customers via API.  \n3. Limits processing to the first 10 customers (for performance/testing).  \n4. Cleans phone numbers (removes `+`, spaces, and non-digits).  \n5. Verifies each number via Rapiwa WhatsApp Verify API.  \n6. If verified: sends WhatsApp message with new category info, logs as `Verification = verified`, `Status = sent`.  \n7. If not verified: logs as `Verification = unverified`, `Status = not sent`.  \n8. Processes users in batches with delays to avoid rate limiting.\n\n## How it works (step-by-step)\n\n- **Trigger**: Webhook node is triggered by WooCommerce category creation.  \n- **Format Data**: Category details (name, slug, description) are parsed.  \n- **Get Customers**: Fetch all WooCommerce customers using the WooCommerce API.  \n- **Limit**: Only the first 10 are processed.  \n- **Loop & Clean**: Loop over each customer, clean phone numbers and extract info.  \n- **Verify Number**: Send HTTP POST to `https://app.rapiwa.com/api/verify-whatsapp`.  \n- **Decision Node**: Use `If` node to check if `exists == true`.  \n- **Send Message**: If verified, send WhatsApp message with category details.  \n- **Append to Sheet**: Log verified and unverified customers separately in Google Sheets.  \n- **Wait + Batch Control**: Use `Wait` and `SplitInBatches` nodes to control flow and prevent throttling.\n\n### Example verify body (HTTP Request node):\n\n```json\n{\n  \"\"number\"\": \"\"{{ $json['WhatsApp No'] }}\"\"\n}\n```\n\n## Google Sheet Column Reference\n\n| name        | number        | email                        | address                                              | catagoris   | description                                                                                         | status     |\n|-------------|---------------|------------------------------|------------------------------------------------------|-------------|-------------------------------------------------------------------------------------------------|------------|\n| Abdul Mannan | 8801322827799 | contact@spagreen.net   |  mirpur dohs  | Electronics | SShop top-braxxxxrable tech. | unverified |\n| Abdul Mannan | 8801322827799 | contact@spagreen.net | mirpur dohs   | Electronics | Shop top-braxxxxrable tech. | verified   |\n| Abdul Mannan  | 8801322827799 | contact@spagreen.net | mirpur doh  | Electronics | Shop top-braxxxxrable tech. | verified   |\n\n\n## Customization ideas\n\n- Send images, videos, or template messages if supported by Rapiwa.  \n- Personalize messages using name or category data.  \n- Increase delay or reduce batch size to minimize risk of rate limits.  \n- Add a second sheet to log full API responses for debugging and auditing.\n\n## Best practices\n\n- Test on small batches before scaling.  \n- Only send messages to users who opted in.  \n- Store API credentials securely using n8n’s credentials manager.  \n- Ensure your Google Sheet column headers match exactly with what's expected.\n---\n\n### Key Improvements Made\n\n- Clarified the **trigger source** as a _Webhook from WooCommerce category creation_.  \n- Fixed inconsistency in the **\"\"What it does\"\"** section (originally referenced reading from Google Sheets, but your workflow starts from WooCommerce, not Sheets).  \n- Standardized terminology to match n8n nodes: Webhook, Loop, HTTP Request, etc.  \n- Aligned the flow exactly with your nodes:  \n  - Webhook → Format → Get Customers → Limit → Loop → Clean → Verify → If → Send/Log → Wait → Repeat\n\n---\n ## Useful Links\n- **Dashboard:** [https://app.rapiwa.com](https://app.rapiwa.com/login)\n- **Official Website:** [https://rapiwa.com](https://rapiwa.com/)\n- **Documentation:** [https://docs.rapiwa.com](https://docs.rapiwa.com/)\n\n## Support\n\n- WhatsApp Support: [Chat Now](https://wa.me/8801322827799)  \n- Discord: [Join SpaGreen Community](https://discord.gg/SsCChWEP)  \n- Facebook Group: [SpaGreen Support](https://www.facebook.com/groups/spagreenbd)  \n- Website: [https://spagreen.net](https://spagreen.net)  \n- Developer Portfolio: [Codecanyon SpaGreen](https://codecanyon.net/user/spagreen/portfolio)\n\"",
+  "workflow": {
+    "id": "SKKy045wmeQJJw0r",
+    "meta": {
+      "instanceId": "cb9a1e5321767b6316634728341237e564b2587ab15b74ca0a89eb02a53484d6"
+    },
+    "name": "Send WooCommerce New Category Alert via WhatsApp Using Rapiwa API",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "a541b71e-e2c2-4996-ac24-254cac3b1520",
+        "name": "Loop Over Items",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          784,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 3
+      },
+      {
+        "id": "b8aa1d94-1cde-49cd-bcfa-dd2888491155",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -128,
+          0
+        ],
+        "webhookId": "1c217a0f-503f-49a4-b0c5-1aa431616177",
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "08e7182d-9173-44a1-8619-e1132003bfdb",
+        "name": "If",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1360,
+          64
+        ],
+        "parameters": {},
+        "typeVersion": 2.2
+      },
+      {
+        "id": "2c2889d2-31a2-43a0-9ddd-bc0245fb65cb",
+        "name": "unverified append row in sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1600,
+          192
+        ],
+        "parameters": {},
+        "typeVersion": 4.6
+      },
+      {
+        "id": "c13d178c-44d1-43b9-abb4-b2ef2fd4339c",
+        "name": "verified append row in sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1824,
+          -112
+        ],
+        "parameters": {},
+        "typeVersion": 4.6
+      },
+      {
+        "id": "57be7f7a-83a3-4d90-8482-dde77c36af9c",
+        "name": "Limit",
+        "type": "n8n-nodes-base.limit",
+        "position": [
+          592,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "ef0dd016-434e-4ebf-8702-3873296e9d15",
+        "name": "Get many customers",
+        "type": "n8n-nodes-base.wooCommerce",
+        "position": [
+          368,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "06ea3912-3b01-45c3-907b-68d40574f6c3",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1888,
+          -624
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "f4e1ca03-818e-46a9-8638-ea516a43ee62",
+        "name": "Format Webhook Response Data",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          80,
+          0
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "b4337fa3-2263-431c-bf80-13af7754dd24",
+        "name": "Check valid whatsapp number Using Rapiwa",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1184,
+          64
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "558447c8-a3e5-43b2-8e5a-dbb82041f7a1",
+        "name": "Send Message Using Rapiwa",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1600,
+          -112
+        ],
+        "parameters": {},
+        "typeVersion": 4.2
+      },
+      {
+        "id": "1d88ede8-16a5-463a-87c6-b9004a4249ed",
+        "name": "Wait",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          1824,
+          192
+        ],
+        "webhookId": "6c474e54-eb3c-4fcd-b455-948322cd0121",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "2e148087-cfa0-48a5-a290-7ea909e4c84e",
+        "name": "Clean Number",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1008,
+          64
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "836df614-c61d-4ca8-8b9f-f5029fbbf33f",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -240,
+          -336
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a083b897-58f2-447c-81c2-3e7d4b24e9ca",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          304,
+          -336
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5f9330bf-928d-4b65-bb80-2a0d679c3356",
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          560,
+          -336
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "5f6e6d5f-60ee-4bbd-91f9-46a6ce25c2ff",
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          960,
+          -624
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e7d53496-d99d-448f-9470-50788743d86e",
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1520,
+          -624
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "0c112f0e-e944-43d9-87cb-8e1419c77d64",
+        "name": "Sticky Note7",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -240,
+          -624
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "3d8b9b9f-6741-459d-af2b-e6160d2f6eab",
+    "connections": {
+      "If": {
+        "main": [
+          [
+            {
+              "node": "Send Message Using Rapiwa",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "unverified append row in sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Limit": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Format Webhook Response Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Clean Number": {
+        "main": [
+          [
+            {
+              "node": "Check valid whatsapp number Using Rapiwa",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Clean Number",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get many customers": {
+        "main": [
+          [
+            {
+              "node": "Limit",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Message Using Rapiwa": {
+        "main": [
+          [
+            {
+              "node": "verified append row in sheet",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Webhook Response Data": {
+        "main": [
+          [
+            {
+              "node": "Get many customers",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "verified append row in sheet": {
+        "main": [
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "unverified append row in sheet": {
+        "main": [
+          [
+            {
+              "node": "Wait",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check valid whatsapp number Using Rapiwa": {
+        "main": [
+          [
+            {
+              "node": "If",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 38,
+      "name": "Lead Nurturing"
+    }
+  ],
+  "url": "https://n8n.io/workflows/9002",
+  "fetched_at": "2026-09-12T13:12:44Z"
+}

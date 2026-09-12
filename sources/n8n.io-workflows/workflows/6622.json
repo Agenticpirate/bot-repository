@@ -1,0 +1,179 @@
+{
+  "id": 6622,
+  "name": "Dynamic MongoDB knowledge base chatbot with OpenAI GPT",
+  "description": "This workflow creates an intelligent chatbot that uses your MongoDB database as a knowledge base. The AI agent can automatically query your MongoDB collections to provide accurate, contextual responses based on your stored documents and data.\n\n![63shots_so 1.jpg](fileId:1892)\n\n## Who's it for\n\nThis template is perfect for:\n* Developers using MongoDB for document-based data storage\n* Organizations with complex, nested data structures in MongoDB\n* Teams managing large-scale applications with MongoDB Atlas\n* Businesses wanting to leverage NoSQL flexibility for AI chatbots\n* Companies with existing MongoDB infrastructure and expertise\n\n## How it works\n\nThe workflow combines OpenAI's language model with MongoDB's document database capabilities to create a smart chatbot. When users ask questions, the AI agent automatically constructs MongoDB queries to find relevant documents and uses that data to generate helpful responses. The system maintains conversation history for natural, contextual interactions.\n\n## How to set up\n\n1. **Add your credentials:**\n   - Configure your **MongoDB** connection string and credentials in the MongoDB Database Lookup node\n   - Set up your **OpenAI API** credentials in the OpenAI Chat Model node\n\n2. **Configure your MongoDB connection:**\n   - Click the **MongoDB Database Lookup** node\n   - Specify your MongoDB collection containing your knowledge base data\n   - The AI will automatically construct queries to find relevant documents\n\n3. **Customize the AI model:**\n   - Open the **OpenAI Chat Model** node\n   - Choose your preferred model (GPT-4, GPT-3.5-turbo, etc.)\n   - Adjust token limits if needed\n\n4. **Test the chatbot:**\n   - Click the **Chat** button to start a conversation\n   - Ask questions related to your MongoDB data\n\n5. **Optional - Make it public:**\n   - Enable public access in the Chat Trigger node\n   - Embed the provided code into your website\n\n## Requirements\n\n- n8n instance (cloud or self-hosted)\n- MongoDB instance (self-hosted, MongoDB Atlas, or other MongoDB service)\n- OpenAI API key with available credits\n- MongoDB user credentials with read permissions on target collections\n\n## How to customize the workflow\n\n**Change the AI Provider:**\nYou can replace the OpenAI Chat Model with other providers like Anthropic Claude, Google Gemini, or local models by swapping the language model node.\n\n**Adjust Context Window:**\nModify the \"Remember Chat History\" node to increase or decrease how many previous messages the AI remembers (default is 10 interactions).\n\n**Update System Instructions:**\nEdit the Smart AI Agent's system message to change how the assistant behaves or add specific instructions for your use case.\n\n**Connect Multiple Collections:**\nAdd additional MongoDB Database Lookup nodes to give the AI access to multiple collections within your MongoDB database.\n\n**Optimize Query Performance:**\nCreate appropriate indexes on your MongoDB collections to improve query performance for frequently accessed data.\n\n**Add More Tools:**\nExtend the AI agent with additional tools like web search, email sending, or integration with other services.\n\n## Workflow Structure\n\n```\nChat Trigger → Smart AI Agent ← OpenAI Chat Model\n                     ↓\n           MongoDB Database Lookup\n                     ↑\n           Remember Chat History\n```\n\nThe Smart AI Agent orchestrates the conversation, deciding when to query MongoDB and how to use the retrieved documents in responses. The memory buffer ensures natural conversation flow by maintaining context across interactions.",
+  "workflow": {
+    "meta": {
+      "instanceId": "cba9e349b601c19a1409b9fd06680aff0a77829be13c8aad9a858d4cea7ff290"
+    },
+    "nodes": [
+      {
+        "id": "76870e68-37c2-41f9-a07b-4f895cd49332",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -480,
+          448
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a2012852-fe36-4aef-acf9-abe0ff59cab1",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -192,
+          448
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9bac9112-c22f-42b3-b24b-df2eaaa2a452",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          160,
+          448
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e91ab3aa-43e7-4799-a00b-877dc8e9d17d",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -352,
+          -192
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "91c92861-211c-492e-883e-f43f4d9a2d3c",
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          -400,
+          288
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "c614dd51-269d-4349-9728-b19fb78b5f46",
+        "name": "Start Chat Conversation",
+        "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+        "position": [
+          -448,
+          64
+        ],
+        "webhookId": "cf1de04f-3e38-426c-89f0-3bdb110a5dcf",
+        "parameters": {},
+        "typeVersion": 1.1
+      },
+      {
+        "id": "40661eb9-8802-4fd9-bd7e-0b07871c43e4",
+        "name": "Smart AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          -192,
+          64
+        ],
+        "parameters": {},
+        "typeVersion": 1.7
+      },
+      {
+        "id": "5a88768f-3249-4f8c-924b-c4d44d36012d",
+        "name": "Remember Chat History",
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "position": [
+          -80,
+          288
+        ],
+        "parameters": {},
+        "typeVersion": 1.3
+      },
+      {
+        "id": "a34afd41-ff47-456b-be9e-ae98e8ddeddd",
+        "name": "MongoDB Database Lookup",
+        "type": "n8n-nodes-base.mongoDbTool",
+        "position": [
+          240,
+          288
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Smart AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Remember Chat History": {
+        "ai_memory": [
+          [
+            {
+              "node": "Smart AI Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MongoDB Database Lookup": {
+        "ai_tool": [
+          [
+            {
+              "node": "Smart AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Start Chat Conversation": {
+        "main": [
+          [
+            {
+              "node": "Smart AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 42,
+      "name": "Internal Wiki"
+    },
+    {
+      "id": 48,
+      "name": "AI RAG"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6622",
+  "fetched_at": "2026-09-12T13:11:27Z"
+}

@@ -1,0 +1,735 @@
+{
+  "id": 5710,
+  "name": "Stock fundamental analysis & AI-powered reports with Mistral and AlphaVantage",
+  "description": "# Fundamental Analysis, Stock Analysis, and AI Integration in the Fundamental Analysis Tool\n\n\n\n---\n\n## Overview of the Tool\n\nThe **Fundamental Analysis Tool** is an automated workflow designed to evaluate a stock’s fundamentals using financial data and AI-driven insights. Built in the n8n automation platform, it:\n\n1. **Collects** financial data for a user-specified stock from AlphaVantage.\n2. **Processes** and structures this data for analysis.\n3. **Analyzes** the data using the Mistral AI model to provide expert-level insights.\n4. **Generates** a visually appealing HTML report with charts and delivers it via email.\n\nThe tool is triggered by a form where users input a **stock symbol** (e.g., \"NVDA\" for NVIDIA) and their **email address**. From there, it follows a three-stage process: **data retrieval**, **data processing**, and **AI analysis with report generation**.\n\n---\n\n## 1. Fundamental Analysis: The Foundation\n\nFundamental analysis involves evaluating a company’s intrinsic value by examining its financial health, competitive position, and market environment. This tool performs fundamental analysis by:\n\n### Data Retrieval\n\n- **Data Types**: Six types of data are retrieved via HTTP requests:\n  - **Overview**: General company details (e.g., sector, industry, market cap).\n  - **Income Statement**: Revenue, net income, and profitability metrics.\n  - **Balance Sheet**: Assets, liabilities, and equity.\n  - **Cash Flow**: Operating, investing, and financing cash flows.\n  - **Earnings Calendar**: Upcoming earnings events.\n  - **Earnings**: Historical earnings data (annual and quarterly).\n\n### Key Metrics Analyzed\nThe tool structures this data into **8 categories** critical to fundamental analysis, as defined in the \"Code1\" node:\n1. **Economic Moats & Competitive Advantage**: Assesses sustainable advantages (e.g., R&D spending, gross profit).\n2. **Financial Health & Profitability**: Examines ROE, debt levels, and dividend yield.\n3. **Valuation & Market Sentiment**: Evaluates P/E ratio, PEG ratio, and book value.\n4. **Management & Capital Allocation**: Reviews market cap justification and cash allocation (e.g., R&D, buybacks).\n5. **Industry & Risk Exposure**: Analyzes revenue cyclicality and geopolitical risks.\n6. **Key Metrics to Probe**: Investigates net income trends and gross margins.\n7. **Red Flags**: Identifies risks like inventory issues or stock dilution.\n8. **Final Checklist**: Summarizes pricing power and risk/reward potential.\n\nThese categories cover the core pillars of fundamental analysis, ensuring a holistic evaluation of the stock’s intrinsic value and risks.\n\n---\n\n## 2. Stock Analysis: Tailored Insights\n\nThe tool performs stock-specific analysis by focusing on the user-provided **stock symbol**. Here’s how it tailors the process:\n\n### Input and Customization\n- **Form Submission**: Users enter a stock symbol (e.g., \"NVDA\") and email via the \"On Form Submission\" node.\n- **Dynamic Data Fetching**: The \"Set Variables\" node passes the stock symbol to the API calls, ensuring the analysis is specific to the chosen stock.\n\n### Processing for Relevance\n- **Data Filtering**: The workflow limits historical data to the **last 5 years** (via the \"Limit\" node), focusing on recent trends.\n- **Merging and Cleaning**: The \"Merge\" and \"Code2\" nodes combine and refine the data, removing irrelevant fields (e.g., quarterly reports) and aggregating annual reports for consistency.\n\n### Output\n- The final report is titled with the stock’s name (e.g., \"Fundamental Analysis - NVIDIA\"), ensuring the analysis is clearly tied to the user’s chosen stock.\n\nThis stock-specific approach makes the tool practical for investors analyzing individual companies rather than broad market trends.\n\n---\n\n## 3. AI Integration: Expert-Level Insights\n\nThe integration of **AI** (via the Mistral model or others) is what sets this tool apart, automating complex analysis and report generation. Here’s how AI is woven into the workflow:\n\n### Data Preparation for AI\n- **Structuring**: The \"Code1\" node organizes the raw data into a JSON schema aligned with the eight fundamental analysis categories. \n- This structured data is fed into the AI for analysis.\n\n### AI Analysis\n- **Node**: \"Basic LLM Chain\" uses the **Mistral AI model**.\n- **Prompt**: The AI is instructed to act as an \"expert financial advisor with 50 years of experience\" and answer specific questions for each category, such as:\n  - *Economic Moats*: \"What sustainable competitive advantages protect the company’s margins?\"\n  - *Financial Health*: \"Is ROE driven by leverage or true profitability?\"\n  - *Red Flags*: \"Are supply chain issues a concern?\"\n- **Output**: The AI generates a JSON response with detailed insights, e.g.:\n  ```json\n  {\n    \"Economic Moats & Competitive Advantage\": \"NVIDIA’s leadership in GPU technology and strong R&D investment...\",\n    \"Financial Health & Profitability\": \"ROE of 25% is exceptional, driven by profitability rather than leverage...\",\n    ...\n  }\n  ```\n- **Validation**: An \"Auto-fixing Output Parser\" ensures the output adheres to the expected JSON schema, retrying if necessary.\n\n### Report Enhancement\n- **HTML Generation**: The \"HTML\" node creates an initial report with placeholders for the AI’s insights and Google Charts for visualizations (e.g., ROE trends, revenue growth).\n- **AI-Driven Refinement**: The \"Basic LLM Chain1\" node uses Mistral again to enhance the HTML, adding:\n  - Styled tables (e.g., financial ratios).\n  - Charts (e.g., bar charts for valuation, line charts for revenue).\n  - Visual indicators (e.g., ✅ for positive trends, ⚠️ for risks).\n  - Mobile-responsive design with modern fonts (Inter or Roboto).\n\nThis dual AI approach—one for analysis, one for presentation—ensures the output is both insightful and user-friendly.\n\n\n---\n\n\n## Strengths and Limitations\n\n### Strengths\n- **Comprehensive**: Covers all key aspects of fundamental analysis.\n- **AI-Powered**: Automates expert-level insights and report design.\n- **User-Friendly**: Delivers an interactive, visual report via email.\n\n### Limitations\n- **Data Dependency**: Relies on public data, so data quality and timeliness matter.\n- **AI Constraints**: Insights depend on AI’s capabilities; it may miss nuanced human judgment.\n- **Disclaimer**: The tool notes it’s not investment advice, so users should consult advisors.\n\n---\n",
+  "workflow": {
+    "meta": {
+      "instanceId": "205780d3749915e5b72849aad8492ed96140f3a3cf0d7f077a27e6df51ded409",
+      "templateCredsSetupCompleted": true
+    },
+    "nodes": [
+      {
+        "id": "4334bda6-55bc-4c52-a9b0-d2121f9c03c2",
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -520,
+          120
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "0a018371-ba7d-492d-ae7c-9ffa93b15aed",
+        "name": "Set Variables",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          280,
+          540
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "19b2fcc8-2ba2-491d-9aaf-044eff7372ed",
+        "name": "Get News Data",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          600,
+          200
+        ],
+        "parameters": {},
+        "typeVersion": 4.1
+      },
+      {
+        "id": "e2495d3c-32e5-4db3-97d7-385d1c8977db",
+        "name": "Sticky Note16",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          40,
+          680
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "554b37c4-88e1-4473-9602-c487eb11cec1",
+        "name": "Get News Data1",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          600,
+          340
+        ],
+        "parameters": {},
+        "typeVersion": 4.1
+      },
+      {
+        "id": "9161ab59-7af7-41a5-ae72-9eb7fe49113f",
+        "name": "Get News Data2",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          600,
+          480
+        ],
+        "parameters": {},
+        "typeVersion": 4.1
+      },
+      {
+        "id": "2555ad3c-3642-4692-9ae0-40d9318cd6a4",
+        "name": "Get News Data3",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          600,
+          620
+        ],
+        "parameters": {},
+        "typeVersion": 4.1
+      },
+      {
+        "id": "2843ed7f-512e-408b-bb61-64dbc642ef5b",
+        "name": "Get News Data4",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          600,
+          760
+        ],
+        "parameters": {},
+        "typeVersion": 4.1
+      },
+      {
+        "id": "72cdd153-01db-487f-8742-39d7506c8030",
+        "name": "Merge",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          880,
+          480
+        ],
+        "parameters": {},
+        "typeVersion": 3.1
+      },
+      {
+        "id": "f0735f90-dc02-411c-8cc3-9e86ca48a43c",
+        "name": "Get News Data5",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          600,
+          920
+        ],
+        "parameters": {},
+        "typeVersion": 4.1
+      },
+      {
+        "id": "a08925ab-3db0-4321-bea2-2d59ede759b0",
+        "name": "Auto-fixing Output Parser",
+        "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+        "position": [
+          2560,
+          520
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "341da950-d491-4b24-aaac-967bdf3ddf0f",
+        "name": "Mistral Cloud Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+        "position": [
+          2560,
+          640
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "b0971466-44a4-46f2-b896-88a23e125e14",
+        "name": "Structured Output Parser1",
+        "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "position": [
+          2720,
+          640
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "adc1547c-b9bd-40f6-9323-795a5d935bf6",
+        "name": "Mistral Cloud Chat Model1",
+        "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+        "position": [
+          2260,
+          580
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "bb445257-39f2-455d-a38d-bbded5d87619",
+        "name": "Code1",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1980,
+          500
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "810ffa97-cef6-4649-9254-0dc5285b94dd",
+        "name": "Split Out",
+        "type": "n8n-nodes-base.splitOut",
+        "position": [
+          1140,
+          540
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "84ee4470-ce4d-489d-ac12-a53be39ac9eb",
+        "name": "Split Out2",
+        "type": "n8n-nodes-base.splitOut",
+        "position": [
+          1140,
+          680
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "703e0cfa-43e7-49c5-a088-32666849f619",
+        "name": "Merge1",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          1320,
+          620
+        ],
+        "parameters": {},
+        "typeVersion": 3.1
+      },
+      {
+        "id": "b611a6dd-e4b1-4aec-8c25-412652ac16dd",
+        "name": "Limit",
+        "type": "n8n-nodes-base.limit",
+        "position": [
+          1460,
+          620
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "434d11b6-535f-4e67-9d92-22814a21f6ea",
+        "name": "Code2",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1140,
+          400
+        ],
+        "parameters": {},
+        "typeVersion": 2
+      },
+      {
+        "id": "0b236d1f-04f9-41de-847b-03b11e63fb81",
+        "name": "Merge2",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          1780,
+          500
+        ],
+        "parameters": {},
+        "typeVersion": 3.1
+      },
+      {
+        "id": "0a4dee65-afc2-4660-a95d-72715e14ed7b",
+        "name": "Aggregate",
+        "type": "n8n-nodes-base.aggregate",
+        "position": [
+          1620,
+          620
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "1d33edf1-64c6-426a-8159-c5b04f5fa722",
+        "name": "Gmail",
+        "type": "n8n-nodes-base.gmail",
+        "position": [
+          3500,
+          600
+        ],
+        "webhookId": "8eae312c-743f-4238-b949-7539099096b0",
+        "parameters": {},
+        "typeVersion": 2.1
+      },
+      {
+        "id": "f388eb06-92c8-4e3f-a2a8-ea7f9b91b9be",
+        "name": "Basic LLM Chain",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "position": [
+          2280,
+          360
+        ],
+        "parameters": {},
+        "typeVersion": 1.7
+      },
+      {
+        "id": "92c4a65e-c21d-4f96-8c74-ef48426e61b4",
+        "name": "HTML",
+        "type": "n8n-nodes-base.html",
+        "position": [
+          2640,
+          360
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "b4ffb6ff-80af-4e2a-836e-80feea3e4b9a",
+        "name": "Basic LLM Chain1",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "position": [
+          2960,
+          600
+        ],
+        "parameters": {},
+        "typeVersion": 1.7
+      },
+      {
+        "id": "4aeefc9d-ecac-4db5-a7da-9367f6583dbe",
+        "name": "Mistral Cloud Chat Model2",
+        "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+        "position": [
+          2940,
+          800
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "4595a6a3-8504-47e3-805f-291a8e713a25",
+        "name": "HTML2",
+        "type": "n8n-nodes-base.html",
+        "position": [
+          3320,
+          600
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "c26b07a1-1fc7-421a-b201-373304995e14",
+        "name": "Structured Output Parser",
+        "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+        "position": [
+          3160,
+          800
+        ],
+        "parameters": {},
+        "typeVersion": 1.2
+      },
+      {
+        "id": "ee080308-d46d-4e8e-b4d7-1b272920a46a",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -20,
+          120
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "b54dba9d-5ec7-4bfa-8af5-a39e9bbb3c45",
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1020,
+          120
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "883e8a27-1c91-4321-8565-95a2b5026754",
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2140,
+          120
+        ],
+        "parameters": {
+          "content": ""
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e018a6ba-72b9-4583-9bf5-94bd46a47937",
+        "name": "On form submission",
+        "type": "n8n-nodes-base.formTrigger",
+        "position": [
+          80,
+          540
+        ],
+        "webhookId": "cbf3d8a9-db36-414a-b9fb-3d764b59d923",
+        "parameters": {},
+        "typeVersion": 2.2
+      }
+    ],
+    "pinData": {},
+    "connections": {
+      "HTML": {
+        "main": [
+          [
+            {
+              "node": "Basic LLM Chain1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code1": {
+        "main": [
+          [
+            {
+              "node": "Basic LLM Chain",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code2": {
+        "main": [
+          [
+            {
+              "node": "Merge2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "HTML2": {
+        "main": [
+          [
+            {
+              "node": "Gmail",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Limit": {
+        "main": [
+          [
+            {
+              "node": "Aggregate",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge": {
+        "main": [
+          [
+            {
+              "node": "Split Out",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Split Out2",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Code2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge1": {
+        "main": [
+          [
+            {
+              "node": "Limit",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge2": {
+        "main": [
+          [
+            {
+              "node": "Code1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Aggregate": {
+        "main": [
+          [
+            {
+              "node": "Merge2",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Split Out": {
+        "main": [
+          [
+            {
+              "node": "Merge1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split Out2": {
+        "main": [
+          [
+            {
+              "node": "Merge1",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Get News Data": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Variables": {
+        "main": [
+          [
+            {
+              "node": "Get News Data",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Get News Data1",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Get News Data2",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Get News Data3",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Get News Data4",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Get News Data5",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get News Data1": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Get News Data2": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 2
+            }
+          ]
+        ]
+      },
+      "Get News Data3": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 3
+            }
+          ]
+        ]
+      },
+      "Get News Data4": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 4
+            }
+          ]
+        ]
+      },
+      "Get News Data5": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 5
+            }
+          ]
+        ]
+      },
+      "Basic LLM Chain": {
+        "main": [
+          [
+            {
+              "node": "HTML",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Basic LLM Chain1": {
+        "main": [
+          [
+            {
+              "node": "HTML2",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "On form submission": {
+        "main": [
+          [
+            {
+              "node": "Set Variables",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mistral Cloud Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Auto-fixing Output Parser",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Structured Output Parser": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "Basic LLM Chain1",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Auto-fixing Output Parser": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "Basic LLM Chain",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mistral Cloud Chat Model1": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Basic LLM Chain",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mistral Cloud Chat Model2": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Basic LLM Chain1",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Structured Output Parser1": {
+        "ai_outputParser": [
+          [
+            {
+              "node": "Auto-fixing Output Parser",
+              "type": "ai_outputParser",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 44,
+      "name": "Crypto Trading"
+    },
+    {
+      "id": 49,
+      "name": "AI Summarization"
+    }
+  ],
+  "url": "https://n8n.io/workflows/5710",
+  "fetched_at": "2026-09-12T13:10:55Z"
+}

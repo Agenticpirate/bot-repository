@@ -1,0 +1,958 @@
+{
+  "id": 15864,
+  "name": "Send SMS and RCS marketing campaigns from Google Sheets with RCSZilla",
+  "description": "## Description\n\nAutomate consent-based SMS and RCS marketing campaigns from Google Sheets with n8n and RCSZilla.\n\nThis workflow gives small businesses, agencies, ecommerce teams, clinics, salons, real estate teams, and local service providers a practical SMS/RCS marketing automation system without building a custom campaign platform. Google Sheets acts as the campaign queue, n8n handles filtering and personalization, and RCSZilla queues each message for delivery.\n\nThe workflow is designed to help users start with SMS by default and move toward RCS-ready messaging when their RCSZilla account and sending route support it. RCSZilla can use an Android phone and SIM card as a device-based SMS gateway, which makes it useful for teams that want a free SMS marketing workflow before committing to a traditional paid SMS API provider. Carrier plan costs and local rules can still apply.\n\n## Why This Workflow Can Bring Users To RCSZilla\n\nMost n8n SMS marketing templates are built around paid SMS providers. This template is different because it shows a direct RCSZilla use case:\n\n- Turn Google Sheets into a lightweight campaign manager.\n- Send personalized SMS marketing messages through RCSZilla.\n- Keep the workflow RCS-ready with a `channel` column.\n- Use an Android device as the SMS gateway when available.\n- Queue messages with pacing instead of sending every contact at once.\n- Log queued and skipped contacts for campaign reporting.\n- Capture STOP replies into an opt-out sheet.\n\nIt positions RCSZilla as a practical SMS/RCS marketing automation layer for n8n users who want campaigns, reminders, promotions, lead follow-up, local offers, and customer reactivation without starting with a complex marketing suite.\n\n## How It Works\n\n### 1. Scheduled Campaign Check\n\nThe workflow runs every 15 minutes and reads the `Campaign Queue` tab in Google Sheets. Only rows with `status` set to `ready`, `to_send`, `to send`, or `pending` are considered.\n\n### 2. Campaign Row Validation\n\nThe Code node checks every row for the required marketing fields:\n\n- unique `message_id`\n- recipient `phone`\n- positive consent, such as `consent = yes`\n- no opt-out flag\n- eligible `send_after` time\n- non-duplicate phone number in the current run\n- allowed sending hour\n\nRows that fail validation are not sent. They are written to the `Send Log` tab with a skip reason.\n\n### 3. Personalized SMS/RCS Message\n\nThe workflow renders variables inside the message template. Supported variables include:\n\n- `{{first_name}}`\n- `{{last_name}}`\n- `{{offer_text}}`\n- `{{offer_url}}`\n- `{{campaign_name}}`\n- `{{segment}}`\n- `{{channel}}`\n\nIf the message does not already include an opt-out instruction, the workflow appends:\n\n```text\nReply STOP to opt out.\n```\n\n### 4. Consent Gate\n\nThe IF node separates sendable contacts from skipped contacts. This keeps campaign execution transparent and helps users understand exactly why a message was or was not queued.\n\n### 5. Queue Message With RCSZilla\n\nEligible contacts are sent to the RCSZilla node. The workflow uses the `channel` field from the sheet:\n\n- `sms` by default\n- `rcs` only when supported by the user's RCSZilla account and route\n\nThe workflow spaces eligible messages using `scheduledAt`, so a campaign does not hit every contact at the same second.\n\n### 6. Status And Send Log\n\nAfter a successful queue call, the workflow marks the original row as `queued` in Google Sheets and appends a detailed row to `Send Log` with:\n\n- timestamp\n- message ID\n- campaign name\n- phone number\n- channel\n- status\n- scheduled time\n- final message text\n- RCSZilla response\n\nSkipped contacts are also logged with the reason they were skipped.\n\n### 7. Opt-Out Capture\n\nThe workflow includes an opt-out webhook for inbound replies. If a customer replies with `STOP`, `UNSUBSCRIBE`, `CANCEL`, `END`, or `QUIT`, the workflow saves the phone number and keyword to the `Opt Outs` tab.\n\nUse that tab to update your master contact list or suppression process before the next campaign.\n\n## RCSZilla Features Highlighted\n\nThis template highlights RCSZilla as an SMS/RCS marketing automation tool for n8n:\n\n- Android device gateway: send SMS through your own phone and SIM card.\n- API-based automation: queue messages from n8n workflows.\n- SMS marketing campaigns: send personalized offers, updates, and reactivation messages.\n- RCS-ready workflow design: keep a channel field ready for accounts that support RCS routes.\n- Scheduled sending: space messages over time.\n- Two-way reply handling: capture opt-out replies through a webhook.\n- Campaign logging: keep a Google Sheets history of queued and skipped contacts.\n\nRCSZilla setup guide: https://docs.rcszilla.com/?page=get_started\n\n## Google Sheet Structure\n\nCreate a Google Sheet with these tabs, or import the included Excel template file:\n\n```text\nSMS RCS Marketing Google Sheets Template - RCSZilla.xlsx\n```\n\nAfter importing the template into Google Sheets, copy the spreadsheet ID from the Google Sheets URL and replace `PASTE_SMS_RCS_MARKETING_SHEET_ID` in every Google Sheets node.\n\n### Campaign Queue\n\nRecommended columns:\n\n```text\nmessage_id\nphone\nfirst_name\nlast_name\nconsent\nopt_out\nchannel\nsegment\ncampaign_name\nmessage_template\noffer_text\noffer_url\nsend_after\nstatus\nqueued_at\nlast_error\n```\n\nExample row:\n\n```text\nmessage_id: promo-001\nphone: +40700000000\nfirst_name: Maria\nconsent: yes\nopt_out: no\nchannel: sms\nsegment: salon_vip\ncampaign_name: May VIP Offer\nmessage_template: Hi {{first_name}}, {{offer_text}} {{offer_url}}\noffer_text: your May VIP discount is ready.\noffer_url: https://example.com/vip\nsend_after: 2026-05-21 10:00:00\nstatus: ready\n```\n\n### Send Log\n\nRecommended columns:\n\n```text\ntimestamp\nmessage_id\ncampaign_name\nphone\nchannel\nstatus\nscheduled_at\nmessage\nskip_reason\nrcszilla_response\n```\n\n### Opt Outs\n\nRecommended columns:\n\n```text\nreceived_at\nphone\nkeyword\nmessage\nsource\n```\n\n## Requirements\n\n- n8n Cloud or self-hosted n8n.\n- RCSZilla account and API token.\n- Android device connected to RCSZilla if using device-based SMS sending.\n- Active SIM/mobile plan for device-based SMS sending.\n- Community node package: `n8n-nodes-rcszilla`.\n- Google Sheets OAuth credential in n8n.\n- Google Sheet with `Campaign Queue`, `Send Log`, and `Opt Outs` tabs.\n- Marketing contacts with clear SMS/RCS consent.\n\n## Setup Instructions\n\n1. Install the RCSZilla community node in n8n: `n8n-nodes-rcszilla`.\n2. Import the workflow JSON: `Google Sheets SMS RCS marketing automation n8n - RCSZilla.json`.\n3. Create the Google Sheet tabs listed above.\n4. Replace `PASTE_SMS_RCS_MARKETING_SHEET_ID` in every Google Sheets node with your sheet ID.\n5. Assign your Google Sheets OAuth credential to each Google Sheets node.\n6. Create and assign your RCSZilla API credential to the RCSZilla node.\n7. Connect your Android device in RCSZilla if you plan to send via your own phone gateway.\n8. Add one internal test row in `Campaign Queue` with `consent = yes`, `channel = sms`, and `status = ready`.\n9. Run the workflow manually and inspect `Send Log`.\n10. Confirm the queued message in RCSZilla.\n11. Activate the workflow when the test campaign behaves correctly.\n\n## Example Message\n\n```text\nHi Maria, your May VIP discount is ready. https://example.com/vip Reply STOP to opt out.\n```\n\n## Compliance Notes\n\nThis workflow is for permission-based SMS/RCS marketing only.\n\nDo not use purchased lists, scraped phone numbers, or unsolicited contacts. Keep consent records, respect STOP replies, follow quiet hours, avoid sensitive personal data in message content, and check local SMS/RCS rules before sending campaigns.\n\nThe workflow helps with safer campaign behavior by:\n\n- requiring consent\n- skipping opt-out rows\n- appending STOP language\n- deduplicating phone numbers per run\n- limiting sends per run\n- spacing queued messages\n- logging skipped contacts with reasons\n- capturing opt-out replies into a suppression tab\n\nYou are still responsible for your own legal review, consent process, privacy policy, terms, sender identification, and regional messaging requirements.\n\n## Customization\n\n- Change `maxSendsPerRun` in the Code node to raise or lower campaign volume.\n- Change `minSecondsBetweenMessages` to control pacing.\n- Adjust `quietStartHour` and `quietEndHour` for your region.\n- Use `segment` to run different offers for different audiences.\n- Keep `channel = sms` unless your RCSZilla setup supports another route.\n- Add a second workflow later to read delivery status from RCSZilla and update `Send Log`.\n- Connect the opt-out webhook to any inbound reply source that can POST reply data into n8n.\n\n## Troubleshooting\n\n- Nothing sends: confirm rows have `status = ready`, `consent = yes`, and a valid phone number.\n- Rows are skipped: check the `skip_reason` field in `Send Log`.\n- RCSZilla node fails: confirm the API credential, account status, connected device, SIM status, and phone number country code.\n- Google Sheets update fails: confirm `message_id` exists and is unique.\n- RCS channel fails: switch the row back to `channel = sms` unless your account supports RCS sending.\n- Workflow sends at the wrong time: check n8n timezone and the quiet-hour settings in the Code node.\n- Opt-out webhook does not capture replies: confirm your inbound SMS/RCS provider is posting `from` and `message` fields to the webhook URL.\n",
+  "workflow": {
+    "id": "google-sheets-sms-rcs-marketing-automation-rcszilla",
+    "meta": {
+      "templateCredsSetupCompleted": false
+    },
+    "name": "Automate SMS and RCS marketing campaigns from Google Sheets with RCSZilla",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "6a7a59db-6d0d-401d-b955-77d106b02794",
+        "name": "Workflow overview",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "color": 4,
+          "width": 1580,
+          "height": 260,
+          "content": "## SMS/RCS marketing automation\n\nRun consent-based SMS or RCS-ready marketing campaigns from Google Sheets with n8n and RCSZilla.\n\nThis workflow scans a campaign queue, checks consent and opt-out fields, personalizes each message, spaces sends over time, queues messages through RCSZilla, and logs every queued or skipped contact.\n\nUse SMS by default. Set the channel to RCS only when your RCSZilla account and sending route support it."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ead3f3c8-692d-441c-be31-883992c907b2",
+        "name": "Setup guide",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          0,
+          304
+        ],
+        "parameters": {
+          "color": 5,
+          "width": 540,
+          "height": 380,
+          "content": "## Setup guide\n\n1. Install community node: n8n-nodes-rcszilla.\n2. Create Google Sheets and RCSZilla credentials.\n3. Create a Google Sheet with tabs named Campaign Queue, Send Log, and Opt Outs.\n4. Replace PASTE_SMS_RCS_MARKETING_SHEET_ID in all Google Sheets nodes. You can download a template here : https://docs.google.com/spreadsheets/d/11aQpfGRjxswKMASmEUsY9PBKHsonjuuTLSnbGJSm55Q/edit?usp=sharing\n5. Connect your Android device in RCSZilla. Docs: https://docs.rcszilla.com/?page=get_started\n6. Add one internal test row with consent = yes and status = ready.\n7. Run manually first, inspect Send Log, then activate the schedule.\n\nOnly message contacts who gave marketing consent."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e0efa66e-7727-4234-ae28-546afa2009e7",
+        "name": "Campaign queue format",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          0,
+          720
+        ],
+        "parameters": {
+          "color": 6,
+          "width": 540,
+          "height": 460,
+          "content": "## Campaign Queue columns\n\nRecommended columns:\n\nmessage_id, phone, first_name, last_name, consent, opt_out, channel, segment, campaign_name, message_template, offer_text, offer_url, send_after, status\n\nRequired:\n\nmessage_id: unique row ID\nphone: recipient number with country code\nconsent: yes\nstatus: ready\n\nOptional:\n\nchannel: sms or rcs. Leave blank for sms.\nsend_after: future date/time before the row is eligible.\nmessage_template supports {{first_name}}, {{offer_text}}, {{offer_url}}, {{campaign_name}}, and {{segment}}."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9419b4e2-0f48-4a67-afe6-fd20bce73434",
+        "name": "Compliance notes",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          592,
+          720
+        ],
+        "parameters": {
+          "color": 3,
+          "width": 520,
+          "height": 300,
+          "content": "## Consent and opt-out\n\nThis workflow is for permission-based marketing.\n\nIt skips contacts without consent, skips opt-outs, deduplicates phone numbers per run, limits send volume, adds Reply STOP to opt out, and logs skipped rows.\n\nDo not use purchased lists or unsolicited contacts. Keep consent records in your CRM, store, form, or Google Sheet."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9e29ade8-8dc2-44e2-89ec-b4d8d2757c8e",
+        "name": "Opt-out webhook guide",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2032,
+          896
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 480,
+          "height": 420,
+          "content": "## Opt-out webhook\n\nUse this branch for inbound STOP replies from RCSZilla or another SMS/RCS provider.\n\nExample payload:\n\n{\n  \"from\": \"+40700000000\",\n  \"message\": \"STOP\",\n  \"source\": \"RCSZilla\"\n}\n\nSTOP, UNSUBSCRIBE, CANCEL, END, and QUIT are saved to the Opt Outs tab.\n\nUse that tab to update your master contact list before the next campaign."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "3ba86e67-a49e-4a4a-aca0-57cf4a41750b",
+        "name": "Note - Check queue",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          640,
+          304
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 300,
+          "height": 210,
+          "content": "## 1. Check queue\n\nRuns every 15 minutes and looks for rows where status is ready.\n\nKeep the workflow inactive while testing. Use one internal number first."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "e7e46eb7-f413-481c-8c9c-69c6f315e498",
+        "name": "Note - Read rows",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          992,
+          304
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 340,
+          "height": 230,
+          "content": "## 2. Read campaign rows\n\nReads the Campaign Queue tab from Google Sheets.\n\nThe sheet acts as a lightweight campaign manager for message copy, audience segment, channel, timing, and row status."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "28a31c9b-509f-4297-96e6-1fe7d848d2cc",
+        "name": "Note - Prepare messages",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1360,
+          304
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 340,
+          "height": 230,
+          "content": "## 3. Prepare messages\n\nValidates each row, renders variables in the template, appends Reply STOP when needed, applies quiet hours, deduplicates numbers, and spaces eligible sends."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "c7c9bead-93af-42cd-b540-1a4898c6016a",
+        "name": "Note - Send or skip",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          1744,
+          304
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 340,
+          "height": 230,
+          "content": "## 4. Send or skip\n\nEligible rows go to RCSZilla.\n\nRows with missing consent, opt-out flags, duplicate phones, future send_after dates, or non-ready status are logged as skipped."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "9bd36907-767b-402e-9e26-68c7d5ca5f25",
+        "name": "Note - Queue with RCSZilla",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2160,
+          160
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 340,
+          "height": 220,
+          "content": "## 5. Queue with RCSZilla\n\nQueues each eligible SMS/RCS marketing message with RCSZilla.\n\nThe channel comes from the sheet. Keep it as sms unless your account supports another route."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "8f5db7f8-6846-499b-9954-15eeb8d89669",
+        "name": "Note - Campaign logging",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2640,
+          32
+        ],
+        "parameters": {
+          "color": 7,
+          "width": 460,
+          "height": 250,
+          "content": "## 6. Campaign logging\n\nQueued contacts are marked as queued in the Campaign Queue tab and appended to Send Log.\n\nSkipped contacts are also appended to Send Log with a reason, so you can clean the sheet before the next run."
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "101f9608-3c94-4ecb-8100-c1f017d00d09",
+        "name": "Every 15 minutes",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          720,
+          560
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 15
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.3
+      },
+      {
+        "id": "6db544aa-f099-454b-bc20-ee35978a89db",
+        "name": "Read campaign queue",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          1088,
+          560
+        ],
+        "parameters": {
+          "options": {
+            "dataLocationOnSheet": {
+              "values": {
+                "rangeDefinition": "detectAutomatically"
+              }
+            }
+          },
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "Campaign Queue",
+            "cachedResultName": "Campaign Queue"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "PASTE_SMS_RCS_MARKETING_SHEET_ID",
+            "cachedResultName": "SMS RCS Marketing Workbook"
+          },
+          "authentication": "oAuth2"
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "47f515fa-c8ec-4cdf-9349-1a06aa40a3b9",
+        "name": "Prepare marketing messages",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1440,
+          560
+        ],
+        "parameters": {
+          "jsCode": "const CONFIG = {\n  maxSendsPerRun: 50,\n  minSecondsBetweenMessages: 20,\n  enforceQuietHours: true,\n  quietStartHour: 9,\n  quietEndHour: 20,\n  defaultChannel: 'sms',\n  defaultTemplate: 'Hi {{first_name}}, {{offer_text}} {{offer_url}} Reply STOP to opt out.',\n};\n\nfunction present(value) {\n  return value !== undefined && value !== null && String(value).trim() !== '';\n}\n\nfunction pick(row, names) {\n  for (const name of names) {\n    if (present(row[name])) return row[name];\n  }\n  return '';\n}\n\nfunction cleanPhone(value) {\n  if (!present(value)) return '';\n  const text = String(value).trim();\n  if (text.startsWith('+')) return '+' + text.slice(1).replace(/\\D/g, '');\n  return text.replace(/[^\\d+]/g, '');\n}\n\nfunction yes(value) {\n  return value === true || ['yes', 'true', '1', 'subscribed', 'opted in', 'opt-in', 'ok'].includes(String(value ?? '').trim().toLowerCase());\n}\n\nfunction normalizeChannel(value) {\n  const channel = String(value || CONFIG.defaultChannel).trim().toLowerCase();\n  return ['sms', 'rcs'].includes(channel) ? channel : CONFIG.defaultChannel;\n}\n\nfunction formatScheduledAt(date) {\n  const pad = (part) => String(part).padStart(2, '0');\n  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;\n}\n\nfunction render(template, variables) {\n  return String(template || '').replace(/{{\\s*([a-zA-Z0-9_]+)\\s*}}/g, (_, key) => String(variables[key] ?? ''));\n}\n\nfunction shortMessage(message) {\n  const text = String(message || '').replace(/\\s+/g, ' ').trim();\n  const withOptOut = /\\bstop\\b/i.test(text) ? text : `${text} Reply STOP to opt out.`;\n  return withOptOut.length > 320 ? `${withOptOut.slice(0, 317)}...` : withOptOut;\n}\n\nconst now = new Date();\nconst currentHour = now.getHours();\nconst insideSendingHours = currentHour >= CONFIG.quietStartHour && currentHour < CONFIG.quietEndHour;\nconst rows = $input.all();\nconst seenPhones = new Set();\nlet eligibleCount = 0;\n\nreturn rows.map((item, index) => {\n  const row = item.json;\n  const messageId = String(pick(row, ['message_id', 'Message ID', 'id', 'ID']) || '').trim();\n  const campaignName = String(pick(row, ['campaign_name', 'Campaign Name', 'campaign', 'Campaign']) || 'marketing campaign').trim();\n  const phone = cleanPhone(pick(row, ['phone', 'Phone', 'mobile', 'Mobile', 'to', 'To']));\n  const firstName = String(pick(row, ['first_name', 'First Name', 'firstName', 'name', 'Name']) || 'there').trim();\n  const lastName = String(pick(row, ['last_name', 'Last Name', 'lastName']) || '').trim();\n  const segment = String(pick(row, ['segment', 'Segment', 'audience', 'Audience']) || '').trim();\n  const status = String(pick(row, ['status', 'Status', 'campaign_status', 'Campaign Status']) || '').trim().toLowerCase();\n  const offerText = String(pick(row, ['offer_text', 'Offer Text', 'offer', 'Offer']) || 'we have an update for you.').trim();\n  const offerUrl = String(pick(row, ['offer_url', 'Offer URL', 'url', 'URL']) || '').trim();\n  const template = pick(row, ['message_template', 'Message Template', 'message', 'Message']) || CONFIG.defaultTemplate;\n  const sendAfterValue = pick(row, ['send_after', 'Send After', 'sendAfter']);\n  const sendAfter = present(sendAfterValue) ? new Date(sendAfterValue) : null;\n  const channel = normalizeChannel(pick(row, ['channel', 'Channel']));\n  const errors = [];\n\n  if (!messageId) errors.push('Missing message_id');\n  if (!phone) errors.push('Missing phone');\n  if (!['ready', 'to_send', 'to send', 'pending'].includes(status)) errors.push('Status is not ready');\n  if (!yes(pick(row, ['consent', 'Consent', 'sms_consent', 'SMS Consent', 'marketing_consent', 'Marketing Consent', 'opt_in', 'Opt In']))) errors.push('Missing SMS/RCS marketing consent');\n  if (yes(pick(row, ['opt_out', 'Opt Out', 'suppressed', 'Suppressed', 'unsubscribe', 'Unsubscribe']))) errors.push('Contact opted out');\n  if (CONFIG.enforceQuietHours && !insideSendingHours) errors.push('Outside configured sending hours');\n  if (phone && seenPhones.has(phone)) errors.push('Duplicate phone in this run');\n  if (sendAfter && !Number.isNaN(sendAfter.getTime()) && sendAfter > now) errors.push('Send-after time has not arrived');\n  if (eligibleCount >= CONFIG.maxSendsPerRun) errors.push('Run send limit reached');\n\n  if (phone) seenPhones.add(phone);\n\n  const message = shortMessage(render(template, {\n    first_name: firstName,\n    last_name: lastName,\n    offer_text: offerText,\n    offer_url: offerUrl,\n    campaign_name: campaignName,\n    segment,\n    channel,\n  }));\n\n  const eligible = errors.length === 0;\n  const scheduledDate = new Date(now.getTime() + eligibleCount * CONFIG.minSecondsBetweenMessages * 1000);\n  const scheduledAt = eligible ? formatScheduledAt(scheduledDate) : '';\n  if (eligible) eligibleCount += 1;\n\n  return {\n    json: {\n      eligible,\n      skipReason: errors.join('; '),\n      messageId: messageId || `row-${index + 2}`,\n      campaignName,\n      phone,\n      channel,\n      firstName,\n      lastName,\n      segment,\n      status,\n      message,\n      scheduledAt,\n      sourceRow: row.row_number || row.__rowNumber || index + 2,\n    },\n  };\n});"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "d08771e3-3bf8-45b5-a616-1b4d8b612e7b",
+        "name": "Eligible for campaign send?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1824,
+          560
+        ],
+        "parameters": {
+          "conditions": {
+            "boolean": [
+              {
+                "value1": "={{$json.eligible}}",
+                "value2": true
+              }
+            ]
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "04a2042c-cb06-45a1-924d-bb694eb11cca",
+        "name": "Queue marketing message with RCSZilla",
+        "type": "n8n-nodes-rcszilla.rcsZilla",
+        "position": [
+          2240,
+          448
+        ],
+        "parameters": {
+          "to": "={{$json.phone}}",
+          "channel": "={{$json.channel}}",
+          "message": "={{$json.message}}",
+          "operation": "queueMessage",
+          "scheduledAt": "={{$json.scheduledAt}}"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "a0488d1d-710c-4252-9e7d-bc7f557a222d",
+        "name": "Mark row queued",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          2608,
+          448
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "status": "queued",
+              "queued_at": "={{$now.toISO()}}",
+              "last_error": "",
+              "message_id": "={{$('Prepare marketing messages').item.json.messageId}}"
+            },
+            "schema": [
+              {
+                "id": "message_id",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "message_id",
+                "defaultMatch": true,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "status",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "status",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "queued_at",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "queued_at",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "last_error",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "last_error",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [
+              "message_id"
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "update",
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "Campaign Queue",
+            "cachedResultName": "Campaign Queue"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "PASTE_SMS_RCS_MARKETING_SHEET_ID",
+            "cachedResultName": "SMS RCS Marketing Workbook"
+          },
+          "authentication": "oAuth2"
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "5654151a-5b5e-43f5-ac85-c1a46b2ce768",
+        "name": "Log queued message",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          2960,
+          448
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "phone": "={{$('Prepare marketing messages').item.json.phone}}",
+              "status": "queued",
+              "channel": "={{$('Prepare marketing messages').item.json.channel}}",
+              "message": "={{$('Prepare marketing messages').item.json.message}}",
+              "timestamp": "={{$now.toISO()}}",
+              "message_id": "={{$('Prepare marketing messages').item.json.messageId}}",
+              "skip_reason": "",
+              "scheduled_at": "={{$('Prepare marketing messages').item.json.scheduledAt}}",
+              "campaign_name": "={{$('Prepare marketing messages').item.json.campaignName}}",
+              "rcszilla_response": "={{JSON.stringify($('Queue marketing message with RCSZilla').item.json)}}"
+            },
+            "schema": [
+              {
+                "id": "timestamp",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "timestamp",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "message_id",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "message_id",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "campaign_name",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "campaign_name",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "phone",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "phone",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "channel",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "channel",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "status",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "status",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "scheduled_at",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "scheduled_at",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "message",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "message",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "skip_reason",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "skip_reason",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "rcszilla_response",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "rcszilla_response",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "Send Log",
+            "cachedResultName": "Send Log"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "PASTE_SMS_RCS_MARKETING_SHEET_ID",
+            "cachedResultName": "SMS RCS Marketing Workbook"
+          },
+          "authentication": "oAuth2"
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "27f3b252-7163-4b5c-9326-cbf534a1dadd",
+        "name": "Log skipped row",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          2240,
+          704
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "phone": "={{$json.phone}}",
+              "status": "skipped",
+              "channel": "={{$json.channel}}",
+              "message": "={{$json.message}}",
+              "timestamp": "={{$now.toISO()}}",
+              "message_id": "={{$json.messageId}}",
+              "skip_reason": "={{$json.skipReason}}",
+              "scheduled_at": "",
+              "campaign_name": "={{$json.campaignName}}",
+              "rcszilla_response": ""
+            },
+            "schema": [
+              {
+                "id": "timestamp",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "timestamp",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "message_id",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "message_id",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "campaign_name",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "campaign_name",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "phone",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "phone",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "channel",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "channel",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "status",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "status",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "scheduled_at",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "scheduled_at",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "message",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "message",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "skip_reason",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "skip_reason",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "rcszilla_response",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "rcszilla_response",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "Send Log",
+            "cachedResultName": "Send Log"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "PASTE_SMS_RCS_MARKETING_SHEET_ID",
+            "cachedResultName": "SMS RCS Marketing Workbook"
+          },
+          "authentication": "oAuth2"
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "3acebd5a-be97-480c-bcd7-215c578621c4",
+        "name": "Marketing opt-out webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          2064,
+          1504
+        ],
+        "webhookId": "sms-rcs-marketing-opt-out",
+        "parameters": {
+          "path": "sms-rcs-marketing-opt-out",
+          "options": {},
+          "httpMethod": "POST",
+          "responseMode": "responseNode"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "b6907378-5b97-429e-a59f-8edf622581b9",
+        "name": "Normalize opt-out reply",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2400,
+          1504
+        ],
+        "parameters": {
+          "jsCode": "function present(value) {\n  return value !== undefined && value !== null && String(value).trim() !== '';\n}\n\nfunction cleanPhone(value) {\n  if (!present(value)) return '';\n  const text = String(value).trim();\n  if (text.startsWith('+')) return '+' + text.slice(1).replace(/\\D/g, '');\n  return text.replace(/[^\\d+]/g, '');\n}\n\nconst payload = $json.body ?? $json;\nconst message = String(payload.message ?? payload.text ?? payload.body ?? '').trim();\nconst phone = cleanPhone(payload.from ?? payload.fromPhone ?? payload.phone ?? payload.sender ?? payload.to);\nconst keywordMatch = message.match(/\\b(STOP|UNSUBSCRIBE|CANCEL|END|QUIT)\\b/i);\n\nreturn [{\n  json: {\n    isOptOut: Boolean(phone && keywordMatch),\n    phone,\n    keyword: keywordMatch ? keywordMatch[1].toUpperCase() : '',\n    message,\n    source: payload.source ?? 'inbound marketing reply',\n    receivedAt: new Date().toISOString(),\n  },\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "8876a217-9b55-44dd-b488-9955586a1ef1",
+        "name": "Is opt-out keyword?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          2720,
+          1504
+        ],
+        "parameters": {
+          "conditions": {
+            "boolean": [
+              {
+                "value1": "={{$json.isOptOut}}",
+                "value2": true
+              }
+            ]
+          }
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "ba82dc44-f186-4b5a-82aa-c5407671dd76",
+        "name": "Save opt-out to sheet",
+        "type": "n8n-nodes-base.googleSheets",
+        "position": [
+          3072,
+          1408
+        ],
+        "parameters": {
+          "columns": {
+            "value": {
+              "phone": "={{$json.phone}}",
+              "source": "={{$json.source}}",
+              "keyword": "={{$json.keyword}}",
+              "message": "={{$json.message}}",
+              "received_at": "={{$json.receivedAt}}"
+            },
+            "schema": [
+              {
+                "id": "received_at",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "received_at",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "phone",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "phone",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "keyword",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "keyword",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "message",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "message",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "source",
+                "type": "string",
+                "display": true,
+                "required": false,
+                "displayName": "source",
+                "defaultMatch": false,
+                "canBeUsedToMatch": true
+              }
+            ],
+            "mappingMode": "defineBelow",
+            "matchingColumns": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {},
+          "operation": "append",
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "Opt Outs",
+            "cachedResultName": "Opt Outs"
+          },
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "PASTE_SMS_RCS_MARKETING_SHEET_ID",
+            "cachedResultName": "SMS RCS Marketing Workbook"
+          },
+          "authentication": "oAuth2"
+        },
+        "typeVersion": 4.7
+      },
+      {
+        "id": "934d96cb-c75c-4098-8a91-b3ea730afff9",
+        "name": "Respond opt-out saved",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          3392,
+          1408
+        ],
+        "parameters": {
+          "options": {
+            "responseCode": 200
+          },
+          "respondWith": "json",
+          "responseBody": "={{ { success: true, status: 'opt_out_saved', phone: $('Normalize opt-out reply').item.json.phone } }}"
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "0f93d54a-5290-4d29-a272-c09d0b466fb4",
+        "name": "Respond ignored reply",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          3072,
+          1632
+        ],
+        "parameters": {
+          "options": {
+            "responseCode": 200
+          },
+          "respondWith": "json",
+          "responseBody": "={{ { success: true, status: 'ignored', reason: 'No opt-out keyword or phone number found' } }}"
+        },
+        "typeVersion": 1.1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "binaryMode": "separate",
+      "executionOrder": "v1"
+    },
+    "versionId": "a9f7b970-b678-4221-b7dc-34cc1753a02a",
+    "connections": {
+      "Mark row queued": {
+        "main": [
+          [
+            {
+              "node": "Log queued message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Every 15 minutes": {
+        "main": [
+          [
+            {
+              "node": "Read campaign queue",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is opt-out keyword?": {
+        "main": [
+          [
+            {
+              "node": "Save opt-out to sheet",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Respond ignored reply",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read campaign queue": {
+        "main": [
+          [
+            {
+              "node": "Prepare marketing messages",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Save opt-out to sheet": {
+        "main": [
+          [
+            {
+              "node": "Respond opt-out saved",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalize opt-out reply": {
+        "main": [
+          [
+            {
+              "node": "Is opt-out keyword?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Marketing opt-out webhook": {
+        "main": [
+          [
+            {
+              "node": "Normalize opt-out reply",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare marketing messages": {
+        "main": [
+          [
+            {
+              "node": "Eligible for campaign send?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Eligible for campaign send?": {
+        "main": [
+          [
+            {
+              "node": "Queue marketing message with RCSZilla",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Log skipped row",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Queue marketing message with RCSZilla": {
+        "main": [
+          [
+            {
+              "node": "Mark row queued",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 33,
+      "name": "Social Media"
+    }
+  ],
+  "url": "https://n8n.io/workflows/15864",
+  "fetched_at": "2026-09-12T13:15:38Z"
+}

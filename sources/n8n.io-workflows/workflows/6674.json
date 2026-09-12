@@ -1,0 +1,148 @@
+{
+  "id": 6674,
+  "name": "Publish HTML content with GitHub Gist and HTML preview",
+  "description": "## 📌 Who’s it for\n\nThis subworkflow is designed for **developers, AI engineers, or automation builders who generate dynamic HTML content in their workflows** (e.g. reports, dashboards, emails) and want a simple way to host and share it via a clean URL, without spinning up infrastructure or uploading to a CMS.\n\nIt’s **especially useful when combined with AI agents that generate HTML** content as part of a larger automated pipeline.\n\n## ⚙️ What it does\n\nThis subworkflow:\n\n1. Accepts raw HTML content as input.\n2. Creates a new **GitHub Gist** with that content.\n3. Returns the shareable Gist URL, which can then be sent via Slack, Telegram, email, etc.\n\nThe result is a lightweight, fast, and free way to publish AI-generated HTML (such as reports, articles, or formatted data outputs) to the web.\n\n## 🛠️ How to set it up\n\n1. Add this subworkflow to any parent workflow where HTML is generated.\n2. Pass in a string of valid HTML via the `html` input parameter.\n3. Configure the GitHub credentials in the HTTP node using an [access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) with `gist` scope.\n\n## ✅ Requirements\n\n- GitHub account and personal access token with `gist` permissions\n\n## 🔧 How to customize\n\n- Change the filename (`report.html`) if your use case needs a different format or extension.\n- Add metadata to the Gist (e.g., description, tags).\n",
+  "workflow": {
+    "id": "bGQ3XjWBjCOEVByz",
+    "meta": {
+      "instanceId": "26bd595441827fb23edb0643d6d240e79b0b8993d278e90950f16e18bf9e3c4a"
+    },
+    "name": " Publish generated HTML as a GitHub Gist and return the shareable URL",
+    "tags": [],
+    "nodes": [
+      {
+        "id": "27b9084e-f5ac-4352-a83b-c9ba07fc83f1",
+        "name": "Create Gist",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          208,
+          208
+        ],
+        "parameters": {
+          "url": "https://api.github.com/gists",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n  \"description\": \"Auto-rendered HTML\",\n  \"public\": false,\n  \"files\": {\n    \"report.html\": {\n      \"content\": {{ JSON.stringify($json.html) }}\n    }\n  }\n} ",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "User-Agent",
+                "value": "n8n"
+              }
+            ]
+          }
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "credential-id",
+            "name": "httpHeaderAuth Credential"
+          }
+        },
+        "retryOnFail": true,
+        "typeVersion": 4.2,
+        "waitBetweenTries": 5000
+      },
+      {
+        "id": "81a700fe-209e-427a-be64-2094e708420e",
+        "name": "When Executed by Another Workflow",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "position": [
+          0,
+          208
+        ],
+        "parameters": {
+          "workflowInputs": {
+            "values": [
+              {
+                "name": "html"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.1
+      },
+      {
+        "id": "34b106bf-39de-4aed-86fa-56df8cd1db85",
+        "name": "Set URL",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          432,
+          208
+        ],
+        "parameters": {
+          "options": {},
+          "assignments": {
+            "assignments": [
+              {
+                "id": "1627b23c-18a5-4180-ac01-534e65172481",
+                "name": "URL",
+                "type": "string",
+                "value": "={{ \"https://htmlpreview.github.io/?\" + $json.files[\"report.html\"].raw_url }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 3.4
+      },
+      {
+        "id": "0e4f5280-7cae-4ff2-9407-9b72b5cfeb59",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "width": 520,
+          "content": "## Add GitHub API key to \"Create Gist\" node\nFirst, add your API key to the auth header in the create gist node.\n\nThen, you can pass HTML reports into this workflow as the input and receive a URL where the HTML is displayed as the output."
+        },
+        "typeVersion": 1
+      }
+    ],
+    "active": false,
+    "pinData": {},
+    "settings": {
+      "callerPolicy": "workflowsFromSameOwner",
+      "errorWorkflow": "zt6t5IiKkPc9Z4Ku",
+      "executionOrder": "v1"
+    },
+    "versionId": "65e95b86-419b-4bda-b178-cec08559b6ee",
+    "connections": {
+      "Create Gist": {
+        "main": [
+          [
+            {
+              "node": "Set URL",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When Executed by Another Workflow": {
+        "main": [
+          [
+            {
+              "node": "Create Gist",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "categories": [
+    {
+      "id": 36,
+      "name": "File Management"
+    }
+  ],
+  "url": "https://n8n.io/workflows/6674",
+  "fetched_at": "2026-09-12T13:11:29Z"
+}
