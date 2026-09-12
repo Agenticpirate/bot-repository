@@ -2,7 +2,7 @@
 
 Public agent-skills registry (Vercel). Full skill file contents via `GET /api/download/{owner}/{repo}/{slug}` (`{files, hash}`), plus GitHub shallow-clone fill for the rest.
 
-- Last updated: 2026-09-12T23:34:12Z
+- Last updated: 2026-09-12T23:51:58Z
 - Skill URLs in sitemap: 19998
 - Unique ids: 19998
 - Downloaded OK (files/ + hash): 19375
