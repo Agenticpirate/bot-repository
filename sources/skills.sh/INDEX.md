@@ -2,13 +2,13 @@
 
 Public agent-skills registry (Vercel). Full skill file contents via `GET /api/download/{owner}/{repo}/{slug}` (`{files, hash}`).
 
-- Last updated: 2026-09-12T18:42:03Z
+- Last updated: 2026-09-12T18:42:22Z
 - Skill URLs in sitemap: 19998
 - Unique ids: 19998
-- Downloaded OK (files/ + hash): 3064
+- Downloaded OK (files/ + hash): 3080
 - Permanent API 404 + page HTML fallback: 38
 - Failed: 0
-- Remaining (no files/ yet): 16896
+- Remaining (no files/ yet): 16880
 - API cap: 60 download requests/hour (live `Retry-After: 60`; client budget 50/hour)
 - Concurrency: 1 (keep at 1 while capped)
 
