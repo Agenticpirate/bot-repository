@@ -8,10 +8,12 @@ This repository is a mirror for research and citation. **Canonical pages live on
 
 | Item | Status |
 | --- | ---: |
-| **catalog.json rows** | **219,578** |
-| **skills.sh downloaded** (files + hash) | **17,743** / 19,998 |
+| **catalog.json rows** | **221,859** |
+| **x.ai marketplace bots** | **71** (refreshed 2026-09-12; 0 new slugs) |
+| **x.ai marketplace plugins** | **27** (Grok Build catalog @ 9963e48) |
+| **skills.sh downloaded** (files + hash) | **17,773** / 19,998 |
 | **skills.sh via GitHub clone** | **15,027** |
-| **skills.sh via API** | **2,716** |
+| **skills.sh via API** | **2,746** |
 | **skills.sh remaining** | **2,225** |
 | skills.sh API cap | 60/hour (leftovers only; bulk fill is GitHub clone) |
 | SkillsMP SKILL.md (search GitHub raw + sitemap raw) | 1,957 + 1,695 |
@@ -188,6 +190,7 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | really.bot | 1214 |
 | botteams.io | 75 |
 | x.ai/bot/marketplace | 71 |
+| x.ai-bot-marketplace-plugins | 28 |
 | usegrokbot.com | 2 |
 | github/majiayu000-awesome-grok-bot | 817 |
 | github/codejunkie99-rosterroom | 84 |
@@ -371,7 +374,7 @@ Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/A
 
 ## Caps / failures
 
-- **skills.sh** — full skill files via the download API (`files/` + hash). The API allows 60 requests/hour; **3,205** downloaded, **16,755** remaining. Resume via `scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`.
+- **skills.sh** — **17,773** sitemap ids have `files/` + hash (**15,027** GitHub clone, **2,746** API). **2,225** leftovers are renamed/missing GitHub slugs (exact folder match exhausted). API drip only: `scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog` (60/hour).
 - **souls.directory** — public `GET /api/souls/{handle}/{slug}.md`; **910** SOUL.md on disk. Many remaining API URLs 404/empty.
 - **openclawskills.io** — Next.js gallery; sitemap has no per-skill URLs. `github.com/openclaw/skills` is not a public repo.
 - **claude-skills-latest** — Skillselion `updatedAt` is a reindex stamp, so createdAt **or** updatedAt ≥ 2026-07-14 matches all **60,442** live skills. True `createdAt` in-window: **2,378** (**1,466** with files). Catalog: **62,817** rows, **11,049** `has_content`. skills.sh download API still 60/hour.
