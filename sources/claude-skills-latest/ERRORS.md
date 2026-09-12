@@ -128,3 +128,5 @@ skills.sh API issues (874):
 
 
 Git LFS pointer assets (gif/png/mp4/mp3 copied from upstream `.gitattributes` trees) were dropped; blobs were not present. SKILL.md files kept.
+
+Dropped unbrowse-ai linux-x64 `obscura` vendor binaries (>50 MiB each, not SKILL.md).
