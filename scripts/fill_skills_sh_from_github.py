@@ -22,6 +22,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -63,6 +64,7 @@ from download_skills_sh import (  # noqa: E402
 CLONE_ROOT = Path("/tmp/skills-sh-gh-clones")
 GH_PACKS = REPO / "sources" / "github"
 PROGRESS_PATH = REPO / "sources" / "skills.sh" / "meta" / "github-fill-progress.json"
+MISS_REPOS_PATH = REPO / "sources" / "skills.sh" / "meta" / "github-miss-repos.json"
 CLONE_TIMEOUT = 180
 LS_TIMEOUT = 90
 RAW_TIMEOUT = 30
@@ -110,6 +112,31 @@ STANDARD_PARENTS = (
     "agents/skills",
 )
 PRINT_LOCK = threading.Lock()
+_SECRET_RES = [
+    (re.compile(rb"sk_live_[0-9A-Za-z]{16,}"), b"sk_live_REDACTED_ARCHIVE"),
+    (re.compile(rb"sk_test_[0-9A-Za-z]{16,}"), b"sk_test_REDACTED_ARCHIVE"),
+    (re.compile(rb"AKIA[0-9A-Z]{16}"), b"AKIAREDACTEDARCHIVE00"),
+    (re.compile(rb"ghp_[0-9A-Za-z]{20,}"), b"ghp_REDACTED_ARCHIVE"),
+    (re.compile(rb"github_pat_[0-9A-Za-z_]{20,}"), b"github_pat_REDACTED_ARCHIVE"),
+]
+_SECRET_PLACEHOLDER = re.compile(
+    rb"abc|xxx|example|your[-_]?key|placeholder|redacted|xxxx",
+    re.I,
+)
+
+
+def sanitize_secret_bytes(data: bytes) -> bytes:
+    """Neutralize high-risk credential patterns that trip GitHub push protection."""
+    if not data or b"sk_live_" not in data and b"sk_test_" not in data and b"AKIA" not in data and b"ghp_" not in data and b"github_pat_" not in data:
+        return data
+    out = data
+    for pat, repl in _SECRET_RES:
+        def _sub(match: re.Match[bytes], replacement: bytes = repl) -> bytes:
+            if _SECRET_PLACEHOLDER.search(match.group(0)):
+                return match.group(0)
+            return replacement
+        out = pat.sub(_sub, out)
+    return out
 
 
 def log(msg: str) -> None:
@@ -175,6 +202,30 @@ def run_cmd(
         text=True,
         env=env,
         input=input_text,
+    )
+
+
+def load_miss_repos() -> set[str]:
+    if not MISS_REPOS_PATH.is_file():
+        return set()
+    try:
+        data = json.loads(MISS_REPOS_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return set()
+    return {str(x) for x in (data.get("repos") or []) if x}
+
+
+def save_miss_repos(extra: list[str], reason: str) -> None:
+    current = load_miss_repos()
+    current.update(extra)
+    write_json(
+        MISS_REPOS_PATH,
+        {
+            "updated_at": utc_now(),
+            "reason": reason,
+            "count": len(current),
+            "repos": sorted(current),
+        },
     )
 
 
@@ -345,6 +396,7 @@ def copy_skill_dir(src_dir: Path, dest: Path, typical_root: bool) -> list[str]:
             continue
         if len(data) > MAX_FILE_BYTES:
             continue
+        data = sanitize_secret_bytes(data)
         rel = path.relative_to(src_dir).as_posix()
         kept.append((path, rel, data))
         total += len(data)
@@ -650,6 +702,7 @@ def trees_and_raw(owner: str, repo: str, items: list[dict], token: str) -> dict:
                 continue
             if len(body) > MAX_FILE_BYTES:
                 continue
+            body = sanitize_secret_bytes(body)
             rel = blob_path[len(prefix) :] if prefix and blob_path.startswith(prefix) else Path(blob_path).name
             if not rel or rel == blob_path and parent:
                 rel = Path(blob_path).name if should_copy_as_typical_root(rel_md) else blob_path
@@ -909,7 +962,10 @@ def main() -> int:
     args = parser.parse_args()
 
     grouped = load_pending()
+    skip_404 = load_miss_repos()
     repos = sorted(grouped.items(), key=lambda kv: (-len(kv[1]), kv[0]))
+    if skip_404:
+        repos = [r for r in repos if r[0] not in skip_404]
     if args.min_skills:
         repos = [r for r in repos if len(r[1]) >= args.min_skills]
     if args.max_skills:
@@ -977,6 +1033,15 @@ def main() -> int:
         for r in results
         if (r.get("filled") or 0) == 0 and (r.get("missed") or 0) > 0
     ]
+    missing_repos = [
+        r["repo"]
+        for r in results
+        if (r.get("filled") or 0) == 0
+        and "Could not resolve to a Repository" in str(r.get("via") or "")
+    ]
+    if missing_repos:
+        save_miss_repos(missing_repos, "github-404")
+        log(f"recorded {len(missing_repos)} missing GitHub repos")
     batch_stats = {
         "filled": filled_total,
         "repos_processed": len(results),
