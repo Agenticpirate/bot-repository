@@ -1,0 +1,99 @@
+# AgentSkill
+
+> AgentSkill is a marketplace for AI agent skills, plugins, and agents, with install guides and curated discovery paths.
+
+## Getting Started
+Quick paths for first-time users.
+- [Install Skills](https://agentskill.sh/install): How to install and use skills with supported AI coding assistants.
+- [Readme](https://agentskill.sh/readme): Product overview, usage patterns, and platform context.
+- [Browse Skills](https://agentskill.sh): Explore searchable skill listings and categories.
+
+## Core Discovery
+High-intent entry points for finding the right resources.
+- [Skills by Platform](https://agentskill.sh/for/codex): Skills filtered by platform compatibility and usage context.
+- [All Agents](https://agentskill.sh/agents): Discover agent definitions and use cases.
+- [All Plugins](https://agentskill.sh/plugins): Discover plugins and integration options.
+- [Creators](https://agentskill.sh/users): Browse skill creators and their published work.
+
+## Build and Publish
+Pages for contribution and publishing workflows.
+- [Submit a Skill](https://agentskill.sh/submit): Submit and publish a new skill listing.
+
+## /learn Skill Install
+Common ways to install the `/learn` command.
+- [Install Guide](https://agentskill.sh/install): Full step-by-step install instructions by platform.
+- [Learn Skill Page](https://agentskill.sh/agentskill-sh/learn): Skill listing with metadata and download options.
+- [Learn Skill Source (GitHub)](https://github.com/agentskill-sh/ags): Canonical repository for the learn skill.
+- [Hosted SKILL.md](https://agentskill.sh/agent/learn/SKILL.md): Public SKILL.md served by agentskill.sh.
+
+### Common Methods
+- Claude Code plugin method: run `/plugin install learn@agentskill-sh`.
+- Git clone global install (Claude Code): `git clone https://github.com/agentskill-sh/ags.git ~/.claude/skills/learn`.
+- Git clone global install (Cursor): `git clone https://github.com/agentskill-sh/ags.git ~/.cursor/skills/learn`.
+- Manual install: place `SKILL.md` at `~/.codex/skills/learn/SKILL.md`, `~/.windsurf/skills/learn/SKILL.md`, or `.github/copilot/skills/learn/SKILL.md` depending on platform.
+
+## Programmatic Skill Installation (for AI Agents)
+
+If you are an AI agent and a user asks you to install a skill from agentskill.sh, use this flow:
+
+1. **Fetch skill data**: `GET https://agentskill.sh/api/agent/skills/{owner%2Fskill-name}/install`
+   - The slug must be URL-encoded (e.g. `anthropics%2Fdocx`).
+   - Optional query parameter: `?platform=cursor` (default: `claude-code`).
+
+2. **Parse the JSON response**:
+   - `skillMd`: The full SKILL.md content (with metadata header prepended).
+   - `skillFiles`: Array of `{ path, content }` for additional files in the skill folder.
+   - `installPath`: Suggested file path (e.g. `.claude/skills/anthropics/docx/SKILL.md`).
+   - `skillFolder`: The directory to write files into.
+   - `name`, `description`, `securityScore`: Metadata for display.
+
+3. **Write files** to the appropriate directory:
+   - Claude Code: `~/.claude/skills/{slug}/SKILL.md`
+   - Cursor: `~/.cursor/skills/{slug}/SKILL.md`
+   - Windsurf: `~/.windsurf/skills/{slug}/SKILL.md`
+   - Copilot: `.github/copilot/skills/{slug}/SKILL.md`
+   - Codex: `~/.codex/skills/{slug}/SKILL.md`
+   Write each entry from `skillFiles` into the same directory.
+
+4. **Track the install** (optional): `POST https://agentskill.sh/api/skills/{slug}/install` with `{ "source": "agent" }`.
+
+## Programmatic Skillset Installation (for AI Agents)
+
+Skillsets are bundles of related skills. To install all skills from a skillset at once:
+
+1. **Fetch skillset data**: `GET https://agentskill.sh/api/agent/skillsets/{slug}/install`
+   - The slug is the skillset identifier (e.g. `paperasse`).
+   - Optional query parameter: `?platform=cursor` (default: `claude-code`).
+
+2. **Parse the JSON response**:
+   - `skills`: Array of skill objects, each containing:
+     - `skillMd`: The full SKILL.md content (with metadata header prepended).
+     - `skillFiles`: Array of `{ path, content }` for additional files.
+     - `installPath`: Suggested file path (e.g. `.claude/skills/owner/skill/SKILL.md`).
+     - `slug`, `name`, `description`: Metadata.
+
+3. **Write files** for each skill in the array to the platform directory:
+   - Claude Code: `~/.claude/skills/{slug}/SKILL.md`
+   - Cursor: `~/.cursor/skills/{slug}/SKILL.md`
+   - Windsurf: `~/.windsurf/skills/{slug}/SKILL.md`
+   - Copilot: `.github/copilot/skills/{slug}/SKILL.md`
+   - Codex: `~/.codex/skills/{slug}/SKILL.md`
+   Write each entry from `skillFiles` into the same directory as SKILL.md.
+
+## Key API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/agent/skills/{slug}/install` | GET | Fetch a single skill for installation (resolved files, metadata header) |
+| `/api/agent/skillsets/{slug}/install` | GET | Fetch all skills in a skillset for installation |
+| `/api/agent/search?q=keyword` | GET | Search skills by keyword (returns top 5 by default) |
+| `/api/skills/{slug}` | GET | Full skill detail (description, readme, files, scores) |
+| `/api/skills?category=seo&platform=claude-code` | GET | List skills with filters |
+| `/api/skills/count` | GET | Total active skill count |
+
+For the full API reference, see [llms-full.txt](https://agentskill.sh/llms-full.txt).
+
+## Optional
+Lower-priority pages that may still help with policy or governance questions.
+- [Privacy Policy](https://agentskill.sh/privacy)
+- [Terms of Service](https://agentskill.sh/terms)

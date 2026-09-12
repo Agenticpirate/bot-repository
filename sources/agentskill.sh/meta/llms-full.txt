@@ -1,0 +1,357 @@
+# AgentSkill — Full API Reference
+
+> Complete API documentation for agentskill.sh. For a quick overview, see [llms.txt](https://agentskill.sh/llms.txt).
+
+Base URL: `https://agentskill.sh`
+
+---
+
+## Agent API (for programmatic skill installation)
+
+### GET /api/agent/skills/{slug}/install
+
+Fetch a skill ready for installation. Returns resolved files from GitHub/GitLab with a metadata header prepended to SKILL.md.
+
+**Parameters:**
+- `slug` (path, required): URL-encoded skill slug (e.g. `anthropics%2Fdocx`)
+- `platform` (query, optional): Target platform. Default: `claude-code`. Options: `claude-code`, `cursor`, `copilot`, `codex`, `windsurf`, `cline`, `vscode`, `opencode`, `aider`, `gemini-cli`, `amp`, `goose`, `roo-code`, `trae`
+- `owner` (query, optional): Filter by owner when slug is ambiguous
+
+**Response (200):**
+```json
+{
+  "slug": "anthropics/docx",
+  "name": "Docx",
+  "owner": "anthropics",
+  "description": "Generate .docx files from markdown",
+  "skillMd": "# --- agentskill.sh ---\n# slug: anthropics/docx\n...\n\n# Docx\n...",
+  "skillFiles": [
+    { "path": "template.js", "content": "..." }
+  ],
+  "capabilities": ["Generate .docx files from markdown"],
+  "skillFolder": ".claude/skills/anthropics/docx",
+  "installPath": ".claude/skills/anthropics/docx/SKILL.md",
+  "contentSha": "a1b2c3d",
+  "securityScore": 95,
+  "score": 4.2,
+  "ratingCount": 12,
+  "installCount": 340,
+  "githubStars": 50,
+  "updatedAt": "2026-03-01T00:00:00.000Z"
+}
+```
+
+### GET /api/agent/skillsets/{slug}/install
+
+Fetch all skills in a skillset for bulk installation. Returns resolved files from GitHub/GitLab for each skill.
+
+**Parameters:**
+- `slug` (path, required): Skillset slug (e.g. `paperasse`)
+- `platform` (query, optional): Target platform. Default: `claude-code`
+
+**Response (200):**
+```json
+{
+  "slug": "paperasse",
+  "name": "Paperasse",
+  "description": "Skills for French bureaucracy automation",
+  "version": "1.1.0",
+  "skillCount": 4,
+  "skills": [
+    {
+      "slug": "romainsimon/comptable",
+      "name": "comptable",
+      "owner": "romainsimon",
+      "description": "Expert-comptable IA...",
+      "skillMd": "# --- agentskill.sh ---\n...\n# Expert-Comptable IA\n...",
+      "skillFiles": [
+        { "path": "references/pcg.md", "content": "..." }
+      ],
+      "installPath": ".claude/skills/romainsimon/comptable/SKILL.md",
+      "contentSha": "a1b2c3d",
+      "securityScore": 100
+    }
+  ]
+}
+```
+
+### GET /api/agent/search
+
+Search skills from an agent context. Rate limited to 60 requests per minute.
+
+**Parameters:**
+- `q` (query, optional): Search keyword
+- `category` (query, optional): Filter by job category slug
+- `platform` (query, optional): Filter by platform
+- `type` (query, optional): Filter by skill type
+- `tool` (query, optional): Filter by tool
+- `role` (query, optional): Filter by job role
+- `limit` (query, optional): Max results (1-10, default 5)
+- `includeTotal` (query, optional): Set to `true` to include total count
+
+**Response (200):**
+```json
+{
+  "results": [
+    { "slug": "owner/skill", "name": "Skill Name", "description": "...", "score": 4.5, "installCount": 100 }
+  ],
+  "total": 42,
+  "hasMore": true
+}
+```
+
+### GET /api/agent/skills/{slug}/version
+
+Check the current version (content SHA) of a skill without fetching full content.
+
+### GET /api/agent/skills/version
+
+Bulk version check. Returns content SHAs for multiple skills.
+
+### GET /api/agent/skills/learn/version
+
+Version check specifically for the /learn skill.
+
+---
+
+## Search and Discovery
+
+### GET /api/skills
+
+List skills with filtering, sorting, and pagination.
+
+**Parameters:**
+- `q` (query, optional): Full-text search
+- `category` (query, optional): Filter by legacy category slug
+- `jobCategory` (query, optional): Filter by job category
+- `platform` (query, optional): Filter by platform
+- `type` (query, optional): Filter by skill type
+- `tool` (query, optional): Filter by tool
+- `role` (query, optional): Filter by job role
+- `country` (query, optional): Filter by country code
+- `owner` (query, optional): Filter by skill owner
+- `integrationTag` (query, optional): Filter by integration tag
+- `sort` (query, optional): Sort field (e.g. `topScore`, `trendingScore`, `hotScore`, `createdAt`, `installCount`)
+- `order` (query, optional): `asc` or `desc`
+- `limit` (query, optional): Results per page
+- `offset` (query, optional): Pagination offset
+- `fields` (query, optional): Comma-separated field projection
+
+**Response (200):**
+```json
+{
+  "data": [
+    { "slug": "owner/skill", "name": "...", "description": "...", "installCount": 100, ... }
+  ],
+  "total": 500,
+  "hasMore": true
+}
+```
+
+### GET /api/skills/count
+
+Returns the total number of active skills.
+
+**Response (200):**
+```json
+{ "count": 44000 }
+```
+
+---
+
+## Skill Detail
+
+### GET /api/skills/{slug}
+
+Full skill detail including readme, SKILL.md content, and files.
+
+**Parameters:**
+- `slug` (path, required): URL-encoded skill slug
+
+**Response (200):**
+```json
+{
+  "data": {
+    "slug": "owner/skill",
+    "name": "Skill Name",
+    "description": "...",
+    "readme": "# README content...",
+    "skillMd": "# SKILL.md content...",
+    "skillFiles": [{ "path": "file.js", "content": "..." }],
+    "owner": "owner",
+    "category": "development",
+    "platforms": ["claude-code", "cursor"],
+    "jobRoles": ["developer"],
+    "tools": ["typescript"],
+    "score": 4.5,
+    "ratingCount": 20,
+    "installCount": 500,
+    "securityScore": 90,
+    "commentCount": 5,
+    "updatedAt": "2026-03-01T00:00:00.000Z"
+  }
+}
+```
+
+### GET /api/skills/{slug}/security
+
+Security report for a skill.
+
+**Response (200):**
+```json
+{
+  "data": {
+    "score": 95,
+    "issues": [],
+    "issueCount": 0,
+    "criticalCount": 0,
+    "highCount": 0,
+    "mediumCount": 0,
+    "lowCount": 0,
+    "scannedAt": "2026-03-01T00:00:00.000Z"
+  }
+}
+```
+
+### GET /api/skills/{slug}/comments
+
+Get comments for a skill.
+
+### GET /api/skills/{slug}/agent-reviews
+
+Get agent-submitted reviews for a skill.
+
+---
+
+## Install Tracking
+
+### POST /api/skills/{slug}/install
+
+Track a skill installation event.
+
+**Body:**
+```json
+{
+  "source": "agent",
+  "platform": "claude-code"
+}
+```
+
+---
+
+## Metadata (filter options)
+
+These endpoints return arrays of available filter values:
+
+| Endpoint | Returns |
+|----------|---------|
+| `GET /api/skills/platforms` | Available platforms |
+| `GET /api/skills/categories` | Legacy categories |
+| `GET /api/skills/job-categories` | Job categories |
+| `GET /api/skills/job-roles` | Job roles |
+| `GET /api/skills/job-subcategories` | Job subcategories |
+| `GET /api/skills/tools` | Tool tags |
+| `GET /api/skills/types` | Skill types |
+| `GET /api/skills/countries` | Country codes |
+| `GET /api/skills/integration-tags` | Integration tags |
+| `GET /api/skills/nav-metadata` | Combined metadata for navigation |
+
+---
+
+## Agent Feedback
+
+### POST /api/skills/{slug}/agent-feedback
+
+Submit feedback from an AI agent after using a skill.
+
+**Body:**
+```json
+{
+  "score": 4,
+  "comment": "Worked well for generating docx files",
+  "agentPlatform": "claude-code"
+}
+```
+
+---
+
+## Agents and Plugins
+
+### GET /api/agents
+
+List all agents.
+
+### GET /api/agents/{owner}/{slug}
+
+Get agent detail by owner and slug.
+
+### GET /api/plugins
+
+List all plugins.
+
+### GET /api/plugins/{owner}/{slug}
+
+Get plugin detail by owner and slug.
+
+---
+
+## Skill Submission
+
+### POST /api/skills/submit
+
+Submit a new skill from a GitHub repo URL or direct SKILL.md URL.
+
+**Body:**
+```json
+{
+  "url": "https://github.com/owner/repo"
+}
+```
+
+---
+
+## Skill Installation Paths by Platform
+
+| Platform | Directory |
+|----------|-----------|
+| Claude Code | `~/.claude/skills/{slug}/SKILL.md` |
+| Cursor | `~/.cursor/skills/{slug}/SKILL.md` |
+| Copilot | `.github/copilot/skills/{slug}/SKILL.md` |
+| Codex | `~/.codex/skills/{slug}/SKILL.md` |
+| Windsurf | `~/.windsurf/skills/{slug}/SKILL.md` |
+| Cline | `~/.cline/skills/{slug}/SKILL.md` |
+| VS Code | `~/.vscode/skills/{slug}/SKILL.md` |
+| OpenCode | `~/.opencode/skills/{slug}/SKILL.md` |
+| Aider | `~/.aider/skills/{slug}/SKILL.md` |
+| Gemini CLI | `~/.gemini/skills/{slug}/SKILL.md` |
+| Amp | `~/.amp/skills/{slug}/SKILL.md` |
+| Goose | `~/.goose/skills/{slug}/SKILL.md` |
+| Roo Code | `~/.roo-code/skills/{slug}/SKILL.md` |
+| Trae | `~/.trae/skills/{slug}/SKILL.md` |
+| ChatGPT | `~/.chatgpt/skills/{slug}/SKILL.md` |
+
+---
+
+## HTML Meta Tags (on skill pages)
+
+Every skill page at `https://agentskill.sh/@{owner}/{skill}` includes machine-readable meta tags:
+
+```html
+<link rel="alternate" type="application/json" href="https://agentskill.sh/api/skills/{slug}" />
+<meta name="agentskill:api" content="https://agentskill.sh/api/skills/{slug}" />
+<meta name="agentskill:install" content="/learn @{slug}" />
+```
+
+Plus JSON-LD SoftwareApplication schema with an `installUrl` field pointing to the agent install endpoint.
+
+---
+
+## Rate Limits
+
+- Agent search: 60 requests per minute
+- Skill submission: rate limited per IP
+- General API: no strict limit, but be reasonable
+
+## Authentication
+
+Most read endpoints are public. Write endpoints (comments, ratings, feedback) may require authentication via Google or GitHub OAuth.

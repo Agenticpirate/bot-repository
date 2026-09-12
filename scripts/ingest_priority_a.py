@@ -68,7 +68,7 @@ def http_get(url: str, accept: str = "*/*") -> tuple[int, bytes, str]:
         except Exception as exc:  # noqa: BLE001
             last = exc
             time.sleep(min(8.0, 1.2 * (2 ** (attempt - 1))))
-    raise RuntimeError(f"GET failed {url}: {last}")
+    return 0, b"", str(last)
 
 
 def fetch_ok(url: str, dest: Path, accept: str = "*/*") -> bool:

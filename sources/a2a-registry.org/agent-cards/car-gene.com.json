@@ -1,0 +1,73 @@
+{
+  "name": "CarGene",
+  "description": "Japanese car genealogy with sources. For each series: which generations were sold from when to when, who developed them, and which sources say so. Read-only. Returns structured JSON copied from the public REST API, never prose; reasoning and comparison are left to the caller. Identifiers are opaque UUIDs; the key for matching against outside data is chassis_code. An empty list means 'not researched yet', never 'none'. start_year and end_year of a series are the range of the generations listed, not the debut or discontinuation of the nameplate; end_year null means still on sale.",
+  "version": "0.1.0",
+  "provider": {
+    "organization": "CarGene",
+    "url": "https://car-gene.com/"
+  },
+  "documentationUrl": "https://car-gene.com/llms.txt",
+  "supportedInterfaces": [
+    {
+      "url": "https://api.car-gene.com/a2a",
+      "protocolBinding": "JSONRPC",
+      "protocolVersion": "1.0"
+    }
+  ],
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "extendedAgentCard": false
+  },
+  "defaultInputModes": ["application/json", "text/plain"],
+  "defaultOutputModes": ["application/json"],
+  "skills": [
+    {
+      "id": "search_vehicles",
+      "name": "Search vehicles",
+      "description": "Find series by name, maker name, or a generation's chassis code. Series names match by normalized substring (width, case, kana), maker names by prefix, chassis codes by substring of the code as written (a slash-joined code is one string, not split). Returns {query, hits: [{series, maker, matched_models}]} where each series and model carries its public page url; pass the ids in the hits to the other skills. Empty hits means nothing matched the query. Send a data part {\"skill\": \"search_vehicles\", \"query\": \"<name or chassis code>\"}, or a plain text part whose whole text is the query.",
+      "tags": ["genealogy", "search"],
+      "examples": [
+        "AE86",
+        "スカイライン",
+        "GT-R",
+        "{\"skill\": \"search_vehicles\", \"query\": \"カローラ\"}"
+      ],
+      "inputModes": ["application/json", "text/plain"],
+      "outputModes": ["application/json"]
+    },
+    {
+      "id": "get_vehicle",
+      "name": "Get a series with its generations",
+      "description": "Get one series with its generations (models), the people who developed them, and the cited sources. A model_id returns the whole series the generation belongs to. Returns {series, maker, models, sources}: each model (generation) has start_year, end_year (null = still on sale), chassis_code, description, source_url, drivetrains, engineers (each with role_name and source_url), and its public page url; sources are the cited references for the descriptions (url, title, publisher, accessed_on). An empty drivetrains, engineers, or sources list means not researched yet, never none. Unknown ids are an error, not an empty result. Send {\"skill\": \"get_vehicle\", \"series_id\": \"<uuid>\"} or {\"skill\": \"get_vehicle\", \"model_id\": \"<uuid>\"}.",
+      "tags": ["genealogy", "generations", "engineers", "sources"],
+      "examples": [
+        "{\"skill\": \"get_vehicle\", \"series_id\": \"<uuid from search_vehicles>\"}"
+      ],
+      "inputModes": ["application/json"],
+      "outputModes": ["application/json"]
+    },
+    {
+      "id": "get_vehicle_relationships",
+      "name": "Get relationships between generations",
+      "description": "Get the relationships between generations (succession, sibling, derivation, spiritual successor). Either id returns the whole series' relationships, because a relationship sits between two generations. Returns {series_id, url, relations}: each relation has kind and kind_name, kind_directed, from_model and to_model (each with its chassis_code, series_name and public page url), and where the source requires one, source_url with the verbatim source_excerpt; rationale is filled for spiritual successors. When kind_directed is false the two ends are interchangeable, so treat the relation as belonging to both generations. An empty relations list means not researched yet, never that the car has no relatives. Send {\"skill\": \"get_vehicle_relationships\", \"series_id\": \"<uuid>\"} or a model_id.",
+      "tags": ["genealogy", "relations", "succession", "siblings"],
+      "examples": [
+        "{\"skill\": \"get_vehicle_relationships\", \"model_id\": \"<uuid from search_vehicles>\"}"
+      ],
+      "inputModes": ["application/json"],
+      "outputModes": ["application/json"]
+    },
+    {
+      "id": "get_sales_figures",
+      "name": "Get sales figures",
+      "description": "Get the sales figures of a series. Returns {series_id, url, figures, cells, region_totals, coverage, lifetime}. figures are the rows as published, each with units, the source's own wording, the period, source_url and a verbatim source_excerpt. cells are the grid a figure may be summed into, one per series, country and calendar year; a null units on a cell means the sources disagree, never zero sold. region_totals sum years within one country only, so never add across countries or add a parent region to its children. coverage rows are the blanks that were checked and found empty, with the reason. lifetime rows are cumulative or per-generation totals that must not be added to the grid. A model_id narrows figures only, since allocating a year to a generation needs the whole series. An empty list means not researched yet, never zero. Send {\"skill\": \"get_sales_figures\", \"series_id\": \"<uuid>\"} or a model_id.",
+      "tags": ["sales", "figures", "sources"],
+      "examples": [
+        "{\"skill\": \"get_sales_figures\", \"series_id\": \"<uuid from search_vehicles>\"}"
+      ],
+      "inputModes": ["application/json"],
+      "outputModes": ["application/json"]
+    }
+  ]
+}

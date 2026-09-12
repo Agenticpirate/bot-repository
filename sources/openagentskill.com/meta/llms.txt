@@ -1,0 +1,115 @@
+# OpenAgentSkill
+
+OpenAgentSkill is the decision and install layer for AI agent skills.
+It links task discovery, source and review evidence, and agent-specific handoffs. Publication, source structure, AI review and runtime outcomes are separate facts; inspect the returned evidence rather than inferring safety from inclusion or stars.
+
+Quick read-only discovery:
+- Find a skill: GET https://www.openagentskill.com/api/agent/skills?q={query}&limit=5
+- Find an example to adapt: GET https://www.openagentskill.com/api/agent/showcase?q={query}&limit=5
+- Read its task package: GET https://www.openagentskill.com/api/agent/showcase/{slug}?format=markdown
+- Connect MCP: https://www.openagentskill.com/api/mcp (tools: search_skills, find_workflows, get_workflow)
+These reads do not install or execute anything. For execution planning, use the current review and policy flow below. Never upload private task material or credentials without the user's authorization.
+
+Use this site when an agent needs to:
+- discover reusable skills for a task
+- compare skill alternatives
+- inspect trust, audit, and safety signals
+- inspect Agent Proven Score from real outcome reports before reusing a skill
+- get an install command or agent-specific install prompt
+- avoid random GitHub searching before installing third-party code
+
+Preferred agent flow:
+1. Read this file.
+2. Connect the remote MCP server at /api/mcp, use @openagentskill/sdk, or load /api/agent/integration-kit for copy-paste templates.
+3. Choose a task from /tasks or /api/agent/tasks.
+4. Call /api/agent/resolve with a natural-language task.
+5. Use /api/agent/resolve?task={task}&agent={agent}&format=lockfile when you need a compact stable execution object.
+6. Read install_receipt, agent_handoff.platform_templates, agent_handoff.review_checklist, and policy_decision.
+7. Fetch /api/agent/receipt?task={task}&agent={agent}&format=text when you need a compact install receipt without the full resolve payload.
+8. For complete workflows, fetch /api/agent/packs and then /api/agent/packs/{slug}?limit=6 to get install_plan.selected_skills, review_checklist, and outcome_feedback.
+9. Fetch /api/agent/evals?slug={slug}&task={task}&format=text and follow the eval decision.
+10. Fetch /api/agent/skills/{slug} for the selected skill.
+11. Fetch /api/skills/{slug}/install?format=text before installing.
+12. After one narrow run, POST the result to /api/agent/outcome using install_receipt.outcome_feedback.event_id or feedback.event_id from resolve. Include output_quality, workspace, error_type, used_in_production, time_to_useful_ms, and human_review_required when known. Use dry_run=true before wiring a new integration.
+
+Important URLs:
+- Official entity profile: https://www.openagentskill.com/about
+- Contact: https://www.openagentskill.com/contact
+- Contact email: qudongqi2023@gmail.com
+- Machine-readable identity: https://www.openagentskill.com/.well-known/openagentskill.json
+- Agent entry: https://www.openagentskill.com/agent
+- Agent Integration Kit: https://www.openagentskill.com/agent/integration-kit
+- Agent Integration Kit API: https://www.openagentskill.com/api/agent/integration-kit
+- Remote MCP server: https://www.openagentskill.com/api/mcp
+- MCP discovery: https://www.openagentskill.com/.well-known/mcp.json
+- JavaScript SDK: @openagentskill/sdk (source: https://github.com/Leon-Drq/openagentskill/tree/main/packages/sdk)
+- Registry coverage and tier definitions: https://www.openagentskill.com/api/registry/stats
+- Tasks: https://www.openagentskill.com/tasks
+- Task API: https://www.openagentskill.com/api/agent/tasks
+- Workflow examples API: https://www.openagentskill.com/api/agent/showcase
+- Workflow examples for people: https://www.openagentskill.com/showcase
+- Resolve API: https://www.openagentskill.com/api/agent/resolve
+- Install receipt API: https://www.openagentskill.com/api/agent/receipt
+- Skill packs API: https://www.openagentskill.com/api/agent/packs
+- Agent outcome API: https://www.openagentskill.com/api/agent/outcome
+- Agent outcome contract: https://www.openagentskill.com/api/agent/outcome?contract=true
+- Agent-Proven rankings: https://www.openagentskill.com/rankings/agent-proven
+- Agent-Proven ranking API: https://www.openagentskill.com/api/agent/rankings?slug=agent-proven
+- Best-by-success ranking API: https://www.openagentskill.com/api/agent/rankings?slug=best-by-success-rate
+- Safe auto-install ranking API: https://www.openagentskill.com/api/agent/rankings?slug=safest-auto-install-skills
+- Ranking history API: https://www.openagentskill.com/api/agent/rankings/agent-proven/history?days=30
+- Aggregate funnel API: https://www.openagentskill.com/api/agent/funnel
+- Skill Eval API: https://www.openagentskill.com/api/agent/evals?slug=crawl4ai
+- Resolve eval dashboard: https://www.openagentskill.com/evals/resolve
+- Skill search API: https://www.openagentskill.com/api/skills/search
+- Safety gate: https://www.openagentskill.com/safety
+- Agent manifest: https://www.openagentskill.com/.well-known/agent-manifest.json
+- OpenAPI schema: https://www.openagentskill.com/openapi.json
+- GitHub auto-discovery status: https://www.openagentskill.com/api/agent/discovery
+- State of Agent Skills 2026 report: https://www.openagentskill.com/reports/state-of-agent-skills-2026
+- State of Agent Skills JSON: https://www.openagentskill.com/reports/state-of-agent-skills-2026.json
+- State of Agent Skills CSV: https://www.openagentskill.com/reports/state-of-agent-skills-2026.csv
+
+High-intent skill cluster routes:
+- AI agent skills for web scraping: https://www.openagentskill.com/ai-agent-skills/web-scraping
+- AI agent skills for coding agents: https://www.openagentskill.com/ai-agent-skills/coding-agents
+- finance AI agent skills: https://www.openagentskill.com/ai-agent-skills/finance-quant
+- World Cup football analytics skills for AI agents: https://www.openagentskill.com/ai-agent-skills/world-cup-football
+- RAG AI agent skills: https://www.openagentskill.com/ai-agent-skills/rag-knowledge
+- browser automation skills for AI agents: https://www.openagentskill.com/ai-agent-skills/browser-automation
+
+Featured task routes:
+- Scrape competitor pricing pages: https://www.openagentskill.com/tasks/scrape-pricing-pages
+- Crawl a documentation site: https://www.openagentskill.com/tasks/crawl-documentation-site
+- Review pull requests: https://www.openagentskill.com/tasks/review-pull-requests
+- Fix CI failures: https://www.openagentskill.com/tasks/fix-ci-failures
+- Convert PDFs to markdown: https://www.openagentskill.com/tasks/convert-pdf-to-markdown
+- Build a RAG knowledge base: https://www.openagentskill.com/tasks/build-rag-knowledge-base
+- Analyze CSV data: https://www.openagentskill.com/tasks/analyze-csv-data
+- Automate a browser workflow: https://www.openagentskill.com/tasks/automate-browser-workflow
+- Generate SEO content drafts: https://www.openagentskill.com/tasks/generate-seo-content
+- Triage GitHub issues: https://www.openagentskill.com/tasks/triage-github-issues
+- Scan a project for security risks: https://www.openagentskill.com/tasks/scan-security-risks
+- Summarize research sources: https://www.openagentskill.com/tasks/summarize-research-sources
+
+Coverage:
+- Skill cluster pages: 12
+- Task pages: 13
+- Public skill pages are published listings, not a blanket guarantee of installability or safety. Discovered projects and unpublished candidates remain separate; search indexing has its own eligibility policy.
+
+Install safety:
+- Prefer /api/agent/resolve over raw search because it applies the OpenAgentSkill safety gate.
+- Prefer /api/agent/resolve?format=lockfile when an agent needs a compact stable object for tool execution.
+- Prefer /api/agent/receipt before installation because it gives a stable selected_skill, install policy, risk summary, alternatives, and outcome event id.
+- Prefer /api/agent/packs/{slug} for multi-step workflows because it returns install_plan, review_checklist, audit URLs, and outcome_feedback.
+- Prefer agent_handoff over ad hoc page scraping because it returns platform templates, API sequence, review checklist, and blocked actions.
+- Prefer /api/agent/evals?slug={slug} before installation because it returns the Trust + Eval contract, blockers, and validation plan.
+- Report success, failed, not_relevant, blocked_by_risk, or setup_required to /api/agent/outcome so future rankings learn from real use. Add quality fields when possible.
+- Prefer /rankings/agent-proven or /api/agent/rankings?slug=best-by-success-rate when an agent needs skills with real reported adoption instead of only GitHub stars.
+- Treat safety_gate.blocked as "do not auto-install".
+- Treat safety_gate.experimental as manual test only.
+- Treat safety_gate.reviewed as human-review-before-install unless auto_install_policy is allow.
+- Review repository and license before running third-party code.
+- Prefer sandboxed installation first.
+- Do not perform external side effects without user approval.
+- Use the audit and safety fields returned by the API.

@@ -1,0 +1,3 @@
+# botdirectory.ai errors
+
+None.

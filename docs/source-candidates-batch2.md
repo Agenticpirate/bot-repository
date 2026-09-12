@@ -15,20 +15,20 @@ Second ingest list. Priority A is archived on `main`. B–D are attempted in fol
 | [mergisi/awesome-grokbot](https://github.com/mergisi/awesome-grokbot) | shallow clone, `.git` stripped | 183 catalog rows. |
 | [ZeroPointRepo/GrokBotDev](https://github.com/ZeroPointRepo/GrokBotDev) | shallow clone, `.git` stripped | 918 catalog rows. |
 
-## Priority B — APIs / registries
+## Priority B — APIs / registries (archived)
 
-| Source | Planned entry | Status |
+| Source | What was saved | Notes |
 | --- | --- | --- |
-| botdirectory.ai | `/api/bots.json`, OpenAPI, llms.txt, RSS | To archive |
-| botmarket.bot | `/v1/agents`, `/v1/skills` | To archive |
-| a2a-registry.org | discover / agent cards / public stats | To archive |
-| openagentskill.com | agent-skills-directory + `/api/agent/*` | To archive |
-| skillselion.com | OpenAPI/MCP/.well-known (homepage 403) | To archive |
-| claude-plugins.dev | `api.claude-plugins.dev/api/search` | To archive |
-| agentskill.sh | `/api/skills` + listings | To archive |
-| github.com/agent-packs/registry | shallow clone | To archive |
-| clawhub.ai | llms + public catalog | To archive |
-| agensi.io/grok-bot-marketplace | public pages | To archive |
+| botdirectory.ai | bots.json (645), OpenAPI, RSS, updates | Complete public feed. |
+| botmarket.bot | 200 agents, 500 skills | `offset` is ignored by the API. |
+| a2a-registry.org | /browse (20 agents) + agent-cards | `POST /a2a/discover` 404. |
+| openagentskill.com | ranked skills/packs/tasks/stats | No 30k dump. |
+| skillselion.com | 4000 listings (80-page cap) | Homepage/OpenAPI 403. |
+| claude-plugins.dev | 51845 plugins in `plugins.jsonl` | One catalog site row. |
+| agentskill.sh | 2000 listed skills | Count endpoint 275388. |
+| agent-packs/registry | shallow clone | |
+| clawhub.ai | 1538 skills + 1000 packages (page caps) | Cursor pagination residual. |
+| agensi.io | grok marketplace HTML + 5722 skill URLs | Per-skill HTML not fetched. |
 
 ## Priority C — Cursor/Claude/GitHub packs
 

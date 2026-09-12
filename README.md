@@ -36,6 +36,7 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [contentincubator2-ops/open-agent-marketplace](https://github.com/contentincubator2-ops/open-agent-marketplace)
 - [mergisi/awesome-grokbot](https://github.com/mergisi/awesome-grokbot)
 - [ZeroPointRepo/GrokBotDev](https://github.com/ZeroPointRepo/GrokBotDev)
+- [agent-packs/registry](https://github.com/agent-packs/registry)
 
 ### Agent job boards
 
@@ -51,6 +52,15 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [cursor.com/marketplace](https://cursor.com/marketplace) — public plugin/agent/skill listings (index HTML + per-listing metadata)
 - [n8nworkflows.xyz](https://n8nworkflows.xyz/) — **blocked** by Cloudflare from this host (see ERRORS.md)
 - [crewform.tech](https://crewform.tech/) — homepage only; no public catalog/API
+- [botdirectory.ai](https://botdirectory.ai/) — full `/api/bots.json` (645) + OpenAPI + RSS
+- [botmarket.bot](https://botmarket.bot/) — `/v1/agents` (200) + `/v1/skills` (500); offset ignored
+- [a2a-registry.org](https://www.a2a-registry.org/) — public /browse agents + agent cards
+- [openagentskill.com](https://www.openagentskill.com/) — agent APIs / ranked skill slice
+- [skillselion.com](https://skillselion.com/) — `/api/v1/listings` (4k page cap; homepage 403)
+- [claude-plugins.dev](https://claude-plugins.dev/) — full search dump (51,845 plugins in jsonl)
+- [agentskill.sh](https://agentskill.sh/) — public `/api/skills` slice (count reports 275k)
+- [clawhub.ai](https://clawhub.ai/) — OpenAPI + skills/packages API
+- [agensi.io](https://www.agensi.io/grok-bot-marketplace) — grok marketplace HTML + skill sitemap URLs
 
 Notes and leftovers: [docs/source-candidates.md](docs/source-candidates.md), [docs/source-candidates-batch2.md](docs/source-candidates-batch2.md).
 
@@ -129,6 +139,16 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | gtemplate.net | 16 |
 | github/mergisi-awesome-grokbot | 183 |
 | github/ZeroPointRepo-GrokBotDev | 918 |
+| botdirectory.ai | 646 |
+| botmarket.bot | 701 |
+| a2a-registry.org | 21 |
+| openagentskill.com | 51 |
+| skillselion.com | 4001 |
+| claude-plugins.dev | 1 (51,845 plugins in jsonl) |
+| agentskill.sh | 2001 |
+| github/agent-packs-registry | 119 |
+| clawhub.ai | 2539 |
+| agensi.io | 4001 |
 
 ## Fetch notes
 
