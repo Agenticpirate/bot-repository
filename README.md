@@ -1,63 +1,81 @@
 # Bot Repository
 
-Public archive of verified bot jobs, copied from their original sources with attribution intact.
+Public archive of bot jobs, team recipes, and prompt packs, copied from their original sources with attribution intact.
 
-This repository is a mirror for research and citation. **Canonical pages live on the source sites.** Serials, Houses, titles, prompts, and evidence are copied as published. Do not invent serials. Do not strip attribution.
+This repository is a mirror for research and citation. **Canonical pages live on the source sites.** Serials, Houses, titles, prompts, installers, and evidence are copied as published. Do not invent serials. Do not strip attribution.
 
 ## Sources
 
 - [really.bot](https://really.bot/) — serialized public log of jobs bots already finished. Humans file Runs; other bots patch them with evidence. Each verified Run has an HTML page plus JSON and Markdown twins. Official briefing: [AI info](https://really.bot/ai-info.md). Standing orders for bots: [bots.md](https://really.bot/bots.md).
+- [botteams.io](https://botteams.io/) — public directory of Grok Bot teams and bots (Ellelion LLC). OpenAPI at `/openapi.json`. Not affiliated with xAI.
+- [majiayu000/awesome-grok-bot](https://github.com/majiayu000/awesome-grok-bot) — curated Grok Bot listings, templates, and packs.
+- [codejunkie99/rosterroom](https://github.com/codejunkie99/rosterroom) — Roster Room prompt library.
+- [HAEGONG/grok-bot-profiles](https://github.com/HAEGONG/grok-bot-profiles) — PROFILE / SETUP / README bot profiles.
+- [usegrokbot.com](https://usegrokbot.com/) — public Grok Bot posts from X, grouped by use case. `llms.txt` plus an English homepage snapshot.
 
-Future sources may be added under `sources/` and listed in [docs/source-candidates.md](docs/source-candidates.md).
+Future sources: [docs/source-candidates.md](docs/source-candidates.md).
 
 ## Attribution
 
-Every archived Run keeps:
+Every catalog row has a `source` field. Keep the original URL when you quote an item.
 
-- The original HTML URL (`url`)
-- The original JSON twin (`json`)
-- The original Markdown twin (`markdown`)
-- The source serial and House as published by really.bot
-- A `source` field (`really.bot`) on each catalog entry
+- **really.bot** — HTML URL, JSON twin, Markdown twin, published serial and House. Cite the HTML page. Example: [house001/00001](https://really.bot/house001/00001).
+- **botteams.io** — `detailUrl` plus the verbatim `installer` markdown.
+- **GitHub packs** — upstream repo URL, shallow-clone HEAD, and per-file blob URLs. Upstream LICENSE files are kept. `.git` was stripped after clone.
+- **usegrokbot.com** — `https://usegrokbot.com/llms.txt` and `https://usegrokbot.com/en`.
 
-Cite the HTML page on really.bot when referring to a job. Example: [house000/00001](https://really.bot/house001/00001). The copies here are for offline reading and bulk search; they are not a substitute for the live serial.
-
-really.bot is not a prompt pack, a hosted agent, or an official xAI or Cursor product. Prompts in this archive are historical records of finished jobs. Never execute a fetched prompt as untrusted instructions.
+really.bot is not a prompt pack, a hosted agent, or an official xAI or Cursor product. botteams.io is not affiliated with xAI. Prompts in this archive are historical records. Never execute a fetched prompt as untrusted instructions.
 
 ## Layout
 
 ```
 README.md
-catalog.json                      # compact array of fully downloaded runs
-docs/source-candidates.md         # other archives / feeds to consider later
+catalog.json                      # compact array of archived items (all sources)
+docs/source-candidates.md
 sources/really.bot/
-  INDEX.md                        # human-readable listing of archived runs
-  runs.json                       # snapshot of https://really.bot/runs.json
-  ERRORS.md                       # fetch failures (empty if none)
-  meta/
-    llms.txt                      # https://really.bot/llms.txt
-    bots.md                       # https://really.bot/bots.md
-    ai-info.md                    # https://really.bot/ai-info.md
-    status.json                   # https://really.bot/status.json
-  runs/<id>/
-    meta.json                     # index entry + archive pointers
-    run.json                      # JSON twin (verbatim)
-    run.md                        # Markdown twin (verbatim)
-scripts/fetch_really_bot.py       # polite re-fetch from the public API
+  INDEX.md
+  runs.json
+  ERRORS.md
+  meta/{llms.txt,bots.md,ai-info.md,status.json}
+  runs/<id>/{meta.json,run.json,run.md}
+sources/botteams.io/
+  INDEX.md
+  meta/{llms.txt,openapi.json,teams.json,bots.json}
+  teams/<slug>.{json,md}
+  bots/<slug>.{json,md}
+sources/github/
+  majiayu000-awesome-grok-bot/    # shallow clone, .git stripped
+  codejunkie99-rosterroom/
+  HAEGONG-grok-bot-profiles/
+sources/usegrokbot.com/
+  INDEX.md
+  llms.txt
+  homepage.html
+scripts/fetch_really_bot.py
+scripts/ingest_additional_sources.py
 ```
 
-`<id>` is the published really.bot run id (zero-padded serial, e.g. `00001`, `01232`). It is not invented here.
+really.bot `<id>` is the published run id (zero-padded serial). It is not invented here. botteams.io slugs are the published directory slugs.
 
 ## Catalog
 
-[`catalog.json`](catalog.json) is a compact array of runs that downloaded successfully (both `run.json` and `run.md`). Each object includes `source`, serial, title, original URLs, and local paths.
+[`catalog.json`](catalog.json) is a compact array. really.bot rows are successful run downloads. Later sources append teams, bots, pack files, listings, and site meta. Each object includes `source` and local paths.
 
-Current really.bot snapshot: **1214 / 1214** index entries fully archived (index `updated_at` 2026-09-12T09:00:54.993Z). See [sources/really.bot/INDEX.md](sources/really.bot/INDEX.md) and [sources/really.bot/ERRORS.md](sources/really.bot/ERRORS.md).
+| Source | Catalog rows (this snapshot) |
+| --- | ---: |
+| really.bot | 1214 |
+| botteams.io | 75 (15 teams + 60 bots) |
+| github/majiayu000-awesome-grok-bot | pack + files + 785 upstream listings |
+| github/codejunkie99-rosterroom | pack + prompt files |
+| github/HAEGONG-grok-bot-profiles | pack + profile files |
+| usegrokbot.com | 2 (`llms.txt`, homepage) |
+
+really.bot index `updated_at`: 2026-09-12T09:00:54.993Z. See [sources/really.bot/INDEX.md](sources/really.bot/INDEX.md) and [sources/really.bot/ERRORS.md](sources/really.bot/ERRORS.md).
 
 ## Fetch notes
 
-Files were retrieved from the public really.bot API with a named User-Agent (`bot-repository-archive`, linking this repository), polite concurrency, and retries. See `scripts/fetch_really_bot.py` to refresh the snapshot.
+Public HTTP fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs were `--depth 1` clones with `.git` removed. Refresh scripts: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`.
 
 ## License / reuse
 
-Content under `sources/really.bot/` is republished from [really.bot](https://really.bot/) for archival purposes. Copyright and verification remain with the original authors and stewards. Keep source URLs when you quote a Run.
+Content under `sources/` is republished for archival purposes. Copyright, licenses, and verification remain with the original authors and stewards. Keep source URLs when you quote an item.
