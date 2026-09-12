@@ -1,20 +1,20 @@
 # skills.sh errors
 
-Updated: 2026-09-12T20:52:08Z
+Updated: 2026-09-12T20:52:46Z
 
 ## Rate limit
 
 Live `GET /api/download/{owner}/{repo}/{slug}` returns HTTP 429 `{"error":"rate_limit_exceeded","message":"Rate limit exceeded. Maximum 60 requests per hour."}` with `Retry-After: 60`.
 
-Target is all 19998 sitemap ids. 18270 have full `files/` + hash. 1681 remain.
+Target is all 19998 sitemap ids. 18319 have full `files/` + hash. 1631 remain.
 Prefer `scripts/fill_skills_sh_from_github.py` for bulk fill. This API client is only for leftovers and stays under the 60/hour cap.
 
 ## Permanent misses
 
-47 ids returned HTTP 404 from the download API; page HTML was saved once.
+48 ids returned HTTP 404 from the download API; page HTML was saved once.
 
 Recent failures / fallbacks:
 
-- `redwoodjs/local-ci/agent-ci` html_fallback: HTTP 404
+- `flutter/agent-plugins/flutter-accessibility-audit` html_fallback: HTTP 404
 
 Resume: `python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`
