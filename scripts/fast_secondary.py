@@ -119,16 +119,34 @@ def download_souls() -> dict:
     return {"ok": ok, "fail": fail, "on_disk": n}
 
 
-def guess_paths(route: str) -> list[str]:
+def guess_paths(route: str, repo: str = "") -> list[str]:
     slug = route.strip("/")
     out = [slug]
+    if "-skills-" in slug:
+        out.append(slug.replace("-skills-", "/skills/", 1))
+    m = re.match(r"docs-([a-z]{2})-([a-z]{2})-skills-(.+)", slug)
+    if m:
+        out.append(f"docs/{m.group(1)}-{m.group(2)}/skills/{m.group(3)}")
+        out.append(f"docs/{m.group(1)}/{m.group(2)}/skills/{m.group(3)}")
     if slug.startswith("skills-"):
         out.append("skills/" + slug[7:])
+        if repo == "skills":
+            out.append(slug[7:])
     if slug.startswith("optional-skills-"):
         out.append("optional-skills/" + slug[16:])
     if slug.startswith("claude-skills-"):
         out.append(slug[14:])
-    return list(dict.fromkeys(out))[:3]
+        out.append("skills/" + slug[14:])
+        out.append("claude-skills/" + slug[14:])
+    if slug.startswith("agents-skills-"):
+        out.append("agents/skills/" + slug[14:])
+    if slug.startswith("openclaw-skills-"):
+        out.append("skills/" + slug[16:])
+        out.append("openclaw-skills/" + slug[16:])
+    if slug.startswith("plugins-") and "-skills-" in slug:
+        left, right = slug.split("-skills-", 1)
+        out.append(left.replace("-", "/", 1) + "/skills/" + right)
+    return list(dict.fromkeys(out))[:8]
 
 
 def download_skillsmp(limit: int = 2500) -> dict:
@@ -155,7 +173,7 @@ def download_skillsmp(limit: int = 2500) -> dict:
 
     def one(job) -> bool:
         owner, repo, route, dest, loc = job
-        for path in guess_paths(route):
+        for path in guess_paths(route, repo):
             url = f"https://raw.githubusercontent.com/{owner}/{repo}/HEAD/{path}/SKILL.md"
             if save_if_ok(url, dest, 40):
                 write_json(dest.parent / "meta.json", {"github_raw": url, "skillmp": loc, "fetched_at": NOW})
