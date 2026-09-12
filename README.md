@@ -39,6 +39,9 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [agent-packs/registry](https://github.com/agent-packs/registry)
 - [anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official)
 - [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community)
+- [anthropics/knowledge-work-plugins](https://github.com/anthropics/knowledge-work-plugins) — official Cowork + Code role plugins
+- [anthropics/claude-for-legal](https://github.com/anthropics/claude-for-legal)
+- [alexclowe/awesome-claude-cowork-plugins](https://github.com/alexclowe/awesome-claude-cowork-plugins)
 - [khendzel/awesome-agent-skills](https://github.com/khendzel/awesome-agent-skills)
 - [mergisi/awesome-openclaw-agents](https://github.com/mergisi/awesome-openclaw-agents)
 - [michielhdoteth/awesome-ai-agent-tools](https://github.com/michielhdoteth/awesome-ai-agent-tools)
@@ -69,6 +72,8 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [agentskill.sh](https://agentskill.sh/) — public `/api/skills` slice (count reports 275k)
 - [clawhub.ai](https://clawhub.ai/) — OpenAPI + skills/packages API
 - [agensi.io](https://www.agensi.io/grok-bot-marketplace) — grok marketplace HTML + skill sitemap URLs
+- [claude.com / code.claude.com docs](https://code.claude.com/docs/en/plugins-reference) — official plugin + marketplace docs (HTML/MD)
+- [claude.com/product/cowork](https://claude.com/product/cowork) — Cowork product, plugin guide, blog, /plugins directory
 - [cursor.directory](https://cursor.directory/) — **429** this host
 - [marketplace.relevanceai.com](https://marketplace.relevanceai.com/) — sitemap URL list
 - [sigrix.io/marketplace/crews](https://sigrix.io/marketplace/crews) — listing HTML
@@ -77,7 +82,7 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [make.com](https://www.make.com/api/v2/templates/public) — API 401 (login)
 - Activepieces `/v1/templates` — HTML app shell, not JSON
 
-Notes and leftovers: [docs/source-candidates.md](docs/source-candidates.md), [docs/source-candidates-batch2.md](docs/source-candidates-batch2.md).
+Notes and leftovers: [docs/source-candidates.md](docs/source-candidates.md), [docs/source-candidates-batch2.md](docs/source-candidates-batch2.md), [docs/claude-ecosystem-sources.md](docs/claude-ecosystem-sources.md).
 
 ## Attribution
 
@@ -118,6 +123,8 @@ sources/a2a-registry.org/
 sources/openagentskill.com/
 sources/skillselion.com/
 sources/claude-plugins.dev/
+sources/claude.com-docs/
+sources/claude.com-cowork/
 sources/agentskill.sh/
 sources/clawhub.ai/
 sources/agensi.io/
@@ -175,6 +182,11 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | agensi.io | 4001 |
 | github/anthropics-claude-plugins-official | 309 |
 | github/anthropics-claude-plugins-community | 90 |
+| github/anthropics-knowledge-work-plugins | 1084 |
+| github/anthropics-claude-for-legal | 294 |
+| github/alexclowe-awesome-claude-cowork-plugins | 409 |
+| claude.com-docs | 10 |
+| claude.com-cowork | 6 |
 | github/khendzel-awesome-agent-skills | 3 |
 | github/mergisi-awesome-openclaw-agents | 402 |
 | github/michielhdoteth-awesome-ai-agent-tools | 133 |
@@ -196,7 +208,7 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 
 ## Fetch notes
 
-Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`, `scripts/download_skills_sh.py`, `scripts/ingest_priority_a.py`, `scripts/ingest_priority_b.py`, `scripts/ingest_priority_cd.py`.
+Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`, `scripts/download_skills_sh.py`, `scripts/ingest_priority_a.py`, `scripts/ingest_priority_b.py`, `scripts/ingest_priority_cd.py`, `scripts/ingest_claude_ecosystem.py`.
 
 ## Caps / failures
 

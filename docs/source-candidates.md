@@ -39,6 +39,11 @@ Do not invent serials or scrape private data.
 | [gtemplate.net](https://gtemplate.net/) | sitemap | All 21 URLs. |
 | [mergisi/awesome-grokbot](https://github.com/mergisi/awesome-grokbot) | GitHub shallow clone | `.git` stripped. |
 | [ZeroPointRepo/GrokBotDev](https://github.com/ZeroPointRepo/GrokBotDev) | GitHub shallow clone | `.git` stripped. |
+| [anthropics/knowledge-work-plugins](https://github.com/anthropics/knowledge-work-plugins) | GitHub shallow clone | Official Cowork + Code role plugins. |
+| [anthropics/claude-for-legal](https://github.com/anthropics/claude-for-legal) | GitHub shallow clone | Official legal plugins. |
+| [alexclowe/awesome-claude-cowork-plugins](https://github.com/alexclowe/awesome-claude-cowork-plugins) | GitHub shallow clone | Profession-specific Cowork plugins. |
+| [code.claude.com plugin docs](https://code.claude.com/docs/en/plugins-reference) | HTML + MD snapshots | Official marketplaces listed in plugin-marketplaces.md. |
+| [claude.com/product/cowork](https://claude.com/product/cowork) | HTML snapshots | Product, overview, plugins guide, blog, /plugins. |
 
 ## Possible later
 

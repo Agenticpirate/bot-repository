@@ -37,6 +37,10 @@ Second ingest list. Priority A is archived on `main`. B–D are attempted in fol
 | cursor.directory | HTTP 429; challenge HTML saved. |
 | anthropics/claude-plugins-official | Shallow clone, 309 catalog rows. |
 | anthropics/claude-plugins-community | Shallow clone, 90 rows. |
+| anthropics/knowledge-work-plugins | Official Cowork + Code role plugins (1084 catalog rows). |
+| anthropics/claude-for-legal | Official legal plugins (294 rows). |
+| alexclowe/awesome-claude-cowork-plugins | Cowork profession plugins (409 rows). |
+| code.claude.com + claude.com/cowork | Official docs/product HTML+MD snapshots. |
 | khendzel/awesome-agent-skills | Shallow clone, 3 rows. |
 | mergisi/awesome-openclaw-agents | Shallow clone, 402 rows. |
 | michielhdoteth/awesome-ai-agent-tools | Shallow clone, 133 rows. |
