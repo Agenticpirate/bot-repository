@@ -2,6 +2,10 @@
 """Download full skill contents from skills.sh for every sitemap URL.
 
 Resume-friendly: skips ids that already have files/ + meta.json hash.
+The official download API is capped at 60 requests/hour (verified 2026-09-12).
+This client stays under that budget, honors Retry-After, and does not HTML-fallback
+on 429 (those stay pending). Permanent HTTP 404s save page HTML once.
+
 Does not delete existing catalog rows. Use --max-new for batch commits.
 """
 
@@ -31,6 +35,8 @@ CATALOG = REPO / "catalog.json"
 UA = "bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)"
 TIMEOUT = 45
 MAX_FILE_BYTES = 20 * 1024 * 1024
+API_HOURLY_CAP = 60
+DEFAULT_HOURLY_BUDGET = 50
 
 
 def utc_now() -> str:
@@ -81,76 +87,32 @@ def safe_relpath(rel: str) -> Path | None:
     return Path(*parts)
 
 
-def already_downloaded(dest: Path) -> bool:
+def read_meta(dest: Path) -> dict | None:
     meta_path = dest / "meta.json"
-    files_dir = dest / "files"
-    if not meta_path.is_file() or not files_dir.is_dir():
-        return False
+    if not meta_path.is_file():
+        return None
     try:
-        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        return json.loads(meta_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
+        return None
+
+
+def already_downloaded(dest: Path) -> bool:
+    meta = read_meta(dest)
+    files_dir = dest / "files"
+    if not meta or not files_dir.is_dir():
         return False
     if not meta.get("download_ok") or not meta.get("hash"):
         return False
-    written = list(files_dir.rglob("*"))
-    return any(p.is_file() for p in written)
+    return any(p.is_file() for p in files_dir.rglob("*"))
 
 
-class RateGate:
-    def __init__(self) -> None:
-        self.lock = threading.Lock()
-        self.cooldown_until = 0.0
-
-    def wait(self) -> None:
-        while True:
-            with self.lock:
-                wait = self.cooldown_until - time.time()
-            if wait <= 0:
-                return
-            time.sleep(min(wait, 1.5))
-
-    def punish(self, seconds: float) -> None:
-        with self.lock:
-            self.cooldown_until = max(self.cooldown_until, time.time() + seconds)
-
-
-GATE = RateGate()
-
-
-def http_get(url: str, accept: str = "application/json") -> tuple[int, bytes, dict]:
-    headers = {
-        "User-Agent": UA,
-        "Accept": accept,
-        "X-Archive-Client": UA,
-    }
-    last_status = 0
-    last_err: Exception | None = None
-    for attempt in range(1, 8):
-        GATE.wait()
-        req = urllib.request.Request(url, headers=headers)
-        try:
-            with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
-                return resp.status, resp.read(), dict(resp.headers)
-        except urllib.error.HTTPError as exc:
-            last_status = exc.code
-            body = exc.read() if exc.fp else b""
-            if exc.code in (429, 500, 502, 503, 504):
-                retry_after = exc.headers.get("Retry-After") if exc.headers else None
-                try:
-                    extra = float(retry_after) if retry_after else 0.0
-                except ValueError:
-                    extra = 0.0
-                backoff = extra if extra > 0 else min(90.0, 1.5 * (2 ** (attempt - 1)))
-                GATE.punish(backoff)
-                last_err = exc
-                continue
-            return exc.code, body, dict(exc.headers or {})
-        except Exception as exc:  # noqa: BLE001
-            last_err = exc
-            GATE.punish(min(30.0, 1.2 * (2 ** (attempt - 1))))
-    if last_err:
-        raise last_err
-    return last_status or 0, b"", {}
+def is_permanent_miss(dest: Path) -> bool:
+    meta = read_meta(dest)
+    if not meta:
+        return False
+    err = str(meta.get("error") or "")
+    return (not meta.get("download_ok")) and err.startswith("HTTP 404")
 
 
 def write_skill_files(dest: Path, files: list[dict]) -> list[str]:
@@ -181,27 +143,98 @@ def write_skill_files(dest: Path, files: list[dict]) -> list[str]:
 
 
 def save_html_fallback(dest: Path, page_url: str) -> bool:
+    dest.mkdir(parents=True, exist_ok=True)
+    headers = {
+        "User-Agent": UA,
+        "Accept": "text/html,application/xhtml+xml",
+        "X-Archive-Client": UA,
+    }
+    req = urllib.request.Request(page_url, headers=headers)
     try:
-        status, body, _ = http_get(page_url, accept="text/html,application/xhtml+xml")
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+            if resp.status != 200:
+                return False
+            body = resp.read()
     except Exception:
         return False
-    if status != 200 or not body:
+    if not body:
         return False
     write_bytes(dest / "page.html", body)
     return True
 
 
-def download_one(url: str) -> dict:
+class HourlyBudget:
+    """Stay under the skills.sh download API cap (60/hour)."""
+
+    def __init__(self, budget: int) -> None:
+        self.budget = max(1, min(budget, API_HOURLY_CAP - 1))
+        self.lock = threading.Lock()
+        self.exhausted = False
+        self.retry_after = 0.0
+
+    def mark_rate_limited(self, retry_after: float) -> None:
+        with self.lock:
+            self.exhausted = True
+            self.retry_after = max(self.retry_after, time.time() + max(1.0, retry_after))
+
+    def allow(self) -> bool:
+        with self.lock:
+            return not self.exhausted
+
+
+def http_get_download(url: str, budget: HourlyBudget) -> tuple[int, bytes, dict]:
+    headers = {
+        "User-Agent": UA,
+        "Accept": "application/json",
+        "X-Archive-Client": UA,
+    }
+    last_err: Exception | None = None
+    for attempt in range(1, 5):
+        if not budget.allow():
+            return 429, b'{"error":"rate_limit_exceeded"}', {}
+        req = urllib.request.Request(url, headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+                return resp.status, resp.read(), dict(resp.headers)
+        except urllib.error.HTTPError as exc:
+            body = exc.read() if exc.fp else b""
+            hdrs = dict(exc.headers or {})
+            if exc.code == 429:
+                retry_after = hdrs.get("Retry-After") or hdrs.get("retry-after")
+                try:
+                    extra = float(retry_after) if retry_after else 60.0
+                except ValueError:
+                    extra = 60.0
+                budget.mark_rate_limited(extra)
+                return 429, body, hdrs
+            if exc.code in (500, 502, 503, 504):
+                last_err = exc
+                time.sleep(min(30.0, 1.5 * (2 ** (attempt - 1))))
+                continue
+            return exc.code, body, hdrs
+        except Exception as exc:  # noqa: BLE001
+            last_err = exc
+            time.sleep(min(15.0, 1.2 * (2 ** (attempt - 1))))
+    if last_err:
+        raise last_err
+    return 0, b"", {}
+
+
+def download_one(url: str, budget: HourlyBudget) -> dict:
     skill_id = parse_skill_id(url)
     dest = skill_dir(skill_id)
-    dest.mkdir(parents=True, exist_ok=True)
     if already_downloaded(dest):
         return {"id": skill_id, "status": "skipped", "url": url}
+    if is_permanent_miss(dest):
+        return {"id": skill_id, "status": "skipped_404", "url": url}
+    if not budget.allow():
+        return {"id": skill_id, "status": "deferred", "url": url}
 
+    dest.mkdir(parents=True, exist_ok=True)
     encoded = "/".join(urllib.parse.quote(seg, safe="") for seg in skill_id.split("/"))
     api = f"https://skills.sh/api/download/{encoded}"
     try:
-        status, body, _ = http_get(api)
+        status, body, _ = http_get_download(api, budget)
     except Exception as exc:  # noqa: BLE001
         html_ok = save_html_fallback(dest, url)
         write_json(
@@ -226,15 +259,21 @@ def download_one(url: str) -> dict:
             "error": str(exc),
         }
 
+    if status == 429:
+        return {
+            "id": skill_id,
+            "status": "rate_limited",
+            "url": url,
+            "error": "HTTP 429 rate_limit_exceeded (60/hour)",
+        }
+
     payload = None
+    err = None
     if status == 200:
         try:
             payload = json.loads(body.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            payload = None
             err = f"invalid json: {exc}"
-        else:
-            err = None
     else:
         err = f"HTTP {status}"
 
@@ -269,6 +308,7 @@ def download_one(url: str) -> dict:
                 "file_count": len(written),
             }
 
+    # Permanent / content errors only — not rate limits.
     html_ok = save_html_fallback(dest, url)
     write_json(
         dest / "meta.json",
@@ -298,21 +338,27 @@ def load_work_list() -> list[str]:
     urls = list(dict.fromkeys(data.get("urls") or []))
     pending: list[str] = []
     for url in urls:
-        skill_id = parse_skill_id(url)
-        if not already_downloaded(skill_dir(skill_id)):
-            pending.append(url)
+        dest = skill_dir(parse_skill_id(url))
+        if already_downloaded(dest) or is_permanent_miss(dest):
+            continue
+        pending.append(url)
     return pending
 
 
 def count_downloaded() -> int:
     if not SKILLS_DIR.exists():
         return 0
-    n = 0
-    for meta in SKILLS_DIR.rglob("meta.json"):
-        dest = meta.parent
-        if already_downloaded(dest):
-            n += 1
-    return n
+    return sum(
+        1
+        for meta in SKILLS_DIR.rglob("meta.json")
+        if already_downloaded(meta.parent)
+    )
+
+
+def count_permanent_404() -> int:
+    if not SKILLS_DIR.exists():
+        return 0
+    return sum(1 for meta in SKILLS_DIR.rglob("meta.json") if is_permanent_miss(meta.parent))
 
 
 def collect_content_index() -> dict[str, dict]:
@@ -328,7 +374,7 @@ def collect_content_index() -> dict[str, dict]:
         if not skill_id:
             continue
         index[skill_id] = {
-            "has_content": bool(meta.get("download_ok") or meta.get("html_fallback")),
+            "has_content": bool(meta.get("download_ok")),
             "file_count": int(meta.get("file_count") or 0),
             "hash": meta.get("hash"),
             "html_fallback": bool(meta.get("html_fallback")),
@@ -347,7 +393,7 @@ def update_catalog(content: dict[str, dict]) -> int:
         if not info:
             continue
         before = (row.get("has_content"), row.get("file_count"), row.get("hash"))
-        row["has_content"] = info["has_content"]
+        row["has_content"] = bool(info.get("download_ok"))
         row["file_count"] = info["file_count"]
         if info.get("hash"):
             row["hash"] = info["hash"]
@@ -361,29 +407,28 @@ def update_catalog(content: dict[str, dict]) -> int:
 def write_reports(stats: dict, failed: list[dict], remaining: int) -> None:
     write_json(STATS_PATH, stats)
     ok = stats.get("downloaded_ok", 0)
-    skipped = stats.get("skipped_existing", 0)
-    html_n = stats.get("html_fallback", 0)
+    html_n = stats.get("html_fallback_404", 0)
     fail_n = stats.get("failed", 0)
-    attempted = stats.get("attempted", 0)
     lines = [
         "# skills.sh",
         "",
         "Public agent-skills registry (Vercel). Full skill file contents via "
-        "`GET /api/download/{owner}/{repo}/{slug}`. Sitemaps and listing pages kept.",
+        "`GET /api/download/{owner}/{repo}/{slug}` (`{files, hash}`).",
         "",
         f"- Last updated: {stats.get('updated_at')}",
         f"- Skill URLs in sitemap: {stats.get('sitemap_urls')}",
         f"- Unique ids: {stats.get('unique_ids')}",
         f"- Downloaded OK (files/ + hash): {ok}",
-        f"- Already present / skipped: {skipped}",
-        f"- HTML fallback (API failed): {html_n}",
+        f"- Permanent API 404 + page HTML fallback: {html_n}",
         f"- Failed: {fail_n}",
-        f"- Remaining (no successful files/): {remaining}",
-        f"- Concurrency: {stats.get('concurrency')}",
-        f"- Cap: target all ~20k; resume-friendly; batch commits on main",
+        f"- Remaining (no files/ yet): {remaining}",
+        f"- API cap: {API_HOURLY_CAP} download requests/hour (live `Retry-After: 60`; "
+        f"client budget {stats.get('hourly_budget')}/hour)",
+        f"- Concurrency: {stats.get('concurrency')} (keep at 1 while capped)",
         "",
         "Each skill lives at `skills/<owner>/<repo>/<slug>/{meta.json,files/}`.",
-        "Per-skill HTML is only saved when the download API fails.",
+        "Per-skill HTML is saved only for permanent download misses (HTTP 404), not for 429s.",
+        "Re-run `scripts/download_skills_sh.py` to resume; already-hashed trees are skipped.",
     ]
     write_text(INDEX_PATH, "\n".join(lines))
 
@@ -391,33 +436,44 @@ def write_reports(stats: dict, failed: list[dict], remaining: int) -> None:
         "# skills.sh errors",
         "",
         f"Updated: {stats.get('updated_at')}",
-        f"Remaining without files/: {remaining}",
-        f"Failed this snapshot: {fail_n}",
-        f"HTML fallback: {html_n}",
+        "",
+        "## Rate limit",
+        "",
+        "Live `GET /api/download/{owner}/{repo}/{slug}` returns HTTP 429 "
+        '`{"error":"rate_limit_exceeded","message":"Rate limit exceeded. '
+        'Maximum 60 requests per hour."}` with `Retry-After: 60`.',
+        "",
+        f"Target is all {stats.get('sitemap_urls')} sitemap ids. "
+        f"{ok} have full `files/` + hash. {remaining} remain.",
+        "At 50 successful downloads/hour this is a multi-day resume job. "
+        "The downloader is resume-friendly and stays under the cap.",
+        "",
+        "## Permanent misses",
+        "",
+        f"{html_n} ids returned HTTP 404 from the download API; page HTML was saved once.",
         "",
     ]
-    if remaining == 0 and fail_n == 0 and html_n == 0:
-        err_lines.append("No outstanding download failures.")
-    else:
-        err_lines.append("Recent failures / fallbacks (capped):")
+    if failed:
+        err_lines.append("Recent failures / fallbacks:")
         err_lines.append("")
         for item in failed[:200]:
             err_lines.append(
                 f"- `{item.get('id')}` {item.get('status')}: {item.get('error') or ''}".rstrip()
             )
-        if remaining > 0:
-            err_lines.append("")
-            err_lines.append(
-                f"{remaining} skill ids still lack `files/` + hash. Re-run "
-                "`scripts/download_skills_sh.py` to resume."
-            )
+        err_lines.append("")
+    err_lines.append(
+        f"Resume: `python3 scripts/download_skills_sh.py --concurrency 1 "
+        f"--hourly-budget {stats.get('hourly_budget') or DEFAULT_HOURLY_BUDGET} "
+        f"--max-new 50 --update-catalog`"
+    )
     write_text(ERRORS_PATH, "\n".join(err_lines))
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--concurrency", type=int, default=24)
-    parser.add_argument("--max-new", type=int, default=0, help="0 = all pending")
+    parser.add_argument("--concurrency", type=int, default=1)
+    parser.add_argument("--max-new", type=int, default=0, help="0 = pending, still capped by hourly budget")
+    parser.add_argument("--hourly-budget", type=int, default=DEFAULT_HOURLY_BUDGET)
     parser.add_argument("--update-catalog", action="store_true")
     parser.add_argument("--reports-only", action="store_true")
     args = parser.parse_args()
@@ -425,42 +481,44 @@ def main() -> int:
     urls_doc = json.loads(URLS_PATH.read_text(encoding="utf-8"))
     all_urls = list(dict.fromkeys(urls_doc.get("urls") or []))
     pending = load_work_list()
+    budget = HourlyBudget(args.hourly_budget)
     if args.max_new and args.max_new > 0:
-        batch = pending[: args.max_new]
+        batch = pending[: min(args.max_new, budget.budget)]
     else:
-        batch = pending
+        batch = pending[: budget.budget]
 
     results: list[dict] = []
     if not args.reports_only and batch:
+        workers = 1 if args.concurrency < 1 else min(args.concurrency, 4)
         print(
             f"download batch {len(batch)} / pending {len(pending)} / total {len(all_urls)} "
-            f"concurrency={args.concurrency}",
+            f"concurrency={workers} hourly_budget={budget.budget}",
             flush=True,
         )
         done = 0
-        with ThreadPoolExecutor(max_workers=max(1, args.concurrency)) as pool:
-            futs = [pool.submit(download_one, url) for url in batch]
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futs = [pool.submit(download_one, url, budget) for url in batch]
             for fut in as_completed(futs):
                 item = fut.result()
                 results.append(item)
                 done += 1
-                if done % 50 == 0 or done == len(batch):
+                if done % 10 == 0 or done == len(batch) or item["status"] == "rate_limited":
                     ok = sum(1 for r in results if r["status"] == "ok")
-                    fail = sum(1 for r in results if r["status"] == "failed")
-                    html_n = sum(1 for r in results if r["status"] == "html_fallback")
-                    skip = sum(1 for r in results if r["status"] == "skipped")
                     print(
-                        f"  progress {done}/{len(batch)} ok={ok} skip={skip} "
-                        f"html={html_n} fail={fail}",
+                        f"  progress {done}/{len(batch)} ok={ok} last={item['status']} {item['id']}",
                         flush=True,
                     )
+                if item["status"] == "rate_limited":
+                    # stop waiting on the rest; they will return deferred
+                    break
 
     downloaded_ok = count_downloaded()
+    n404 = count_permanent_404()
     still_pending = load_work_list()
     ok_n = sum(1 for r in results if r["status"] == "ok")
-    skip_n = sum(1 for r in results if r["status"] == "skipped")
     html_n = sum(1 for r in results if r["status"] == "html_fallback")
     fail_n = sum(1 for r in results if r["status"] == "failed")
+    limited = sum(1 for r in results if r["status"] == "rate_limited")
     prev = {}
     if STATS_PATH.exists():
         try:
@@ -472,17 +530,27 @@ def main() -> int:
         "updated_at": utc_now(),
         "sitemap_urls": len(all_urls),
         "unique_ids": len(all_urls),
-        "attempted": int(prev.get("attempted") or 0) + len(results),
+        "attempted": int(prev.get("attempted") or 0) + len(
+            [r for r in results if r["status"] not in ("skipped", "skipped_404", "deferred")]
+        ),
         "downloaded_ok": downloaded_ok,
         "downloaded_ok_this_batch": ok_n,
-        "skipped_existing": skip_n,
-        "html_fallback": html_n,
+        "html_fallback_404": n404,
+        "html_fallback_this_batch": html_n,
         "failed": fail_n,
+        "rate_limited_this_batch": limited,
         "remaining": len(still_pending),
         "concurrency": args.concurrency,
+        "hourly_budget": budget.budget,
+        "api_hourly_cap": API_HOURLY_CAP,
         "batch_size": len(batch),
+        "retry_after_unix": budget.retry_after or None,
     }
-    failed_items = [r for r in results if r["status"] in ("failed", "html_fallback")]
+    failed_items = [
+        r
+        for r in results
+        if r["status"] in ("failed", "html_fallback", "rate_limited")
+    ]
     write_reports(stats, failed_items, len(still_pending))
 
     catalog_updated = 0
@@ -492,7 +560,8 @@ def main() -> int:
         write_json(STATS_PATH, stats)
 
     print(json.dumps({**stats, "catalog_rows_updated": catalog_updated}, indent=2), flush=True)
-    # 0 = nothing pending after this run; 2 = more work remains
+    if limited:
+        return 3
     return 0 if not still_pending else 2
 
 

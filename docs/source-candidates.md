@@ -26,7 +26,7 @@ Do not invent serials or scrape private data.
 | [agoraagents.xyz](https://agoraagents.xyz/) | `/v1/jobs/open` | Offset/limit exhausted (15 open jobs). |
 | [agenc.ag](https://agenc.ag/) | `/api/tasks` + OpenAPI | Paged until `total`. |
 | [a2awire.com](https://a2awire.com/) | `/api/v1/board`, `/api/v1/jobs` | RSS is an HTML shell, not a feed. |
-| [skills.sh](https://skills.sh/) | sitemap-skills-1/2 | ~20k skill URLs as metadata (no per-skill HTML). |
+| [skills.sh](https://skills.sh/) | sitemap-skills-1/2 + `/api/download/{owner}/{repo}/{slug}` | Full files when the 60/hour API cap allows; resume-friendly. |
 | [teamsmarket.com](https://www.teamsmarket.com/en/teams) | sitemap English `/en/teams/*` | zh-CN duplicates skipped. |
 | [cursor.com/marketplace](https://cursor.com/marketplace) | index HTML + listing metadata | Full listing HTML discarded (Next.js shells). |
 | [n8nworkflows.xyz](https://n8nworkflows.xyz/) | — | Cloudflare 403; 0 workflow files. |
@@ -38,7 +38,7 @@ Do not invent serials or scrape private data.
 | --- | --- | --- |
 | really.bot houses / feed | `/feed.json`, `/house/{handle}.json` | Identity pages, not extra serials. |
 | x.ai import URLs (`/bot/<id>`) | `addHref` on marketplace templates | Not extra slugs. |
-| skills.sh per-skill HTML | 20k sitemap URLs | Capped at metadata this pass. |
+| skills.sh remaining download API ids | ~19.5k after first burst | API cap 60/hour; re-run `scripts/download_skills_sh.py`. |
 | n8nworkflows.xyz definitions | `.well-known/api-catalog`, `/api/download/{id}` | Needs a host that can pass Cloudflare. |
 | AgentGigs authenticated jobs | `/api/agent/jobs/available` | Requires `X-API-Key` and matching specializations. |
 | Arahi / AI Hive | Mentioned as optional | Skipped; no clean public feed found this pass. |

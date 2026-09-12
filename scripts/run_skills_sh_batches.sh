@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Download skills.sh contents in batches and commit+push to main.
+# Resume skills.sh downloads under the 60/hour API cap; commit+push to main.
 set -u
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO"
-BATCH="${BATCH_SIZE:-800}"
-CONCURRENCY="${CONCURRENCY:-24}"
+BATCH="${BATCH_SIZE:-50}"
+CONCURRENCY="${CONCURRENCY:-1}"
+BUDGET="${HOURLY_BUDGET:-50}"
 export GIT_EDITOR=true
 
 commit_push() {
@@ -33,9 +34,10 @@ commit_push() {
 batch_num=0
 while true; do
   batch_num=$((batch_num + 1))
-  echo "===== batch ${batch_num} max-new=${BATCH} ====="
+  echo "===== batch ${batch_num} max-new=${BATCH} budget=${BUDGET} ====="
   set +e
-  python3 scripts/download_skills_sh.py --concurrency "$CONCURRENCY" --max-new "$BATCH"
+  python3 scripts/download_skills_sh.py --concurrency "$CONCURRENCY" \
+    --hourly-budget "$BUDGET" --max-new "$BATCH" --update-catalog
   code=$?
   set -e
   remaining="$(python3 -c "import json; print(json.load(open('sources/skills.sh/meta/download-stats.json')).get('remaining', '?'))")"
@@ -46,9 +48,16 @@ while true; do
     echo "downloads complete"
     break
   fi
+  if [[ "$code" -eq 3 ]]; then
+    echo "hit 60/hour cap; sleeping 3600s before next batch"
+    sleep 3600
+    continue
+  fi
   if [[ "$code" -ne 2 ]]; then
     echo "downloader exited ${code}" >&2
     break
   fi
+  echo "hourly budget used; sleeping 3600s"
+  sleep 3600
 done
 echo "batch loop finished"

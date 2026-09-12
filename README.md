@@ -39,7 +39,7 @@ This repository is a mirror for research and citation. **Canonical pages live on
 
 ### Skill / plugin catalogs
 
-- [skills.sh](https://skills.sh/) — sitemap skill listings (~20k URLs; metadata-only, not every HTML page)
+- [skills.sh](https://skills.sh/) — sitemap (~20k URLs) plus full `GET /api/download/{owner}/{repo}/{slug}` file contents where downloaded (API cap: 60/hour; resume via `scripts/download_skills_sh.py`)
 - [cursor.com/marketplace](https://cursor.com/marketplace) — public plugin/agent/skill listings (index HTML + per-listing metadata)
 - [n8nworkflows.xyz](https://n8nworkflows.xyz/) — **blocked** by Cloudflare from this host (see ERRORS.md)
 - [crewform.tech](https://crewform.tech/) — homepage only; no public catalog/API
@@ -110,11 +110,11 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 
 ## Fetch notes
 
-Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`.
+Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`, `scripts/download_skills_sh.py`.
 
 ## Caps / failures
 
-- **skills.sh** — ~20k sitemap skill URLs archived as metadata; individual skill HTML pages not fetched.
+- **skills.sh** — full skill files via the download API (`files/` + hash). The API allows 60 requests/hour; remaining ids stay pending and are resume-friendly. HTML is saved only for permanent 404s.
 - **cursor.com/marketplace** — index HTML plus per-listing metadata; full listing HTML discarded (duplicate ~1.4 MiB Next.js shells).
 - **n8nworkflows.xyz** — Cloudflare challenge; 0 workflow JSON files.
 - **agentgigs.io** — no unauthenticated job dump.
