@@ -12,7 +12,7 @@ This repository is a mirror for research and citation. **Canonical pages live on
 | **skills.sh downloaded** (files + hash) | **17,743** / 19,998 |
 | **skills.sh via GitHub clone** | **15,027** |
 | **skills.sh via API** | **2,716** |
-| **skills.sh remaining** | **2,255** |
+| **skills.sh remaining** | **2,225** |
 | skills.sh API cap | 60/hour (leftovers only; bulk fill is GitHub clone) |
 | SkillsMP SKILL.md (search GitHub raw + sitemap raw) | 1,957 + 1,695 |
 | souls.directory SOUL.md | 910 on disk (789 cataloged) |

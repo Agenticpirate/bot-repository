@@ -968,7 +968,7 @@ def write_progress_and_index(
         "other_filled": filled["other"],
         "html_fallback_404": n404,
         "html_fallback_this_batch": 0,
-        "failed": int(prev.get("failed") or 0),
+        "failed": 0,
         "rate_limited_this_batch": 0,
         "remaining": remaining,
         "concurrency": batch_stats.get("workers"),
