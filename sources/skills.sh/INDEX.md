@@ -2,15 +2,15 @@
 
 Public agent-skills registry (Vercel). Full skill file contents via `GET /api/download/{owner}/{repo}/{slug}` (`{files, hash}`), plus GitHub shallow-clone fill for the rest.
 
-- Last updated: 2026-09-12T20:52:46Z
+- Last updated: 2026-09-12T20:53:28Z
 - Skill URLs in sitemap: 19998
 - Unique ids: 19998
-- Downloaded OK (files/ + hash): 18319
+- Downloaded OK (files/ + hash): 18362
 - Filled via GitHub clone: 15032
-- Filled via skills.sh API: 3287
-- Permanent API 404 + page HTML fallback: 48
+- Filled via skills.sh API: 3330
+- Permanent API 404 + page HTML fallback: 55
 - Failed: 0
-- Remaining (no files/ yet): 1631
+- Remaining (no files/ yet): 1581
 - API cap: 60 download requests/hour (live `Retry-After: 60`; client budget 50/hour)
 - Concurrency: 1 (keep at 1 while capped)
 
