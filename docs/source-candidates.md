@@ -9,21 +9,39 @@ Do not invent serials or scrape private data.
 | Source | Index / entry | Notes |
 | --- | --- | --- |
 | [really.bot](https://really.bot/) | https://really.bot/runs.json | HTML + JSON + Markdown twins per verified serial. |
-| [botteams.io](https://botteams.io/) | https://botteams.io/api/teams, `/api/bots`, `/openapi.json`, `/llms.txt` | Teams and bots with installer markdown. Paginated bots API (all pages merged). |
-| [majiayu000/awesome-grok-bot](https://github.com/majiayu000/awesome-grok-bot) | GitHub (shallow clone) | Listings in upstream `catalog.json`, plus templates and packs. |
-| [codejunkie99/rosterroom](https://github.com/codejunkie99/rosterroom) | GitHub (shallow clone) | Prompt library under `prompts/`. |
-| [HAEGONG/grok-bot-profiles](https://github.com/HAEGONG/grok-bot-profiles) | GitHub (shallow clone) | PROFILE / SETUP / README bots. |
-| [usegrokbot.com](https://usegrokbot.com/) | https://usegrokbot.com/llms.txt | Site briefing + English homepage snapshot. |
-| [x.ai Grok Bot Marketplace](https://x.ai/bot/marketplace) | https://x.ai/sitemap.xml (`/bot/marketplace/bots/<slug>`) | Official templates. HTML only; `template` object extracted from Next.js RSC. |
+| [botteams.io](https://botteams.io/) | `/api/teams`, `/api/bots`, OpenAPI, llms.txt | Paginated bots API merged. |
+| [x.ai Grok Bot Marketplace](https://x.ai/bot/marketplace) | sitemap `/bot/marketplace/bots/<slug>` | HTML only; `template` extracted from Next.js RSC. |
+| [usegrokbot.com](https://usegrokbot.com/) | llms.txt + homepage | Site briefing. |
+| [majiayu000/awesome-grok-bot](https://github.com/majiayu000/awesome-grok-bot) | GitHub shallow clone | Already present before this pass. |
+| [codejunkie99/rosterroom](https://github.com/codejunkie99/rosterroom) | GitHub shallow clone | Already present. |
+| [HAEGONG/grok-bot-profiles](https://github.com/HAEGONG/grok-bot-profiles) | GitHub shallow clone | Already present. |
+| [RongleCat/awesome-grok-bot](https://github.com/RongleCat/awesome-grok-bot) | GitHub shallow clone | Catalog + event assets. |
+| [bcharleson/grokbot-for-gtm](https://github.com/bcharleson/grokbot-for-gtm) | GitHub shallow clone | GTM playbooks. |
+| [kunchenguid/grok-ship](https://github.com/kunchenguid/grok-ship) | GitHub shallow clone | Marked superseded upstream. |
+| [VoltAgent/awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills) | GitHub shallow clone | README list. |
+| [OneRose328/awesome-agentic-workflows](https://github.com/OneRose328/awesome-agentic-workflows) | GitHub shallow clone | Workflow templates. |
+| [contentincubator2-ops/open-agent-marketplace](https://github.com/contentincubator2-ops/open-agent-marketplace) | GitHub shallow clone | Agents + schemas. |
+| [openjobs.bot](https://openjobs.bot/) | `/api/jobs`, `/api/agents` | Open filter empty at snapshot; full job history saved. |
+| [agentgigs.io](https://www.agentgigs.io/) | llms.txt, OpenAPI, `/api/help` | Job browse requires agent API key. |
+| [agoraagents.xyz](https://agoraagents.xyz/) | `/v1/jobs/open` | Offset/limit exhausted (15 open jobs). |
+| [agenc.ag](https://agenc.ag/) | `/api/tasks` + OpenAPI | Paged until `total`. |
+| [a2awire.com](https://a2awire.com/) | `/api/v1/board`, `/api/v1/jobs` | RSS is an HTML shell, not a feed. |
+| [skills.sh](https://skills.sh/) | sitemap-skills-1/2 | ~20k skill URLs as metadata (no per-skill HTML). |
+| [teamsmarket.com](https://www.teamsmarket.com/en/teams) | sitemap English `/en/teams/*` | zh-CN duplicates skipped. |
+| [cursor.com/marketplace](https://cursor.com/marketplace) | index HTML + listing metadata | Full listing HTML discarded (Next.js shells). |
+| [n8nworkflows.xyz](https://n8nworkflows.xyz/) | — | Cloudflare 403; 0 workflow files. |
+| [crewform.tech](https://crewform.tech/) | homepage | No public catalog/API. |
 
 ## Possible later
 
 | Candidate | Why it might fit | Caveat |
 | --- | --- | --- |
-| really.bot houses / feed | https://really.bot/feed.json, `/house/{handle}.json` | Identity pages and the live feed, not extra serials. |
-| really.bot MCP / agent contract | https://really.bot/mcp, https://really.bot/agent | Consumer contract, not a run archive. |
-| x.ai Grok Bot share / import URLs (`/bot/<id>`) | `addHref` on marketplace templates | Import links are not extra marketplace slugs. Do not invent slugs. |
-| botteams.io per-team HTML | https://botteams.io/teams/<slug> | API is the source of truth; `/api/teams/<slug>` 404s by design. |
-| usegrokbot.com use-case pages | Listed in `llms.txt` | Locale-specific article pages, not a serial board. |
+| really.bot houses / feed | `/feed.json`, `/house/{handle}.json` | Identity pages, not extra serials. |
+| x.ai import URLs (`/bot/<id>`) | `addHref` on marketplace templates | Not extra slugs. |
+| skills.sh per-skill HTML | 20k sitemap URLs | Capped at metadata this pass. |
+| n8nworkflows.xyz definitions | `.well-known/api-catalog`, `/api/download/{id}` | Needs a host that can pass Cloudflare. |
+| AgentGigs authenticated jobs | `/api/agent/jobs/available` | Requires `X-API-Key` and matching specializations. |
+| Arahi / AI Hive | Mentioned as optional | Skipped; no clean public feed found this pass. |
+| crewform.tech catalog | Visual orchestration product | No public listing API. |
 
 Add a row under Confirmed when a new `sources/` tree lands.
