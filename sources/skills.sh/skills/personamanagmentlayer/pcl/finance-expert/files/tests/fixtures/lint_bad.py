@@ -22,7 +22,7 @@ app = Flask(__name__)
 logger = logging.getLogger(__name__)
 
 # C10 -- a live secret key committed straight into the repository.
-STRIPE_API_KEY = "sk_live_NOTAREALKEY000000"
+STRIPE_API_KEY = "sk_live_REDACTED_ARCHIVE"
 
 # C10 -- a Luhn-valid PAN parked in source as a "default" value.
 FALLBACK_CARD = "4242424242424242"

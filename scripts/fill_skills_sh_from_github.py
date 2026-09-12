@@ -65,6 +65,7 @@ CLONE_ROOT = Path("/tmp/skills-sh-gh-clones")
 GH_PACKS = REPO / "sources" / "github"
 PROGRESS_PATH = REPO / "sources" / "skills.sh" / "meta" / "github-fill-progress.json"
 MISS_REPOS_PATH = REPO / "sources" / "skills.sh" / "meta" / "github-miss-repos.json"
+DONE_REPOS_PATH = REPO / "sources" / "skills.sh" / "meta" / "github-done-repos.json"
 CLONE_TIMEOUT = 180
 LS_TIMEOUT = 90
 RAW_TIMEOUT = 30
@@ -223,6 +224,29 @@ def save_miss_repos(extra: list[str], reason: str) -> None:
         {
             "updated_at": utc_now(),
             "reason": reason,
+            "count": len(current),
+            "repos": sorted(current),
+        },
+    )
+
+
+def load_done_repos() -> set[str]:
+    if not DONE_REPOS_PATH.is_file():
+        return set()
+    try:
+        data = json.loads(DONE_REPOS_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return set()
+    return {str(x) for x in (data.get("repos") or []) if x}
+
+
+def save_done_repos(extra: list[str]) -> None:
+    current = load_done_repos()
+    current.update(extra)
+    write_json(
+        DONE_REPOS_PATH,
+        {
+            "updated_at": utc_now(),
             "count": len(current),
             "repos": sorted(current),
         },
@@ -766,7 +790,7 @@ def raw_probe(owner: str, repo: str, items: list[dict]) -> dict:
             shutil.rmtree(files_root)
         target = files_root / "SKILL.md"
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(body)
+        target.write_bytes(sanitize_secret_bytes(body))
         write_skill_meta(item, ["SKILL.md"], hit, "github-raw-probe", github_repo)
         filled += 1
     return {"filled": filled, "missed": missed, "via": "github-raw-probe"}
@@ -963,9 +987,12 @@ def main() -> int:
 
     grouped = load_pending()
     skip_404 = load_miss_repos()
+    skip_done = load_done_repos()
     repos = sorted(grouped.items(), key=lambda kv: (-len(kv[1]), kv[0]))
     if skip_404:
         repos = [r for r in repos if r[0] not in skip_404]
+    if skip_done:
+        repos = [r for r in repos if r[0] not in skip_done]
     if args.min_skills:
         repos = [r for r in repos if len(r[1]) >= args.min_skills]
     if args.max_skills:
@@ -1042,6 +1069,10 @@ def main() -> int:
     if missing_repos:
         save_miss_repos(missing_repos, "github-404")
         log(f"recorded {len(missing_repos)} missing GitHub repos")
+    processed = [r["repo"] for r in results if r.get("repo")]
+    if processed:
+        save_done_repos(processed)
+        log(f"recorded {len(processed)} processed GitHub repos")
     batch_stats = {
         "filled": filled_total,
         "repos_processed": len(results),
