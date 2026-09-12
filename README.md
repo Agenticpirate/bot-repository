@@ -8,17 +8,18 @@ This repository is a mirror for research and citation. **Canonical pages live on
 
 | Item | Status |
 | --- | ---: |
-| **catalog.json rows** | **221,859** |
-| **x.ai marketplace bots** | **71** (refreshed 2026-09-12; 0 new slugs) |
-| **x.ai marketplace plugins** | **27** (Grok Build catalog @ 9963e48) |
-| **skills.sh downloaded** (files + hash) | **3,205** / 19,998 |
-| **skills.sh remaining** | **16,755** |
-| skills.sh API cap | 60/hour (client budget 50/batch) |
+| **catalog.json rows** | **219,578** |
+| **skills.sh downloaded** (files + hash) | **17,743** / 19,998 |
+| **skills.sh via GitHub clone** | **15,027** |
+| **skills.sh via API** | **2,716** |
+| **skills.sh remaining** | **2,225** |
+| skills.sh API cap | 60/hour (leftovers only; bulk fill is GitHub clone) |
 | SkillsMP SKILL.md (search GitHub raw + sitemap raw) | 1,957 + 1,695 |
 | souls.directory SOUL.md | 910 on disk (789 cataloged) |
 | claude-skills-latest metadata / with files | 60,442 / 11,049 |
 
-Resume skills.sh: `python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`
+Resume leftovers: `python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`  
+GitHub bulk fill: `python3 scripts/fill_skills_sh_from_github.py --workers 24`
 
 ## Sources
 

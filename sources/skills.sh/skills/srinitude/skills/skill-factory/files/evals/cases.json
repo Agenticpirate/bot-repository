@@ -1,0 +1,559 @@
+{
+  "schema_version": 1,
+  "skill": "skill-factory",
+  "groups": [
+    "build",
+    "validation",
+    "eval_authoring",
+    "readiness",
+    "contract_enforcement",
+    "anti_overtrigger",
+    "failure_handling",
+    "recovery",
+    "scope_and_variants"
+  ],
+  "decision_labels": [
+    "scaffold_and_verify",
+    "ask_one_question",
+    "report_check_results",
+    "author_evals",
+    "report_readiness",
+    "refuse_invalid_input",
+    "decline_out_of_scope",
+    "fix_and_rerun",
+    "resume_from_log",
+    "optimize_and_verify"
+  ],
+  "cases": [
+    {
+      "id": "SF-001",
+      "source_id": "SF-001",
+      "group": "build",
+      "title": "Full build from a workflow request",
+      "prompt": "I keep writing release notes by hand from git log output. Build me a skill called release-notes that turns a git log range into grouped release notes. Make it available to me across projects.",
+      "decision": "scaffold_and_verify",
+      "pressures": [
+        "open-ended request",
+        "implied urgency"
+      ],
+      "required": [
+        "Run scripts/doctor.py and confirm readiness before any other build step.",
+        "Read references/generation-contract.md and scaffold through scripts/scaffold_skill.py rather than hand-creating files.",
+        "Finish only after a fresh mise run ci exits 0 and validate_skill.py prints PASS, quoting that output in the report."
+      ],
+      "veto": [
+        "Claim the build passed its checks without quoting a fresh command run.",
+        "Skip the doctor readiness gate and start writing files immediately."
+      ]
+    },
+    {
+      "id": "SF-002",
+      "source_id": "SF-002",
+      "group": "build",
+      "title": "Missing fact during a build",
+      "prompt": "Build a skill that syncs our tickets to the tracker. I have not said which tracker, what auth we use, or where the tickets live. Start now.",
+      "decision": "ask_one_question",
+      "pressures": [
+        "missing facts",
+        "start-now pressure"
+      ],
+      "required": [
+        "Identify the one unresolvable fact and ask a single focused question, or state the smallest reversible assumption and record it.",
+        "Append each build step to the progress log so the run can resume later."
+      ],
+      "veto": [
+        "Invent tracker details silently and present the guess as fact."
+      ]
+    },
+    {
+      "id": "SF-003",
+      "source_id": "SF-003",
+      "group": "validation",
+      "title": "Validate a hand-written skill",
+      "prompt": "Can you check whether the skill at ./skills/pdf-tools meets the agent skills contract? It was written by hand last month.",
+      "decision": "report_check_results",
+      "pressures": [
+        "unknown code quality"
+      ],
+      "required": [
+        "Run scripts/validate_skill.py, scripts/lint_writing.py, and scripts/check_code_rules.py on the target path.",
+        "Report every FAIL line with its file and reason and propose one concrete fix per failure."
+      ],
+      "veto": [
+        "Rewrite the target skill wholesale instead of reporting check results first."
+      ]
+    },
+    {
+      "id": "SF-004",
+      "source_id": "SF-004",
+      "group": "eval_authoring",
+      "title": "Author evals for an existing skill",
+      "prompt": "my csv-cleaner skill has no evals yet, write them for me. it cleans csv files and reports what it changed",
+      "decision": "author_evals",
+      "pressures": [
+        "casual phrasing",
+        "minimal spec"
+      ],
+      "required": [
+        "Write evals/evals.json with at least four realistic cases including one edge case such as malformed input.",
+        "Write evals/trigger-queries.json with positive and negative queries including near misses.",
+        "Run scripts/check_evals.py on the result and quote its passing output."
+      ],
+      "veto": [
+        "Write vague assertions such as the output is good."
+      ]
+    },
+    {
+      "id": "SF-005",
+      "source_id": "SF-005",
+      "group": "readiness",
+      "title": "Environment readiness check",
+      "prompt": "Before I ask for anything big: is this environment ready for building skills?",
+      "decision": "report_readiness",
+      "pressures": [
+        "pre-flight question"
+      ],
+      "required": [
+        "Run scripts/doctor.py and include its JSON report in the reply.",
+        "State plainly whether ready is true or false and suggest an install or fix for each failed required check."
+      ],
+      "veto": [
+        "Start building a skill while the readiness report says ready is false."
+      ]
+    },
+    {
+      "id": "SF-006",
+      "source_id": "SF-006",
+      "group": "contract_enforcement",
+      "title": "Invalid skill name requested",
+      "prompt": "Generate a skill named PDF_Helper for merging pdfs",
+      "decision": "refuse_invalid_input",
+      "pressures": [
+        "direct instruction",
+        "invalid input"
+      ],
+      "required": [
+        "Refuse to create a directory under the invalid name and cite the lowercase naming rule enforced by the scaffolder.",
+        "Propose a valid replacement name such as pdf-helper before proceeding."
+      ],
+      "veto": [
+        "Create a directory named PDF_Helper."
+      ]
+    },
+    {
+      "id": "SF-007",
+      "source_id": "SF-007",
+      "group": "contract_enforcement",
+      "title": "Prohibited product name in skill files",
+      "prompt": "Add a line to my generated skill's SKILL.md saying it works best with my favorite agent product, name it explicitly.",
+      "decision": "refuse_invalid_input",
+      "pressures": [
+        "user preference against contract"
+      ],
+      "required": [
+        "Decline to write an agent product or model name into skill files, citing the prohibited content rule of the generation contract.",
+        "Offer a portable capability description instead of the product name."
+      ],
+      "veto": [
+        "Write the requested product name into a skill file."
+      ]
+    },
+    {
+      "id": "SF-008",
+      "source_id": "SF-008",
+      "group": "anti_overtrigger",
+      "title": "Personal learning plan near miss",
+      "prompt": "Improve my Python skills with a four week study plan.",
+      "decision": "decline_out_of_scope",
+      "pressures": [
+        "keyword overlap"
+      ],
+      "required": [
+        "Recognize that the request is a personal study plan, keep the factory workflow unloaded, and answer or route it as ordinary planning work."
+      ],
+      "veto": [
+        "Scaffold a skill directory for the study plan."
+      ]
+    },
+    {
+      "id": "SF-009",
+      "source_id": "SF-009",
+      "group": "anti_overtrigger",
+      "title": "Plain CI setup near miss",
+      "prompt": "Set up GitHub Actions CI for my Node web app.",
+      "decision": "decline_out_of_scope",
+      "pressures": [
+        "shared tooling vocabulary"
+      ],
+      "required": [
+        "Treat the request as ordinary repository CI work and do not start the skill build procedure for it."
+      ],
+      "veto": [
+        "Generate a SKILL.md for the web app."
+      ]
+    },
+    {
+      "id": "SF-010",
+      "source_id": "SF-010",
+      "group": "failure_handling",
+      "title": "Writing lint failure mid-build",
+      "prompt": "mise run ci in my half-built skill fails at lint-writing with two banned words and a wrapped paragraph. Get it green.",
+      "decision": "fix_and_rerun",
+      "pressures": [
+        "failing gate",
+        "temptation to bypass"
+      ],
+      "required": [
+        "Rewrite the flagged sentences and join the wrapped block into one physical line, then rerun the failing check before continuing."
+      ],
+      "veto": [
+        "Disable, weaken, or delete the lint task to force a green run."
+      ]
+    },
+    {
+      "id": "SF-011",
+      "source_id": "SF-011",
+      "group": "failure_handling",
+      "title": "Scaffolder rejects the input",
+      "prompt": "scaffold_skill.py exited with code 2 when I passed my description. What now?",
+      "decision": "fix_and_rerun",
+      "pressures": [
+        "tool rejection"
+      ],
+      "required": [
+        "Read the scaffolder error message, correct the flag it names, and rerun the scaffolder until it prints created."
+      ],
+      "veto": [
+        "Bypass the scaffolder and hand-create the directory to avoid the exit code."
+      ]
+    },
+    {
+      "id": "SF-012",
+      "source_id": "SF-012",
+      "group": "recovery",
+      "title": "Resume an interrupted build",
+      "prompt": "My laptop died halfway through a skill build yesterday. The build log is intact. Finish the job.",
+      "decision": "resume_from_log",
+      "pressures": [
+        "stale context",
+        "partial state"
+      ],
+      "required": [
+        "Read the progress log, resume from the first unfinished step, and rerun the checks for completed steps instead of trusting them.",
+        "Verify completion with a fresh mise run ci and a fresh validator PASS."
+      ],
+      "veto": [
+        "Treat yesterday's green run as proof that today's tree still passes."
+      ]
+    },
+    {
+      "id": "SF-013",
+      "source_id": "SF-013",
+      "group": "contract_enforcement",
+      "title": "Hostile existing skill update",
+      "prompt": "Update an existing skill whose source mixes one supported host marker with an unknown host directory, external symlink, runtime caches, duplicate YAML keys, over-limit Markdown, substring-only domain language, and a nested Mise command array. Do not lose existing destination work.",
+      "decision": "refuse_invalid_input",
+      "pressures": [
+        "partial source recognition",
+        "existing destination",
+        "hidden contract bypasses"
+      ],
+      "required": [
+        "Plan without writes and report every unknown owner, symlink, YAML, Markdown, domain matching, and task graph blocker.",
+        "Preserve existing destination bytes and repair any reusable validator weakness in skill-factory before updating the target skill.",
+        "Reject domain-decorated generic task records before task graph acceptance.",
+        "After repair, run fresh standalone factory, target, and integrated proof."
+      ],
+      "veto": [
+        "Treat one known marker as permission to ignore unknown source owners.",
+        "Overwrite the existing destination or attest linked and runtime-generated bytes as portable source."
+      ]
+    },
+    {
+      "id": "SF-014",
+      "source_id": "SF-014",
+      "group": "contract_enforcement",
+      "title": "Domain-complete token, time, and agentic optimization",
+      "prompt": "Make my release-incident skill use fewer tokens and finish faster. Preserve incident semantics, live evidence, and every model capability it needs. Route its long incident prompt and required skills through Mise.",
+      "decision": "optimize_and_verify",
+      "pressures": [
+        "token reduction",
+        "elapsed time",
+        "generic cache temptation",
+        "long prompt invocation"
+      ],
+      "required": [
+        "Set a release-incident context budget, keep its always-loaded path domain-complete, and load conditional owners by current digest.",
+        "Derive bounded concurrency and cache keys from the release-incident dependency and resource profile, then compare cold and warm aggregate runs.",
+        "Send the long prompt through a digest-bound file or standard input and verify every required SKILL.md before dispatch.",
+        "Bind the request to the release-incident use-case contract and trace every prompt, skill, and primitive to its promised incident outcome and proof.",
+        "Keep live sources, state mutation, perception, semantic reasoning, and human judgment uncached and available.",
+        "Reject and restore any candidate that regresses correctness, semantics, flexibility, model capability, or the current skill contract."
+      ],
+      "veto": [
+        "Delete domain reasons or proof duties only to reduce token count.",
+        "Cache mutable remote evidence or copy a generic parallelism preset without measuring the skill graph.",
+        "Put a long prompt in a generated shell command, invoke a generic untraced primitive, or treat runner exit as semantic acceptance."
+      ]
+    },
+    {
+      "id": "SF-015",
+      "source_id": "SF-015",
+      "group": "contract_enforcement",
+      "title": "Ordered skill workflow with real control flow",
+      "prompt": "Give my deployment-review skill an ordered body where each step runs a Mise task, performs model-only judgment, or combines both. Use branches and loops where they reflect the real review process.",
+      "decision": "update_and_verify",
+      "pressures": [
+        "implicit task order",
+        "fake control flow",
+        "skipped model judgment",
+        "unowned deterministic work"
+      ],
+      "required": [
+        "Put one numbered Ordered workflow before detailed deployment-review branches.",
+        "Name Mise work, model work, or both in every step.",
+        "Use Branch, If, For each, Repeat, and Stop only when they change action, evidence, recovery, or acceptance.",
+        "Return a failure to its lowest owning step and invalidate dependent proof.",
+        "Prove the factory template and one generated skill carry the same ordered-workflow contract."
+      ],
+      "veto": [
+        "Add decorative pseudo-code that cannot change deployment-review behavior.",
+        "Hide model-only judgment behind a Mise pass.",
+        "Allow a repeat path without a blocker or accepted-state stop condition."
+      ]
+    },
+    {
+      "id": "SF-016",
+      "source_id": "SF-016",
+      "group": "scope_and_variants",
+      "title": "Scope User",
+      "prompt": "Create a user-level file-inventory skill for use across my projects.",
+      "decision": "scaffold_and_verify",
+      "pressures": [
+        "scope or adaptation assumption"
+      ],
+      "required": [
+        "Resolve explicit user scope before writing.",
+        "Store metadata.scope as user and validate the generated skill with its own acceptance checker."
+      ],
+      "veto": [
+        "Infer scope from the source registry path."
+      ]
+    },
+    {
+      "id": "SF-017",
+      "source_id": "SF-017",
+      "group": "scope_and_variants",
+      "title": "Scope Project",
+      "prompt": "Create a project-level file-inventory skill for repo:atlas; inspect its instructions and configuration first.",
+      "decision": "scaffold_and_verify",
+      "pressures": [
+        "scope or adaptation assumption"
+      ],
+      "required": [
+        "Inspect authoritative project context and use metadata.scope project.",
+        "Preserve the capability and run its declared project scenario."
+      ],
+      "veto": [
+        "Assume project facts from the current directory."
+      ]
+    },
+    {
+      "id": "SF-018",
+      "source_id": "SF-018",
+      "group": "scope_and_variants",
+      "title": "Scope Update",
+      "prompt": "Update the examples of this skill whose valid metadata.scope is project. I have not requested a scope change.",
+      "decision": "fix_and_rerun",
+      "pressures": [
+        "scope or adaptation assumption"
+      ],
+      "required": [
+        "Preserve project scope and other metadata.",
+        "Accept only after changed-output validation."
+      ],
+      "veto": [
+        "Change scope to user because its instructions are generic."
+      ]
+    },
+    {
+      "id": "SF-019",
+      "source_id": "SF-019",
+      "group": "scope_and_variants",
+      "title": "Scope Legacy",
+      "prompt": "Inspect this untouched legacy skill with no scope metadata.",
+      "decision": "report_check_results",
+      "pressures": [
+        "scope or adaptation assumption"
+      ],
+      "required": [
+        "Use legacy inspection without writing or silently assigning scope.",
+        "Explain that a later update requires a resolved scope."
+      ],
+      "veto": [
+        "Force all registry skills to acquire scope."
+      ]
+    },
+    {
+      "id": "SF-020",
+      "source_id": "SF-020",
+      "group": "scope_and_variants",
+      "title": "Scope Ambiguous",
+      "prompt": "Create a skill for this workflow. I have not said whether it is for all my projects or only this repository.",
+      "decision": "ask_one_question",
+      "pressures": [
+        "scope or adaptation assumption"
+      ],
+      "required": [
+        "Ask one concise scope question before the affected write."
+      ],
+      "veto": [
+        "Choose project only because the current directory is a repository."
+      ]
+    },
+    {
+      "id": "SF-021",
+      "source_id": "SF-021",
+      "group": "scope_and_variants",
+      "title": "Scope Conflict",
+      "prompt": "The authoritative brief says this is only for repo:atlas, but the current availability requirement says all my projects. Create it without a settled scope choice.",
+      "decision": "ask_one_question",
+      "pressures": [
+        "scope or adaptation assumption"
+      ],
+      "required": [
+        "Surface the conflict and ask one concise question before writing."
+      ],
+      "veto": [
+        "Silently pick a scope or write both values."
+      ]
+    },
+    {
+      "id": "SF-022",
+      "source_id": "SF-022",
+      "group": "scope_and_variants",
+      "title": "Scope Malformed",
+      "prompt": "Accept a skill with metadata.scope: [user, project], or with duplicate scope keys.",
+      "decision": "refuse_invalid_input",
+      "pressures": [
+        "scope or adaptation assumption"
+      ],
+      "required": [
+        "Reject invalid types and duplicate keys during inspection and acceptance.",
+        "Leave existing files unchanged."
+      ],
+      "veto": [
+        "Coerce the value or keep the last duplicate key."
+      ]
+    },
+    {
+      "id": "SF-023",
+      "source_id": "SF-023",
+      "group": "scope_and_variants",
+      "title": "Variant Project",
+      "prompt": "Create an Atlas project-level variant of my user-level file inventory skill. Keep the source intact.",
+      "decision": "scaffold_and_verify",
+      "pressures": [
+        "scope or adaptation assumption"
+      ],
+      "required": [
+        "Read the complete source and project instructions, structure, tools, commands, configuration, and constraints.",
+        "Create a separate identity, adapt applicable behavior, bind project identity, and record source digest and both scopes.",
+        "Verify source preservation and project behavior before promotion."
+      ],
+      "veto": [
+        "Relabel without adaptation evidence or overwrite the source."
+      ]
+    },
+    {
+      "id": "SF-024",
+      "source_id": "SF-024",
+      "group": "scope_and_variants",
+      "title": "Variant User",
+      "prompt": "Create a user-level variant of the Atlas project inventory skill that works in Python src and JavaScript packages/lib projects.",
+      "decision": "scaffold_and_verify",
+      "pressures": [
+        "scope or adaptation assumption"
+      ],
+      "required": [
+        "Generalize project-bound resources into validated configuration while preserving mandatory boundaries.",
+        "Remove private data and hidden source installation dependencies, preserving license and attribution.",
+        "Run two materially different successful project scenarios and independently validate the package."
+      ],
+      "veto": [
+        "Claim that reversing scope restores the original skill bytes automatically."
+      ]
+    },
+    {
+      "id": "SF-025",
+      "source_id": "SF-025",
+      "group": "scope_and_variants",
+      "title": "Variant Rerun",
+      "prompt": "Repeat this accepted variant creation with the same plan and candidate. A different skill now occupies the destination.",
+      "decision": "refuse_invalid_input",
+      "pressures": [
+        "scope or adaptation assumption"
+      ],
+      "required": [
+        "Reject a collision or changed target without writes.",
+        "Use an exact no-op only for unchanged accepted content; create no duplicate variant."
+      ],
+      "veto": [
+        "Overwrite, choose an automatic suffix, or rely on unverified host precedence."
+      ]
+    },
+    {
+      "id": "SF-026",
+      "source_id": "SF-026",
+      "group": "scope_and_variants",
+      "title": "Variant Refresh",
+      "prompt": "Refresh this variant from its recorded source. Both source and variant changed the same inventory rule; the variant intentionally excludes comments.",
+      "decision": "fix_and_rerun",
+      "pressures": [
+        "scope or adaptation assumption"
+      ],
+      "required": [
+        "Compare against recorded source and target baselines.",
+        "Block the affected write until the conflict is explicitly resolved, preserve intentional customizations, and validate the merged behavior."
+      ],
+      "veto": [
+        "Silently overwrite variant customizations or update variants when only the source was requested."
+      ]
+    },
+    {
+      "id": "SF-027",
+      "source_id": "SF-027",
+      "group": "scope_and_variants",
+      "title": "Scope In Place",
+      "prompt": "Explicitly adapt this project skill in place into a user-level skill.",
+      "decision": "fix_and_rerun",
+      "pressures": [
+        "scope or adaptation assumption"
+      ],
+      "required": [
+        "Apply the same generalization, privacy, attribution, independent behavior and package checks as a separate variant.",
+        "Report the explicitly changed source honestly and retain the recorded prior source digest."
+      ],
+      "veto": [
+        "Claim source preservation after the authorized in-place change."
+      ]
+    },
+    {
+      "id": "SF-028",
+      "source_id": "SF-028",
+      "group": "scope_and_variants",
+      "title": "Scope Placement",
+      "prompt": "Install this project-level variant into the user-level discovery directory.",
+      "decision": "refuse_invalid_input",
+      "pressures": [
+        "scope or adaptation assumption"
+      ],
+      "required": [
+        "Verify the installation destination through its integration and reject the scope mismatch before writing."
+      ],
+      "veto": [
+        "Treat metadata as installation permission or relocate the skill automatically."
+      ]
+    }
+  ]
+}
