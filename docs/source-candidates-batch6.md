@@ -6,7 +6,7 @@ Additive ingest on `main`. Skip trees already under `sources/`. Script: `scripts
 
 | Item | Dest | Notes |
 | --- | --- | --- |
-| clawhub.ai | `sources/clawhub.ai/` | **Deepened**: `/api/v1/skills` **5275** slugs (pages 000–139; cursor still live — resume continues). **4947** SKILL.md. clawhub.com is the same app (homepage snapshot only). |
+| clawhub.ai | `sources/clawhub.ai/` | **Deepened**: `/api/v1/skills` **24,511** slugs (pages 000–539; `nextCursor` still live). SKILL.md file API in progress (~5k so far of ~19.5k missing). clawhub.com is the same app. |
 | VoltAgent/awesome-openclaw-skills | `sources/github/VoltAgent-awesome-openclaw-skills/` | 5300+ link index (points at clawskills.sh). Already cloned. |
 | mergisi/awesome-openclaw-agents | `sources/github/mergisi-awesome-openclaw-agents/` | 205 SOUL.md templates + agents.json. Already cloned. |
 | souls.directory | `sources/souls.directory/` | Public `GET /api/souls/{handle}/{slug}.md`. **3147** SOUL.md on disk. |
@@ -32,4 +32,4 @@ Additive ingest on `main`. Skip trees already under `sources/`. Script: `scripts
 
 ## skills.sh leftovers
 
-GitHub Trees/raw leftover retry still expected to fill **0** when folder names no longer match sitemap slugs. True remaining after 19,002 downloads: **875** + **121** permanent 404s. Resume API drip: `python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`.
+GitHub Trees/raw leftover retry filled **0** (folder names no longer match sitemap slugs). Concurrent API drips brought downloaded_ok to **19,360** / 19,998 (**477** leftovers with no `files/`; **161** permanent 404s with HTML fallback). Resume: `python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`.

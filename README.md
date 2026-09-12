@@ -277,7 +277,7 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | claude-plugins.dev | 1 (51,845 plugins in jsonl) |
 | agentskill.sh | 2001 |
 | github/agent-packs-registry | 119 |
-| clawhub.ai | 5276 |
+| clawhub.ai | 24512 |
 | agensi.io | 4001 |
 | github/anthropics-claude-plugins-official | 309 |
 | github/anthropics-claude-plugins-community | 90 |
@@ -419,7 +419,7 @@ Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/A
 
 ## Caps / failures
 
-- **skills.sh** — **19,002** sitemap ids have `files/` + hash (**15,032** GitHub clone, **3,970** API). **875** leftovers are renamed/missing GitHub slugs (Trees/raw exact-folder match exhausted, 0 extra this pass); **121** are permanent API 404s. INDEX remaining `19998-19002=996` includes those 404s. API drip only: `scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog` (60/hour).
+- **skills.sh** — **19,360** sitemap ids have `files/` + hash (**15,032** GitHub clone, **4,328** API). **477** leftovers have no `files/` yet; **161** are permanent API 404s with HTML fallback. GitHub Trees/raw exact-folder match exhausted (0 extra). API drip only: `scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog` (60/hour).
 - **smithery.ai** — list API hard-caps at 5 pages × 100 (**420** uniques) despite `totalCount` 22,603; `pageSize>100` is HTTP 400.
 - **souls.directory** — public `GET /api/souls/{handle}/{slug}.md`; **3147** SOUL.md on disk (llms.txt lists 4656 API URLs; leftovers mostly 404/empty).
 - **openclawskills.io** — Next.js gallery; sitemap has no per-skill URLs. `github.com/openclaw/skills` is not a public repo.
