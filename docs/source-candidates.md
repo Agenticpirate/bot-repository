@@ -14,6 +14,7 @@ Do not invent serials or scrape private data.
 | [codejunkie99/rosterroom](https://github.com/codejunkie99/rosterroom) | GitHub (shallow clone) | Prompt library under `prompts/`. |
 | [HAEGONG/grok-bot-profiles](https://github.com/HAEGONG/grok-bot-profiles) | GitHub (shallow clone) | PROFILE / SETUP / README bots. |
 | [usegrokbot.com](https://usegrokbot.com/) | https://usegrokbot.com/llms.txt | Site briefing + English homepage snapshot. |
+| [x.ai Grok Bot Marketplace](https://x.ai/bot/marketplace) | https://x.ai/sitemap.xml (`/bot/marketplace/bots/<slug>`) | Official templates. HTML only; `template` object extracted from Next.js RSC. |
 
 ## Possible later
 
@@ -21,7 +22,7 @@ Do not invent serials or scrape private data.
 | --- | --- | --- |
 | really.bot houses / feed | https://really.bot/feed.json, `/house/{handle}.json` | Identity pages and the live feed, not extra serials. |
 | really.bot MCP / agent contract | https://really.bot/mcp, https://really.bot/agent | Consumer contract, not a run archive. |
-| x.ai Grok Bot share URLs | Linked from many really.bot filings and awesome-grok-bot listings | Share pages are not verified serials. Do not treat a share URL as a serial. |
+| x.ai Grok Bot share / import URLs (`/bot/<id>`) | `addHref` on marketplace templates | Import links are not extra marketplace slugs. Do not invent slugs. |
 | botteams.io per-team HTML | https://botteams.io/teams/<slug> | API is the source of truth; `/api/teams/<slug>` 404s by design. |
 | usegrokbot.com use-case pages | Listed in `llms.txt` | Locale-specific article pages, not a serial board. |
 

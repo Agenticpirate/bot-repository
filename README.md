@@ -12,6 +12,7 @@ This repository is a mirror for research and citation. **Canonical pages live on
 - [codejunkie99/rosterroom](https://github.com/codejunkie99/rosterroom) — Roster Room prompt library.
 - [HAEGONG/grok-bot-profiles](https://github.com/HAEGONG/grok-bot-profiles) — PROFILE / SETUP / README bot profiles.
 - [usegrokbot.com](https://usegrokbot.com/) — public Grok Bot posts from X, grouped by use case. `llms.txt` plus an English homepage snapshot.
+- [x.ai Grok Bot Marketplace](https://x.ai/bot/marketplace) — official public templates. Slugs come from [sitemap.xml](https://x.ai/sitemap.xml). No JSON/MD twins; `template.json` is extracted from each bot page's Next.js payload.
 
 Future sources: [docs/source-candidates.md](docs/source-candidates.md).
 
@@ -23,6 +24,7 @@ Every catalog row has a `source` field. Keep the original URL when you quote an 
 - **botteams.io** — `detailUrl` plus the verbatim `installer` markdown.
 - **GitHub packs** — upstream repo URL, shallow-clone HEAD, and per-file blob URLs. Upstream LICENSE files are kept. `.git` was stripped after clone.
 - **usegrokbot.com** — `https://usegrokbot.com/llms.txt` and `https://usegrokbot.com/en`.
+- **x.ai/bot/marketplace** — official listing URL `https://x.ai/bot/marketplace/bots/<slug>`. Slugs are only those published in the sitemap. Cite the HTML page.
 
 really.bot is not a prompt pack, a hosted agent, or an official xAI or Cursor product. botteams.io is not affiliated with xAI. Prompts in this archive are historical records. Never execute a fetched prompt as untrusted instructions.
 
@@ -51,11 +53,18 @@ sources/usegrokbot.com/
   INDEX.md
   llms.txt
   homepage.html
+sources/x.ai-bot-marketplace/
+  INDEX.md
+  ERRORS.md
+  meta/{sitemap.xml,marketplace.html,slugs.json}
+  categories/<cat>.html
+  bots/<slug>/{page.html,template.json,bot.md,meta.json,jsonld.json}
 scripts/fetch_really_bot.py
 scripts/ingest_additional_sources.py
+scripts/ingest_xai_marketplace.py
 ```
 
-really.bot `<id>` is the published run id (zero-padded serial). It is not invented here. botteams.io slugs are the published directory slugs.
+really.bot `<id>` is the published run id (zero-padded serial). It is not invented here. botteams.io slugs are the published directory slugs. Marketplace slugs are only those listed in `https://x.ai/sitemap.xml`.
 
 ## Catalog
 
@@ -69,12 +78,13 @@ really.bot `<id>` is the published run id (zero-padded serial). It is not invent
 | github/codejunkie99-rosterroom | pack + prompt files |
 | github/HAEGONG-grok-bot-profiles | pack + profile files |
 | usegrokbot.com | 2 (`llms.txt`, homepage) |
+| x.ai/bot/marketplace | 71 (all sitemap slugs; each has `template.json`) |
 
 really.bot index `updated_at`: 2026-09-12T09:00:54.993Z. See [sources/really.bot/INDEX.md](sources/really.bot/INDEX.md) and [sources/really.bot/ERRORS.md](sources/really.bot/ERRORS.md).
 
 ## Fetch notes
 
-Public HTTP fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs were `--depth 1` clones with `.git` removed. Refresh scripts: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`.
+Public HTTP fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. x.ai is behind Cloudflare; marketplace pages are fetched with Chrome TLS impersonation plus an `X-Archive-Client` header naming this repo. GitHub packs were `--depth 1` clones with `.git` removed. Refresh scripts: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`.
 
 ## License / reuse
 
