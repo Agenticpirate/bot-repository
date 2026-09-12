@@ -1,12 +1,12 @@
 # skills.sh errors
 
-Updated: 2026-09-12T20:32:51Z
+Updated: 2026-09-12T20:35:05Z
 
 ## Rate limit
 
 Live `GET /api/download/{owner}/{repo}/{slug}` returns HTTP 429 `{"error":"rate_limit_exceeded","message":"Rate limit exceeded. Maximum 60 requests per hour."}` with `Retry-After: 60`.
 
-Target is all 19998 sitemap ids. 18159 have full `files/` + hash. 1797 remain.
+Target is all 19998 sitemap ids. 18162 have full `files/` + hash. 1794 remain.
 Prefer `scripts/fill_skills_sh_from_github.py` for bulk fill. This API client is only for leftovers and stays under the 60/hour cap.
 
 ## Permanent misses
@@ -15,6 +15,6 @@ Prefer `scripts/fill_skills_sh_from_github.py` for bulk fill. This API client is
 
 Recent failures / fallbacks:
 
-- `anthropics/knowledge-work-plugins/build-zoom-video-sdk-app` rate_limited: HTTP 429 rate_limit_exceeded (60/hour)
+- `anthropics/knowledge-work-plugins/zoom-oauth` rate_limited: HTTP 429 rate_limit_exceeded (60/hour)
 
 Resume: `python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`
