@@ -71,7 +71,7 @@ export function Explorer() {
     if (value) next.set(key, value);
     else next.delete(key);
     const qs = next.toString();
-    router.replace(qs ? `/?${qs}` : "/", { scroll: false });
+    router.replace(qs ? `/explore?${qs}` : "/explore", { scroll: false });
   };
 
   const found = useMemo(() => {
@@ -104,15 +104,16 @@ export function Explorer() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-brass">
-              Agenticpirate / bot-repository
+              Compound · parts bin
             </p>
             <h1 className="font-display mt-1 text-3xl font-semibold tracking-tight text-paper sm:text-4xl">
-              Archive explorer
+              Pick role bots & skills
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-mute">
-              Search a research mirror of bots, skills, SOUL.md templates,
-              workflows, and marketplace listings. Canonical pages live on the
-              source sites — this index does not invent serials.
+              Public archive of published bots, skills, SOUL.md templates, and
+              workflows — plug a real listing into your memory OS. Canonical
+              pages live on the source sites. This index does not invent
+              serials.
             </p>
           </div>
           {catalog ? (

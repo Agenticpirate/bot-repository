@@ -21,11 +21,14 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Archive explorer · bot-repository",
+  title: {
+    default: "Compound · Memory OS",
+    template: "%s",
+  },
   description:
-    "Search the Agenticpirate/bot-repository research mirror. Canonical pages live on the source sites.",
+    "Memory OS for a one-person Grok Bot company. Install shared memory, then pick role bots from the public archive.",
   icons: { icon: "/favicon.svg" },
-}
+};
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
@@ -34,15 +37,22 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <div className="flex min-h-screen flex-col">
           {children}
           <footer className="mt-auto border-t border-line px-4 py-5 text-center text-xs leading-relaxed text-mute">
-            Research mirror of{" "}
+            <span className="text-paper/80">Compound</span> — Memory OS for a
+            one-person Grok Bot company. Inspired by{" "}
+            <a
+              className="text-brass hover:underline"
+              href="https://x.com/kingwilliam_/status/2096273503901122746"
+            >
+              @kingwilliam_
+            </a>
+            . Archive is a research mirror of{" "}
             <a
               className="text-brass hover:underline"
               href="https://github.com/Agenticpirate/bot-repository"
             >
               Agenticpirate/bot-repository
             </a>
-            . Serials, titles, and prompts are copied as published. Never invent
-            serials. Never strip attribution.
+            . Never invent serials. Never strip attribution.
           </footer>
         </div>
       </body>

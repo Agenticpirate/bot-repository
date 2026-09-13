@@ -1,10 +1,18 @@
-# Archive explorer
+# Compound (front door) + archive explorer
 
-Client-side search UI for [Agenticpirate/bot-repository](https://github.com/Agenticpirate/bot-repository).
+This Next.js app is the web product for **[Compound](../../products/compound/)**: a Memory OS for a one-person Grok Bot company. The public archive search is the parts bin — pick real role bots and skills to plug into that OS.
 
-This app is a **research mirror**. Canonical pages live on the source sites. Results are real `catalog.json` rows (or published metas such as Agent Hunt). The explorer never invents serials and never strips attribution.
+| Route | Surface |
+| --- | --- |
+| `/` | Compound landing (problem → OS → archive → Start setup) |
+| `/setup` | 12-step wizard with exact copy-paste prompts |
+| `/kit` | Starter pack (Memory Steward, Who-I-Am, DECISIONS, …) |
+| `/explore` | Archive search (slim index, source badges, original URLs) |
+| `/item/[id]` | Listing detail + attribution + body preview when bundled |
 
-It does **not** need the ~2TB `sources/` tree to run or deploy. Search uses a slim index under `public/index/`.
+Inspired by [KingWilliam’s article](https://x.com/kingwilliam_/status/2096273503901122746) (`@kingwilliam_`). Thesis credit only — see `products/compound/ATTRIBUTION.md`. Archive listings remain a **research mirror**; canonical pages live on the source sites. No invented serials.
+
+The app does **not** need the ~2TB `sources/` tree. Search uses `public/index/`.
 
 ## Run locally
 
@@ -14,9 +22,20 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). A committed **seed index** (~4.5k real rows) loads immediately.
+Open [http://localhost:3000](http://localhost:3000). A committed **seed index** (~5k real rows) loads on `/explore`.
 
-`/` focuses the search box. Filter by type (skill / soul / bot / team / workflow and more), source, and tags when present. Open a result for title, description, source badge, original URL, and a markdown/JSON preview when that body was bundled with the seed.
+## Product kit
+
+Canonical kit: [`products/compound/`](../../products/compound/) (`prompts.json`, starter markdown).
+
+Mirrored for the app (so Vercel Root Directory = `apps/explorer` still works):
+
+```
+content/compound/prompts.json
+content/compound/starter/*.md
+```
+
+Keep those copies in sync when you edit the kit.
 
 ## Build the index
 
@@ -25,56 +44,35 @@ Open [http://localhost:3000](http://localhost:3000). A committed **seed index** 
 `id`, `name`, `type`, `source`, `url`, `description`, `tags`, `path`, `updated`
 
 ```bash
-# From repo root. Needs catalog.json.
 python3 scripts/build-explorer-index.py --mode seed
-
-# Full slim index of every catalog row. Needs the archive checkout
-# (catalog.json). Optional previews need local files under sources/.
 python3 scripts/build-explorer-index.py --mode full --previews 0
 ```
 
-Or from this directory: `npm run index` / `npm run index:full`.
+Or `npm run index` / `npm run index:full` from this directory.
 
 | Mode | What it writes | Commit? |
 | --- | --- | --- |
-| `seed` (default) | Bounded real rows, 1 NDJSON shard, optional `previews.json` | Yes — so CI/demo works |
-| `full` | All catalog rows, gzip NDJSON shards if large | Only if shards stay under GitHub’s 100 MB file limit |
-
-Full builds belong on a machine that already has the archive. CI and Vercel should use the committed seed (or a separately published full index), never a checkout of `sources/`.
-
-Output:
-
-```
-apps/explorer/public/index/manifest.json
-apps/explorer/public/index/shards/seed-000.ndjson.gz
-apps/explorer/public/index/previews.json
-```
-
-Full mode writes `shards/full-*.ndjson.gz` (gitignored). The app loads whatever `manifest.json` points at.
+| `seed` (default) | Bounded real rows, gzip NDJSON shard, optional `previews.json` | Yes |
+| `full` | All catalog rows, gzip shards if large | Only under GitHub’s 100 MB file limit |
 
 ## Architecture
 
 - **Next.js App Router** + TypeScript + Tailwind
-- **MiniSearch** in the browser (prefix + light fuzzy). Comfortable at seed size; fine for 100k–250k docs once the full shards are loaded
+- **MiniSearch** in the browser for `/explore`
+- Setup progress is `localStorage` only (this browser, not a backend)
 - Shards are NDJSON (gzip when a shard exceeds ~1.5 MB uncompressed)
-- `DecompressionStream` unpacks gzip shards in modern browsers
-- Detail route `/item/[id]` looks up the composite id `source::catalogId` and, if present, a bundled body preview
-- Empty states stay empty — no placeholder “fake” hits
-
-Composite ids are required because `catalog.json` ids collide across sources.
 
 ## Deploy (Vercel)
 
 Point a Vercel project at **only** `apps/explorer`:
 
-1. New project → this GitHub repo
-2. **Root Directory:** `apps/explorer`
-3. Framework: Next.js (see `vercel.json`)
-4. Do **not** set the build context to the whole monorepo / `sources/` tree
-5. Leave the committed seed in `public/index/` so the build does not need `catalog.json`
-
-To serve a full 200k+ index, generate shards on a machine with the archive, keep each file under GitHub’s limit, and commit or host them as static files next to the app. Still do not upload `sources/`.
+1. **Root Directory:** `apps/explorer`
+2. Framework: Next.js (`vercel.json`)
+3. Do **not** use the whole repo / `sources/` as the build context
+4. Leave the committed seed in `public/index/`
 
 ## Attribution
 
-Every card and detail page shows `source` and the original URL when the catalog row has one. Footer and detail callout repeat: this is a mirror, not the publisher of record.
+- Compound thesis: [@kingwilliam_](https://x.com/kingwilliam_/status/2096273503901122746)
+- Archive cards: `source` + original URL from `catalog.json`
+- Footer and detail callouts: research mirror, not the publisher of record

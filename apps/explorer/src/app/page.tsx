@@ -1,14 +1,12 @@
-import { Suspense } from "react";
-import { Explorer } from "@/components/Explorer";
+import type { Metadata } from "next";
+import { Landing } from "@/components/Landing";
+
+export const metadata: Metadata = {
+  title: "Compound · Memory OS for a one-person Grok Bot company",
+  description:
+    "Install shared vs private memory, a Who-I-Am profile, named skills, a decisions log, and a weekly prune. Pick role bots from the public archive.",
+};
 
 export default function Home() {
-  return (
-    <Suspense
-      fallback={
-        <p className="px-6 py-16 font-mono text-xs text-mute">Loading explorer…</p>
-      }
-    >
-      <Explorer />
-    </Suspense>
-  );
+  return <Landing />;
 }

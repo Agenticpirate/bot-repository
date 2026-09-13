@@ -42,10 +42,10 @@ export function ItemDetail({ encodedId }: { encodedId: string }) {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-20 pt-8 sm:px-6">
       <Link
-        href="/"
+        href="/explore"
         className="font-mono text-[11px] uppercase tracking-wider text-mute hover:text-brass"
       >
-        ← Explorer
+        ← Archive
       </Link>
 
       {error ? (
@@ -180,7 +180,7 @@ function Article({
               {doc.tags.map((item) => (
                 <Link
                   key={item}
-                  href={`/?tag=${encodeURIComponent(item)}`}
+                  href={`/explore?tag=${encodeURIComponent(item)}`}
                   className="rounded bg-ink px-1.5 py-0.5 font-mono text-[11px] text-mute hover:text-paper"
                 >
                   {item}
