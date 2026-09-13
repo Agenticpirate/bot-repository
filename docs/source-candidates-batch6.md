@@ -9,7 +9,7 @@ Additive ingest on `main`. Skip trees already under `sources/`. Script: `scripts
 | clawhub.ai | `sources/clawhub.ai/` | **Deepened**: `/api/v1/skills` **43,969** slugs (pages 000–939; `nextCursor` still live). **22,566** SKILL.md from the first 24,511; further file-API downloads in progress. clawhub.com is the same app. |
 | VoltAgent/awesome-openclaw-skills | `sources/github/VoltAgent-awesome-openclaw-skills/` | 5300+ link index (points at clawskills.sh). Already cloned. |
 | mergisi/awesome-openclaw-agents | `sources/github/mergisi-awesome-openclaw-agents/` | 205 SOUL.md templates + agents.json. Already cloned. |
-| souls.directory | `sources/souls.directory/` | Public `GET /api/souls/{handle}/{slug}.md`. **3147** SOUL.md on disk. |
+| souls.directory | `sources/souls.directory/` | Public `GET /api/souls/{handle}/{slug}.md`. **4654** SOUL.md on disk (llms.txt 4656 URLs; 2 are docs placeholders). |
 | clawskills.sh | `sources/clawskills.sh/` | 5167 skill hrefs; **5167** skill HTML on disk (complete). |
 
 ## New / first-time archives

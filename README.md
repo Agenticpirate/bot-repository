@@ -421,7 +421,7 @@ Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/A
 
 - **skills.sh** — **19,809** sitemap ids have `files/` + hash (**15,032** GitHub clone, **4,777** API). **0** leftovers without `files/`; **189** permanent API 404s have HTML fallback (`19998 = 19809 + 189`). GitHub Trees leftover fill remains 0.
 - **smithery.ai** — list API hard-caps at 5 pages × 100 (**420** uniques) despite `totalCount` 22,603; `pageSize>100` is HTTP 400.
-- **souls.directory** — public `GET /api/souls/{handle}/{slug}.md`; **3407** SOUL.md on disk (llms.txt lists 4656 API URLs; polite leftover +176, 429=4 not sustained).
+- **souls.directory** — public `GET /api/souls/{handle}/{slug}.md`; **4654** SOUL.md on disk (llms.txt lists 4656 API URLs; polite leftover +1247, 429=47 not sustained). Remaining 2 URLs are docs placeholders, not souls.
 - **clawhub.ai** — list snapshot **43,969** slugs (pages 000–939, cursor still live). SKILL.md **43,968** via public file API. Permanent miss **1** (`safe-execution`, empty 200; see `sources/clawhub.ai/meta/skill-md-permanent-misses.json`). `catalog.json` keeps the first 24,511 per-skill rows only (GitHub 100MB cap); full slug list is `sources/clawhub.ai/meta/skills.json`.
 - **openclawskills.io** — Next.js gallery; sitemap has no per-skill URLs. `github.com/openclaw/skills` is not a public repo.
 - **claude-skills-latest** — Skillselion `updatedAt` is a reindex stamp, so createdAt **or** updatedAt ≥ 2026-07-14 matches all **60,442** live skills. True `createdAt` in-window: **2,378** (**1,466** with files). Catalog: **62,817** rows, **11,049** `has_content`. skills.sh download API still 60/hour.
