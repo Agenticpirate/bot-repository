@@ -392,7 +392,7 @@ def deepen_clawhub() -> None:
                     seen.add(slug)
                     skills.append(it)
         write_json(skills_path, {"count": len(skills), "items": skills})
-    stats = fill_clawhub_skill_md(skills, files_root, workers=8, stop_429=15)
+    stats = fill_clawhub_skill_md(skills, files_root, workers=16, stop_429=15)
     if stats["fail"]:
         errors.append(
             f"{stats['fail']}/{stats['attempted']} SKILL.md downloads failed "
