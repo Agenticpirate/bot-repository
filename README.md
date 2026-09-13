@@ -277,7 +277,7 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | claude-plugins.dev | 1 (51,845 plugins in jsonl) |
 | agentskill.sh | 2001 |
 | github/agent-packs-registry | 119 |
-| clawhub.ai | 24512 |
+| clawhub.ai | 24512 (43969 slugs in skills.json; catalog capped) |
 | agensi.io | 4001 |
 | github/anthropics-claude-plugins-official | 309 |
 | github/anthropics-claude-plugins-community | 90 |
