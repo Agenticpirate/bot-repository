@@ -32,4 +32,4 @@ Additive ingest on `main`. Skip trees already under `sources/`. Script: `scripts
 
 ## skills.sh leftovers
 
-GitHub Trees/raw leftover retry filled **0** (folder names no longer match sitemap slugs). Concurrent API drips brought downloaded_ok to **19,360** / 19,998 (**477** leftovers with no `files/`; **161** permanent 404s with HTML fallback). Resume: `python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`.
+GitHub Trees/raw leftover retry filled **0**. Concurrent API drips finished the sitemap: downloaded_ok **19,809** / 19,998 plus **189** permanent 404 HTML fallbacks (**0** remaining without `files/`).
