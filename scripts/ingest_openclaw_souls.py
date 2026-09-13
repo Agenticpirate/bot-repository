@@ -11,16 +11,22 @@ import json
 import re
 import shutil
 import sys
+import threading
+import time
+import urllib.error
 import urllib.parse
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ingest_priority_a import (  # noqa: E402
+    CATALOG,
     REPO,
+    UA,
     fetch_many,
     fetch_ok,
-    http_get,
     pack_rows,
     sitemap_locs,
     title_from_html,
@@ -31,8 +37,6 @@ from ingest_priority_a import (  # noqa: E402
     write_json,
     write_text,
 )
-from ingest_priority_b import get_json  # noqa: E402
-from fast_secondary import download_souls  # noqa: E402
 
 NOW = utc_now()
 TMP = Path("/tmp/gh-openclaw")
@@ -81,6 +85,274 @@ def slug_path(url: str) -> str:
     return path or "index"
 
 
+_SECRET_RES = [
+    (re.compile(rb"sk_live_[0-9A-Za-z]{16,}"), b"sk_live_REDACTED_ARCHIVE"),
+    (re.compile(rb"sk_test_[0-9A-Za-z]{16,}"), b"sk_test_REDACTED_ARCHIVE"),
+    (re.compile(rb"AKIA[0-9A-Z]{16}"), b"AKIAREDACTEDARCHIVE00"),
+    (re.compile(rb"ghp_[0-9A-Za-z]{20,}"), b"ghp_REDACTED_ARCHIVE"),
+    (re.compile(rb"github_pat_[0-9A-Za-z_]{20,}"), b"github_pat_REDACTED_ARCHIVE"),
+    (re.compile(rb"xoxb-[0-9][0-9A-Za-z-]{18,}"), b"xoxb-REDACTED"),
+    (re.compile(rb"xoxp-[0-9][0-9A-Za-z-]{18,}"), b"xoxp-REDACTED"),
+    (re.compile(rb"xoxe-[0-9A-Za-z-]{18,}"), b"xoxe-REDACTED"),
+    (re.compile(rb'(?i)("app_secret"\s*:\s*")([^"]{8,})(")'), rb'\1<REDACTED_APP_SECRET>\3'),
+    (re.compile(rb"(?i)(app_id[\"']?\s*:\s*[\"'])cli_[A-Za-z0-9]+"), rb"\1cli_REDACTED"),
+    (re.compile(rb"ou_[a-zA-Z0-9]{10,}"), b"ou_REDACTED"),
+]
+_SECRET_PLACEHOLDER = re.compile(
+    rb"abc|xxx|example|your[-_]?key|placeholder|redacted|xxxx",
+    re.I,
+)
+
+
+def sanitize_secret_bytes(data: bytes) -> bytes:
+    """Neutralize credential patterns that trip GitHub push protection."""
+    if not data:
+        return data
+    out = data
+    for pat, repl in _SECRET_RES:
+        def _sub(match: re.Match[bytes], replacement: bytes = repl) -> bytes:
+            if _SECRET_PLACEHOLDER.search(match.group(0)):
+                return match.group(0)
+            return replacement
+
+        out = pat.sub(_sub, out)
+    return out
+
+
+def http_get_headers(url: str, timeout: float = 40.0) -> tuple[int, bytes, dict[str, str]]:
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": UA, "Accept": "*/*", "X-Archive-Client": UA},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.status, resp.read(), {k: v for k, v in resp.headers.items()}
+    except urllib.error.HTTPError as exc:
+        body = exc.read() if exc.fp else b""
+        hdrs = {k: v for k, v in (exc.headers.items() if exc.headers else [])}
+        return exc.code, body, hdrs
+    except Exception as exc:  # noqa: BLE001
+        return 0, str(exc).encode(), {}
+
+
+def retry_after_seconds(headers: dict[str, str], default: float = 8.0) -> float:
+    raw = headers.get("Retry-After") or headers.get("retry-after")
+    if raw:
+        try:
+            return max(1.0, float(raw))
+        except ValueError:
+            pass
+    reset = headers.get("Ratelimit-Reset") or headers.get("RateLimit-Reset")
+    if reset:
+        try:
+            val = float(reset)
+            if val > 1_000_000_000:
+                return max(1.0, min(120.0, val - time.time()))
+            return max(1.0, min(120.0, val))
+        except ValueError:
+            pass
+    return default
+
+
+def looks_like_skill_md(body: bytes) -> bool:
+    if not body or len(body) < 21:
+        return False
+    head = body.lstrip()[:80]
+    if head.startswith(b"<") or head.startswith(b"{") or head.startswith(b"["):
+        return False
+    text = body.lstrip()
+    return text.startswith(b"---") or text.startswith(b"# ") or b"name:" in text[:400]
+
+
+def patch_catalog_unique(old: str, new: str) -> None:
+    """Surgical catalog.json edit so we never rewrite the 96MB file."""
+    text = CATALOG.read_text(encoding="utf-8")
+    n = text.count(old)
+    if n != 1:
+        raise RuntimeError(f"catalog patch expected 1 match, found {n}")
+    CATALOG.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+
+def fill_clawhub_skill_md(
+    skills: list[dict],
+    files_root: Path,
+    *,
+    workers: int = 8,
+    stop_429: int = 15,
+) -> dict:
+    """Download missing SKILL.md. Stops cleanly on a sustained 429 streak."""
+    jobs: list[str] = []
+    for it in skills:
+        slug = it.get("slug") or it.get("name")
+        if not slug:
+            continue
+        dest = files_root / str(slug) / "SKILL.md"
+        if dest.exists() and dest.stat().st_size > 20:
+            continue
+        jobs.append(str(slug))
+
+    stats = {
+        "attempted": len(jobs),
+        "ok": 0,
+        "fail": 0,
+        "http_409": 0,
+        "http_404": 0,
+        "http_429": 0,
+        "meta_fallback": 0,
+        "stopped_429": False,
+        "redacted": 0,
+    }
+    if not jobs:
+        return stats
+
+    stop = threading.Event()
+    lock = threading.Lock()
+    cooldown_until = 0.0
+    consec_429 = 0
+    misses: list[dict] = []
+
+    def wait_cooldown() -> None:
+        nonlocal cooldown_until
+        with lock:
+            until = cooldown_until
+        delay = until - time.time()
+        if delay > 0:
+            time.sleep(min(delay, 90.0))
+
+    def mark_429(headers: dict[str, str]) -> None:
+        nonlocal cooldown_until, consec_429
+        wait = retry_after_seconds(headers)
+        with lock:
+            consec_429 += 1
+            stats["http_429"] += 1
+            cooldown_until = max(cooldown_until, time.time() + wait)
+            if consec_429 >= stop_429:
+                stop.set()
+                stats["stopped_429"] = True
+
+    def mark_ok() -> None:
+        nonlocal consec_429
+        with lock:
+            consec_429 = 0
+
+    def save_body(slug: str, body: bytes) -> bool:
+        redacted = sanitize_secret_bytes(body)
+        dest = files_root / slug / "SKILL.md"
+        write_bytes(dest, redacted if redacted.endswith(b"\n") else redacted + b"\n")
+        with lock:
+            stats["ok"] += 1
+            if redacted != body:
+                stats["redacted"] += 1
+        return True
+
+    def fetch_file(slug: str, extra_q: str = "") -> tuple[int, bytes, dict[str, str]]:
+        q = "path=SKILL.md" + extra_q
+        url = f"https://clawhub.ai/api/v1/skills/{urllib.parse.quote(slug, safe='')}/file?{q}"
+        return http_get_headers(url)
+
+    def one(slug: str) -> str:
+        if stop.is_set():
+            return "stopped"
+        dest = files_root / slug / "SKILL.md"
+        if dest.exists() and dest.stat().st_size > 20:
+            return "exists"
+        wait_cooldown()
+        if stop.is_set():
+            return "stopped"
+
+        status, body, headers = fetch_file(slug)
+        if status == 429:
+            mark_429(headers)
+            if stop.is_set():
+                return "stopped"
+            wait_cooldown()
+            status, body, headers = fetch_file(slug)
+            if status == 429:
+                mark_429(headers)
+                return "429"
+
+        if status == 409:
+            with lock:
+                stats["http_409"] += 1
+            owner = None
+            try:
+                payload = json.loads(body.decode("utf-8", "replace"))
+                matches = payload.get("matches") or []
+                if matches:
+                    owner = matches[0].get("ownerHandle")
+            except json.JSONDecodeError:
+                owner = None
+            if owner:
+                status, body, headers = fetch_file(
+                    slug, extra_q="&owner=" + urllib.parse.quote(str(owner))
+                )
+                if status == 429:
+                    mark_429(headers)
+                    return "429"
+
+        if status == 200 and looks_like_skill_md(body):
+            mark_ok()
+            save_body(slug, body)
+            return "ok"
+
+        if status == 404:
+            with lock:
+                stats["http_404"] += 1
+            meta_url = f"https://clawhub.ai/api/v1/skills/{urllib.parse.quote(slug, safe='')}"
+            st2, raw2, hdr2 = http_get_headers(meta_url)
+            if st2 == 429:
+                mark_429(hdr2)
+                return "429"
+            if st2 == 200:
+                try:
+                    skill = (json.loads(raw2.decode("utf-8", "replace")) or {}).get("skill") or {}
+                    desc = skill.get("description")
+                    if isinstance(desc, str) and desc.lstrip().startswith("---"):
+                        mark_ok()
+                        save_body(slug, desc.encode("utf-8"))
+                        with lock:
+                            stats["meta_fallback"] += 1
+                        return "meta"
+                except json.JSONDecodeError:
+                    pass
+
+        with lock:
+            stats["fail"] += 1
+            misses.append({"slug": slug, "status": status, "bytes": len(body)})
+        if status not in (404, 409, 0):
+            # unexpected hard errors count toward a fail streak only via 429
+            pass
+        return f"fail-{status}"
+
+    done = 0
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futs = {pool.submit(one, slug): slug for slug in jobs}
+        for fut in as_completed(futs):
+            done += 1
+            if done % 50 == 0 or done == len(jobs) or stop.is_set():
+                print(
+                    f"  clawhub file {done}/{len(jobs)} ok={stats['ok']} fail={stats['fail']} "
+                    f"404={stats['http_404']} 409={stats['http_409']} 429={stats['http_429']} "
+                    f"stop={stats['stopped_429']}",
+                    flush=True,
+                )
+            if stop.is_set():
+                break
+
+    if misses:
+        miss_path = files_root.parent / "meta" / "skill-md-misses.json"
+        write_json(
+            miss_path,
+            {
+                "at": utc_now(),
+                "count": len(misses),
+                "stopped_429": stats["stopped_429"],
+                "items": misses[:5000],
+            },
+        )
+    return stats
+
+
 def deepen_clawhub() -> None:
     root = REPO / "sources" / "clawhub.ai"
     meta = root / "meta"
@@ -97,128 +369,85 @@ def deepen_clawhub() -> None:
     fetch_ok("https://clawhub.com/", pages / "clawhub.com-home.html")
     fetch_ok("https://clawhub.ai/skills", pages / "skills.html")
 
-    # resume cursor pagination
+    # Prefer the existing slug dump. Do not paginate more list pages while
+    # thousands of SKILL.md bodies are still missing (and catalog.json is capped).
     skill_dir = meta / "skills"
     existing_pages = sorted(skill_dir.glob("page-*.json"))
-    cursor = None
-    start_i = 0
-    if existing_pages:
-        last = json.loads(existing_pages[-1].read_text(encoding="utf-8"))
-        cursor = last.get("nextCursor")
-        start_i = len(existing_pages)
+    skills_path = meta / "skills.json"
     skills: list[dict] = []
-    seen: set[str] = set()
-    for path in existing_pages:
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            continue
-        for it in data.get("items") or []:
-            slug = it.get("slug") or it.get("name")
-            if slug and slug not in seen:
-                seen.add(slug)
-                skills.append(it)
-
-    i = start_i
-    while cursor and i < start_i + 400:
-        url = "https://clawhub.ai/api/v1/skills?limit=50&cursor=" + urllib.parse.quote(str(cursor))
-        dest = skill_dir / f"page-{i:03d}.json"
-        st, data = get_json(url)
-        if st != 200 or not isinstance(data, dict):
-            errors.append(f"skills page {i} HTTP {st}")
-            break
-        write_json(dest, data)
-        chunk = data.get("items") or []
-        added = 0
-        for it in chunk:
-            slug = it.get("slug") or it.get("name")
-            if slug and slug not in seen:
-                seen.add(slug)
-                skills.append(it)
-                added += 1
-        cursor = data.get("nextCursor")
-        print(f"  clawhub skills page={i} +{added} total={len(skills)} next={bool(cursor)}", flush=True)
-        if not chunk:
-            break
-        i += 1
-
-    write_json(meta / "skills.json", {"count": len(skills), "items": skills})
-
-    # SKILL.md bodies
-    jobs: list[tuple[str, Path]] = []
-    for it in skills:
-        slug = it.get("slug") or it.get("name")
-        if not slug:
-            continue
-        dest = files_root / slug / "SKILL.md"
-        if dest.exists() and dest.stat().st_size > 20:
-            continue
-        url = f"https://clawhub.ai/api/v1/skills/{urllib.parse.quote(str(slug))}/file?path=SKILL.md"
-        jobs.append((url, dest))
-    ok, fail = fetch_many(jobs, workers=16)
-    if fail:
-        errors.append(f"{fail}/{len(jobs)} SKILL.md downloads failed")
+    if skills_path.exists():
+        dump = json.loads(skills_path.read_text(encoding="utf-8"))
+        skills = list(dump.get("items") or [])
+        print(f"  clawhub loaded skills.json count={len(skills)} pages={len(existing_pages)}", flush=True)
+    else:
+        seen: set[str] = set()
+        for path in existing_pages:
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                continue
+            for it in data.get("items") or []:
+                slug = it.get("slug") or it.get("name")
+                if slug and slug not in seen:
+                    seen.add(slug)
+                    skills.append(it)
+        write_json(skills_path, {"count": len(skills), "items": skills})
+    stats = fill_clawhub_skill_md(skills, files_root, workers=8, stop_429=15)
+    if stats["fail"]:
+        errors.append(
+            f"{stats['fail']}/{stats['attempted']} SKILL.md downloads failed "
+            f"(404={stats['http_404']} 409={stats['http_409']} 429={stats['http_429']})"
+        )
+    if stats["stopped_429"]:
+        errors.append("Stopped cleanly on sustained file-API HTTP 429 streak.")
     n_md = sum(1 for p in files_root.rglob("SKILL.md") if p.stat().st_size > 20)
 
-    rows = [
-        {
-            "id": "clawhub.ai",
-            "title": "ClawHub",
-            "url": "https://clawhub.ai/",
-            "source": "clawhub.ai",
-            "type": "site",
-            "skills": len(skills),
-            "skill_md": n_md,
-            "alias": "https://clawhub.com/",
-        }
-    ]
-    for it in skills:
-        slug = it.get("slug") or it.get("name")
-        if not slug:
-            continue
-        rows.append(
-            {
-                "id": f"skill/{slug}",
-                "title": it.get("displayName") or str(slug),
-                "url": f"https://clawhub.ai/skills/{slug}",
-                "source": "clawhub.ai",
-                "type": "skill",
-                "has_skill_md": (files_root / slug / "SKILL.md").is_file(),
-                "summary": it.get("summary"),
-            }
+    try:
+        text = CATALOG.read_text(encoding="utf-8")
+        pat = re.compile(
+            r'(    "id": "clawhub\.ai",\n    "title": "ClawHub",\n    "url": "https://clawhub\.ai/",\n'
+            r'    "source": "clawhub\.ai",\n    "type": "site",\n    "skills": )\d+'
+            r'(,\n    "skill_md": )\d+(,)'
         )
-    # Do not replace all clawhub.ai catalog rows: 40k+ skill objects push
-    # catalog.json over GitHub's 100MB limit. Slugs live in meta/skills.json.
-    # Keep existing per-skill rows; only refresh the site summary object.
-    catalog_path = REPO / "catalog.json"
-    existing = json.loads(catalog_path.read_text(encoding="utf-8"))
-    site = rows[0]
-    found = False
-    for i, r in enumerate(existing):
-        if r.get("source") == "clawhub.ai" and r.get("id") == "clawhub.ai":
-            existing[i] = {**r, **site}
-            found = True
-            break
-    if not found:
-        existing.append(site)
-    catalog_path.write_text(json.dumps(existing, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"catalog site-row clawhub.ai skills={site.get('skills')} skill_md={site.get('skill_md')} (no per-skill replace)", flush=True)
+        new_text, n = pat.subn(rf"\g<1>{len(skills)}\g<2>{n_md}\3", text, count=1)
+        if n != 1:
+            raise RuntimeError(f"catalog clawhub site-row matches={n}")
+        if new_text != text:
+            CATALOG.write_text(new_text, encoding="utf-8")
+        print(f"catalog site-row clawhub.ai skills={len(skills)} skill_md={n_md} (surgical, no per-skill replace)", flush=True)
+    except RuntimeError as exc:
+        errors.append(f"catalog surgical patch skipped: {exc}")
+        print(f"catalog surgical patch skipped: {exc}", flush=True)
+
     write_index(
         root,
         "clawhub.ai",
         [
-            f"OpenClaw official skills registry. Refreshed {NOW}.",
+            f"OpenClaw official skills registry. Refreshed {utc_now()}.",
             "- clawhub.com serves the same app (homepage snapshot saved; not a second catalog).",
-            f"- `/api/v1/skills` unique slugs: **{len(skills)}**",
-            f"- SKILL.md via `/api/v1/skills/{{slug}}/file?path=SKILL.md`: **{n_md}** (ok={ok} fail={fail})",
+            f"- `/api/v1/skills` unique slugs: **{len(skills)}** (pages `000`–`{len(existing_pages) - 1:03d}`; `nextCursor` still live).",
+            f"- SKILL.md via `/api/v1/skills/{{slug}}/file?path=SKILL.md`: **{n_md}** (this pass attempted {stats['attempted']} ok={stats['ok']} fail={stats['fail']} meta_fallback={stats['meta_fallback']} 429={stats['http_429']} stopped_429={stats['stopped_429']}).",
             "- Zip download exists at `/api/v1/download?slug=` (not bulk-fetched; markdown preferred).",
+            "- `catalog.json` keeps the first 24511 per-skill rows only (GitHub 100MB file cap). Full list: `meta/skills.json`.",
+            "- Resume: `PYTHONPATH=scripts python3 -c \"from ingest_openclaw_souls import deepen_clawhub; deepen_clawhub()\"`.",
         ],
     )
+    hist = [
+        "First SKILL.md pass (pages 000–539 / 24511 slugs): 1945/19564 file-API misses.",
+        "Push-protection redactions (example credentials in public skill docs, not invented):",
+        "  - `skills/technews-daily-report/SKILL.md` Feishu `app_id` / `app_secret` / `member_id`",
+        "  - `skills/slack-integration/SKILL.md` Slack bot token / signing secret examples",
+        "Pages 540–939 added **19458** more slugs (total **43969**). File-API for those bodies previously hit a hard fail streak and was stopped.",
+        "`nextCursor` still live after page 939.",
+        "`catalog.json` keeps the first 24511 per-skill rows only (GitHub 100MB file cap). Full list: `meta/skills.json`.",
+    ]
     write_text(
         root / "ERRORS.md",
-        "# clawhub.ai\n\n" + ("\n".join(f"- {e}" for e in errors) if errors else "None.\n"),
+        "# clawhub.ai\n\n"
+        + "\n".join(f"- {e}" for e in hist + errors)
+        + "\n",
     )
-    print(f"clawhub skills={len(skills)} skill_md={n_md}", flush=True)
+    print(f"clawhub skills={len(skills)} skill_md={n_md} stats={stats}", flush=True)
 
 
 def ingest_openclaw_au() -> None:
@@ -400,6 +629,110 @@ def note_kriptoburak() -> None:
     )
 
 
+def deepen_souls_leftover() -> dict:
+    """Fill missing souls.directory SOUL.md without adding catalog rows."""
+    root = REPO / "sources" / "souls.directory"
+    dest_root = root / "souls"
+    dest_root.mkdir(parents=True, exist_ok=True)
+    text = (root / "llms.txt").read_text(encoding="utf-8", errors="replace")
+    apis = sorted(set(re.findall(r"https://souls\.directory/api/souls/[^\s)`]+", text)))
+    jobs: list[tuple[str, Path]] = []
+    for url in apis:
+        parts = urlparse(url).path.strip("/").split("/")
+        if len(parts) < 4:
+            continue
+        handle, slug = parts[2], parts[3]
+        if slug.endswith(".md"):
+            slug = slug[:-3]
+        dest = dest_root / handle / f"{slug}.md"
+        if dest.exists() and dest.stat().st_size > 20:
+            continue
+        jobs.append((url, dest))
+
+    stats = {"attempted": len(jobs), "ok": 0, "fail": 0, "http_429": 0, "stopped_429": False}
+    if not jobs:
+        print("souls leftover: nothing missing", flush=True)
+        return stats
+
+    stop = threading.Event()
+    lock = threading.Lock()
+    consec_429 = 0
+
+    def one(item: tuple[str, Path]) -> str:
+        nonlocal consec_429
+        url, dest = item
+        if stop.is_set():
+            return "stopped"
+        if dest.exists() and dest.stat().st_size > 20:
+            return "exists"
+        status, body, headers = http_get_headers(url)
+        if status == 429:
+            with lock:
+                consec_429 += 1
+                stats["http_429"] += 1
+                if consec_429 >= 15:
+                    stop.set()
+                    stats["stopped_429"] = True
+            return "429"
+        if status == 200 and body and len(body) > 20 and not body.lstrip().startswith(b"<"):
+            write_bytes(dest, sanitize_secret_bytes(body))
+            with lock:
+                consec_429 = 0
+                stats["ok"] += 1
+            return "ok"
+        with lock:
+            stats["fail"] += 1
+        return f"fail-{status}"
+
+    done = 0
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        futs = {pool.submit(one, job): job for job in jobs}
+        for fut in as_completed(futs):
+            done += 1
+            if done % 100 == 0 or done == len(jobs) or stop.is_set():
+                print(
+                    f"  souls leftover {done}/{len(jobs)} ok={stats['ok']} fail={stats['fail']} "
+                    f"429={stats['http_429']} stop={stats['stopped_429']}",
+                    flush=True,
+                )
+            if stop.is_set():
+                break
+
+    n = sum(1 for _ in dest_root.rglob("*.md") if _.stat().st_size > 20)
+    write_json(
+        root / "meta" / "soul-download-stats.json",
+        {"apis": len(apis), "attempted": len(jobs), "ok": stats["ok"], "fail": stats["fail"], "on_disk": n, "at": utc_now(), "stopped_429": stats["stopped_429"]},
+    )
+    write_index(
+        root,
+        "souls.directory",
+        [
+            f"OpenClaw SOUL.md directory. Refreshed {utc_now()}.",
+            f"API URLs in llms.txt: **{len(apis)}**. SOUL.md on disk: **{n}** (this pass {stats['ok']} ok / {stats['fail']} fail; 429={stats['http_429']} stopped_429={stats['stopped_429']}).",
+            "Fetched via `GET /api/souls/{handle}/{slug}.md`.",
+            "Catalog keeps existing soul rows only (no extra catalog.json growth).",
+        ],
+    )
+    write_text(
+        root / "ERRORS.md",
+        f"# souls.directory\n\nThis-pass SOUL.md failures: {stats['fail']}. 429={stats['http_429']} stopped_429={stats['stopped_429']}.\n",
+    )
+    try:
+        text = CATALOG.read_text(encoding="utf-8")
+        pat = re.compile(
+            r'(    "id": "souls\.directory",\n    "title": "souls\.directory",\n    "url": "https://souls\.directory/",\n'
+            r'    "source": "souls\.directory",\n    "type": "site",\n    "soul_md": )\d+'
+        )
+        new_text, nsub = pat.subn(rf"\g<1>{n}", text, count=1)
+        if nsub == 1 and new_text != text:
+            CATALOG.write_text(new_text, encoding="utf-8")
+            print(f"catalog site-row souls.directory soul_md={n} (surgical)", flush=True)
+    except Exception as exc:  # noqa: BLE001
+        print(f"souls catalog patch skipped: {exc}", flush=True)
+    print(f"souls leftover ok={stats['ok']} fail={stats['fail']} on_disk={n}", flush=True)
+    return stats
+
+
 def main() -> int:
     print(f"ingest_openclaw_souls start {NOW}", flush=True)
     deepen_clawhub()
@@ -433,7 +766,7 @@ def main() -> int:
     note_kriptoburak()
 
     print("souls.directory leftover pass", flush=True)
-    download_souls()
+    deepen_souls_leftover()
     deepen_clawskills()
     print("ingest_openclaw_souls done", flush=True)
     return 0
