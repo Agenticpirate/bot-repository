@@ -4,6 +4,25 @@ Public archive of bot jobs, team recipes, prompt packs, and agent marketplaces, 
 
 This repository is a mirror for research and citation. **Canonical pages live on the source sites.** Serials, titles, prompts, installers, and evidence are copied as published. Do not invent serials. Do not strip attribution.
 
+## Compound + Explorer
+
+[**Compound**](products/compound/) is a Memory OS for a one-person Grok Bot company. The web front door is [`apps/explorer`](apps/explorer/):
+
+| Route | What |
+| --- | --- |
+| `/` | Compound landing |
+| `/setup` | 12-step wizard (copy-paste prompts) |
+| `/kit` | Memory Steward + Who-I-Am + DECISIONS templates |
+| `/explore` | Public archive search — pick role bots & skills |
+
+```bash
+cd apps/explorer && npm install && npm run dev
+```
+
+Search uses a **slim index** (not `catalog.json`, not the ~2TB `sources/` tree). A committed seed is enough for local/CI/demo. Rebuild with `python3 scripts/build-explorer-index.py --mode seed` or `--mode full` on a machine that has the archive checkout. See [apps/explorer/README.md](apps/explorer/README.md) and [products/compound/README.md](products/compound/README.md).
+
+Inspired by [@kingwilliam_](https://x.com/kingwilliam_/status/2096273503901122746) — thesis credit, not a reprint.
+
 ## Completeness (2026-09-12)
 
 | Item | Status |
@@ -148,6 +167,8 @@ really.bot is not a prompt pack or an official xAI/Cursor product. botteams.io i
 ```
 README.md
 catalog.json
+apps/explorer/          # Compound front door + archive search (slim index)
+products/compound/      # Memory OS product kit + 12 prompts + starter pack
 docs/source-candidates.md
 sources/really.bot/
 sources/botteams.io/
