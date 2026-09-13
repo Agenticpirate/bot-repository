@@ -4,6 +4,16 @@ Public archive of bot jobs, team recipes, prompt packs, and agent marketplaces, 
 
 This repository is a mirror for research and citation. **Canonical pages live on the source sites.** Serials, titles, prompts, installers, and evidence are copied as published. Do not invent serials. Do not strip attribution.
 
+## Explorer
+
+A searchable web UI lives in [`apps/explorer`](apps/explorer/). It queries a **slim index** (not `catalog.json` and not the ~2TB `sources/` tree).
+
+```bash
+cd apps/explorer && npm install && npm run dev
+```
+
+A committed seed index is enough for local/CI/demo. Rebuild from `catalog.json` with `python3 scripts/build-explorer-index.py --mode seed` (bounded real rows) or `--mode full` on a machine that has the archive checkout. See [apps/explorer/README.md](apps/explorer/README.md) for architecture and Vercel notes (Root Directory = `apps/explorer` only).
+
 ## Completeness (2026-09-12)
 
 | Item | Status |
@@ -148,6 +158,7 @@ really.bot is not a prompt pack or an official xAI/Cursor product. botteams.io i
 ```
 README.md
 catalog.json
+apps/explorer/          # searchable web UI (slim index, not sources/)
 docs/source-candidates.md
 sources/really.bot/
 sources/botteams.io/
