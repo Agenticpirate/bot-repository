@@ -11,10 +11,10 @@ This repository is a mirror for research and citation. **Canonical pages live on
 | **catalog.json rows** | **234,732** |
 | **x.ai marketplace bots** | **71** (refreshed 2026-09-12; 0 new slugs) |
 | **x.ai marketplace plugins** | **27** (Grok Build catalog @ 9963e48) |
-| **skills.sh downloaded** (files + hash) | **19,752** / 19,998 |
+| **skills.sh downloaded** (files + hash) | **19,809** / 19,998 |
 | **skills.sh via GitHub clone** | **15,032** |
-| **skills.sh via API** | **4,720** |
-| **skills.sh remaining** | **61** (plus 185 permanent 404s) |
+| **skills.sh via API** | **4,777** |
+| **skills.sh remaining** | **0** (plus 189 permanent 404s) |
 | **vellum.ai skills** | **75** bodies + 88 skill/category pages |
 | **moldable.sh** | **70** sitemap pages + apps/skills GitHub packs |
 
@@ -419,7 +419,7 @@ Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/A
 
 ## Caps / failures
 
-- **skills.sh** — **19,752** sitemap ids have `files/` + hash (**15,032** GitHub clone, **4,720** API). **61** leftovers have no `files/` yet; **185** are permanent API 404s with HTML fallback. API drip only: `scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog` (60/hour).
+- **skills.sh** — **19,809** sitemap ids have `files/` + hash (**15,032** GitHub clone, **4,777** API). **0** leftovers have no `files/` yet; **189** are permanent API 404s with HTML fallback. API drip only: `scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog` (60/hour).
 - **smithery.ai** — list API hard-caps at 5 pages × 100 (**420** uniques) despite `totalCount` 22,603; `pageSize>100` is HTTP 400.
 - **souls.directory** — public `GET /api/souls/{handle}/{slug}.md`; **3147** SOUL.md on disk (llms.txt lists 4656 API URLs; leftovers mostly 404/empty).
 - **openclawskills.io** — Next.js gallery; sitemap has no per-skill URLs. `github.com/openclaw/skills` is not a public repo.
