@@ -187,7 +187,22 @@ def deepen_clawhub() -> None:
                 "summary": it.get("summary"),
             }
         )
-    upsert_catalog("clawhub.ai", rows)
+    # Do not replace all clawhub.ai catalog rows: 40k+ skill objects push
+    # catalog.json over GitHub's 100MB limit. Slugs live in meta/skills.json.
+    # Keep existing per-skill rows; only refresh the site summary object.
+    catalog_path = REPO / "catalog.json"
+    existing = json.loads(catalog_path.read_text(encoding="utf-8"))
+    site = rows[0]
+    found = False
+    for i, r in enumerate(existing):
+        if r.get("source") == "clawhub.ai" and r.get("id") == "clawhub.ai":
+            existing[i] = {**r, **site}
+            found = True
+            break
+    if not found:
+        existing.append(site)
+    catalog_path.write_text(json.dumps(existing, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(f"catalog site-row clawhub.ai skills={site.get('skills')} skill_md={site.get('skill_md')} (no per-skill replace)", flush=True)
     write_index(
         root,
         "clawhub.ai",

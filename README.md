@@ -97,7 +97,7 @@ GitHub bulk fill: `python3 scripts/fill_skills_sh_from_github.py --workers 24`
 - [officialskills.sh](https://officialskills.sh/) — VoltAgent official-vendor skill gallery (741 sitemap pages)
 - [smithery.ai](https://smithery.ai/) — public `GET /skills` dump (**420** uniques; API claims 22,603, 5×100 cap)
 - [clawskills.sh](https://clawskills.sh/) — OpenClaw gallery (5,167 skill hrefs; **5,167** skill HTML pages)
-- [clawhub.ai](https://clawhub.ai/) — official OpenClaw skills registry (**24,511** API slugs, **22,566** SKILL.md; cursor still live); clawhub.com is the same app
+- [clawhub.ai](https://clawhub.ai/) — official OpenClaw skills registry (**43,969** API slugs, **22,566** SKILL.md so far; cursor still live); clawhub.com is the same app
 - [openclaw.com.au/skills](https://openclaw.com.au/skills) — OpenClaw docs/guide directory (no per-skill API)
 - [agent.soulid.io](https://agent.soulid.io/) — SoulID marketplace HTML; bodies in [cerealskill/openclaw-agents](https://github.com/cerealskill/openclaw-agents)
 - [souls.directory](https://souls.directory/) — SOUL.md API directory (+ [thedaviddias/souls-directory](https://github.com/thedaviddias/souls-directory) site source)
@@ -419,7 +419,7 @@ Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/A
 
 ## Caps / failures
 
-- **skills.sh** — **19,809** sitemap ids have `files/` + hash (**15,032** GitHub clone, **4,777** API). **0** leftovers have no `files/` yet; **189** are permanent API 404s with HTML fallback. API drip only: `scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog` (60/hour).
+- **skills.sh** — **19,809** sitemap ids have `files/` + hash (**15,032** GitHub clone, **4,777** API). **0** leftovers without `files/`; **189** permanent API 404s have HTML fallback (`19998 = 19809 + 189`). GitHub Trees leftover fill remains 0.
 - **smithery.ai** — list API hard-caps at 5 pages × 100 (**420** uniques) despite `totalCount` 22,603; `pageSize>100` is HTTP 400.
 - **souls.directory** — public `GET /api/souls/{handle}/{slug}.md`; **3147** SOUL.md on disk (llms.txt lists 4656 API URLs; leftovers mostly 404/empty).
 - **openclawskills.io** — Next.js gallery; sitemap has no per-skill URLs. `github.com/openclaw/skills` is not a public repo.
