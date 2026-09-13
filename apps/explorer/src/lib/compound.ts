@@ -66,16 +66,27 @@ export const SETUP_STORAGE_KEY = "compound-setup-done";
 
 type DoneListener = () => void;
 const doneListeners = new Set<DoneListener>();
+const EMPTY_DONE: number[] = [];
+let cachedRaw: string | null = null;
+let cachedDone: number[] = EMPTY_DONE;
+
+function parseDone(raw: string): number[] {
+  try {
+    const parsed = JSON.parse(raw) as number[];
+    return Array.isArray(parsed) ? parsed.filter((n) => n >= 1 && n <= 12) : EMPTY_DONE;
+  } catch {
+    return EMPTY_DONE;
+  }
+}
 
 function readDone(): number[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(SETUP_STORAGE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as number[]) : [];
-    return Array.isArray(parsed) ? parsed.filter((n) => n >= 1 && n <= 12) : [];
-  } catch {
-    return [];
-  }
+  if (typeof window === "undefined") return EMPTY_DONE;
+  const raw = localStorage.getItem(SETUP_STORAGE_KEY) ?? "[]";
+  if (raw === cachedRaw) return cachedDone;
+  const next = parseDone(raw);
+  cachedRaw = raw;
+  cachedDone = next.length === 0 ? EMPTY_DONE : next;
+  return cachedDone;
 }
 
 export function subscribeSetupDone(listener: DoneListener): () => void {
@@ -88,11 +99,14 @@ export function getSetupDone(): number[] {
 }
 
 export function getSetupDoneServer(): number[] {
-  return [];
+  return EMPTY_DONE;
 }
 
 export function writeSetupDone(next: number[]): void {
-  localStorage.setItem(SETUP_STORAGE_KEY, JSON.stringify(next));
+  const raw = JSON.stringify(next);
+  localStorage.setItem(SETUP_STORAGE_KEY, raw);
+  cachedRaw = raw;
+  cachedDone = next.length === 0 ? EMPTY_DONE : next;
   for (const listener of doneListeners) listener();
 }
 
