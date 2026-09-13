@@ -7,6 +7,7 @@ clawhub.com is the same app as clawhub.ai (noted, not duplicated).
 
 from __future__ import annotations
 
+import io
 import json
 import re
 import shutil
@@ -16,6 +17,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import urlparse
@@ -160,14 +162,67 @@ def retry_after_seconds(headers: dict[str, str], default: float = 8.0) -> float:
     return default
 
 
+def strip_utf8_bom(data: bytes) -> bytes:
+    if data.startswith(b"\xef\xbb\xbf"):
+        return data[3:]
+    return data
+
+
 def looks_like_skill_md(body: bytes) -> bool:
+    """Accept published SKILL.md bodies; reject empty / API-error / HTML pages.
+
+    Leftover ClawHub files include UTF-8 BOM markdown, HTML comments, plain
+    text, JS headers, INI `[Info]` blocks, RTF, and JSON skill manifests.
+    Do not invent bodies — only accept bytes the API actually returned.
+    """
     if not body or len(body) < 21:
         return False
-    head = body.lstrip()[:80]
-    if head.startswith(b"<") or head.startswith(b"{") or head.startswith(b"["):
+    text = strip_utf8_bom(body).lstrip()
+    text = strip_utf8_bom(text).lstrip()
+    if not text:
         return False
-    text = body.lstrip()
-    return text.startswith(b"---") or text.startswith(b"# ") or b"name:" in text[:400]
+    low = text[:40].lower()
+    if low.startswith(b"<!doctype") or low.startswith(b"<html"):
+        return False
+    if text[:1] in (b"{", b"["):
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            return True  # [Info] INI, {\rtf, etc.
+        if isinstance(data, dict) and data.get("code"):
+            return False  # AMBIGUOUS_SKILL_SLUG / API error JSON
+        if isinstance(data, dict) and (data.get("name") or data.get("description")):
+            return True
+        return False
+    return True
+
+
+def classify_clawhub_miss(status: int, body: bytes) -> str:
+    if status == 0:
+        return "transient-http-0"
+    if status == 404:
+        return "file-not-found-no-recoverable-body"
+    if status == 409:
+        return "ambiguous-slug-no-owner-body"
+    if status == 200 and (not body or not body.strip()):
+        return "empty-200"
+    if status == 200:
+        return "empty-or-non-markdown-200"
+    return f"http-{status}"
+
+
+def skill_md_from_zip(blob: bytes) -> bytes | None:
+    try:
+        zf = zipfile.ZipFile(io.BytesIO(blob))
+    except zipfile.BadZipFile:
+        return None
+    names = [n.replace("\\", "/") for n in zf.namelist() if not n.endswith("/")]
+    candidates = [n for n in names if n.rsplit("/", 1)[-1].lower() == "skill.md"]
+    if not candidates:
+        return None
+    candidates.sort(key=lambda n: (n.count("/"), n.lower()))
+    data = zf.read(candidates[0])
+    return data if looks_like_skill_md(data) else None
 
 
 def patch_catalog_unique(old: str, new: str) -> None:
@@ -205,8 +260,11 @@ def fill_clawhub_skill_md(
         "http_404": 0,
         "http_429": 0,
         "meta_fallback": 0,
+        "zip_fallback": 0,
+        "owner_disambiguated": 0,
         "stopped_429": False,
         "redacted": 0,
+        "permanent": 0,
     }
     if not jobs:
         return stats
@@ -280,21 +338,29 @@ def fill_clawhub_skill_md(
         if status == 409:
             with lock:
                 stats["http_409"] += 1
-            owner = None
+            matches: list[dict] = []
             try:
                 payload = json.loads(body.decode("utf-8", "replace"))
-                matches = payload.get("matches") or []
-                if matches:
-                    owner = matches[0].get("ownerHandle")
+                matches = [m for m in (payload.get("matches") or []) if isinstance(m, dict)]
             except json.JSONDecodeError:
-                owner = None
-            if owner:
+                matches = []
+            # First listed owner is often a stub/404; try every publisher.
+            for match in matches:
+                owner = match.get("ownerHandle") or match.get("handle")
+                if not owner:
+                    continue
                 status, body, headers = fetch_file(
-                    slug, extra_q="&owner=" + urllib.parse.quote(str(owner))
+                    slug, extra_q="&owner=" + urllib.parse.quote(str(owner), safe="")
                 )
                 if status == 429:
                     mark_429(headers)
                     return "429"
+                if status == 200 and looks_like_skill_md(body):
+                    mark_ok()
+                    save_body(slug, body)
+                    with lock:
+                        stats["owner_disambiguated"] += 1
+                    return "owner"
 
         if status == 200 and looks_like_skill_md(body):
             mark_ok()
@@ -304,30 +370,48 @@ def fill_clawhub_skill_md(
         if status == 404:
             with lock:
                 stats["http_404"] += 1
-            meta_url = f"https://clawhub.ai/api/v1/skills/{urllib.parse.quote(slug, safe='')}"
-            st2, raw2, hdr2 = http_get_headers(meta_url)
-            if st2 == 429:
-                mark_429(hdr2)
-                return "429"
-            if st2 == 200:
-                try:
-                    skill = (json.loads(raw2.decode("utf-8", "replace")) or {}).get("skill") or {}
-                    desc = skill.get("description")
-                    if isinstance(desc, str) and desc.lstrip().startswith("---"):
-                        mark_ok()
-                        save_body(slug, desc.encode("utf-8"))
-                        with lock:
-                            stats["meta_fallback"] += 1
-                        return "meta"
-                except json.JSONDecodeError:
-                    pass
 
+        # Meta description is the published listing body (not invented).
+        meta_url = f"https://clawhub.ai/api/v1/skills/{urllib.parse.quote(slug, safe='')}"
+        st2, raw2, hdr2 = http_get_headers(meta_url)
+        if st2 == 429:
+            mark_429(hdr2)
+            return "429"
+        if st2 == 200:
+            try:
+                skill = (json.loads(raw2.decode("utf-8", "replace")) or {}).get("skill") or {}
+                desc = skill.get("description")
+                if isinstance(desc, str) and looks_like_skill_md(desc.encode("utf-8")):
+                    mark_ok()
+                    save_body(slug, desc.encode("utf-8"))
+                    with lock:
+                        stats["meta_fallback"] += 1
+                    return "meta"
+            except json.JSONDecodeError:
+                pass
+
+        # Last resort: hosted zip may contain SKILL.md under another layout.
+        zip_url = "https://clawhub.ai/api/v1/download?slug=" + urllib.parse.quote(slug, safe="")
+        stz, rawz, hdrz = http_get_headers(zip_url)
+        if stz == 429:
+            mark_429(hdrz)
+            return "429"
+        if stz == 200:
+            extracted = skill_md_from_zip(rawz)
+            if extracted:
+                mark_ok()
+                save_body(slug, extracted)
+                with lock:
+                    stats["zip_fallback"] += 1
+                return "zip"
+
+        reason = classify_clawhub_miss(status, body)
+        rec = {"slug": slug, "status": status, "bytes": len(body), "reason": reason}
         with lock:
             stats["fail"] += 1
-            misses.append({"slug": slug, "status": status, "bytes": len(body)})
-        if status not in (404, 409, 0):
-            # unexpected hard errors count toward a fail streak only via 429
-            pass
+            misses.append(rec)
+            if reason != "transient-http-0":
+                stats["permanent"] += 1
         return f"fail-{status}"
 
     done = 0
@@ -345,17 +429,27 @@ def fill_clawhub_skill_md(
             if stop.is_set():
                 break
 
-    if misses:
-        miss_path = files_root.parent / "meta" / "skill-md-misses.json"
-        write_json(
-            miss_path,
-            {
-                "at": utc_now(),
-                "count": len(misses),
-                "stopped_429": stats["stopped_429"],
-                "items": misses[:5000],
-            },
-        )
+    meta_dir = files_root.parent / "meta"
+    permanent = [m for m in misses if m.get("reason") != "transient-http-0"]
+    write_json(
+        meta_dir / "skill-md-misses.json",
+        {
+            "at": utc_now(),
+            "count": len(misses),
+            "stopped_429": stats["stopped_429"],
+            "items": misses[:5000],
+        },
+    )
+    write_json(
+        meta_dir / "skill-md-permanent-misses.json",
+        {
+            "at": utc_now(),
+            "count": len(permanent),
+            "note": "Slug listed in meta/skills.json but no recoverable published SKILL.md (not invented).",
+            "items": permanent[:5000],
+        },
+    )
+    stats["permanent"] = len(permanent)
     return stats
 
 
@@ -432,8 +526,9 @@ def deepen_clawhub() -> None:
             f"OpenClaw official skills registry. Refreshed {utc_now()}.",
             "- clawhub.com serves the same app (homepage snapshot saved; not a second catalog).",
             f"- `/api/v1/skills` unique slugs: **{len(skills)}** (pages `000`–`{len(existing_pages) - 1:03d}`; `nextCursor` still live).",
-            f"- SKILL.md via `/api/v1/skills/{{slug}}/file?path=SKILL.md`: **{n_md}** (this pass attempted {stats['attempted']} ok={stats['ok']} fail={stats['fail']} meta_fallback={stats['meta_fallback']} 429={stats['http_429']} stopped_429={stats['stopped_429']}).",
-            "- Zip download exists at `/api/v1/download?slug=` (not bulk-fetched; markdown preferred).",
+            f"- SKILL.md via `/api/v1/skills/{{slug}}/file?path=SKILL.md`: **{n_md}** (this pass attempted {stats['attempted']} ok={stats['ok']} fail={stats['fail']} owner={stats['owner_disambiguated']} meta_fallback={stats['meta_fallback']} zip_fallback={stats['zip_fallback']} permanent={stats['permanent']} 429={stats['http_429']} stopped_429={stats['stopped_429']}).",
+            "- Zip used only as last-resort SKILL.md extract (not a bulk zip archive).",
+            "- Permanent misses (no recoverable published body; not invented): `meta/skill-md-permanent-misses.json`.",
             "- `catalog.json` keeps the first 24511 per-skill rows only (GitHub 100MB file cap). Full list: `meta/skills.json`.",
             "- Resume: `PYTHONPATH=scripts python3 -c \"from ingest_openclaw_souls import deepen_clawhub; deepen_clawhub()\"`.",
         ],
@@ -443,9 +538,12 @@ def deepen_clawhub() -> None:
         "Push-protection redactions (example credentials in public skill docs, not invented):",
         "  - `skills/technews-daily-report/SKILL.md` Feishu `app_id` / `app_secret` / `member_id`",
         "  - `skills/slack-integration/SKILL.md` Slack bot token / signing secret examples",
-        "Pages 540–939 added **19458** more slugs (total **43969**). File-API for those bodies previously hit a hard fail streak and was stopped.",
-        "`nextCursor` still live after page 939.",
+        "  - Later bodies: Feishu/Lark `cli_a…` / `app_secret`, Tencent `AKID…`, Baidu `bce-v3/ALTAK-…`, DeepSeek/OpenAI-style `sk-…` examples",
+        "Pages 540–939 added **19458** more slugs (total **43969**).",
+        "Mop-up recovered leftover 90 via BOM/plain-text accept, all 409 owners, meta description, and zip SKILL.md extract.",
+        f"`nextCursor` still live after page 939.",
         "`catalog.json` keeps the first 24511 per-skill rows only (GitHub 100MB file cap). Full list: `meta/skills.json`.",
+        "Permanent miss list: `meta/skill-md-permanent-misses.json`.",
     ]
     write_text(
         root / "ERRORS.md",
@@ -635,8 +733,11 @@ def note_kriptoburak() -> None:
     )
 
 
-def deepen_souls_leftover() -> dict:
-    """Fill missing souls.directory SOUL.md without adding catalog rows."""
+def deepen_souls_leftover(max_new: int = 0, workers: int = 3, stop_429: int = 5) -> dict:
+    """Fill missing souls.directory SOUL.md without adding catalog rows.
+
+    max_new=0 means no cap. Use a small max_new + few workers for a polite pass.
+    """
     root = REPO / "sources" / "souls.directory"
     dest_root = root / "souls"
     dest_root.mkdir(parents=True, exist_ok=True)
@@ -655,7 +756,17 @@ def deepen_souls_leftover() -> dict:
             continue
         jobs.append((url, dest))
 
-    stats = {"attempted": len(jobs), "ok": 0, "fail": 0, "http_429": 0, "stopped_429": False}
+    leftover_total = len(jobs)
+    if max_new and leftover_total > max_new:
+        jobs = jobs[:max_new]
+    stats = {
+        "attempted": len(jobs),
+        "leftover_total": leftover_total,
+        "ok": 0,
+        "fail": 0,
+        "http_429": 0,
+        "stopped_429": False,
+    }
     if not jobs:
         print("souls leftover: nothing missing", flush=True)
         return stats
@@ -663,20 +774,30 @@ def deepen_souls_leftover() -> dict:
     stop = threading.Event()
     lock = threading.Lock()
     consec_429 = 0
+    cooldown_until = 0.0
 
     def one(item: tuple[str, Path]) -> str:
-        nonlocal consec_429
+        nonlocal consec_429, cooldown_until
         url, dest = item
         if stop.is_set():
             return "stopped"
         if dest.exists() and dest.stat().st_size > 20:
             return "exists"
+        with lock:
+            until = cooldown_until
+        delay = until - time.time()
+        if delay > 0:
+            time.sleep(min(delay, 90.0))
+        if stop.is_set():
+            return "stopped"
         status, body, headers = http_get_headers(url)
         if status == 429:
+            wait = retry_after_seconds(headers, default=20.0)
             with lock:
                 consec_429 += 1
                 stats["http_429"] += 1
-                if consec_429 >= 15:
+                cooldown_until = max(cooldown_until, time.time() + wait)
+                if consec_429 >= stop_429:
                     stop.set()
                     stats["stopped_429"] = True
             return "429"
@@ -691,7 +812,7 @@ def deepen_souls_leftover() -> dict:
         return f"fail-{status}"
 
     done = 0
-    with ThreadPoolExecutor(max_workers=12) as pool:
+    with ThreadPoolExecutor(max_workers=workers) as pool:
         futs = {pool.submit(one, job): job for job in jobs}
         for fut in as_completed(futs):
             done += 1
@@ -707,7 +828,17 @@ def deepen_souls_leftover() -> dict:
     n = sum(1 for _ in dest_root.rglob("*.md") if _.stat().st_size > 20)
     write_json(
         root / "meta" / "soul-download-stats.json",
-        {"apis": len(apis), "attempted": len(jobs), "ok": stats["ok"], "fail": stats["fail"], "on_disk": n, "at": utc_now(), "stopped_429": stats["stopped_429"]},
+        {
+            "apis": len(apis),
+            "leftover_total": stats.get("leftover_total", len(jobs)),
+            "attempted": len(jobs),
+            "ok": stats["ok"],
+            "fail": stats["fail"],
+            "on_disk": n,
+            "at": utc_now(),
+            "stopped_429": stats["stopped_429"],
+            "http_429": stats["http_429"],
+        },
     )
     write_index(
         root,
