@@ -130,7 +130,7 @@ wechat-oa create article.md --digest "这是文章摘要"
       "author": "你的名字",
       "voice_name": ["主号", "主公众号"],
       "APP_ID": "wx0000000000000000",
-      "APP_SECRET": "00000000000000000000000000000000"
+      "APP_SECRET": "<REDACTED_APP_SECRET>"
     }
   }
 }

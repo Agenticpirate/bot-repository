@@ -116,7 +116,7 @@ metadata:
 # 设置环境变量
 export JF_UUID="uuidxxxx"
 export JF_APP_KEY="appkeyxxxx"
-export JF_APP_SECRET="appsecretxxxx"
+export JF_APP_SECRET="<REDACTED_APP_SECRET>"
 export JF_MOVE_CARD=0
 export JF_DEVICE_SN="snxxx1"
 export JF_DEVICE_TOKEN="NTQ0NzQ3YmE3MXwyYzFk..."

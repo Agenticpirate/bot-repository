@@ -122,7 +122,7 @@ metadata:
 # 设置环境变量（使用占位符，请替换为实际值）
 export JF_UUID="uuidxxxx"
 export JF_APP_KEY="appkeyxxxx"
-export JF_APP_SECRET="appsecretxxxx"
+export JF_APP_SECRET="<REDACTED_APP_SECRET>"
 export JF_MOVE_CARD="2"
 export JF_DEVICE_SN="devicesnxxxx"
 export JF_DEVICE_TOKEN="devicetokenxxxx"

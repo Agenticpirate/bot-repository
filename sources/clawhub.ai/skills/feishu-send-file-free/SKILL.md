@@ -115,7 +115,7 @@ grep -A 2 '"feishu"' /root/.skill-platform/skill-platform.json | grep -E '(appId
 python3 /root/.skill-platform/workspace/skills/feishu-send-file/（请参考skill目录中的脚本文件） \
   /root/myfiles/report.html \
   ou_abc123def456 \
-  cli_a1b2c3d4e5f6g7h8 \
+  cli_REDACTEDg7h8 \
   secretAbCdEfGhIjKlMnOp \
   weekly-report.html
 ```
@@ -172,7 +172,7 @@ curl -s -X POST "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type
 ```bash
 python3 /root/.skill-platform/workspace/skills/feishu-send-file/（请参考skill目录中的脚本文件） \
   ou_abc123def456 \
-  cli_a1b2c3d4e5f6g7h8 \
+  cli_REDACTEDg7h8 \
   secretAbCdEfGhIjKlMnOp \
   report.html
 ```

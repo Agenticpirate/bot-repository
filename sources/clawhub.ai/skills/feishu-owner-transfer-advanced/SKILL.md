@@ -62,7 +62,7 @@ import requests
 
 # -------- 配置区 --------
 APP_ID = "cli_xxxxxxxx"
-APP_SECRET = "xxxxxxxxxxxxxxxxxxxxxxxx"
+APP_SECRET = "<REDACTED_APP_SECRET>"
 TENANT_TOKEN = "t-xxxxxxxxxxxxxxxxxxxxxxxx"  # AI智能体的tenant_access_token
 FILE_TOKEN = "doxcnxxxxxxxxxxxxxxxxxxxxxxxx"  # 要转的文档token
 MY_USER_ID = "ou_xxxxxxxxxxxxxxxxxxxxxxxx"   # 你的openid

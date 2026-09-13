@@ -88,7 +88,7 @@ feishu-doc-orchestrator/      # 主编排技能
 ```ini
 # 必需配置
 FEISHU_APP_ID = "cli_xxxxxxxxxxxxx"
-FEISHU_APP_SECRET = "xxxxxxxxxxxxxxxxxx"
+FEISHU_APP_SECRET = "<REDACTED_APP_SECRET>"
 FEISHU_API_DOMAIN = "https://open.feishu.cn"
 
 # 可选配置

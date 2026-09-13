@@ -201,7 +201,7 @@ python3 scripts/send_image.py <image_path> <open_id> <app_id> <app_secret> [doma
 python3 /path/to/scripts/send_file.py \
   /home/user/documents/report.html \
   ou_abc123def456 \
-  cli_a1b2c3d4e5f6 \
+  cli_REDACTED \
   secret_abcdef123456 \
   monthly_report.html
 ```

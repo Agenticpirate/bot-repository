@@ -209,7 +209,7 @@ metadata:
 ```bash
 export JF_UUID="uuidxxxx"
 export JF_APP_KEY="appkeyxxxx"
-export JF_APP_SECRET="appsecretxxxx"
+export JF_APP_SECRET="<REDACTED_APP_SECRET>"
 export JF_DEVICE_SN="2e87cdb6381cxxxx"
 export JF_DEVICE_USERNAME="admin"
 export JF_DEVICE_PASSWORD="***"

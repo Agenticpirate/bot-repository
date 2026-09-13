@@ -425,7 +425,7 @@ with open('/Users/openclawer/.openclaw/secrets.json') as f:
 app_secret = sec.get('channels',{}).get('feishu',{}).get('accounts',{}).get('main',{}).get('appSecret','')
 req = urllib.request.Request(
     'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal',
-    data=json.dumps({'app_id':'cli_a94b4a1e43781cc7','app_secret':app_secret}).encode(),
+    data=json.dumps({'app_id':'cli_REDACTED','app_secret':app_secret}).encode(),
     headers={'Content-Type':'application/json'}
 )
 resp = urllib.request.urlopen(req, timeout=10)

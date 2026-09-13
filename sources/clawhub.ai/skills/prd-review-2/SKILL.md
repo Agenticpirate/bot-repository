@@ -59,7 +59,7 @@ agent_created: true
 import subprocess, json
 
 LARK_MCP_CMD = ['/opt/homebrew/bin/lark-mcp', 'mcp',
-    '-a', 'cli_a95bbdfcc4389cb2',
+    '-a', 'cli_REDACTED',
     '-s', '6AihWdJVTCUjCXoGjegVvhnzLqPJqdUI',
     '--token-mode', 'tenant_access_token',
     '-t', 'preset.doc.default,preset.base.default',
