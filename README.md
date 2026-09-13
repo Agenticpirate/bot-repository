@@ -96,8 +96,8 @@ GitHub bulk fill: `python3 scripts/fill_skills_sh_from_github.py --workers 24`
 - [moldable.sh/bots](https://moldable.sh/bots) — sitemap apps/use-cases/bots + [moldable-ai/apps](https://github.com/moldable-ai/apps) + [moldable-ai/skills](https://github.com/moldable-ai/skills)
 - [officialskills.sh](https://officialskills.sh/) — VoltAgent official-vendor skill gallery (741 sitemap pages)
 - [smithery.ai](https://smithery.ai/) — public `GET /skills` dump (**420** uniques; API claims 22,603, 5×100 cap)
-- [clawskills.sh](https://clawskills.sh/) — OpenClaw gallery (5,167 skill hrefs; **5,153** skill HTML pages)
-- [clawhub.ai](https://clawhub.ai/) — official OpenClaw skills registry (API + SKILL.md); clawhub.com is the same app
+- [clawskills.sh](https://clawskills.sh/) — OpenClaw gallery (5,167 skill hrefs; **5,167** skill HTML pages)
+- [clawhub.ai](https://clawhub.ai/) — official OpenClaw skills registry (**24,511** API slugs, **22,566** SKILL.md; cursor still live); clawhub.com is the same app
 - [openclaw.com.au/skills](https://openclaw.com.au/skills) — OpenClaw docs/guide directory (no per-skill API)
 - [agent.soulid.io](https://agent.soulid.io/) — SoulID marketplace HTML; bodies in [cerealskill/openclaw-agents](https://github.com/cerealskill/openclaw-agents)
 - [souls.directory](https://souls.directory/) — SOUL.md API directory (+ [thedaviddias/souls-directory](https://github.com/thedaviddias/souls-directory) site source)

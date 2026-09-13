@@ -6,11 +6,11 @@ Additive ingest on `main`. Skip trees already under `sources/`. Script: `scripts
 
 | Item | Dest | Notes |
 | --- | --- | --- |
-| clawhub.ai | `sources/clawhub.ai/` | **Deepened**: `/api/v1/skills` **24,511** slugs (pages 000–539; `nextCursor` still live). SKILL.md file API in progress (~5k so far of ~19.5k missing). clawhub.com is the same app. |
+| clawhub.ai | `sources/clawhub.ai/` | **Deepened**: `/api/v1/skills` **24,511** slugs (pages 000–539; `nextCursor` still live). **22,566** SKILL.md (1,945 file-API misses to retry). clawhub.com is the same app. |
 | VoltAgent/awesome-openclaw-skills | `sources/github/VoltAgent-awesome-openclaw-skills/` | 5300+ link index (points at clawskills.sh). Already cloned. |
 | mergisi/awesome-openclaw-agents | `sources/github/mergisi-awesome-openclaw-agents/` | 205 SOUL.md templates + agents.json. Already cloned. |
 | souls.directory | `sources/souls.directory/` | Public `GET /api/souls/{handle}/{slug}.md`. **3147** SOUL.md on disk. |
-| clawskills.sh | `sources/clawskills.sh/` | 5167 skill hrefs; **5153** skill HTML on disk (14 leftover fails). |
+| clawskills.sh | `sources/clawskills.sh/` | 5167 skill hrefs; **5167** skill HTML on disk (complete). |
 
 ## New / first-time archives
 
