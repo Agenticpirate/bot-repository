@@ -51,7 +51,6 @@ TYPE_ALIASES = {
     "use-case": "template",
     "listing": "listing",
     "listing-url": "listing",
-    "kind:listing": "listing",
     "page": "page",
     "url": "page",
     "pack": "pack",
@@ -102,8 +101,9 @@ def clip(text: str, n: int) -> str:
 def infer_type(row: dict[str, Any]) -> str:
     raw = as_str(row.get("type")).lower()
     if not raw:
-        kind = as_str(row.get("kind")).lower()
-        raw = f"kind:{kind}" if kind else ""
+        raw = as_str(row.get("kind")).lower()
+    if raw.startswith("kind:"):
+        raw = raw[5:]
     mapped = TYPE_ALIASES.get(raw)
     path = local_path(row) or as_str(row.get("path")) or as_str(row.get("id"))
     if mapped == "file" or not mapped:

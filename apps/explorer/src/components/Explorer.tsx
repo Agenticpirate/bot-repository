@@ -281,6 +281,9 @@ export function Explorer() {
               {deferredQ
                 ? `${plural(found?.total ?? 0, "match")} · MiniSearch`
                 : `${plural(found?.total ?? 0, "row")} · browse`}
+              {found && found.results.length < found.total
+                ? ` · showing ${found.results.length}`
+                : ""}
             </p>
             {catalog.manifest.mode === "seed" ? (
               <p className="text-xs text-mute">
