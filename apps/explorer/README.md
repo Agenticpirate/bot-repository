@@ -46,7 +46,7 @@ Output:
 
 ```
 apps/explorer/public/index/manifest.json
-apps/explorer/public/index/shards/seed-000.ndjson
+apps/explorer/public/index/shards/seed-000.ndjson.gz
 apps/explorer/public/index/previews.json
 ```
 
