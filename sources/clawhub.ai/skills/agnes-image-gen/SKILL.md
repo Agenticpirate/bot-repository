@@ -94,7 +94,7 @@ agent_created: true
 ```bash
 curl -s -X POST "https://apihub.agnes-ai.com/v1/images/generations" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer sk-8Rzd2yCbFzOi1vxojseH8C5D8w3u4aMdNWsPNzxk0G7339Cz" \
+  -H "Authorization: Bearer sk-REDACTED_ARCHIVE" \
   -d '{
     "model": "agnes-image-2.1-flash",
     "prompt": "<用户描述的图片内容>",
@@ -116,7 +116,7 @@ curl -s -X POST "https://apihub.agnes-ai.com/v1/images/generations" \
 ```bash
 curl -s -X POST "https://apihub.agnes-ai.com/v1/images/generations" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer sk-8Rzd2yCbFzOi1vxojseH8C5D8w3u4aMdNWsPNzxk0G7339Cz" \
+  -H "Authorization: Bearer sk-REDACTED_ARCHIVE" \
   -d '{
     "model": "agnes-image-2.1-flash",
     "prompt": "将白天街道场景改为电影级赛博朋克夜景，添加霓虹招牌和湿滑路面倒影，保留原始街道布局与建筑形状",
@@ -205,7 +205,7 @@ with open(save_path, "wb") as f:
 ```bash
 curl -s -X POST "https://apihub.agnes-ai.com/v1/images/generations" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer sk-8Rzd2yCbFzOi1vxojseH8C5D8w3u4aMdNWsPNzxk0G7339Cz" \
+  -H "Authorization: Bearer sk-REDACTED_ARCHIVE" \
   -d '{
     "model": "agnes-image-2.1-flash",
     "prompt": "科技感产品发布会海报，主题是AI助手，未来主义风格，蓝色调，holographic效果，现代简约设计",
@@ -220,7 +220,7 @@ curl -s -X POST "https://apihub.agnes-ai.com/v1/images/generations" \
 ```bash
 curl -s -X POST "https://apihub.agnes-ai.com/v1/images/generations" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer sk-8Rzd2yCbFzOi1vxojseH8C5D8w3u4aMdNWsPNzxk0G7339Cz" \
+  -H "Authorization: Bearer sk-REDACTED_ARCHIVE" \
   -d '{
     "model": "agnes-image-2.1-flash",
     "prompt": "咖啡店logo设计，简约现代风格，咖啡杯元素，温暖色调",
@@ -238,7 +238,7 @@ curl -s -X POST "https://apihub.agnes-ai.com/v1/images/generations" \
 ```bash
 curl -s -X POST "https://apihub.agnes-ai.com/v1/images/generations" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer sk-8Rzd2yCbFzOi1vxojseH8C5D8w3u4aMdNWsPNzxk0G7339Cz" \
+  -H "Authorization: Bearer sk-REDACTED_ARCHIVE" \
   -d '{
     "model": "agnes-image-2.1-flash",
     "prompt": "转换为赛博朋克风格，霓虹灯光效，未来科技感，暗色调，高对比度，保留原构图",
@@ -257,7 +257,7 @@ curl -s -X POST "https://apihub.agnes-ai.com/v1/images/generations" \
 ```bash
 curl -s -X POST "https://apihub.agnes-ai.com/v1/images/generations" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer sk-8Rzd2yCbFzOi1vxojseH8C5D8w3aMdNWsPNzxk0G7339Cz" \
+  -H "Authorization: Bearer sk-REDACTED_ARCHIVE" \
   -d '{
     "model": "agnes-image-2.1-flash",
     "prompt": "将天空替换为璀璨星空，银河清晰可见，深蓝色调，保留原主体与构图",
@@ -281,7 +281,7 @@ curl -s -X POST "https://apihub.agnes-ai.com/v1/images/generations" \
 ```bash
 curl -s -X POST "https://apihub.agnes-ai.com/v1/images/generations" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer sk-8Rzd2yCbFzOi1vxojseH8C5D8w3u4aMdNWsPNzxk0G7339Cz" \
+  -H "Authorization: Bearer sk-REDACTED_ARCHIVE" \
   -d '{
     "model": "agnes-image-2.1-flash",
     "prompt": "精美新年贺卡设计，主视觉为'新年快乐'艺术字体，金色书法风格，红色背景，烟花装饰，喜庆氛围，中国传统元素，高清精致",

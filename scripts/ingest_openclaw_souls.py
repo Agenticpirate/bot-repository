@@ -90,6 +90,8 @@ _SECRET_RES = [
     (re.compile(rb"sk_test_[0-9A-Za-z]{16,}"), b"sk_test_REDACTED_ARCHIVE"),
     (re.compile(rb"AKIA[0-9A-Z]{16}"), b"AKIAREDACTEDARCHIVE00"),
     (re.compile(rb"AKID[A-Za-z0-9]{16,}"), b"AKIDREDACTEDARCHIVEEXAMPLE00"),
+    (re.compile(rb"\bsk-[A-Za-z0-9]{20,}\b"), b"sk-REDACTED_ARCHIVE"),
+    (re.compile(rb"bce-v3/ALTAK-[A-Za-z0-9/_-]{10,}"), b"bce-v3/ALTAK-REDACTED_ARCHIVE"),
     (re.compile(rb"ghp_[0-9A-Za-z]{20,}"), b"ghp_REDACTED_ARCHIVE"),
     (re.compile(rb"github_pat_[0-9A-Za-z_]{20,}"), b"github_pat_REDACTED_ARCHIVE"),
     (re.compile(rb"xoxb-[0-9][0-9A-Za-z-]{18,}"), b"xoxb-REDACTED"),
