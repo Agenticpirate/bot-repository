@@ -11,7 +11,7 @@ This repository is a mirror for research and citation. **Canonical pages live on
 | **catalog.json rows** | **234,732** |
 | **x.ai marketplace bots** | **71** (refreshed 2026-09-12; 0 new slugs) |
 | **x.ai marketplace plugins** | **27** (Grok Build catalog @ 9963e48) |
-| **skills.sh downloaded** (files + hash) | **19,655** / 19,998 |
+| **skills.sh downloaded** (files + hash) | **19,702** / 19,998 |
 | **skills.sh via GitHub clone** | **15,032** |
 | **skills.sh via API** | **3,969** |
 | **skills.sh remaining** | **876** (plus 121 permanent 404s) |
