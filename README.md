@@ -97,7 +97,7 @@ GitHub bulk fill: `python3 scripts/fill_skills_sh_from_github.py --workers 24`
 - [officialskills.sh](https://officialskills.sh/) — VoltAgent official-vendor skill gallery (741 sitemap pages)
 - [smithery.ai](https://smithery.ai/) — public `GET /skills` dump (**420** uniques; API claims 22,603, 5×100 cap)
 - [clawskills.sh](https://clawskills.sh/) — OpenClaw gallery (5,167 skill hrefs; **5,167** skill HTML pages)
-- [clawhub.ai](https://clawhub.ai/) — official OpenClaw skills registry (**43,969** API slugs, **22,566** SKILL.md so far; cursor still live); clawhub.com is the same app
+- [clawhub.ai](https://clawhub.ai/) — official OpenClaw skills registry (**43,969** API slugs, **43,879** SKILL.md; cursor still live); clawhub.com is the same app
 - [openclaw.com.au/skills](https://openclaw.com.au/skills) — OpenClaw docs/guide directory (no per-skill API)
 - [agent.soulid.io](https://agent.soulid.io/) — SoulID marketplace HTML; bodies in [cerealskill/openclaw-agents](https://github.com/cerealskill/openclaw-agents)
 - [souls.directory](https://souls.directory/) — SOUL.md API directory (+ [thedaviddias/souls-directory](https://github.com/thedaviddias/souls-directory) site source)
@@ -277,7 +277,7 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | claude-plugins.dev | 1 (51,845 plugins in jsonl) |
 | agentskill.sh | 2001 |
 | github/agent-packs-registry | 119 |
-| clawhub.ai | 24512 (43969 slugs in skills.json; catalog capped) |
+| clawhub.ai | 24512 (43969 slugs in skills.json; 43879 SKILL.md; catalog capped) |
 | agensi.io | 4001 |
 | github/anthropics-claude-plugins-official | 309 |
 | github/anthropics-claude-plugins-community | 90 |
@@ -421,7 +421,8 @@ Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/A
 
 - **skills.sh** — **19,809** sitemap ids have `files/` + hash (**15,032** GitHub clone, **4,777** API). **0** leftovers without `files/`; **189** permanent API 404s have HTML fallback (`19998 = 19809 + 189`). GitHub Trees leftover fill remains 0.
 - **smithery.ai** — list API hard-caps at 5 pages × 100 (**420** uniques) despite `totalCount` 22,603; `pageSize>100` is HTTP 400.
-- **souls.directory** — public `GET /api/souls/{handle}/{slug}.md`; **3147** SOUL.md on disk (llms.txt lists 4656 API URLs; leftovers mostly 404/empty).
+- **souls.directory** — public `GET /api/souls/{handle}/{slug}.md`; **3231** SOUL.md on disk (llms.txt lists 4656 API URLs; leftover fill +84 then sustained 429).
+- **clawhub.ai** — list snapshot **43,969** slugs (pages 000–939, cursor still live). SKILL.md **43,879** via public file API (90 remaining 404/empty/HTTP 0). `catalog.json` keeps the first 24,511 per-skill rows only (GitHub 100MB cap); full slug list is `sources/clawhub.ai/meta/skills.json`.
 - **openclawskills.io** — Next.js gallery; sitemap has no per-skill URLs. `github.com/openclaw/skills` is not a public repo.
 - **claude-skills-latest** — Skillselion `updatedAt` is a reindex stamp, so createdAt **or** updatedAt ≥ 2026-07-14 matches all **60,442** live skills. True `createdAt` in-window: **2,378** (**1,466** with files). Catalog: **62,817** rows, **11,049** `has_content`. skills.sh download API still 60/hour.
 - **skillsmp.com** — search requires `q`; anonymous REST 50/day. Popular sitemap 11,213 URLs. GitHub raw: **1,957** from search hits + **1,695** from sitemap path guesses. No official content-download endpoint.

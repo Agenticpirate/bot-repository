@@ -82,7 +82,7 @@ python3 /root/.openclaw/workspace/skills/feishu-card/scripts/send_card.py \
 APP_SECRET=$(cat /root/.openclaw/openclaw.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['channels']['feishu']['appSecret'])")
 TOKEN=$(curl -s -X POST "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal" \
   -H "Content-Type: application/json" \
-  -d "{\"app_id\":\"cli_a9f5877b3378dbd8\",\"app_secret\":\"$APP_SECRET\"}" \
+  -d "{\"app_id\":\"cli_REDACTED\",\"app_secret\":\"$APP_SECRET\"}" \
   | python3 -c "import json,sys; print(json.load(sys.stdin)['tenant_access_token'])")
 
 python3 -c "
@@ -103,7 +103,7 @@ print(json.dumps(json.dumps(card)))
 ## 已知信息（猫南北账号）
 
 - **open_id**: `ou_REDACTED`
-- **app_id**: `cli_a9f5877b3378dbd8`
+- **app_id**: `cli_REDACTED`
 - **app_secret**: 从 `/root/.openclaw/openclaw.json` 读取
 - **客户端版本**: 飞书 7.62.6，schema 2.0 验证通过
 
