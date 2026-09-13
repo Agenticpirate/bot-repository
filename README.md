@@ -6,6 +6,16 @@ This repository (and the Compound explorer in [PR #3](https://github.com/Agentic
 
 Latest internet audit: [docs/source-audit-2026-09-18.md](docs/source-audit-2026-09-18.md). Refresh: `python3 scripts/refresh_2026_09_18.py`.
 
+## Explorer
+
+A searchable web UI lives in [`apps/explorer`](apps/explorer/). It queries a **slim index** (not `catalog.json` and not the ~2TB `sources/` tree).
+
+```bash
+cd apps/explorer && npm install && npm run dev
+```
+
+A committed seed index is enough for local/CI/demo. Rebuild from `catalog.json` with `python3 scripts/build-explorer-index.py --mode seed` (bounded real rows) or `--mode full` on a machine that has the archive checkout. See [apps/explorer/README.md](apps/explorer/README.md) for architecture and Vercel notes (Root Directory = `apps/explorer` only).
+
 ## Completeness (2026-09-18)
 
 | Item | Status |
@@ -157,6 +167,7 @@ really.bot is not a prompt pack or an official xAI/Cursor product. botteams.io i
 ```
 README.md
 catalog.json
+apps/explorer/          # searchable web UI (slim index, not sources/)
 docs/source-candidates.md
 sources/really.bot/
 sources/botteams.io/
