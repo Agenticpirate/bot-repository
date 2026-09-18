@@ -2,7 +2,7 @@
 
 - Marketplace: Grok Build Plugin Marketplace (Plugins catalog)
 - Source of truth: https://github.com/xai-org/plugin-marketplace
-- Catalog revision: `9963e48f7a4a641d4f3a791cec55b089dd4aefa6`
+- Catalog revision: `1581c908c0244fd5f6f59051e4a1ce65814e86ab`
 - Category: development
 - Homepage: https://dev.wix.com/docs/api-reference/articles/ai-tools/about-wix-skills
 - Keywords: wix, wix cli, wix mcp, wix apps, wix headless
@@ -18,7 +18,7 @@ Build, manage, and deploy Wix sites and apps (MCP Server + Skills). Includes CLI
 {
   "source": "url",
   "url": "https://github.com/wix/skills.git",
-  "sha": "58922ec060ee898e1b5767a30aad874981b53474"
+  "sha": "0bb9e628fae4f2999006cb239bb306b2b7fe8308"
 }
 ```
 

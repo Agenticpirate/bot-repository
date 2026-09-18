@@ -1,6 +1,6 @@
 # grokbothq.xyz
 
-Archived 2026-09-12T12:29:51Z. Machine index `/api/v1/index.json` plus per-bot `.md`.
+Refreshed 2026-09-18T18:15:09Z. Machine index `/api/v1/index.json` plus per-bot `.md`.
 - Bots in index: 850
-- Markdown fetches OK: 843; failed: 27
-- Also: llms.txt, RSS, sitemap, guides/use-cases/stats.
+- Markdown fetches OK (incl. previously archived): 835; failed: 15
+- Also: llms.txt, RSS, sitemap, listing HTML.

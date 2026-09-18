@@ -10,13 +10,14 @@ Latest internet audit: [docs/source-audit-2026-09-18.md](docs/source-audit-2026-
 
 | Item | Status |
 | --- | ---: |
-| **catalog.json rows** | **262,192** (near GitHub 100MB cap — huge sources stay in `meta/`) |
+| **catalog.json rows** | **263,623** (~95.4 MiB; GitHub 100 MiB cap — huge sources stay in `meta/`) |
 | **x.ai marketplace bots** | **72** (refreshed 2026-09-18; **+1 new** `stalk-bot`; 33 templates updated) |
-| **x.ai marketplace plugins** | **27** (Grok Build catalog; in-app tab is `grok.com/bot/marketplace/plugins`, x.ai `/plugins` **404**) |
-| **skills.sh downloaded** (files + hash) | **19,809** / 19,998 |
+| **x.ai marketplace plugins** | **28** (Grok Build catalog @ `1581c908`; in-app tab is `grok.com/bot/marketplace/plugins`, x.ai `/plugins` **404**) |
+| **skills.sh sitemap** | **20,000** URLs (**+495** new ids vs on-disk trees; files not downloaded this pass — 60/hour API) |
+| **skills.sh downloaded** (files + hash) | **19,809** / 19,998 historic trees |
 | **skills.sh via GitHub clone** | **15,032** |
 | **skills.sh via API** | **4,777** |
-| **skills.sh remaining** | **0** (plus 189 permanent 404s) |
+| **skills.sh remaining** | historic **0** (+189 permanent 404s); **495** new sitemap ids in `meta/` |
 | **vellum.ai skills** | **75** bodies + 88 skill/category pages |
 | **moldable.sh** | **70** sitemap pages + apps/skills GitHub packs |
 
@@ -182,6 +183,10 @@ sources/gtemplate.net/
 sources/grokbot-templates.com/
 sources/grokbottemplates.dev/
 sources/grokmarket.io/
+sources/grokbottemplates.app/
+sources/cobusgreyling.github.io-grok-bot-templates/
+sources/claudeskills.info/
+sources/findskills.org/
 sources/botdirectory.ai/
 sources/botmarket.bot/
 sources/a2a-registry.org/
@@ -222,10 +227,10 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 
 | Source | Catalog rows |
 | --- | ---: |
-| really.bot | 1214 |
+| really.bot | 1224 |
 | botteams.io | 75 |
 | x.ai/bot/marketplace | 72 |
-| x.ai-bot-marketplace-plugins | 28 |
+| x.ai-bot-marketplace-plugins | 29 |
 | usegrokbot.com | 2 |
 | github/majiayu000-awesome-grok-bot | 817 |
 | github/codejunkie99-rosterroom | 84 |
@@ -242,17 +247,26 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | agenc.ag | 391 |
 | a2awire.com | 15 |
 | skills.sh | 19998 |
+| agent-hunt.netlify.app | 65 |
 | claude-skills-latest | 62817 |
 | teamsmarket.com | 417 |
 | cursor.com-marketplace | 354 |
 | n8nworkflows.xyz | 1 (blocked) |
 | crewform.tech | 1 |
 | somi.ai | 464 |
-| grokbot.dev | 789 |
+| grokbot.dev | 943 |
 | grokbothq.xyz | 851 |
 | grokyard.com | 10 |
 | grokindex.dev | 656 |
 | gtemplate.net | 16 |
+| grokbot-templates.com | 402 (1404 in meta/templates.json; catalog capped) |
+| grokbottemplates.dev | 402 (484 in meta/templates.json; catalog capped) |
+| grokmarket.io | 402 (580 in meta/templates.json; catalog capped) |
+| grokbottemplates.app | 1 (HTML tool-picker; no item API) |
+| cobusgreyling.github.io-grok-bot-templates | 50 |
+| github/cobusgreyling-grok-bot-templates | 1 |
+| claudeskills.info | 1 (sitemap 73,792; light archive) |
+| findskills.org | 1 (106 sitemap pages archived) |
 | github/mergisi-awesome-grokbot | 183 |
 | github/xai-org-plugin-marketplace | 16 |
 | github/DominikTobureto-awesome-grok-build | 51 |
@@ -430,7 +444,7 @@ Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/A
 
 ## Caps / failures
 
-- **skills.sh** — **19,809** sitemap ids have `files/` + hash (**15,032** GitHub clone, **4,777** API). **0** leftovers without `files/`; **189** permanent API 404s have HTML fallback (`19998 = 19809 + 189`). GitHub Trees leftover fill remains 0.
+- **skills.sh** — historic trees **19,809** hashed + **189** permanent 404s (`19998`). Sitemap recheck 2026-09-18: **20,000** URLs, **495** new ids in `sources/skills.sh/meta/sitemap-new-ids-2026-09-18.json` (files not downloaded; 60/hour API).
 - **smithery.ai** — list API hard-caps at 5 pages × 100 (**420** uniques) despite `totalCount` 22,603; `pageSize>100` is HTTP 400.
 - **souls.directory** — public `GET /api/souls/{handle}/{slug}.md`; **4654** SOUL.md on disk (llms.txt lists 4656 API URLs; polite leftover +1247, 429=47 not sustained). Remaining 2 URLs are docs placeholders, not souls.
 - **clawhub.ai** — list snapshot **43,969** slugs (pages 000–939, cursor still live). SKILL.md **43,968** via public file API. Permanent miss **1** (`safe-execution`, empty 200; see `sources/clawhub.ai/meta/skill-md-permanent-misses.json`). `catalog.json` keeps the first 24,511 per-skill rows only (GitHub 100MB cap); full slug list is `sources/clawhub.ai/meta/skills.json`.

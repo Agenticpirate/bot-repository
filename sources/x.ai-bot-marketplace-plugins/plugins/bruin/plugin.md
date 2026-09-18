@@ -2,7 +2,7 @@
 
 - Marketplace: Grok Build Plugin Marketplace (Plugins catalog)
 - Source of truth: https://github.com/xai-org/plugin-marketplace
-- Catalog revision: `9963e48f7a4a641d4f3a791cec55b089dd4aefa6`
+- Catalog revision: `1581c908c0244fd5f6f59051e4a1ce65814e86ab`
 - Category: development
 - Homepage: https://github.com/bruin-eng/agent-skills
 - Keywords: bruin, bruin api, mettel bruin, bruin public api, bruin ticket
@@ -18,7 +18,7 @@ Grok integration for Bruin — MetTel's Connectivity Management System for telec
 {
   "source": "url",
   "url": "https://github.com/bruin-eng/agent-skills.git",
-  "sha": "8e1435ec45a9d1f1df8a89104b01112db0feaca2"
+  "sha": "311bac60c8fc9d3a158dbce866c653c0823c97a7"
 }
 ```
 
@@ -26,4 +26,4 @@ Grok integration for Bruin — MetTel's Connectivity Management System for telec
 
 ### skills
 
-- **bruin-api-integration**: Help a client build, debug, or extend an integration with the Bruin Public API — MetTel's REST API for tickets, invento…
+- **bruin-api-integration**: Help a client build, debug, or extend an integration with the Bruin Public API, MetTel's REST API for tickets, inventor…

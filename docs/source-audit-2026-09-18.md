@@ -145,6 +145,33 @@ Found via web search + outbound links, not in the original seed:
 
 ---
 
+## After-refresh (same day)
+
+| Source | Before | After | Folder |
+| --- | ---: | ---: | --- |
+| x.ai marketplace bots | 71 | **72** (+`stalk-bot`) | `sources/x.ai-bot-marketplace/` |
+| x.ai plugins | 27 | **28** @ `1581c908` | `sources/x.ai-bot-marketplace-plugins/` |
+| really.bot | 1214 | **1224** (+10) | `sources/really.bot/` |
+| botteams.io | 15 teams / 60 bots | same | `sources/botteams.io/` |
+| grokbothq.xyz | 850 | 850 (15 underscore `.md` still HTML-only) | `sources/grokbothq.xyz/` |
+| grokindex.dev | 655 | 655 | `sources/grokindex.dev/` |
+| grokyard.com | 9 | 9 | `sources/grokyard.com/` |
+| gtemplate.net | 15 bots | 15 | `sources/gtemplate.net/` |
+| grokbot.dev | 789 rows | **943** | `sources/grokbot.dev/` |
+| somi.ai grok-bots | 462 | 462 (site sitemap 3069 is whole somi.ai) | `sources/somi.ai/` |
+| agent-hunt | 58 | **64** | `sources/agent-hunt.netlify.app/` |
+| skills.sh sitemap | 19998 | **20000** (**+495** new ids, files pending) | `sources/skills.sh/meta/` |
+| souls.directory | 4654 / 4656 | **4654 / 4656** (leftovers still the 2 docs placeholders) | `sources/souls.directory/` |
+| clawhub.ai | 43969 slugs | homepage + sample only (no catalog growth) | `sources/clawhub.ai/` |
+| grokbot-templates.com | — | **1404** templates (402 catalog rows) | `sources/grokbot-templates.com/` **NEW** |
+| grokbottemplates.dev | — | **484** (402 catalog rows) | `sources/grokbottemplates.dev/` **NEW** |
+| grokmarket.io | — | **580** (402 catalog rows) | `sources/grokmarket.io/` **NEW** |
+| grokbottemplates.app | — | site row (no item API) | `sources/grokbottemplates.app/` **NEW** |
+| cobusgreyling catalog | — | **49** + GitHub pack (473 files) | `sources/cobusgreyling.github.io-grok-bot-templates/` **NEW** |
+| claudeskills.info | — | sitemap 73,792; 200 sample pages | `sources/claudeskills.info/` **NEW** |
+| findskills.org | — | 106 sitemap pages | `sources/findskills.org/` **NEW** |
+| catalog.json | 262,192 | **263,623** (100,079,609 bytes) | still under 100 MiB |
+
 ## Probe method
 
 ```

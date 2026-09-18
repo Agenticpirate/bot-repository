@@ -18,3 +18,10 @@ Each skill lives at `skills/<owner>/<repo>/<slug>/{meta.json,files/}`.
 Per-skill HTML is saved only for permanent download misses (HTTP 404), not for 429s.
 Fast path: `scripts/fill_skills_sh_from_github.py` (shallow clone / Git Trees).
 Re-run `scripts/download_skills_sh.py` only for leftovers; already-hashed trees are skipped.
+
+## Sitemap recheck 2026-09-18
+
+- Sitemap skill URLs: **20000** (was 19998).
+- New ids vs on-disk trees: **495** (listed in `meta/sitemap-new-ids-2026-09-18.json`).
+- Files not downloaded this pass (API 60/hour). Resume: `python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`
+

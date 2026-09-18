@@ -1,3 +1,3 @@
-# gtemplate.net errors
+# gtemplate.net
 
 None.

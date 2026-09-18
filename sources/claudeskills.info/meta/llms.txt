@@ -1,0 +1,52 @@
+# Claude Skills Hub — https://claudeskills.info
+
+> A searchable directory of harness components for AI coding agents. We return objective facts
+> and source links. Installation and selection are up to you — go to each result's source repo.
+
+## Links
+- [Search API](https://claudeskills.info/api/v1/search): read-only JSON search over the directory
+- [Item API](https://claudeskills.info/api/v1/items/): fetch one item by slug
+- [Meta API](https://claudeskills.info/api/v1/meta): counts, valid categories, types, sorts
+- [Directory homepage](https://claudeskills.info/): browse skills, subagents, plugins, commands
+- [Official publishers](https://claudeskills.info/official): vendor-official agent skills
+
+## Query API (read-only JSON, CORS: *, cached 5 min)
+
+Search (skills deduped per source repo; components shown individually — see dedup note):
+  GET https://claudeskills.info/api/v1/search?q={keywords}&type={skill|subagent|plugin|command|hook|automation|memory-tool|claude-md-example}&category={optional}&featured={1 = human-curated picks only}&limit={1-100,default 20}&offset={n}&sort={stars|newest}
+  -> { "total": 128, "limit": 20, "offset": 0, "results": [ItemJSON, ...] }
+
+One item:
+  GET https://claudeskills.info/api/v1/items/{slug}   -> ItemJSON  (404 if unknown)
+
+Discover (counts, valid category values, sorts, data scope):
+  GET https://claudeskills.info/api/v1/meta
+
+ItemJSON:
+  {
+    "slug": "code-reviewer",
+    "name": "Code Reviewer",
+    "description": "Expert code review subagent.",
+    "category": "",
+    "type": "subagent",
+    "stars": 596,
+    "confidence": "high",
+    "origin": "author",
+    "featured": 0,
+    "source": { "repo": "ChrisRoyse/610ClaudeSubagents", "url": "https://github.com/ChrisRoyse/610ClaudeSubagents/blob/main/code-reviewer.md" }
+  }
+
+## Notes for agents
+- Every result has source.url — the authoritative repo. Read it there for how to install; we ship no install commands.
+- Every item has a `type`: skill, subagent, plugin, command, hook, automation, memory-tool, claude-md-example. Filter with ?type=. Call /api/v1/meta for the full `types` map (counts per type).
+- Dedup is type-aware: type=skill collapses per source repo (a collection's sub-skills → one representative), but components (subagent/plugin/command/patterns) are each shown individually — so ?type=plugin returns every plugin, not one-per-repo.
+- confidence (high|low) and origin (catalog|author|aggregator-mirror|curated|featured) are objective signals on each item — you decide whether to trust a low-confidence or aggregator-mirrored entry.
+- featured (0|1) marks the human-curated picks. Add ?featured=1 to /search to return only those; /api/v1/meta reports featured_count.
+- Most components have no category (it's a catalog-skill field) — filter components by type, not category.
+- Same source repo may appear both as a skill and as components (different granularity: repo-level skill vs file-level component).
+- sort=stars ranks by GitHub stars (default; components inherit their repo's stars). sort=newest by date added (coarse — batch-imported). No full-text relevance ranking yet.
+- limit defaults to 20, max 100 (clamped, not rejected).
+- Data scope: unified directory — catalog skills + full component pool (subagents/plugins/commands) + curated patterns. Call /api/v1/meta for counts (total_items, unique_repos, types).
+- Call /api/v1/meta first to learn valid `category` values before filtering.
+- Human pages: skills at https://claudeskills.info/skills/{owner}/{repo}/{name}/ , plugins at https://claudeskills.info/plugins/{owner}/{repo}/{name}/ (ItemJSON's source.repo gives {owner}/{repo}).
+- API URL note: this API lives at claudeskills.info/api/v1/. If it ever moves to api.claudeskills.info, this path will 301-redirect and keep working.

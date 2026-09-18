@@ -2,7 +2,7 @@
 
 - Marketplace: Grok Build Plugin Marketplace (Plugins catalog)
 - Source of truth: https://github.com/xai-org/plugin-marketplace
-- Catalog revision: `9963e48f7a4a641d4f3a791cec55b089dd4aefa6`
+- Catalog revision: `1581c908c0244fd5f6f59051e4a1ce65814e86ab`
 - Category: deployment
 - Homepage: https://github.com/vercel/vercel-plugin
 - Keywords: vercel, vercel deploy, deploy to vercel
@@ -18,7 +18,7 @@ Vercel deployment platform integration. Manage deployments, check build status, 
 {
   "source": "url",
   "url": "https://github.com/vercel/vercel-plugin.git",
-  "sha": "df0f55213f7b8db23a3ee7f27511ed344cdb2c74"
+  "sha": "b0b3b3261ce193a379d3e6d54358aa5b4a164517"
 }
 ```
 
@@ -79,7 +79,7 @@ Vercel deployment platform integration. Manage deployments, check build status, 
 - **vercel-cli**: Vercel CLI expert guidance. Use when deploying, managing environment variables, linking projects, viewing logs, queryin…
 - **vercel-connect**: Vercel Connect expert guidance — securely obtain scoped OAuth tokens for third-party services (Slack, GitHub, MCP serve…
 - **vercel-firewall**: Vercel Firewall expert guidance — automatic DDoS mitigation, the Vercel WAF (custom rules, IP blocking, managed ruleset…
-- **vercel-functions**: Vercel Functions expert guidance — Serverless Functions, Edge Functions, Fluid Compute, streaming, Cron Jobs, and runti…
+- **vercel-functions**: Vercel Functions expert guidance — Node.js/Bun/Python runtimes, Fluid Compute, long-duration (30 min) functions, large…
 - **vercel-sandbox**: Vercel Sandbox guidance — ephemeral Firecracker microVMs for running untrusted code safely. Supports AI agents, code ge…
 - **vercel-services**: Configure and troubleshoot Vercel Services for multiple frontends and backends in one project. Use when composing a pol…
 - **vercel-storage**: Vercel storage expert guidance — Blob, Global Config (formerly Edge Config), and Marketplace storage (Neon Postgres, Up…

@@ -1,5 +1,5 @@
 # grokindex.dev
 
-Archived 2026-09-12T12:30:16Z via paginated `GET /api/bots` (total 655) plus sitemap/category pages.
-- Per-bot HTML not fetched (API already has title/description/category/pricing; listing shells are Next.js).
+Refreshed 2026-09-18T18:15:33Z via paginated `GET /api/bots` (total 655).
+- Per-bot HTML not fetched (API already has title/description/category/pricing).
 - API pages saved under meta/api/.

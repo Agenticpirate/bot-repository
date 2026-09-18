@@ -2,7 +2,7 @@
 
 - Marketplace: Grok Build Plugin Marketplace (Plugins catalog)
 - Source of truth: https://github.com/xai-org/plugin-marketplace
-- Catalog revision: `9963e48f7a4a641d4f3a791cec55b089dd4aefa6`
+- Catalog revision: `1581c908c0244fd5f6f59051e4a1ce65814e86ab`
 - Category: deployment
 - Homepage: https://github.com/netlify/context-and-tools
 - Keywords: netlify, netlify deploy, deploy to netlify
@@ -18,7 +18,7 @@ Skills for the Netlify platform: serverless and edge functions, Blobs storage, m
 {
   "source": "url",
   "url": "https://github.com/netlify/context-and-tools.git",
-  "sha": "b4fd870cf2f1f4cc66b28ead16277e1d799b510f"
+  "sha": "eddd0a3c67642651097a65b2d2d4194eaec173a1"
 }
 ```
 

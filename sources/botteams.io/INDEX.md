@@ -2,7 +2,7 @@
 
 Public Grok Bot team/bot directory operated by Ellelion LLC. Not affiliated with xAI. Canonical site: [botteams.io](https://botteams.io).
 
-- Archived at: 2026-09-12T09:07:13Z
+- Archived at: 2026-09-18T18:14:59Z
 - Teams: 15
 - Bots: 60 (all API pages)
 - Meta: [llms.txt](meta/llms.txt), [openapi.json](meta/openapi.json), [teams.json](meta/teams.json), [bots.json](meta/bots.json)

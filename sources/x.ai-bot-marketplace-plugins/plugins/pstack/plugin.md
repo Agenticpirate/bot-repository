@@ -2,7 +2,7 @@
 
 - Marketplace: Grok Build Plugin Marketplace (Plugins catalog)
 - Source of truth: https://github.com/xai-org/plugin-marketplace
-- Catalog revision: `9963e48f7a4a641d4f3a791cec55b089dd4aefa6`
+- Catalog revision: `1581c908c0244fd5f6f59051e4a1ce65814e86ab`
 - Category: development
 - Homepage: https://github.com/cursor/plugins/tree/main/pstack
 - Keywords: pstack, poteto-mode, poteto
@@ -18,7 +18,7 @@ pstack (poteto-mode): rigorous agent playbooks and principles for writing less, 
 {
   "source": "url",
   "url": "https://github.com/cursor/plugins.git",
-  "sha": "f5bdd6826fd0a0d9cbc4347134c3a74a200b9d9d",
+  "sha": "e31650eea443aaea1e84cc15d88c13f40080b275",
   "path": "pstack"
 }
 ```
@@ -70,7 +70,7 @@ pstack (poteto-mode): rigorous agent playbooks and principles for writing less, 
 - **principle-type-system-discipline**: Apply when designing types, reviewing a function signature, or writing code in any statically-typed language. Make ille…
 - **recall**: Reconstruct your recent working context from your own chat history, live state, and the shared record (user reports, pr…
 - **reflect**: Spawn three parallel review subagents over the active transcript, surface learnings, and route each to a concrete edit…
-- **setup-pstack**: Configure which models pstack uses per role. Detects your available models and writes an always-applied rule that overr…
+- **setup-pstack**: Configure which models pstack uses per role and at what reasoning budget. Detects your available models and writes an a…
 - **show-me-your-work**: Keep a reviewable decision trail for long-running or unattended work: a TSV log with one row per decision (what, why, e…
 - **swarm**: Fan out N parallel workers, drain them, and return one report. Use for /swarm, 'swarm this', or parallel coverage, race…
 - **tdd**: Use only when the user explicitly asks for TDD, a failing test, or a regression test, OR when the bug has an obvious ch…

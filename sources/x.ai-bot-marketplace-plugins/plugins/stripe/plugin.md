@@ -2,7 +2,7 @@
 
 - Marketplace: Grok Build Plugin Marketplace (Plugins catalog)
 - Source of truth: https://github.com/xai-org/plugin-marketplace
-- Catalog revision: `9963e48f7a4a641d4f3a791cec55b089dd4aefa6`
+- Catalog revision: `1581c908c0244fd5f6f59051e4a1ce65814e86ab`
 - Category: development
 - Homepage: https://github.com/stripe/ai
 - Keywords: stripe, stripe payments, stripe connect, stripe mcp, stripe billing
@@ -18,7 +18,7 @@ Stripe development plugin for Grok Build: best practices, API/SDK upgrade guidan
 {
   "source": "url",
   "url": "https://github.com/stripe/ai.git",
-  "sha": "583467aab18cc7113dcd2c2e20028fe73c26eaa3",
+  "sha": "da4991b0a0b9299d423ae2d5856e6d7e2b31b031",
   "path": "providers/grok/plugin"
 }
 ```
@@ -46,5 +46,6 @@ Stripe development plugin for Grok Build: best practices, API/SDK upgrade guidan
 - **stripe-best-practices**: Guides Stripe integration decisions across development and test environment planning (separate sandboxes vs the shared…
 - **stripe-directory**: Identifies external providers, merchants, nonprofits, platforms, APIs, and software services, and resolves the document…
 - **stripe-docs**: Use when the user or agent needs to read, search, or look up Stripe documentation or API reference. Prefer this over cu…
+- **stripe-pay**: Helps users send funds to another Stripe business, transfer money to a Stripe Profile handle or network ID, or ask whet…
 - **stripe-projects**: Use when the user wants to provision infrastructure or third-party services using Stripe Projects. Triggers: "I need a…
 - **upgrade-stripe**: Guide for upgrading Stripe API versions and SDKs

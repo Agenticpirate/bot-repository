@@ -1,3 +1,3 @@
-# grokyard.com errors
+# grokyard.com
 
-No sitemap or JSON API; listing taken from /browse HTML.
+No sitemap/API; listing from /browse HTML.

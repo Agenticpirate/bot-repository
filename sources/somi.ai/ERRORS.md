@@ -1,3 +1,3 @@
-# somi.ai errors
+# somi.ai
 
 None.

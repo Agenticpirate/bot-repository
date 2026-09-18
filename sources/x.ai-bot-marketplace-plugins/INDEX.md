@@ -4,10 +4,10 @@ Official **Plugins** catalog for Grok Build / the in-app marketplace Plugins tab
 Distinct from the **Bots** tab archived at [sources/x.ai-bot-marketplace/](../x.ai-bot-marketplace/INDEX.md).
 
 - Source of truth: [xai-org/plugin-marketplace](https://github.com/xai-org/plugin-marketplace) `.grok-plugin/marketplace.json` + `plugin-index.json`
-- GitHub pack copy: `sources/github/xai-org-plugin-marketplace/` @ `9963e48f7a4a641d4f3a791cec55b089dd4aefa6`
+- GitHub pack copy: `sources/github/xai-org-plugin-marketplace/` @ `1581c908c0244fd5f6f59051e4a1ce65814e86ab`
 - Public shells: [grok.com/bot/marketplace/plugins](https://grok.com/bot/marketplace/plugins) (JS app), [x.ai/news/grok-plugin-marketplace](https://x.ai/news/grok-plugin-marketplace)
-- Archived at: 2026-09-12T19:19:02Z
-- Plugins in catalog: 27
+- Archived at: 2026-09-18T18:14:42Z
+- Plugins in catalog: 28
 
 Per-plugin metadata is copied from the official JSON catalog. There is no public per-plugin HTML twin on x.ai. Do not invent plugin ids.
 
@@ -30,7 +30,7 @@ Per-plugin metadata is copied from the official JSON catalog. There is no public
 | [exa](plugins/exa/plugin.md) | development | 1 | 1 | [link](https://exa.ai) |
 | [tavily](plugins/tavily/plugin.md) | development | 8 | 1 | [link](https://www.tavily.com) |
 | [railway](plugins/railway/plugin.md) | deployment | 1 | 1 | [link](https://github.com/railwayapp/railway-skills) |
-| [stripe](plugins/stripe/plugin.md) | development | 8 | 1 | [link](https://github.com/stripe/ai) |
+| [stripe](plugins/stripe/plugin.md) | development | 9 | 1 | [link](https://github.com/stripe/ai) |
 | [tinyfish](plugins/tinyfish/plugin.md) | development | 5 | 1 | [link](https://www.tinyfish.ai) |
 | [supabase](plugins/supabase/plugin.md) | database | 2 | 1 | [link](https://github.com/supabase-community/supabase-plugin) |
 | [pstack](plugins/pstack/plugin.md) | development | 47 | 0 | [link](https://github.com/cursor/plugins/tree/main/pstack) |
@@ -40,4 +40,5 @@ Per-plugin metadata is copied from the official JSON catalog. There is no public
 | [bruin](plugins/bruin/plugin.md) | development | 1 | 0 | [link](https://github.com/bruin-eng/agent-skills) |
 | [omneky](plugins/omneky/plugin.md) | development | 0 | 1 | [link](https://www.omneky.com) |
 | [modern-web-guidance](plugins/modern-web-guidance/plugin.md) | development | 2 | 0 | [link](https://github.com/GoogleChrome/modern-web-guidance) |
+| [helena](plugins/helena/plugin.md) | productivity | 0 | 1 | [link](https://enrichlabs.ai) |
 
