@@ -1,12 +1,12 @@
 # skills.sh errors
 
-Updated: 2026-09-13T00:15:08Z
+Updated: 2026-09-18T18:30:59Z
 
 ## Rate limit
 
 Live `GET /api/download/{owner}/{repo}/{slug}` returns HTTP 429 `{"error":"rate_limit_exceeded","message":"Rate limit exceeded. Maximum 60 requests per hour."}` with `Retry-After: 60`.
 
-Target is all 19998 sitemap ids. 19809 have full `files/` + hash. 0 remain.
+Target is all 20000 sitemap ids. 20304 have full `files/` + hash. 0 remain.
 Prefer `scripts/fill_skills_sh_from_github.py` for bulk fill. This API client is only for leftovers and stays under the 60/hour cap.
 
 ## Permanent misses

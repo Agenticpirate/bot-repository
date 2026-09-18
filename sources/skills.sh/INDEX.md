@@ -2,12 +2,12 @@
 
 Public agent-skills registry (Vercel). Full skill file contents via `GET /api/download/{owner}/{repo}/{slug}` (`{files, hash}`), plus GitHub shallow-clone fill for the rest.
 
-- Last updated: 2026-09-13T00:15:08Z
-- Skill URLs in sitemap: 19998
-- Unique ids: 19998
-- Downloaded OK (files/ + hash): 19809
-- Filled via GitHub clone: 15032
-- Filled via skills.sh API: 4777
+- Last updated: 2026-09-18T18:30:59Z
+- Skill URLs in sitemap: 20000
+- Unique ids: 20000
+- Downloaded OK (files/ + hash): 20304
+- Filled via GitHub clone: 15526
+- Filled via skills.sh API: 4778
 - Permanent API 404 + page HTML fallback: 189
 - Failed: 0
 - Remaining (no files/ yet): 0
@@ -19,9 +19,9 @@ Per-skill HTML is saved only for permanent download misses (HTTP 404), not for 4
 Fast path: `scripts/fill_skills_sh_from_github.py` (shallow clone / Git Trees).
 Re-run `scripts/download_skills_sh.py` only for leftovers; already-hashed trees are skipped.
 
-## Sitemap recheck 2026-09-18
+## New-id fill 2026-09-18
 
-- Sitemap skill URLs: **20000** (was 19998).
-- New ids vs on-disk trees: **495** (listed in `meta/sitemap-new-ids-2026-09-18.json`).
-- Files not downloaded this pass (API 60/hour). Resume: `python3 scripts/download_skills_sh.py --concurrency 1 --hourly-budget 50 --max-new 50 --update-catalog`
-
+- Targeted the **495** leftover ids in `meta/sitemap-new-ids-2026-09-18.json` only.
+- GitHub fast path: **494** (`fill_skills_sh_from_github.py --ids-file`).
+- API drip: **1** (`cursor/plugins/x-mcp-guide` via `download_skills_sh.py --ids-file`).
+- New leftovers remaining: **0**.

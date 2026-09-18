@@ -10,14 +10,14 @@ Latest internet audit: [docs/source-audit-2026-09-18.md](docs/source-audit-2026-
 
 | Item | Status |
 | --- | ---: |
-| **catalog.json rows** | **263,623** (~95.4 MiB; GitHub 100 MiB cap — huge sources stay in `meta/`) |
+| **catalog.json rows** | **264,118** (~95.6 MiB; GitHub 100 MiB cap — huge sources stay in `meta/`) |
 | **x.ai marketplace bots** | **72** (refreshed 2026-09-18; **+1 new** `stalk-bot`; 33 templates updated) |
 | **x.ai marketplace plugins** | **28** (Grok Build catalog @ `1581c908`; in-app tab is `grok.com/bot/marketplace/plugins`, x.ai `/plugins` **404**) |
-| **skills.sh sitemap** | **20,000** URLs (**+495** new ids vs on-disk trees; files not downloaded this pass — 60/hour API) |
-| **skills.sh downloaded** (files + hash) | **19,809** / 19,998 historic trees |
-| **skills.sh via GitHub clone** | **15,032** |
-| **skills.sh via API** | **4,777** |
-| **skills.sh remaining** | historic **0** (+189 permanent 404s); **495** new sitemap ids in `meta/` |
+| **skills.sh sitemap** | **20,000** URLs (**+495** new ids / **493** removed vs historic 19,998) |
+| **skills.sh downloaded** (files + hash) | **20,304** (historic 19,809 + **495** new ids filled) |
+| **skills.sh via GitHub clone** | **15,526** (**+494** this pass) |
+| **skills.sh via API** | **4,778** (**+1** leftover drip: `cursor/plugins/x-mcp-guide`) |
+| **skills.sh remaining** | **0** new leftovers (+189 historic permanent 404s; 493 dropped sitemap ids still on disk) |
 | **vellum.ai skills** | **75** bodies + 88 skill/category pages |
 | **moldable.sh** | **70** sitemap pages + apps/skills GitHub packs |
 
@@ -246,7 +246,7 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | agoraagents.xyz | 15 |
 | agenc.ag | 391 |
 | a2awire.com | 15 |
-| skills.sh | 19998 |
+| skills.sh | 20493 |
 | agent-hunt.netlify.app | 65 |
 | claude-skills-latest | 62817 |
 | teamsmarket.com | 417 |
@@ -444,7 +444,7 @@ Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/A
 
 ## Caps / failures
 
-- **skills.sh** — historic trees **19,809** hashed + **189** permanent 404s (`19998`). Sitemap recheck 2026-09-18: **20,000** URLs, **495** new ids in `sources/skills.sh/meta/sitemap-new-ids-2026-09-18.json` (files not downloaded; 60/hour API).
+- **skills.sh** — sitemap **20,000** URLs. Hashed trees **20,304** (historic 19,809 + **495** new ids: 494 GitHub clone/trees, 1 API drip). Historic permanent 404s **189**. Dropped sitemap ids remain on disk. New-id list: `sources/skills.sh/meta/sitemap-new-ids-2026-09-18.json`.
 - **smithery.ai** — list API hard-caps at 5 pages × 100 (**420** uniques) despite `totalCount` 22,603; `pageSize>100` is HTTP 400.
 - **souls.directory** — public `GET /api/souls/{handle}/{slug}.md`; **4654** SOUL.md on disk (llms.txt lists 4656 API URLs; polite leftover +1247, 429=47 not sustained). Remaining 2 URLs are docs placeholders, not souls.
 - **clawhub.ai** — list snapshot **43,969** slugs (pages 000–939, cursor still live). SKILL.md **43,968** via public file API. Permanent miss **1** (`safe-execution`, empty 200; see `sources/clawhub.ai/meta/skill-md-permanent-misses.json`). `catalog.json` keeps the first 24,511 per-skill rows only (GitHub 100MB cap); full slug list is `sources/clawhub.ai/meta/skills.json`.
