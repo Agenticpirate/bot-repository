@@ -333,9 +333,29 @@ def download_one(url: str, budget: HourlyBudget) -> dict:
     }
 
 
-def load_work_list() -> list[str]:
-    data = json.loads(URLS_PATH.read_text(encoding="utf-8"))
-    urls = list(dict.fromkeys(data.get("urls") or []))
+def load_ids_file(path: Path) -> list[str]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(data, dict):
+        ids = data.get("ids") or data.get("new_ids") or []
+    else:
+        ids = data
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw in ids:
+        skill_id = str(raw).strip().strip("/")
+        if not skill_id or skill_id in seen:
+            continue
+        seen.add(skill_id)
+        out.append(skill_id)
+    return out
+
+
+def load_work_list(ids: list[str] | None = None) -> list[str]:
+    if ids is not None:
+        urls = [f"https://www.skills.sh/{skill_id}" for skill_id in ids]
+    else:
+        data = json.loads(URLS_PATH.read_text(encoding="utf-8"))
+        urls = list(dict.fromkeys(data.get("urls") or []))
     pending: list[str] = []
     for url in urls:
         dest = skill_dir(parse_skill_id(url))
@@ -509,11 +529,16 @@ def main() -> int:
     parser.add_argument("--hourly-budget", type=int, default=DEFAULT_HOURLY_BUDGET)
     parser.add_argument("--update-catalog", action="store_true")
     parser.add_argument("--reports-only", action="store_true")
+    parser.add_argument(
+        "--ids-file",
+        help="JSON {ids:[...]} or list; download only these leftover ids",
+    )
     args = parser.parse_args()
 
     urls_doc = json.loads(URLS_PATH.read_text(encoding="utf-8"))
     all_urls = list(dict.fromkeys(urls_doc.get("urls") or []))
-    pending = load_work_list()
+    only_ids = load_ids_file(Path(args.ids_file)) if args.ids_file else None
+    pending = load_work_list(only_ids)
     budget = HourlyBudget(args.hourly_budget)
     if args.max_new and args.max_new > 0:
         batch = pending[: min(args.max_new, budget.budget)]
@@ -547,7 +572,7 @@ def main() -> int:
 
     downloaded_ok = count_downloaded()
     n404 = count_permanent_404()
-    still_pending = load_work_list()
+    still_pending = load_work_list(only_ids)
     ok_n = sum(1 for r in results if r["status"] == "ok")
     html_n = sum(1 for r in results if r["status"] == "html_fallback")
     fail_n = sum(1 for r in results if r["status"] == "failed")

@@ -253,29 +253,57 @@ def save_done_repos(extra: list[str]) -> None:
     )
 
 
-def load_pending() -> dict[str, list[dict]]:
+def _item_from_id(skill_id: str, url: str | None = None) -> dict:
+    dest = skill_dir(skill_id)
+    segs = skill_id.split("/")
+    owner, slug = segs[0], segs[-1]
+    repo = "/".join(segs[1:-1])
+    return {
+        "id": skill_id,
+        "url": url or f"https://www.skills.sh/{skill_id}",
+        "owner": owner,
+        "repo": repo,
+        "slug": slug,
+        "dest": dest,
+    }
+
+
+def load_ids_file(path: Path) -> list[str]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(data, dict):
+        ids = data.get("ids") or data.get("new_ids") or []
+    else:
+        ids = data
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw in ids:
+        skill_id = str(raw).strip().strip("/")
+        if not skill_id or skill_id in seen:
+            continue
+        seen.add(skill_id)
+        out.append(skill_id)
+    return out
+
+
+def load_pending(ids: list[str] | None = None) -> dict[str, list[dict]]:
+    grouped: dict[str, list[dict]] = defaultdict(list)
+    if ids is not None:
+        for skill_id in ids:
+            dest = skill_dir(skill_id)
+            if has_files(dest):
+                continue
+            item = _item_from_id(skill_id)
+            grouped[f"{item['owner']}/{item['repo']}"].append(item)
+        return grouped
     data = json.loads(URLS_PATH.read_text(encoding="utf-8"))
     urls = list(dict.fromkeys(data.get("urls") or []))
-    grouped: dict[str, list[dict]] = defaultdict(list)
     for url in urls:
         skill_id = parse_skill_id(url)
         dest = skill_dir(skill_id)
         if has_files(dest):
             continue
-        segs = skill_id.split("/")
-        owner, slug = segs[0], segs[-1]
-        repo = "/".join(segs[1:-1])
-        key = f"{owner}/{repo}"
-        grouped[key].append(
-            {
-                "id": skill_id,
-                "url": url,
-                "owner": owner,
-                "repo": repo,
-                "slug": slug,
-                "dest": dest,
-            }
-        )
+        item = _item_from_id(skill_id, url)
+        grouped[f"{item['owner']}/{item['repo']}"].append(item)
     return grouped
 
 
@@ -949,7 +977,11 @@ def write_progress_and_index(
     filled = count_filled_by_source()
     urls_doc = json.loads(URLS_PATH.read_text(encoding="utf-8"))
     all_urls = list(dict.fromkeys(urls_doc.get("urls") or []))
-    remaining = max(0, len(all_urls) - downloaded_ok)
+    remaining = 0
+    for url in all_urls:
+        dest = skill_dir(parse_skill_id(url))
+        if not already_downloaded(dest) and not is_permanent_miss(dest):
+            remaining += 1
     prev = {}
     if STATS_PATH.exists():
         try:
@@ -1016,13 +1048,23 @@ def main() -> int:
     )
     parser.add_argument("--update-catalog", action="store_true")
     parser.add_argument("--reports-only", action="store_true")
+    parser.add_argument(
+        "--ids-file",
+        help="JSON {ids:[...]} or list; fill only these leftover ids (does not skip done-repos)",
+    )
     parser.add_argument("--min-skills", type=int, default=0, help="only repos with at least N pending")
     parser.add_argument("--max-skills", type=int, default=0, help="only repos with at most N pending (0=no cap)")
     args = parser.parse_args()
 
-    grouped = load_pending()
+    only_ids = load_ids_file(Path(args.ids_file)) if args.ids_file else None
+    grouped = load_pending(only_ids)
     skip_404 = load_miss_repos()
-    skip_done = set() if (args.raw_leftovers or args.trees_leftovers) else load_done_repos()
+    # Targeted leftover fills must revisit repos already recorded as done.
+    skip_done = (
+        set()
+        if (args.raw_leftovers or args.trees_leftovers or only_ids is not None)
+        else load_done_repos()
+    )
     repos = sorted(grouped.items(), key=lambda kv: (-len(kv[1]), kv[0]))
     if skip_404:
         repos = [r for r in repos if r[0] not in skip_404]
