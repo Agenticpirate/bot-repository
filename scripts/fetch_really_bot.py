@@ -163,9 +163,12 @@ def catalog_row(entry: dict) -> dict:
 
 
 def write_catalog(entries: list[dict]) -> None:
+    """Replace really.bot rows only. Never wipe the rest of catalog.json."""
     rows = [catalog_row(e) for e in entries]
     rows.sort(key=lambda r: (r.get("serial") is None, r.get("serial") or 0, r["id"]))
-    write_text(CATALOG_PATH, json.dumps(rows, indent=2) + "\n")
+    existing = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+    kept = [r for r in existing if r.get("source") != "really.bot"]
+    write_text(CATALOG_PATH, json.dumps(kept + rows, indent=2) + "\n")
 
 
 def write_index_md(index: dict, ok_ids: set[str], failures: list[dict]) -> None:

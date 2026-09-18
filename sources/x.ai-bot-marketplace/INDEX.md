@@ -5,10 +5,10 @@ Official public catalog of Grok Bot templates. Canonical index: [https://x.ai/bo
 - Tab: **Bots** (Grok Bot Marketplace templates)
 - Plugins tab / Grok Build catalog: [sources/x.ai-bot-marketplace-plugins/](../x.ai-bot-marketplace-plugins/INDEX.md)
 - Sitemap: https://x.ai/sitemap.xml
-- Archived at: 2026-09-12T19:19:16Z
-- Slugs in sitemap + listing pages: 71
-- Pages downloaded: 71
-- `template.json` extracted: 71
+- Archived at: 2026-09-18T18:11:26Z
+- Slugs in sitemap + listing pages: 72
+- Pages downloaded: 72
+- `template.json` extracted: 72
 - Failures: 0
 
 There are no public `.json` / `.md` twins on x.ai. Each bot page is HTML; the marketplace `template` object is extracted from the Next.js RSC payload. Do not invent slugs.
@@ -43,6 +43,7 @@ There are no public `.json` / `.md` twins on x.ai. Each bot page is HTML; the ma
 | [flora](bots/flora/bot.md) | Flora: Plant Care Log | Rich Silver | Personal | yes | [html](https://x.ai/bot/marketplace/bots/flora) |
 | [sherlock](bots/sherlock/bot.md) | Talent Discovery | Tommy Hansen | From Grok Bot Team, Recruiting & People | yes | [html](https://x.ai/bot/marketplace/bots/sherlock) |
 | [cooper](bots/cooper/bot.md) | Cooper | Tommy Hansen | From Grok Bot Team, Sales | yes | [html](https://x.ai/bot/marketplace/bots/cooper) |
+| [stalk-bot](bots/stalk-bot/bot.md) | Stalk Bot | Shub Gaur | From Grok Bot Team, Product | yes | [html](https://x.ai/bot/marketplace/bots/stalk-bot) |
 | [ebr-value-deck-builder](bots/ebr-value-deck-builder/bot.md) | EBR & Value Deck Builder | Krista Letz | From Grok Bot Team, Sales | yes | [html](https://x.ai/bot/marketplace/bots/ebr-value-deck-builder) |
 | [signal-prospector](bots/signal-prospector/bot.md) | Signal Prospector | Krista Letz | From Grok Bot Team, Sales | yes | [html](https://x.ai/bot/marketplace/bots/signal-prospector) |
 | [the-morning-newspaper](bots/the-morning-newspaper/bot.md) | The Morning Newspaper | Karen X. Cheng | Personal | yes | [html](https://x.ai/bot/marketplace/bots/the-morning-newspaper) |

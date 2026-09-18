@@ -463,13 +463,13 @@ def main() -> int:
     extra += ingest_usegrokbot()
 
     existing = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
-    kept = [row for row in existing if row.get("source") == "really.bot"]
-    dropped = len(existing) - len(kept)
+    extra_sources = {row.get("source") for row in extra}
+    kept = [row for row in existing if row.get("source") not in extra_sources]
     catalog = kept + extra
     write_json(CATALOG_PATH, catalog)
     print(
-        f"catalog really.bot={len(kept)} extra={len(extra)} "
-        f"total={len(catalog)} dropped_non_really={dropped}",
+        f"catalog kept={len(kept)} extra={len(extra)} "
+        f"total={len(catalog)} replaced_sources={sorted(extra_sources)}",
         flush=True,
     )
     return 0

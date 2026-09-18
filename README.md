@@ -1,16 +1,18 @@
 # Bot Repository
 
-Public archive of bot jobs, team recipes, prompt packs, and agent marketplaces, copied from their original sources with attribution intact.
+**Go-to public index** of bot jobs, Grok Bot templates, team recipes, agent skills, MCP/plugin catalogs, and workflow galleries — copied from their original sources with attribution intact.
 
-This repository is a mirror for research and citation. **Canonical pages live on the source sites.** Serials, titles, prompts, installers, and evidence are copied as published. Do not invent serials. Do not strip attribution.
+This repository (and the Compound explorer in [PR #3](https://github.com/Agenticpirate/bot-repository/pull/3)) is the research/citation hub. **Canonical pages live on the source sites.** Serials, titles, prompts, installers, and evidence are copied as published. Do not invent serials. Do not strip attribution.
 
-## Completeness (2026-09-12)
+Latest internet audit: [docs/source-audit-2026-09-18.md](docs/source-audit-2026-09-18.md). Refresh: `python3 scripts/refresh_2026_09_18.py`.
+
+## Completeness (2026-09-18)
 
 | Item | Status |
 | --- | ---: |
-| **catalog.json rows** | **234,732** |
-| **x.ai marketplace bots** | **71** (refreshed 2026-09-12; 0 new slugs) |
-| **x.ai marketplace plugins** | **27** (Grok Build catalog @ 9963e48) |
+| **catalog.json rows** | **262,192** (near GitHub 100MB cap — huge sources stay in `meta/`) |
+| **x.ai marketplace bots** | **72** (refreshed 2026-09-18; **+1 new** `stalk-bot`; 33 templates updated) |
+| **x.ai marketplace plugins** | **27** (Grok Build catalog; in-app tab is `grok.com/bot/marketplace/plugins`, x.ai `/plugins` **404**) |
 | **skills.sh downloaded** (files + hash) | **19,809** / 19,998 |
 | **skills.sh via GitHub clone** | **15,032** |
 | **skills.sh via API** | **4,777** |
@@ -26,8 +28,8 @@ GitHub bulk fill: `python3 scripts/fill_skills_sh_from_github.py --workers 24`
 ### Verified jobs / official marketplace
 
 - [really.bot](https://really.bot/) — serialized public log of finished jobs (HTML + JSON + Markdown twins).
-- [x.ai Grok Bot Marketplace](https://x.ai/bot/marketplace) — **Bots** tab templates; slugs from [sitemap.xml](https://x.ai/sitemap.xml) (`sources/x.ai-bot-marketplace/`).
-- [Grok Marketplace Plugins](https://grok.com/bot/marketplace/plugins) / [xai-org/plugin-marketplace](https://github.com/xai-org/plugin-marketplace) — **Plugins** tab / Grok Build catalog (`sources/x.ai-bot-marketplace-plugins/`).
+- [x.ai Grok Bot Marketplace](https://x.ai/bot/marketplace) — **Bots** tab templates; slugs from [sitemap.xml](https://x.ai/sitemap.xml) (`sources/x.ai-bot-marketplace/`). **72** bots as of 2026-09-18 including new [`stalk-bot`](sources/x.ai-bot-marketplace/bots/stalk-bot/bot.md).
+- [Grok Marketplace Plugins](https://grok.com/bot/marketplace/plugins) / [xai-org/plugin-marketplace](https://github.com/xai-org/plugin-marketplace) — **Plugins** tab (grok.com; `x.ai/bot/marketplace/plugins` is 404) / Grok Build catalog (`sources/x.ai-bot-marketplace-plugins/`).
 
 ### Directories / teams
 
@@ -40,6 +42,10 @@ GitHub bulk fill: `python3 scripts/fill_skills_sh_from_github.py --workers 24`
 - [grokyard.com](https://www.grokyard.com/) — public browse of shareable Grok Bot templates
 - [grokindex.dev](https://grokindex.dev/) — paginated `/api/bots`
 - [gtemplate.net](https://gtemplate.net/) — sitemap bot + blog pages
+- [grokbot-templates.com](https://grokbot-templates.com/) — third-party directory (`/api/templates` ~1404; sitemap 1588)
+- [grokbottemplates.dev](https://www.grokbottemplates.dev/templates) — `/api/templates` (484)
+- [grokmarket.io](https://grokmarket.io/) — `/api/templates` (580)
+- [cobusgreyling/grok-bot-templates](https://github.com/cobusgreyling/grok-bot-templates) — installer-first PROFILE.md kit + Pages `catalog.json`
 
 ### GitHub packs (shallow clone, `.git` stripped)
 
@@ -135,7 +141,9 @@ GitHub bulk fill: `python3 scripts/fill_skills_sh_from_github.py --workers 24`
 - Community workflow packs: scrapernode/zie619 n8n, svcvit Dify, Diflowy, langflow, coze, botpress/solutions
 - Listing HTML: workflows.so, automationflows.io, n8ntemplates.me, theautomation.directory, automationscookbook.com, arahi.ai, beam.ai
 
-Notes and leftovers: [docs/source-candidates.md](docs/source-candidates.md), [docs/source-candidates-batch2.md](docs/source-candidates-batch2.md), [docs/source-candidates-batch3-claude-muse-workflows.md](docs/source-candidates-batch3-claude-muse-workflows.md), [docs/source-candidates-batch4.md](docs/source-candidates-batch4.md), [docs/source-candidates-batch5.md](docs/source-candidates-batch5.md), [docs/source-candidates-batch6.md](docs/source-candidates-batch6.md), [docs/claude-ecosystem-sources.md](docs/claude-ecosystem-sources.md), [docs/muse-research.md](docs/muse-research.md).
+Notes and leftovers: [docs/source-audit-2026-09-18.md](docs/source-audit-2026-09-18.md), [docs/source-candidates.md](docs/source-candidates.md), [docs/source-candidates-batch2.md](docs/source-candidates-batch2.md), [docs/source-candidates-batch3-claude-muse-workflows.md](docs/source-candidates-batch3-claude-muse-workflows.md), [docs/source-candidates-batch4.md](docs/source-candidates-batch4.md), [docs/source-candidates-batch5.md](docs/source-candidates-batch5.md), [docs/source-candidates-batch6.md](docs/source-candidates-batch6.md), [docs/claude-ecosystem-sources.md](docs/claude-ecosystem-sources.md), [docs/muse-research.md](docs/muse-research.md).
+
+Explorer (`apps/explorer`) lives on [PR #3](https://github.com/Agenticpirate/bot-repository/pull/3) and is **not on main**. Rebuild `scripts/build-explorer-index.py` after this scrape so `/explore` includes `stalk-bot` and the new Grok galleries.
 
 ## Attribution
 
@@ -171,6 +179,9 @@ sources/grokbothq.xyz/
 sources/grokyard.com/
 sources/grokindex.dev/
 sources/gtemplate.net/
+sources/grokbot-templates.com/
+sources/grokbottemplates.dev/
+sources/grokmarket.io/
 sources/botdirectory.ai/
 sources/botmarket.bot/
 sources/a2a-registry.org/
@@ -213,7 +224,7 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | --- | ---: |
 | really.bot | 1214 |
 | botteams.io | 75 |
-| x.ai/bot/marketplace | 71 |
+| x.ai/bot/marketplace | 72 |
 | x.ai-bot-marketplace-plugins | 28 |
 | usegrokbot.com | 2 |
 | github/majiayu000-awesome-grok-bot | 817 |
@@ -415,7 +426,7 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 
 ## Fetch notes
 
-Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`, `scripts/download_skills_sh.py`, `scripts/ingest_priority_a.py`, `scripts/ingest_priority_b.py`, `scripts/ingest_priority_cd.py`, `scripts/ingest_claude_ecosystem.py`, `scripts/ingest_batch3.py`, `scripts/download_n8n_official.py`, `scripts/archive_claude_skills_latest.py`, `scripts/finish_claude_skills_latest.py`, `scripts/ingest_batch4.py`, `scripts/deepen_batch4.py`, `scripts/fast_secondary.py`, `scripts/ingest_depth_galleries.py`, `scripts/deepen_new_galleries.py`, `scripts/ingest_openclaw_souls.py`.
+Public fetches use User-Agent `bot-repository-archive/1.0 (+https://github.com/Agenticpirate/bot-repository)`, polite concurrency, and retries. GitHub packs are `--depth 1` clones with `.git` removed. Refresh: `scripts/refresh_2026_09_18.py` (2026-09-18 orchestrator), `scripts/audit_probe_2026_09_18.py`, `scripts/fetch_really_bot.py`, `scripts/ingest_additional_sources.py`, `scripts/ingest_xai_marketplace.py`, `scripts/ingest_remaining_sources.py`, `scripts/download_skills_sh.py`, `scripts/ingest_priority_a.py`, `scripts/ingest_priority_b.py`, `scripts/ingest_priority_cd.py`, `scripts/ingest_claude_ecosystem.py`, `scripts/ingest_batch3.py`, `scripts/download_n8n_official.py`, `scripts/archive_claude_skills_latest.py`, `scripts/finish_claude_skills_latest.py`, `scripts/ingest_batch4.py`, `scripts/deepen_batch4.py`, `scripts/fast_secondary.py`, `scripts/ingest_depth_galleries.py`, `scripts/deepen_new_galleries.py`, `scripts/ingest_openclaw_souls.py`.
 
 ## Caps / failures
 

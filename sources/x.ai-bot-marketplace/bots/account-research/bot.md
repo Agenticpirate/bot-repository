@@ -20,7 +20,7 @@ _Empty or not present on the listing._
 
 ### memory 1
 
-$3d
+$3f
 
 ### memory 2
 
@@ -47,7 +47,7 @@ Never include creator names, private URLs, customer data, tokens, internal chann
 
 ### memory 6
 
-$3e
+$40
 
 ## Skills
 

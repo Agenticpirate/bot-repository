@@ -71,8 +71,8 @@ def http_get(url: str, accept: str = "*/*") -> tuple[int, bytes, str]:
     return 0, b"", str(last)
 
 
-def fetch_ok(url: str, dest: Path, accept: str = "*/*") -> bool:
-    if dest.exists() and dest.stat().st_size > 0:
+def fetch_ok(url: str, dest: Path, accept: str = "*/*", force: bool = False) -> bool:
+    if not force and dest.exists() and dest.stat().st_size > 0:
         return True
     status, body, _ = http_get(url, accept=accept)
     if status != 200 or not body:
@@ -137,9 +137,15 @@ def write_index(root: Path, title: str, lines: list[str]) -> None:
     write_text(root / "INDEX.md", f"# {title}\n\n" + "\n".join(lines) + "\n")
 
 
-def fetch_many(jobs: list[tuple[str, Path]], workers: int = 12) -> tuple[int, int]:
+def fetch_many(
+    jobs: list[tuple[str, Path]], workers: int = 12, force: bool = False
+) -> tuple[int, int]:
     ok = fail = 0
-    pending = [(u, p) for u, p in jobs if not (p.exists() and p.stat().st_size > 0)]
+    pending = [
+        (u, p)
+        for u, p in jobs
+        if force or not (p.exists() and p.stat().st_size > 0)
+    ]
     skipped = len(jobs) - len(pending)
     ok += skipped
     if not pending:
