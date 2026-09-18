@@ -265,7 +265,7 @@ Each source tree has `INDEX.md` (and `ERRORS.md` when something failed or was ca
 | grokbottemplates.app | 1 (HTML tool-picker; no item API) |
 | cobusgreyling.github.io-grok-bot-templates | 50 |
 | github/cobusgreyling-grok-bot-templates | 1 |
-| claudeskills.info | 1 (sitemap 73,792; light archive) |
+| claudeskills.info | 1 (sitemap 73,791 locs; 205 listing HTML + 80 skill HTML; paths in `meta/skill-paths.txt.gz`) |
 | findskills.org | 1 (106 sitemap pages archived) |
 | github/mergisi-awesome-grokbot | 183 |
 | github/xai-org-plugin-marketplace | 16 |
