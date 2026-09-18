@@ -66,6 +66,18 @@ TYPE_ALIASES = {
 SOUL_NAME_RE = re.compile(r"(?i)(?:^|/)(?:soul|identity)\.md$")
 SKILL_NAME_RE = re.compile(r"(?i)(?:^|/)skill\.md$")
 WORKFLOW_NAME_RE = re.compile(r"(?i)workflow")
+# Always surface these after the 2026-09-18 archive refresh.
+PIN_RAW_IDS = {"stalk-bot"}
+PIN_SOURCES = {
+    "x.ai/bot/marketplace",
+    "grokbot-templates.com",
+    "grokbottemplates.dev",
+    "grokmarket.io",
+    "grokbottemplates.app",
+    "cobusgreyling.github.io-grok-bot-templates",
+    "findskills.org",
+    "claudeskills.info",
+}
 MAX_DESC = 280
 MAX_TAGS = 8
 MAX_TAG_LEN = 40
@@ -314,12 +326,22 @@ def select_seed(
         for doc in by_type.get(kind, [])[:15]:
             take(doc)
 
+    # Pin official stalk-bot + new gallery site rows so /explore shows them.
+    for doc in docs:
+        raw_id = doc["id"].split("::", 1)[-1]
+        if raw_id in PIN_RAW_IDS:
+            take(doc)
+        if doc["source"] in PIN_SOURCES and raw_id == doc["source"]:
+            take(doc)
+
     for source, items in by_source.items():
         items.sort(key=lambda pair: pair[0], reverse=True)
         limit = per_source
         # Keep a slightly thicker slice of smaller curated sources.
         if len(items) <= 80:
             limit = min(len(items), max(per_source, 40))
+        if source in PIN_SOURCES:
+            limit = min(len(items), max(limit, 40))
         for _, doc in items[:limit]:
             take(doc)
 

@@ -163,7 +163,7 @@ GitHub bulk fill: `python3 scripts/fill_skills_sh_from_github.py --workers 24`
 
 Notes and leftovers: [docs/source-audit-2026-09-18.md](docs/source-audit-2026-09-18.md), [docs/source-candidates.md](docs/source-candidates.md), [docs/source-candidates-batch2.md](docs/source-candidates-batch2.md), [docs/source-candidates-batch3-claude-muse-workflows.md](docs/source-candidates-batch3-claude-muse-workflows.md), [docs/source-candidates-batch4.md](docs/source-candidates-batch4.md), [docs/source-candidates-batch5.md](docs/source-candidates-batch5.md), [docs/source-candidates-batch6.md](docs/source-candidates-batch6.md), [docs/claude-ecosystem-sources.md](docs/claude-ecosystem-sources.md), [docs/muse-research.md](docs/muse-research.md).
 
-Explorer (`apps/explorer`) lives on [PR #3](https://github.com/Agenticpirate/bot-repository/pull/3) and is **not on main**. Rebuild `scripts/build-explorer-index.py` after this scrape so `/explore` includes `stalk-bot` and the new Grok galleries.
+Explorer (`apps/explorer`) lives on [PR #3](https://github.com/Agenticpirate/bot-repository/pull/3) and is **not on main**. Seed index rebuilt 2026-09-18 after the scrape: `/explore` includes `stalk-bot`, grokbot-templates.com, grokbottemplates.dev, grokmarket.io, and the other new galleries.
 
 ## Attribution
 
