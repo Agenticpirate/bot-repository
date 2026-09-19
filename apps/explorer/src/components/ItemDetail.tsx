@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { decodeItemId, loadCatalog, loadPreviews } from "@/lib/catalog";
 import { formatDate, hostOf } from "@/lib/format";
 import type { BodyPreview, IndexDoc } from "@/lib/types";
+import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ListingFace } from "./motion/AgentAvatar";
 import { CopyButton } from "./CopyButton";
 import { SavedButton } from "./SavedButton";
 import { SourceBadge } from "./SourceBadge";
@@ -41,12 +43,13 @@ export function ItemDetail({ encodedId }: { encodedId: string }) {
   }, [id]);
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-20 pt-8 sm:px-6">
+    <div className="cmp-enter mx-auto w-full max-w-3xl px-4 pb-20 pt-8 sm:px-6">
         <Link
           href="/explore"
-          className="font-mono text-[11px] uppercase tracking-wider text-mute hover:text-brass"
+          className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-mute hover:text-brass"
         >
-          ← Archive
+          <ArrowLeft size={12} strokeWidth={1.75} aria-hidden="true" />
+          Archive
         </Link>
 
         {error ? (
@@ -81,9 +84,9 @@ function Missing({ id }: { id: string }) {
         the committed seed (or loaded full index). The explorer only shows real
         catalog rows — it will not fabricate a page for a missing id.
       </p>
-      <Link
+        <Link
         href="/explore"
-        className="mt-5 inline-flex rounded-full bg-brass px-4 py-2 text-sm font-medium text-ink"
+        className="cmp-cta mt-5 inline-flex rounded-full bg-brass px-4 py-2 text-sm font-medium text-ink"
       >
         Back to archive
       </Link>
@@ -102,7 +105,9 @@ function Article({
 
   return (
     <article className="mt-6 flex flex-col gap-6">
-      <header className="flex flex-col gap-3">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-5">
+        <ListingFace doc={doc} size="lg" />
+        <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <TypeBadge type={doc.type} />
           <SourceBadge source={doc.source} />
@@ -112,25 +117,26 @@ function Article({
             </span>
           ) : null}
         </div>
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-paper">
+        <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight text-paper">
           {doc.name}
         </h1>
         {doc.description ? (
-          <p className="text-[15px] leading-relaxed text-mute">{doc.description}</p>
+          <p className="mt-2 text-[15px] leading-relaxed text-mute">{doc.description}</p>
         ) : (
-          <p className="text-sm italic text-mute">
+          <p className="mt-2 text-sm italic text-mute">
             No description was published on this catalog row.
           </p>
         )}
-        <div className="mt-1 flex flex-wrap items-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           {doc.url ? (
             <a
               href={doc.url}
               target="_blank"
               rel="noreferrer"
-              className="rounded-full bg-brass px-4 py-2 text-sm font-medium text-ink hover:bg-brass/90"
+              className="cmp-cta inline-flex items-center gap-1.5 rounded-full bg-brass px-4 py-2 text-sm font-medium text-ink hover:bg-brass/90"
             >
               Open original source
+              <ExternalLink size={13} strokeWidth={1.75} aria-hidden="true" />
             </a>
           ) : (
             <span className="rounded-full border border-dashed border-line px-4 py-2 text-sm text-mute">
@@ -144,6 +150,7 @@ function Article({
             copiedLabel="Link copied"
             tone="ghost"
           />
+        </div>
         </div>
       </header>
 

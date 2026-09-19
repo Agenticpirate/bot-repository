@@ -1,4 +1,6 @@
+import { Archive, ArrowRight, Package, Sparkles } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { MEMORY_LAWS, compound } from "@/lib/compound";
 import { readManifest } from "@/lib/manifest";
 import { topTypes } from "@/lib/stats";
@@ -14,7 +16,7 @@ export async function Landing() {
   return (
     <>
       <SiteHeader active="home" />
-      <main id="main" className="mx-auto w-full max-w-6xl px-4 pb-20 pt-12 sm:px-6 sm:pt-16">
+      <main id="main" className="cmp-enter mx-auto w-full max-w-6xl px-4 pb-20 pt-12 sm:px-6 sm:pt-16">
         <section className="max-w-3xl">
           <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-brass">
             One-person Grok Bot company
@@ -34,6 +36,7 @@ export async function Landing() {
               body="Twelve copy-paste prompts. Mark done in this browser."
               href="/setup"
               cta="Start setup"
+              icon={<Sparkles size={16} strokeWidth={1.75} aria-hidden="true" />}
               primary
             />
             <PathCard
@@ -42,6 +45,7 @@ export async function Landing() {
               body="Memory Steward, Who I Am, DECISIONS, prune files."
               href="/kit"
               cta="Open starter pack"
+              icon={<Package size={16} strokeWidth={1.75} aria-hidden="true" />}
             />
             <PathCard
               n="03"
@@ -49,6 +53,7 @@ export async function Landing() {
               body={`Pick from ${manifest.indexed.toLocaleString()} real seed listings.`}
               href="/explore"
               cta="Browse the archive"
+              icon={<Archive size={16} strokeWidth={1.75} aria-hidden="true" />}
             />
           </ol>
         </section>
@@ -141,12 +146,22 @@ export async function Landing() {
               listings. Use it as a catalog of seats and procedures. Canonical
               pages stay on the source sites. Compound never invents a serial.
             </p>
-            <Link
-              href="/explore"
-              className="mt-5 inline-flex font-mono text-[12px] uppercase tracking-wider text-brass hover:underline"
-            >
-              Open the archive explorer →
-            </Link>
+            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2">
+              <Link
+                href="/explore"
+                className="inline-flex items-center gap-1.5 font-mono text-[12px] uppercase tracking-wider text-brass hover:underline"
+              >
+                Open the archive explorer
+                <ArrowRight size={13} strokeWidth={1.75} aria-hidden="true" />
+              </Link>
+              <Link
+                href="/motion"
+                className="inline-flex items-center gap-1.5 font-mono text-[12px] uppercase tracking-wider text-mute hover:text-brass"
+              >
+                Motion language
+                <ArrowRight size={13} strokeWidth={1.75} aria-hidden="true" />
+              </Link>
+            </div>
           </div>
           <div className="rounded-2xl border border-line bg-panel/80 p-5">
             <p className="font-mono text-[10px] uppercase tracking-wider text-mute">
@@ -182,13 +197,13 @@ export async function Landing() {
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/setup"
-                className="shrink-0 rounded-full bg-brass px-5 py-2.5 text-sm font-medium text-ink hover:bg-brass/90"
+                className="cmp-cta shrink-0 rounded-full bg-brass px-5 py-2.5 text-sm font-medium text-ink hover:bg-brass/90"
               >
                 Start setup
               </Link>
               <Link
                 href="/kit"
-                className="shrink-0 rounded-full border border-line px-5 py-2.5 text-sm text-paper hover:border-brass/40"
+                className="cmp-cta shrink-0 rounded-full border border-line px-5 py-2.5 text-sm text-paper hover:border-brass/40"
               >
                 Starter pack
               </Link>
@@ -221,6 +236,7 @@ function PathCard({
   href,
   cta,
   primary,
+  icon,
 }: {
   n: string;
   title: string;
@@ -228,21 +244,26 @@ function PathCard({
   href: string;
   cta: string;
   primary?: boolean;
+  icon?: ReactNode;
 }) {
   return (
     <li className="flex flex-col rounded-2xl border border-line bg-panel/70 px-5 py-5">
-      <p className="font-mono text-[10px] text-brass">{n}</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-mono text-[10px] text-brass">{n}</p>
+        <span className="text-brass">{icon}</span>
+      </div>
       <h2 className="mt-2 text-base font-medium text-paper">{title}</h2>
       <p className="mt-2 flex-1 text-sm leading-relaxed text-mute">{body}</p>
       <Link
         href={href}
-        className={`mt-4 inline-flex w-fit rounded-full px-3.5 py-1.5 text-sm ${
+        className={`cmp-cta mt-4 inline-flex w-fit items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm ${
           primary
             ? "bg-brass font-medium text-ink hover:bg-brass/90"
             : "border border-line text-paper hover:border-brass/40"
         }`}
       >
         {cta}
+        <ArrowRight size={13} strokeWidth={1.75} aria-hidden="true" />
       </Link>
     </li>
   );

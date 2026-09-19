@@ -4,6 +4,7 @@ import Link from "next/link";
 import { encodeItemId } from "@/lib/catalog";
 import { docsForShelf, FEATURED_SHELVES } from "@/lib/featured";
 import { useCatalog } from "@/lib/useCatalog";
+import { ListingFace } from "./motion/AgentAvatar";
 import { SourceBadge } from "./SourceBadge";
 import { TypeBadge } from "./TypeBadge";
 
@@ -66,13 +67,16 @@ export function FeaturedShelves({
                 <li key={doc.id}>
                   <Link
                     href={`/item/${encodeItemId(doc.id)}`}
-                    className="block rounded-xl border border-transparent px-2 py-2 hover:border-line hover:bg-ink/50"
+                    className="flex items-start gap-2.5 rounded-xl border border-transparent px-2 py-2 hover:border-line hover:bg-ink/50"
                   >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <TypeBadge type={doc.type} />
-                      <SourceBadge source={doc.source} />
+                    <ListingFace doc={doc} size="xs" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <TypeBadge type={doc.type} />
+                        <SourceBadge source={doc.source} />
+                      </div>
+                      <p className="mt-1.5 line-clamp-2 text-sm text-paper">{doc.name}</p>
                     </div>
-                    <p className="mt-1.5 line-clamp-2 text-sm text-paper">{doc.name}</p>
                   </Link>
                 </li>
               ))}

@@ -1,8 +1,9 @@
 "use client";
 
+import { Search, SearchX, Star } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { filterDocs, searchCatalog } from "@/lib/catalog";
 import { plural, typeClass } from "@/lib/format";
 import { MORE_TYPES, PRIMARY_TYPES } from "@/lib/types";
@@ -10,6 +11,7 @@ import { useCatalog } from "@/lib/useCatalog";
 import { useSavedIds } from "@/lib/useSaved";
 import { ArchiveStats } from "./ArchiveStats";
 import { FeaturedShelves } from "./FeaturedShelves";
+import { ThinkingMark } from "./motion/ThinkingMark";
 import { ResultCard } from "./ResultCard";
 import { SourcePicker } from "./SourcePicker";
 
@@ -94,7 +96,7 @@ export function Explorer() {
     !deferredQ && !type && !source && !tag && !savedOnly && (found?.total ?? 0) > 0;
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-20 pt-8 sm:px-6">
+    <div className="cmp-enter mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-20 pt-8 sm:px-6">
       <header className="flex flex-col gap-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -121,9 +123,12 @@ export function Explorer() {
       <div className="sticky top-14 z-20 -mx-4 border-y border-line/80 bg-ink/90 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6">
         <label className="group relative block">
           <span className="sr-only">Search the archive</span>
-          <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 font-mono text-xs text-mute">
-            /
-          </span>
+          <Search
+            size={16}
+            strokeWidth={1.75}
+            aria-hidden="true"
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-mute"
+          />
           <input
             ref={inputRef}
             value={q}
@@ -133,6 +138,9 @@ export function Explorer() {
             spellCheck={false}
             className="w-full rounded-2xl border border-line bg-panel px-10 py-3.5 text-[15px] text-paper placeholder:text-mute/70"
           />
+          <kbd className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 rounded border border-line px-1.5 py-0.5 font-mono text-[10px] text-mute sm:inline">
+            /
+          </kbd>
         </label>
 
         <div className="mt-3 flex flex-col gap-3">
@@ -164,6 +172,7 @@ export function Explorer() {
               active={savedOnly}
               onClick={() => setParam("saved", savedOnly ? "" : "1")}
               label={savedIds.length ? `Saved (${savedIds.length})` : "Saved"}
+              icon={<Star size={10} strokeWidth={1.75} aria-hidden="true" />}
             />
           </div>
           {moreOpen ? (
@@ -272,7 +281,7 @@ export function Explorer() {
               onClear={() => router.replace("/explore", { scroll: false })}
             />
           ) : (
-            <ul className="divide-y divide-line rounded-2xl border border-line bg-panel/70">
+            <ul className="cmp-stagger divide-y divide-line rounded-2xl border border-line bg-panel/70">
               {found?.results.map((doc) => (
                 <li key={doc.id}>
                   <ResultCard doc={doc} />
@@ -292,19 +301,21 @@ function FilterChip({
   label,
   type,
   count,
+  icon,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
   type?: string;
   count?: number;
+  icon?: ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`rounded-full px-2.5 py-1 font-mono text-[11px] ring-1 transition ${
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-mono text-[11px] ring-1 transition ${
         active
           ? type
             ? typeClass(type)
@@ -312,6 +323,7 @@ function FilterChip({
           : "text-mute ring-line hover:text-paper"
       }`}
     >
+      {icon}
       {label}
       {typeof count === "number" ? (
         <span className="ml-1 opacity-60">{count}</span>
@@ -323,7 +335,10 @@ function FilterChip({
 function LoadingState() {
   return (
     <div aria-busy="true" aria-live="polite" className="flex flex-col gap-3">
-      <p className="font-mono text-xs text-mute">Loading seed index…</p>
+      <p className="flex items-center gap-2 font-mono text-xs text-mute">
+        <ThinkingMark size="xs" label="Loading seed index" />
+        Loading seed index…
+      </p>
       <div className="overflow-hidden rounded-2xl border border-line">
         {[0, 1, 2, 3, 4].map((key) => (
           <div
@@ -347,7 +362,8 @@ function EmptyState({
 }) {
   return (
     <div className="rounded-2xl border border-dashed border-line px-6 py-14 text-center">
-      <p className="font-display text-xl text-paper">
+      <SearchX size={28} strokeWidth={1.5} className="mx-auto text-mute" aria-hidden="true" />
+      <p className="font-display mt-3 text-xl text-paper">
         {savedOnly ? "Nothing saved matches" : "No matching archive rows"}
       </p>
       <p className="mx-auto mt-2 max-w-md text-sm text-mute">

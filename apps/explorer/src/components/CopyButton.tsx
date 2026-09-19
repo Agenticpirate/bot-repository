@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 
 export function CopyButton({
@@ -29,12 +30,17 @@ export function CopyButton({
     <button
       type="button"
       onClick={onCopy}
-      className={`rounded-full px-3 py-1.5 font-mono text-[11px] font-medium ${
+      className={`cmp-cta inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[11px] font-medium ${
         tone === "ghost"
           ? "border border-line text-paper hover:border-brass/40"
           : "bg-brass text-ink hover:bg-brass/90"
       } ${className}`}
     >
+      {copied ? (
+        <Check size={12} strokeWidth={2} aria-hidden="true" />
+      ) : (
+        <Copy size={12} strokeWidth={1.75} aria-hidden="true" />
+      )}
       {copied ? copiedLabel : label}
       <span className="sr-only" aria-live="polite">
         {copied ? "Copied to clipboard" : ""}

@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState, useSyncExternalStore } from "react";
@@ -56,7 +57,7 @@ export function SetupWizard() {
   };
 
   return (
-    <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+    <div className="cmp-enter mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)]">
       <aside>
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-brass">
           12-step install
@@ -98,7 +99,11 @@ export function SetupWizard() {
                       : "ring-1 ring-line"
                   }`}
                 >
-                  {done.includes(item.id) ? "✓" : item.id}
+                  {done.includes(item.id) ? (
+                    <Check size={11} strokeWidth={2.25} aria-hidden="true" />
+                  ) : (
+                    item.id
+                  )}
                 </span>
                 <span className="hidden truncate lg:inline">{item.title}</span>
               </button>
@@ -138,13 +143,13 @@ function DoneBanner() {
       <div className="mt-4 flex flex-wrap gap-3">
         <Link
           href="/kit"
-          className="rounded-full bg-brass px-4 py-2 text-sm font-medium text-ink hover:bg-brass/90"
+          className="cmp-cta rounded-full bg-brass px-4 py-2 text-sm font-medium text-ink hover:bg-brass/90"
         >
           Open starter pack
         </Link>
         <Link
           href="/explore"
-          className="rounded-full border border-line px-4 py-2 text-sm text-paper hover:border-brass/40"
+          className="cmp-cta rounded-full border border-line px-4 py-2 text-sm text-paper hover:border-brass/40"
         >
           Pick from the archive
         </Link>
@@ -224,12 +229,13 @@ function StepCard({
         <button
           type="button"
           onClick={onToggle}
-          className={`rounded-full px-4 py-2 text-sm ${
+          className={`cmp-cta inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm ${
             isDone
               ? "bg-brass text-ink"
               : "border border-line text-paper hover:border-brass/40"
           }`}
         >
+          {isDone ? <Check size={14} strokeWidth={2} aria-hidden="true" /> : null}
           {isDone ? "Done" : "Mark done"}
         </button>
         {archive ? (
@@ -257,24 +263,27 @@ function StepCard({
           type="button"
           onClick={onPrev}
           disabled={step.id === 1}
-          className="font-mono text-[11px] uppercase tracking-wider text-mute disabled:opacity-30"
+          className="inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-wider text-mute disabled:opacity-30"
         >
-          ← Previous
+          <ChevronLeft size={12} strokeWidth={1.75} aria-hidden="true" />
+          Previous
         </button>
         {step.id === 12 ? (
           <Link
             href="/kit"
-            className="font-mono text-[11px] uppercase tracking-wider text-brass"
+            className="inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-wider text-brass"
           >
-            Next: starter pack →
+            Next: starter pack
+            <ChevronRight size={12} strokeWidth={1.75} aria-hidden="true" />
           </Link>
         ) : (
           <button
             type="button"
             onClick={onNext}
-            className="font-mono text-[11px] uppercase tracking-wider text-mute"
+            className="inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-wider text-mute"
           >
-            Next →
+            Next
+            <ChevronRight size={12} strokeWidth={1.75} aria-hidden="true" />
           </button>
         )}
       </div>

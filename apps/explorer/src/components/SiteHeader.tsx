@@ -1,20 +1,22 @@
 "use client";
 
+import { Menu, Star, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { useSavedIds } from "@/lib/useSaved";
 
 const LINKS = [
   { href: "/setup", label: "Setup", active: "setup" },
   { href: "/kit", label: "Kit", active: "kit" },
   { href: "/explore", label: "Archive", active: "explore" },
+  { href: "/motion", label: "Motion", active: "motion" },
 ] as const;
 
 export function SiteHeader({
   active,
 }: {
-  active?: "home" | "setup" | "kit" | "explore" | "item";
+  active?: "home" | "setup" | "kit" | "explore" | "item" | "motion";
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -66,11 +68,12 @@ export function SiteHeader({
             href="/explore?saved=1"
             label={savedCount ? `Saved (${savedCount})` : "Saved"}
             current={false}
+            icon={<Star size={11} strokeWidth={1.75} aria-hidden="true" />}
           />
           {active !== "setup" ? (
             <Link
               href="/setup"
-              className="ml-1 rounded-full bg-brass px-3 py-1.5 font-mono text-[11px] font-medium uppercase tracking-wider text-ink hover:bg-brass/90"
+              className="cmp-cta ml-1 rounded-full bg-brass px-3 py-1.5 font-mono text-[11px] font-medium uppercase tracking-wider text-ink hover:bg-brass/90"
             >
               Start setup
             </Link>
@@ -86,9 +89,11 @@ export function SiteHeader({
           onClick={() => setOpen((current) => !current)}
         >
           <span className="sr-only">{open ? "Close menu" : "Open menu"}</span>
-          <span aria-hidden="true" className="font-mono text-sm text-paper">
-            {open ? "✕" : "☰"}
-          </span>
+          {open ? (
+            <X size={18} strokeWidth={1.75} aria-hidden="true" className="text-paper" />
+          ) : (
+            <Menu size={18} strokeWidth={1.75} aria-hidden="true" className="text-paper" />
+          )}
         </button>
       </div>
 
@@ -112,7 +117,7 @@ export function SiteHeader({
                     : "text-mute hover:bg-ink/60 hover:text-paper"
                 }`}
               >
-                {link.label === "Kit" ? "Starter pack" : link.label}
+                {link.label === "Kit" ? "Starter pack" : link.label === "Motion" ? "Motion language" : link.label}
               </Link>
             ))}
             <Link
@@ -123,7 +128,7 @@ export function SiteHeader({
             </Link>
             <Link
               href="/setup"
-              className="mt-1 rounded-xl bg-brass px-3 py-2.5 text-center text-sm font-medium text-ink"
+              className="cmp-cta mt-1 rounded-xl bg-brass px-3 py-2.5 text-center text-sm font-medium text-ink"
             >
               Start setup
             </Link>
@@ -138,19 +143,22 @@ function NavLink({
   href,
   label,
   current,
+  icon,
 }: {
   href: string;
   label: string;
   current: boolean;
+  icon?: ReactNode;
 }) {
   return (
     <Link
       href={href}
       aria-current={current ? "page" : undefined}
-      className={`rounded-full px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider ${
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider ${
         current ? "bg-paper/10 text-paper" : "text-mute hover:text-paper"
       }`}
     >
+      {icon}
       {label}
     </Link>
   );

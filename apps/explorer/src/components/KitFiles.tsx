@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronsUpDown } from "lucide-react";
 import { useState } from "react";
 import { CopyButton } from "./CopyButton";
 
@@ -63,9 +64,10 @@ function KitFileCard({ item }: { item: KitFile }) {
               <button
                 type="button"
                 onClick={() => setOpen((current) => !current)}
-                className="rounded-full border border-line px-3 py-1.5 font-mono text-[11px] text-mute hover:text-paper"
+                className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 font-mono text-[11px] text-mute hover:text-paper"
                 aria-expanded={open}
               >
+                <ChevronsUpDown size={12} strokeWidth={1.75} aria-hidden="true" />
                 {open ? "Collapse" : "Expand"}
               </button>
             ) : null}
