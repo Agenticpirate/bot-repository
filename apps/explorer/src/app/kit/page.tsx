@@ -1,12 +1,20 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import type { Metadata } from "next";
 import Link from "next/link";
+import { KitFiles } from "@/components/KitFiles";
 import { SiteHeader } from "@/components/SiteHeader";
 import { compound } from "@/lib/compound";
 
-export const metadata = {
-  title: "Starter pack · Compound",
-  description: "Memory Steward, Who-I-Am, DECISIONS, shared-vs-private, weekly prune.",
+const title = "Starter pack · Compound";
+const description =
+  "Memory Steward, Who-I-Am, DECISIONS, shared-vs-private, and weekly prune — copy-ready files for the Compound memory OS.";
+
+export const metadata: Metadata = {
+  title,
+  description,
+  openGraph: { title, description },
+  twitter: { card: "summary", title, description },
 };
 
 const FILES = [
@@ -33,7 +41,7 @@ export default async function KitPage() {
   return (
     <>
       <SiteHeader active="kit" />
-      <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
+      <main id="main" className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
         <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-brass">
           Starter pack
         </p>
@@ -47,23 +55,15 @@ export default async function KitPage() {
           tree.{" "}
           <Link href="/setup" className="text-brass hover:underline">
             Run the 12-step setup
-          </Link>{" "}
-          in parallel.
+          </Link>
+          , then{" "}
+          <Link href="/explore" className="text-brass hover:underline">
+            pick roles from the archive
+          </Link>
+          .
         </p>
 
-        <div className="mt-8 flex flex-col gap-8">
-          {files.map((item) => (
-            <section key={item.file} id={item.file.replace(/\.md$/, "")}>
-              <div className="flex items-baseline justify-between gap-3">
-                <h2 className="font-display text-xl text-paper">{item.title}</h2>
-                <span className="font-mono text-[10px] text-mute">{item.file}</span>
-              </div>
-              <pre className="mt-3 overflow-auto whitespace-pre-wrap rounded-2xl border border-line bg-panel p-4 font-mono text-[12px] leading-relaxed text-paper/90">
-                {item.text}
-              </pre>
-            </section>
-          ))}
-        </div>
+        <KitFiles files={files} />
 
         <p className="mt-10 text-xs leading-relaxed text-mute">
           Inspired by{" "}

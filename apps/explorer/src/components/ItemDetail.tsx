@@ -2,18 +2,18 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import {
-  decodeItemId,
-  loadCatalog,
-  loadPreviews,
-  type Catalog,
-} from "@/lib/catalog";
-import { formatDate, hostOf, sourceHue, typeClass } from "@/lib/format";
+import { decodeItemId, loadCatalog, loadPreviews } from "@/lib/catalog";
+import { formatDate, hostOf } from "@/lib/format";
 import type { BodyPreview, IndexDoc } from "@/lib/types";
+import { CopyButton } from "./CopyButton";
+import { SavedButton } from "./SavedButton";
+import { SourceBadge } from "./SourceBadge";
+import { TypeBadge } from "./TypeBadge";
 
 export function ItemDetail({ encodedId }: { encodedId: string }) {
   const id = decodeItemId(encodedId);
-  const [catalog, setCatalog] = useState<Catalog | null>(null);
+  const [catalogReady, setCatalogReady] = useState(false);
+  const [doc, setDoc] = useState<IndexDoc | null | undefined>(undefined);
   const [preview, setPreview] = useState<BodyPreview | null | undefined>(
     undefined,
   );
@@ -24,12 +24,15 @@ export function ItemDetail({ encodedId }: { encodedId: string }) {
     Promise.all([loadCatalog(), loadPreviews()])
       .then(([loaded, previews]) => {
         if (cancelled) return;
-        setCatalog(loaded);
+        setCatalogReady(true);
+        setDoc(loaded.byId.get(id) ?? null);
         setPreview(previews[id] ?? null);
       })
       .catch((err: unknown) => {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load item");
+          setCatalogReady(true);
+          setDoc(null);
         }
       });
     return () => {
@@ -37,31 +40,35 @@ export function ItemDetail({ encodedId }: { encodedId: string }) {
     };
   }, [id]);
 
-  const doc = catalog?.byId.get(id);
-
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-20 pt-8 sm:px-6">
-      <Link
-        href="/explore"
-        className="font-mono text-[11px] uppercase tracking-wider text-mute hover:text-brass"
-      >
-        ← Archive
-      </Link>
+        <Link
+          href="/explore"
+          className="font-mono text-[11px] uppercase tracking-wider text-mute hover:text-brass"
+        >
+          ← Archive
+        </Link>
 
-      {error ? (
-        <p className="mt-6 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-          {error}
-        </p>
-      ) : null}
+        {error ? (
+          <div
+            role="alert"
+            className="mt-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-5"
+          >
+            <p className="font-display text-lg text-paper">Could not load listing</p>
+            <p className="mt-1 text-sm text-rose-100/90">{error}</p>
+          </div>
+        ) : null}
 
-      {!catalog ? (
-        <p className="mt-8 font-mono text-xs text-mute">Loading…</p>
-      ) : !doc ? (
-        <Missing id={id} />
-      ) : (
-        <Article doc={doc} preview={preview} />
-      )}
-    </div>
+        {!catalogReady ? (
+          <div className="mt-8 animate-pulse rounded-2xl border border-line bg-panel/40 px-6 py-16">
+            <p className="font-mono text-xs text-mute">Loading listing…</p>
+          </div>
+        ) : !doc ? (
+          <Missing id={id} />
+        ) : (
+          <Article doc={doc} preview={preview} />
+        )}
+      </div>
   );
 }
 
@@ -74,6 +81,12 @@ function Missing({ id }: { id: string }) {
         the committed seed (or loaded full index). The explorer only shows real
         catalog rows — it will not fabricate a page for a missing id.
       </p>
+      <Link
+        href="/explore"
+        className="mt-5 inline-flex rounded-full bg-brass px-4 py-2 text-sm font-medium text-ink"
+      >
+        Back to archive
+      </Link>
     </div>
   );
 }
@@ -91,17 +104,8 @@ function Article({
     <article className="mt-6 flex flex-col gap-6">
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ring-1 ${typeClass(doc.type)}`}
-          >
-            {doc.type}
-          </span>
-          <span
-            className="font-mono text-[12px]"
-            style={{ color: sourceHue(doc.source) }}
-          >
-            {doc.source}
-          </span>
+          <TypeBadge type={doc.type} />
+          <SourceBadge source={doc.source} />
           {doc.updated ? (
             <span className="font-mono text-[11px] text-mute">
               Updated {formatDate(doc.updated)}
@@ -118,6 +122,29 @@ function Article({
             No description was published on this catalog row.
           </p>
         )}
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          {doc.url ? (
+            <a
+              href={doc.url}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-full bg-brass px-4 py-2 text-sm font-medium text-ink hover:bg-brass/90"
+            >
+              Open original source
+            </a>
+          ) : (
+            <span className="rounded-full border border-dashed border-line px-4 py-2 text-sm text-mute">
+              No original URL on this row
+            </span>
+          )}
+          <SavedButton id={doc.id} />
+          <CopyButton
+            getText={() => window.location.href}
+            label="Copy link"
+            copiedLabel="Link copied"
+            tone="ghost"
+          />
+        </div>
       </header>
 
       <aside className="rounded-2xl border border-brass/25 bg-brass/8 px-4 py-3 text-sm leading-relaxed text-paper/90">
