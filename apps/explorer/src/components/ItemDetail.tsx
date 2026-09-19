@@ -1,0 +1,241 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import {
+  decodeItemId,
+  loadCatalog,
+  loadPreviews,
+  type Catalog,
+} from "@/lib/catalog";
+import { formatDate, hostOf, sourceHue, typeClass } from "@/lib/format";
+import type { BodyPreview, IndexDoc } from "@/lib/types";
+
+export function ItemDetail({ encodedId }: { encodedId: string }) {
+  const id = decodeItemId(encodedId);
+  const [catalog, setCatalog] = useState<Catalog | null>(null);
+  const [preview, setPreview] = useState<BodyPreview | null | undefined>(
+    undefined,
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([loadCatalog(), loadPreviews()])
+      .then(([loaded, previews]) => {
+        if (cancelled) return;
+        setCatalog(loaded);
+        setPreview(previews[id] ?? null);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load item");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const doc = catalog?.byId.get(id);
+
+  return (
+    <div className="mx-auto w-full max-w-3xl px-4 pb-20 pt-8 sm:px-6">
+      <Link
+        href="/explore"
+        className="font-mono text-[11px] uppercase tracking-wider text-mute hover:text-brass"
+      >
+        ← Archive
+      </Link>
+
+      {error ? (
+        <p className="mt-6 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          {error}
+        </p>
+      ) : null}
+
+      {!catalog ? (
+        <p className="mt-8 font-mono text-xs text-mute">Loading…</p>
+      ) : !doc ? (
+        <Missing id={id} />
+      ) : (
+        <Article doc={doc} preview={preview} />
+      )}
+    </div>
+  );
+}
+
+function Missing({ id }: { id: string }) {
+  return (
+    <div className="mt-8 rounded-2xl border border-dashed border-line px-6 py-12">
+      <h1 className="font-display text-2xl text-paper">Not in this index</h1>
+      <p className="mt-2 text-sm text-mute">
+        <code className="font-mono text-brass/90">{id}</code> is not present in
+        the committed seed (or loaded full index). The explorer only shows real
+        catalog rows — it will not fabricate a page for a missing id.
+      </p>
+    </div>
+  );
+}
+
+function Article({
+  doc,
+  preview,
+}: {
+  doc: IndexDoc;
+  preview: BodyPreview | null | undefined;
+}) {
+  const sourceSite = doc.url ? hostOf(doc.url) : doc.source;
+
+  return (
+    <article className="mt-6 flex flex-col gap-6">
+      <header className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ring-1 ${typeClass(doc.type)}`}
+          >
+            {doc.type}
+          </span>
+          <span
+            className="font-mono text-[12px]"
+            style={{ color: sourceHue(doc.source) }}
+          >
+            {doc.source}
+          </span>
+          {doc.updated ? (
+            <span className="font-mono text-[11px] text-mute">
+              Updated {formatDate(doc.updated)}
+            </span>
+          ) : null}
+        </div>
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-paper">
+          {doc.name}
+        </h1>
+        {doc.description ? (
+          <p className="text-[15px] leading-relaxed text-mute">{doc.description}</p>
+        ) : (
+          <p className="text-sm italic text-mute">
+            No description was published on this catalog row.
+          </p>
+        )}
+      </header>
+
+      <aside className="rounded-2xl border border-brass/25 bg-brass/8 px-4 py-3 text-sm leading-relaxed text-paper/90">
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-brass">
+          Research mirror
+        </p>
+        <p className="mt-1">
+          This page is an archive listing from{" "}
+          <strong className="font-medium">{doc.source}</strong>. The canonical
+          record lives on the source site
+          {doc.url ? (
+            <>
+              {" "}
+              (
+              <a
+                href={doc.url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-brass underline decoration-brass/40 underline-offset-2 hover:decoration-brass"
+              >
+                {sourceSite}
+              </a>
+              )
+            </>
+          ) : (
+            ". No original URL was stored on this row."
+          )}
+          . Do not treat this mirror as the publisher of record.
+        </p>
+      </aside>
+
+      <dl className="grid gap-3 rounded-2xl border border-line bg-panel/70 p-4 text-sm sm:grid-cols-2">
+        <Field label="Archive id" value={doc.id} mono />
+        <Field label="Type" value={doc.type} />
+        <Field label="Source folder" value={`sources/${doc.source}`} mono />
+        {doc.path ? <Field label="Local path" value={doc.path} mono /> : null}
+        {doc.url ? (
+          <div className="sm:col-span-2">
+            <dt className="font-mono text-[10px] uppercase tracking-wider text-mute">
+              Original URL
+            </dt>
+            <dd className="mt-0.5 break-all">
+              <a
+                href={doc.url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-brass hover:underline"
+              >
+                {doc.url}
+              </a>
+            </dd>
+          </div>
+        ) : null}
+        {doc.tags?.length ? (
+          <div className="sm:col-span-2">
+            <dt className="font-mono text-[10px] uppercase tracking-wider text-mute">
+              Tags / category
+            </dt>
+            <dd className="mt-1 flex flex-wrap gap-1">
+              {doc.tags.map((item) => (
+                <Link
+                  key={item}
+                  href={`/explore?tag=${encodeURIComponent(item)}`}
+                  className="rounded bg-ink px-1.5 py-0.5 font-mono text-[11px] text-mute hover:text-paper"
+                >
+                  {item}
+                </Link>
+              ))}
+            </dd>
+          </div>
+        ) : null}
+      </dl>
+
+      <section>
+        <h2 className="font-mono text-[11px] uppercase tracking-wider text-mute">
+          Body preview
+        </h2>
+        {preview === undefined ? (
+          <p className="mt-2 font-mono text-xs text-mute">Loading preview…</p>
+        ) : preview ? (
+          <div className="mt-2 overflow-hidden rounded-2xl border border-line">
+            <div className="flex items-center justify-between border-b border-line bg-ink px-3 py-1.5 font-mono text-[10px] text-mute">
+              <span>{preview.path}</span>
+              <span>{preview.kind}</span>
+            </div>
+            <pre className="max-h-[32rem] overflow-auto bg-panel/80 p-4 font-mono text-[12px] leading-relaxed text-paper/90 whitespace-pre-wrap">
+              {preview.text}
+            </pre>
+          </div>
+        ) : (
+          <p className="mt-2 rounded-xl border border-dashed border-line px-4 py-6 text-sm text-mute">
+            {doc.path
+              ? `A local path is recorded (${doc.path}), but this seed does not bundle that file. Open the original URL, or rebuild the index on a machine with the archive checkout to attach previews.`
+              : "No local body path is stored on this catalog row. Use the original URL."}
+          </p>
+        )}
+      </section>
+    </article>
+  );
+}
+
+function Field({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div>
+      <dt className="font-mono text-[10px] uppercase tracking-wider text-mute">
+        {label}
+      </dt>
+      <dd className={`mt-0.5 break-all text-paper ${mono ? "font-mono text-[12px]" : ""}`}>
+        {value}
+      </dd>
+    </div>
+  );
+}

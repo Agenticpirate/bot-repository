@@ -6,6 +6,25 @@ This repository (and the Compound explorer in [PR #3](https://github.com/Agentic
 
 Latest internet audit: [docs/source-audit-2026-09-18.md](docs/source-audit-2026-09-18.md). Refresh: `python3 scripts/refresh_2026_09_18.py`.
 
+## Compound + Explorer
+
+[**Compound**](products/compound/) is a Memory OS for a one-person Grok Bot company. The web front door is [`apps/explorer`](apps/explorer/):
+
+| Route | What |
+| --- | --- |
+| `/` | Compound landing |
+| `/setup` | 12-step wizard (copy-paste prompts) |
+| `/kit` | Memory Steward + Who-I-Am + DECISIONS templates |
+| `/explore` | Public archive search — pick role bots & skills |
+
+```bash
+cd apps/explorer && npm install && npm run dev
+```
+
+Search uses a **slim index** (not `catalog.json`, not the ~2TB `sources/` tree). A committed seed is enough for local/CI/demo. Rebuild with `python3 scripts/build-explorer-index.py --mode seed` or `--mode full` on a machine that has the archive checkout. See [apps/explorer/README.md](apps/explorer/README.md) and [products/compound/README.md](products/compound/README.md).
+
+Inspired by [@kingwilliam_](https://x.com/kingwilliam_/status/2096273503901122746) — thesis credit, not a reprint.
+
 ## Completeness (2026-09-18)
 
 | Item | Status |
@@ -144,7 +163,7 @@ GitHub bulk fill: `python3 scripts/fill_skills_sh_from_github.py --workers 24`
 
 Notes and leftovers: [docs/source-audit-2026-09-18.md](docs/source-audit-2026-09-18.md), [docs/source-candidates.md](docs/source-candidates.md), [docs/source-candidates-batch2.md](docs/source-candidates-batch2.md), [docs/source-candidates-batch3-claude-muse-workflows.md](docs/source-candidates-batch3-claude-muse-workflows.md), [docs/source-candidates-batch4.md](docs/source-candidates-batch4.md), [docs/source-candidates-batch5.md](docs/source-candidates-batch5.md), [docs/source-candidates-batch6.md](docs/source-candidates-batch6.md), [docs/claude-ecosystem-sources.md](docs/claude-ecosystem-sources.md), [docs/muse-research.md](docs/muse-research.md).
 
-Explorer (`apps/explorer`) lives on [PR #3](https://github.com/Agenticpirate/bot-repository/pull/3) and is **not on main**. Rebuild `scripts/build-explorer-index.py` after this scrape so `/explore` includes `stalk-bot` and the new Grok galleries.
+Explorer (`apps/explorer`) lives on [PR #3](https://github.com/Agenticpirate/bot-repository/pull/3) and is **not on main**. Seed index rebuilt 2026-09-18 after the scrape: `/explore` includes `stalk-bot`, grokbot-templates.com, grokbottemplates.dev, grokmarket.io, and the other new galleries.
 
 ## Attribution
 
@@ -157,6 +176,8 @@ really.bot is not a prompt pack or an official xAI/Cursor product. botteams.io i
 ```
 README.md
 catalog.json
+apps/explorer/          # Compound front door + archive search (slim index)
+products/compound/      # Memory OS product kit + 12 prompts + starter pack
 docs/source-candidates.md
 sources/really.bot/
 sources/botteams.io/
