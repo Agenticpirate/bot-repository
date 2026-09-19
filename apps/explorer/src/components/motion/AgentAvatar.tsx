@@ -58,7 +58,7 @@ export function AgentAvatar({
         <BotGlyph name={name} id={id} state={state} dialect={dialect} size={size} />
         {showMark ? (
           <span className="cmp-mark-slot">
-            <ThinkingMark size={size === "xl" || size === "lg" ? "sm" : "xs"} />
+            <ThinkingMark size={size === "xl" || size === "lg" ? "md" : "sm"} />
           </span>
         ) : null}
       </span>

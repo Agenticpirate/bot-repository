@@ -106,7 +106,7 @@ function Article({
   return (
     <article className="mt-6 flex flex-col gap-6">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-5">
-        <ListingFace doc={doc} size="lg" />
+        <ListingFace doc={doc} size="xl" />
         <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <TypeBadge type={doc.type} />

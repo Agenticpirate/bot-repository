@@ -69,7 +69,7 @@ export function FeaturedShelves({
                     href={`/item/${encodeItemId(doc.id)}`}
                     className="flex items-start gap-2.5 rounded-xl border border-transparent px-2 py-2 hover:border-line hover:bg-ink/50"
                   >
-                    <ListingFace doc={doc} size="xs" />
+                    <ListingFace doc={doc} size="sm" />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <TypeBadge type={doc.type} />

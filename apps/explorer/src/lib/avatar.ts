@@ -14,16 +14,16 @@ export type Accessory = (typeof ACCESSORIES)[number];
 export const EYE_SHAPES = ["round", "oval", "wide"] as const;
 export type EyeShape = (typeof EYE_SHAPES)[number];
 
-/** Dark Compound fills — not a rainbow identicon. */
+/** Mid Compound fills — readable on ink, not a rainbow identicon. */
 export const PEBBLE_TONES = [
-  "#1c2230",
-  "#2a261c",
-  "#1a2622",
-  "#261c28",
-  "#1e2428",
-  "#2c2218",
-  "#18242c",
-  "#281c1c",
+  "#5a6478",
+  "#6b5d48",
+  "#3f5c52",
+  "#5c4a62",
+  "#4a5560",
+  "#6a5340",
+  "#3d5864",
+  "#6a4545",
 ] as const;
 
 export const PEBBLE_ACCENTS = [

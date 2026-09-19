@@ -11,7 +11,7 @@ export function ResultCard({ doc }: { doc: IndexDoc }) {
   return (
     <div className="flex flex-col gap-2 px-4 py-3.5 transition hover:bg-paper/[0.03] sm:flex-row sm:items-start sm:gap-4">
       <div className="hidden shrink-0 pt-0.5 sm:block">
-        <ListingFace doc={doc} size="sm" />
+        <ListingFace doc={doc} size="md" />
       </div>
       <Link
         href={`/item/${encodeItemId(doc.id)}`}
