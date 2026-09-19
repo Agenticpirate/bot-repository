@@ -9,6 +9,7 @@ This Next.js app is the web product for **[Compound](../../products/compound/)**
 | `/kit` | Starter pack (Memory Steward, Who-I-Am, DECISIONS, …) |
 | `/explore` | Archive search (slim index, source badges, original URLs) |
 | `/item/[id]` | Listing detail + attribution + body preview when bundled |
+| `/motion` | Agent motion + icon language (pebble / soft / mark / outline) |
 
 Inspired by [KingWilliam’s article](https://x.com/kingwilliam_/status/2096273503901122746) (`@kingwilliam_`). Thesis credit only — see `products/compound/ATTRIBUTION.md`. Archive listings remain a **research mirror**; canonical pages live on the source sites. No invented serials.
 
@@ -59,6 +60,7 @@ Or `npm run index` / `npm run index:full` from this directory.
 
 - **Next.js App Router** + TypeScript + Tailwind
 - **MiniSearch** in the browser for `/explore`
+- **Motion / icons:** original Compound pebbles + `lucide-react` — see [`docs/MOTION.md`](docs/MOTION.md)
 - Setup progress is `localStorage` only (this browser, not a backend)
 - Shards are NDJSON (gzip when a shard exceeds ~1.5 MB uncompressed)
 

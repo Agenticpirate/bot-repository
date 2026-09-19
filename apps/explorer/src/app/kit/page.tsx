@@ -41,7 +41,7 @@ export default async function KitPage() {
   return (
     <>
       <SiteHeader active="kit" />
-      <main id="main" className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
+      <main id="main" className="cmp-enter mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
         <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-brass">
           Starter pack
         </p>
