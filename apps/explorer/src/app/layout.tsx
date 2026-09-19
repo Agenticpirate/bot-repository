@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Fraunces, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -20,20 +21,39 @@ const fraunces = Fraunces({
   variable: "--font-fraunces",
 });
 
+const description =
+  "Memory OS for a one-person Grok Bot company. Install shared memory, then pick role bots from the public archive.";
+
 export const metadata: Metadata = {
   title: {
     default: "Compound · Memory OS",
     template: "%s",
   },
-  description:
-    "Memory OS for a one-person Grok Bot company. Install shared memory, then pick role bots from the public archive.",
+  description,
   icons: { icon: "/favicon.svg" },
+  openGraph: {
+    title: "Compound · Memory OS",
+    description,
+    siteName: "Compound",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Compound · Memory OS",
+    description,
+  },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${plex.variable} ${plexMono.variable} ${fraunces.variable}`}>
       <body className="font-sans antialiased">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-brass focus:px-4 focus:py-2 focus:text-sm focus:text-ink"
+        >
+          Skip to content
+        </a>
         <div className="flex min-h-screen flex-col">
           {children}
           <footer className="mt-auto border-t border-line px-4 py-5 text-center text-xs leading-relaxed text-mute">

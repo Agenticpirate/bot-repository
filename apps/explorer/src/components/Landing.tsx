@@ -1,12 +1,19 @@
 import Link from "next/link";
 import { MEMORY_LAWS, compound } from "@/lib/compound";
+import { readManifest, topTypes } from "@/lib/manifest";
+import { plural } from "@/lib/format";
+import { ArchiveStats } from "./ArchiveStats";
+import { FeaturedShelves } from "./FeaturedShelves";
 import { SiteHeader } from "./SiteHeader";
 
-export function Landing() {
+export async function Landing() {
+  const manifest = await readManifest();
+  const leading = topTypes(manifest.types, 3);
+
   return (
     <>
       <SiteHeader active="home" />
-      <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-12 sm:px-6 sm:pt-16">
+      <main id="main" className="mx-auto w-full max-w-6xl px-4 pb-20 pt-12 sm:px-6 sm:pt-16">
         <section className="max-w-3xl">
           <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-brass">
             One-person Grok Bot company
@@ -15,24 +22,57 @@ export function Landing() {
             Memory OS for the company you already run.
           </h1>
           <p className="mt-5 max-w-2xl text-[17px] leading-relaxed text-mute">
-            Same bots. Same budget. The winners are not the ones who chat more —
-            they are the ones who engineer shared vs private memory, a Who-I-Am
-            profile, named skills, a decisions log, and a weekly prune.
+            Same bots. Same budget. Install shared vs private memory, a Who-I-Am
+            profile, named skills, a decisions log, and a weekly prune — then seat
+            real role bots from the public archive.
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link
+          <ol className="mt-8 grid gap-3 sm:grid-cols-3">
+            <PathCard
+              n="01"
+              title="Setup"
+              body="Twelve copy-paste prompts. Mark done in this browser."
               href="/setup"
-              className="rounded-full bg-brass px-5 py-2.5 text-sm font-medium text-ink hover:bg-brass/90"
-            >
-              Start setup
-            </Link>
-            <Link
+              cta="Start setup"
+              primary
+            />
+            <PathCard
+              n="02"
+              title="Kit"
+              body="Memory Steward, Who I Am, DECISIONS, prune files."
+              href="/kit"
+              cta="Open starter pack"
+            />
+            <PathCard
+              n="03"
+              title="Explore"
+              body={`Pick from ${manifest.indexed.toLocaleString()} real seed listings.`}
               href="/explore"
-              className="rounded-full border border-line px-5 py-2.5 text-sm text-paper hover:border-brass/40"
-            >
-              Pick bots & skills from the archive
-            </Link>
+              cta="Browse the archive"
+            />
+          </ol>
+        </section>
+
+        <section className="mt-14" aria-labelledby="archive-scale">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-brass">
+                Archive scale
+              </p>
+              <h2 id="archive-scale" className="font-display mt-1 text-2xl font-semibold text-paper">
+                A research mirror, counted from the seed.
+              </h2>
+            </div>
+            <p className="max-w-sm text-sm leading-relaxed text-mute">
+              {leading.map(([type, count], index) => (
+                <span key={type}>
+                  {index > 0 ? " · " : ""}
+                  {plural(count, type)}
+                </span>
+              ))}{" "}
+              in this committed seed. Counts are not estimates.
+            </p>
           </div>
+          <ArchiveStats manifest={manifest} />
         </section>
 
         <section className="mt-16 grid gap-3 md:grid-cols-3">
@@ -52,6 +92,10 @@ export function Landing() {
             body="Pricing, voice, and process get re-litigated because nothing was locked as a decision or a rule."
           />
         </section>
+
+        <div className="mt-20">
+          <FeaturedShelves />
+        </div>
 
         <section className="mt-20">
           <div className="flex flex-wrap items-end justify-between gap-4">
@@ -82,7 +126,7 @@ export function Landing() {
           </ol>
         </section>
 
-        <section className="mt-20 grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+        <section className="mt-20 grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-brass">
               Archive-powered
@@ -134,12 +178,20 @@ export function Landing() {
                 Am and DECISIONS. Then pick roles from the archive.
               </p>
             </div>
-            <Link
-              href="/setup"
-              className="shrink-0 rounded-full bg-brass px-5 py-2.5 text-sm font-medium text-ink hover:bg-brass/90"
-            >
-              Start setup
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/setup"
+                className="shrink-0 rounded-full bg-brass px-5 py-2.5 text-sm font-medium text-ink hover:bg-brass/90"
+              >
+                Start setup
+              </Link>
+              <Link
+                href="/kit"
+                className="shrink-0 rounded-full border border-line px-5 py-2.5 text-sm text-paper hover:border-brass/40"
+              >
+                Starter pack
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -158,6 +210,40 @@ export function Landing() {
         </p>
       </main>
     </>
+  );
+}
+
+function PathCard({
+  n,
+  title,
+  body,
+  href,
+  cta,
+  primary,
+}: {
+  n: string;
+  title: string;
+  body: string;
+  href: string;
+  cta: string;
+  primary?: boolean;
+}) {
+  return (
+    <li className="flex flex-col rounded-2xl border border-line bg-panel/70 px-5 py-5">
+      <p className="font-mono text-[10px] text-brass">{n}</p>
+      <h2 className="mt-2 text-base font-medium text-paper">{title}</h2>
+      <p className="mt-2 flex-1 text-sm leading-relaxed text-mute">{body}</p>
+      <Link
+        href={href}
+        className={`mt-4 inline-flex w-fit rounded-full px-3.5 py-1.5 text-sm ${
+          primary
+            ? "bg-brass font-medium text-ink hover:bg-brass/90"
+            : "border border-line text-paper hover:border-brass/40"
+        }`}
+      >
+        {cta}
+      </Link>
+    </li>
   );
 }
 

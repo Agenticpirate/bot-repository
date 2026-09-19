@@ -1,16 +1,49 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useId, useState } from "react";
+import { useSavedIds } from "@/lib/useSaved";
 
 const LINKS = [
-  { href: "/setup", label: "Setup" },
-  { href: "/kit", label: "Starter pack" },
-  { href: "/explore", label: "Archive" },
+  { href: "/setup", label: "Setup", active: "setup" },
+  { href: "/kit", label: "Kit", active: "kit" },
+  { href: "/explore", label: "Archive", active: "explore" },
 ] as const;
 
-export function SiteHeader({ active }: { active?: "home" | "setup" | "kit" | "explore" }) {
+export function SiteHeader({
+  active,
+}: {
+  active?: "home" | "setup" | "kit" | "explore" | "item";
+}) {
+  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const panelId = useId();
+  const savedIds = useSavedIds();
+  const savedCount = savedIds.length;
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   return (
     <header className="sticky top-0 z-30 border-b border-line/80 bg-ink/80 backdrop-blur-md">
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Link href="/" className="flex items-baseline gap-2.5">
+      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
+        <Link href="/" className="flex items-baseline gap-2.5 rounded-sm">
           <span className="font-display text-[17px] font-semibold tracking-tight text-paper">
             Compound
           </span>
@@ -18,32 +51,106 @@ export function SiteHeader({ active }: { active?: "home" | "setup" | "kit" | "ex
             Memory OS
           </span>
         </Link>
-        <nav className="flex items-center gap-1 sm:gap-2">
-          {LINKS.map((link) => {
-            const isActive =
-              (link.href === "/setup" && active === "setup") ||
-              (link.href === "/kit" && active === "kit") ||
-              (link.href === "/explore" && active === "explore");
-            return (
+
+        <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
+          {LINKS.map((link) => (
+            <NavLink
+              key={link.href}
+              href={link.href}
+              label={link.label}
+              current={active === link.active}
+            />
+          ))}
+          <NavLink
+            href="/explore?saved=1"
+            label={savedCount ? `Saved (${savedCount})` : "Saved"}
+            current={false}
+          />
+          {active !== "setup" ? (
+            <Link
+              href="/setup"
+              className="ml-1 rounded-full bg-brass px-3 py-1.5 font-mono text-[11px] font-medium uppercase tracking-wider text-ink hover:bg-brass/90"
+            >
+              Start setup
+            </Link>
+          ) : null}
+        </nav>
+
+        <button
+          type="button"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-lg ring-1 ring-line md:hidden"
+          aria-expanded={open}
+          aria-controls={panelId}
+          aria-label={open ? "Close menu" : "Open menu"}
+          onClick={() => setOpen((current) => !current)}
+        >
+          <span className="sr-only">{open ? "Close menu" : "Open menu"}</span>
+          <span aria-hidden="true" className="font-mono text-sm text-paper">
+            {open ? "✕" : "☰"}
+          </span>
+        </button>
+      </div>
+
+      {open ? (
+        <div
+          id={panelId}
+          className="border-t border-line bg-panel md:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Site menu"
+        >
+          <nav className="mx-auto flex w-full max-w-6xl flex-col gap-1 px-4 py-3 sm:px-6">
+            {LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`rounded-full px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider ${
-                  isActive ? "bg-paper/10 text-paper" : "text-mute hover:text-paper"
+                aria-current={active === link.active ? "page" : undefined}
+                className={`rounded-xl px-3 py-2.5 text-sm ${
+                  active === link.active
+                    ? "bg-ink text-paper"
+                    : "text-mute hover:bg-ink/60 hover:text-paper"
                 }`}
               >
-                {link.label}
+                {link.label === "Kit" ? "Starter pack" : link.label}
               </Link>
-            );
-          })}
-          <Link
-            href="/setup"
-            className="ml-1 rounded-full bg-brass px-3 py-1.5 font-mono text-[11px] font-medium uppercase tracking-wider text-ink hover:bg-brass/90"
-          >
-            Start setup
-          </Link>
-        </nav>
-      </div>
+            ))}
+            <Link
+              href="/explore?saved=1"
+              className="rounded-xl px-3 py-2.5 text-sm text-mute hover:bg-ink/60 hover:text-paper"
+            >
+              Saved in this browser{savedCount ? ` (${savedCount})` : ""}
+            </Link>
+            <Link
+              href="/setup"
+              className="mt-1 rounded-xl bg-brass px-3 py-2.5 text-center text-sm font-medium text-ink"
+            >
+              Start setup
+            </Link>
+          </nav>
+        </div>
+      ) : null}
     </header>
+  );
+}
+
+function NavLink({
+  href,
+  label,
+  current,
+}: {
+  href: string;
+  label: string;
+  current: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={current ? "page" : undefined}
+      className={`rounded-full px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider ${
+        current ? "bg-paper/10 text-paper" : "text-mute hover:text-paper"
+      }`}
+    >
+      {label}
+    </Link>
   );
 }

@@ -87,8 +87,8 @@ async function fetchCatalog(): Promise<Catalog> {
   };
 }
 
-export function loadCatalog(): Promise<Catalog> {
-  if (!catalogPromise) {
+export function loadCatalog(options?: { reload?: boolean }): Promise<Catalog> {
+  if (options?.reload || !catalogPromise) {
     catalogPromise = fetchCatalog();
   }
   return catalogPromise;
