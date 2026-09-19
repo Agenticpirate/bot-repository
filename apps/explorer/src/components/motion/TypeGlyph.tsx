@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import { AVATAR_PX, type AvatarSize, type MotionDialect } from "@/lib/motion";
 import { typeIcon } from "@/components/icons";
 
@@ -12,7 +13,6 @@ export function TypeGlyph({
   dialect?: MotionDialect;
   className?: string;
 }) {
-  const Icon = typeIcon(type);
   const px = AVATAR_PX[size];
   const iconPx = Math.max(12, Math.round(px * 0.46));
 
@@ -25,7 +25,10 @@ export function TypeGlyph({
       title={type}
       aria-hidden="true"
     >
-      <Icon size={iconPx} strokeWidth={dialect === "outline" ? 1.5 : 1.75} />
+      {createElement(typeIcon(type), {
+        size: iconPx,
+        strokeWidth: dialect === "outline" ? 1.5 : 1.75,
+      })}
     </span>
   );
 }
