@@ -18,13 +18,14 @@ export function SiteHeader({
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const [menuPath, setMenuPath] = useState(pathname);
+  if (pathname !== menuPath) {
+    setMenuPath(pathname);
+    setOpen(false);
+  }
   const panelId = useId();
   const savedIds = useSavedIds();
   const savedCount = savedIds.length;
-
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
 
   useEffect(() => {
     if (!open) return;

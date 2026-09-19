@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MEMORY_LAWS, compound } from "@/lib/compound";
-import { readManifest, topTypes } from "@/lib/manifest";
+import { readManifest } from "@/lib/manifest";
+import { topTypes } from "@/lib/stats";
 import { plural } from "@/lib/format";
 import { ArchiveStats } from "./ArchiveStats";
 import { FeaturedShelves } from "./FeaturedShelves";

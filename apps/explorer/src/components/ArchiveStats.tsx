@@ -1,4 +1,4 @@
-import { sourceCount, typeCount, topTypes } from "@/lib/manifest";
+import { sourceCount, typeCount, topTypes } from "@/lib/stats";
 import { plural } from "@/lib/format";
 import type { IndexManifest } from "@/lib/types";
 

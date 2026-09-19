@@ -18,11 +18,6 @@ export function ItemDetail({ encodedId }: { encodedId: string }) {
     undefined,
   );
   const [error, setError] = useState<string | null>(null);
-  const [shareUrl, setShareUrl] = useState("");
-
-  useEffect(() => {
-    setShareUrl(window.location.href);
-  }, [encodedId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,7 +66,7 @@ export function ItemDetail({ encodedId }: { encodedId: string }) {
         ) : !doc ? (
           <Missing id={id} />
         ) : (
-          <Article doc={doc} preview={preview} shareUrl={shareUrl} />
+          <Article doc={doc} preview={preview} />
         )}
       </div>
   );
@@ -99,11 +94,9 @@ function Missing({ id }: { id: string }) {
 function Article({
   doc,
   preview,
-  shareUrl,
 }: {
   doc: IndexDoc;
   preview: BodyPreview | null | undefined;
-  shareUrl: string;
 }) {
   const sourceSite = doc.url ? hostOf(doc.url) : doc.source;
 
@@ -145,14 +138,12 @@ function Article({
             </span>
           )}
           <SavedButton id={doc.id} />
-          {shareUrl ? (
-            <CopyButton
-              text={shareUrl}
-              label="Copy link"
-              copiedLabel="Link copied"
-              tone="ghost"
-            />
-          ) : null}
+          <CopyButton
+            getText={() => window.location.href}
+            label="Copy link"
+            copiedLabel="Link copied"
+            tone="ghost"
+          />
         </div>
       </header>
 

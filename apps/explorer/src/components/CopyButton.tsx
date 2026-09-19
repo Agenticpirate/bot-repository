@@ -4,12 +4,14 @@ import { useState } from "react";
 
 export function CopyButton({
   text,
+  getText,
   label = "Copy",
   copiedLabel = "Copied",
   tone = "primary",
   className = "",
 }: {
-  text: string;
+  text?: string;
+  getText?: () => string;
   label?: string;
   copiedLabel?: string;
   tone?: "primary" | "ghost";
@@ -18,7 +20,7 @@ export function CopyButton({
   const [copied, setCopied] = useState(false);
 
   const onCopy = async () => {
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(getText ? getText() : (text ?? ""));
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
   };

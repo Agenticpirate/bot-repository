@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { popularSources } from "@/lib/manifest";
+import { popularSources } from "@/lib/stats";
 import { sourceHue } from "@/lib/format";
 
 export function SourcePicker({
@@ -19,7 +19,7 @@ export function SourcePicker({
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const popular = useMemo(() => popularSources(sources, 8), [sources]);
+  const popular = useMemo(() => popularSources(sources, 6), [sources]);
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
     return Object.entries(sources)
@@ -76,7 +76,9 @@ export function SourcePicker({
                 : "text-mute ring-line hover:text-paper"
             }`}
           >
-            <span className="max-w-[10rem] truncate">{name}</span>
+            <span className="inline-block max-w-[9.5rem] truncate align-bottom" title={name}>
+              {name}
+            </span>
             <span className="ml-1 opacity-60">{count}</span>
           </button>
         ))}
